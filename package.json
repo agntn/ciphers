@@ -1,0 +1,43 @@
+{
+  "name": "cipherhouse",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Unified classical cipher provider library for agents",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "bin": {
+    "ch": "./dist/cli.mjs"
+  },
+  "pi": {
+    "extensions": ["./packages/pi/extensions/*.ts"]
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "build": "obuild",
+    "dev": "obuild --stub",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest --run"
+  },
+  "dependencies": {
+    "citty": "latest",
+    "consola": "latest"
+  },
+  "devDependencies": {
+    "obuild": "latest",
+    "typescript": "latest",
+    "vitest": "latest",
+    "tsx": "latest",
+    "@types/node": "latest",
+    "typebox": "latest",
+    "@earendil-works/pi-coding-agent": "latest",
+    "@earendil-works/pi-tui": "latest"
+  }
+}

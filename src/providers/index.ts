@@ -1,0 +1,10 @@
+// Self-registering imports — each import runs register()
+import './caesar'
+import './rot13'
+import './rot47'
+import './atbash'
+import './vigenere'
+import './rail-fence'
+import './affine'
+import './playfair'
+import './polybius'

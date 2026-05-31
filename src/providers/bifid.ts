@@ -1,4 +1,5 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { getOpt } from '../core/types'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -80,8 +81,8 @@ function decodeBifid(text: string, key: string, period: number): string {
 }
 
 function validate(opts: CipherBaseOptions): { key: string; period: number } {
-  const key = ((opts as Record<string, unknown>)?.key as string | undefined) ?? ''
-  const period = ((opts as Record<string, unknown>)?.period as number | undefined) ?? 5
+  const key = getOpt<string>(opts ?? {}, 'key', '')
+  const period = getOpt<number>(opts ?? {}, "period", 5)
   return { key, period }
 }
 

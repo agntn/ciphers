@@ -1,4 +1,5 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { getOpt } from '../core/types'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -34,8 +35,8 @@ function affineProcess(text: string, a: number, b: number, decrypt: boolean, pre
 }
 
 function validate(opts: CipherBaseOptions): { a: number; b: number; preserveCase: boolean; stripNonAlpha: boolean } {
-  const a = ((opts as Record<string, unknown>).a as number | undefined) ?? 5
-  const b = ((opts as Record<string, unknown>).b as number | undefined) ?? 8
+  const a = getOpt<number>(opts, "a", 5)
+  const b = getOpt<number>(opts, "b", 8)
   if (!Number.isInteger(a) || a < 1 || a > 25) throw new InvalidOptionError('a', a, 'must be integer 1-25')
   if (!Number.isInteger(b) || b < 0 || b > 25) throw new InvalidOptionError('b', b, 'must be integer 0-25')
   if (gcd(a, 26) !== 1) throw new InvalidOptionError('a', a, 'must be coprime with 26 (gcd(a,26)=1)')

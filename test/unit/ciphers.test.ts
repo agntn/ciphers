@@ -393,8 +393,8 @@ describe('resolveCipher', () => {
     expect(() => resolveCipher('enigma')).toThrow(/Unknown cipher/)
   })
 
-  it('throws with available list when no name given', () => {
-    expect(() => resolveCipher()).toThrow(/Available:/)
+  it('throws UnknownCipherError when no name given', () => {
+    expect(() => resolveCipher()).toThrow(/Unknown cipher/)
   })
 
   it('exact match required (no fuzzy prefix)', () => {

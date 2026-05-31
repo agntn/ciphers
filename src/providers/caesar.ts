@@ -1,5 +1,6 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions, CaesarOptions } from '../core/types'
+import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { InvalidOptionError, normalizeError } from '../core/errors'
+import { getOpt } from '../core/types'
 import { register } from '../core/registry'
 
 function caesarProcess(text: string, shift: number, preserveCase: boolean, stripNonAlpha: boolean): string {
@@ -18,7 +19,7 @@ function caesarProcess(text: string, shift: number, preserveCase: boolean, strip
 }
 
 function validate(opts: CipherBaseOptions): { shift: number; preserveCase: boolean; stripNonAlpha: boolean } {
-  const shift = ((opts as CaesarOptions).shift ?? 3)
+  const shift = getOpt<number>(opts, 'shift', 3)
   if (!Number.isInteger(shift) || shift < 1 || shift > 25) {
     throw new InvalidOptionError('shift', shift, 'must be integer 1-25')
   }

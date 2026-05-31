@@ -1,4 +1,5 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { getOpt } from '../core/types'
 import { MissingOptionError, InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -24,7 +25,7 @@ function vigenereProcess(text: string, key: string, decrypt: boolean, preserveCa
 }
 
 function validate(opts: CipherBaseOptions): { key: string; preserveCase: boolean; stripNonAlpha: boolean } {
-  const key = (opts as Record<string, unknown>).key as string | undefined
+  const key = getOpt<string | undefined>(opts, "key", undefined)
   if (!key) throw new MissingOptionError('key')
   return { key, preserveCase: opts.preserveCase ?? true, stripNonAlpha: opts.stripNonAlpha ?? false }
 }

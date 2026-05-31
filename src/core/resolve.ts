@@ -1,5 +1,6 @@
 import type { CipherProvider } from './types'
-import { ciphers, has, create } from './registry'
+import { UnknownCipherError } from './errors'
+import { has, create } from './registry'
 
 /** Resolve a cipher by exact name. */
 export function resolveCipher(preferred?: string): CipherProvider {
@@ -7,8 +8,6 @@ export function resolveCipher(preferred?: string): CipherProvider {
     const normalized = preferred.toLowerCase().replace(/\s+/g, '-')
     if (has(normalized)) return create(normalized)
   }
-  const available = ciphers()
-  throw new Error(
-    `Unknown cipher: ${preferred ?? '(none)'}\nAvailable: ${available.join(', ')}`,
-  )
+  
+  throw new UnknownCipherError(preferred ?? '(none)')
 }

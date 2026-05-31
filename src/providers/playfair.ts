@@ -1,4 +1,5 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { getOpt } from '../core/types'
 import { MissingOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -70,7 +71,7 @@ function processPlayfair(text: string, key: string, decrypt: boolean): string {
 }
 
 function validate(opts: CipherBaseOptions): { key: string } {
-  const key = (opts as Record<string, unknown>).key as string | undefined
+  const key = getOpt<string | undefined>(opts, "key", undefined)
   if (!key) throw new MissingOptionError('key')
   return { key }
 }

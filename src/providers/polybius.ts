@@ -1,4 +1,5 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { getOpt } from '../core/types'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -47,7 +48,7 @@ class PolybiusProvider implements CipherProvider {
 
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = ((options as Record<string, unknown>)?.key as string | undefined) ?? ''
+      const key = getOpt<string>(options ?? {}, 'key', '')
       const { pos } = buildSquare(key)
       const encoded: string[] = []
       for (const c of text.toUpperCase()) {
@@ -66,7 +67,7 @@ class PolybiusProvider implements CipherProvider {
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = ((options as Record<string, unknown>)?.key as string | undefined) ?? ''
+      const key = getOpt<string>(options ?? {}, 'key', '')
       const { square } = buildSquare(key)
       const pairs = text.trim().split(/\s+/)
       let result = ''

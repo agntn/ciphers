@@ -1,4 +1,5 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { getOpt } from '../core/types'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -41,7 +42,7 @@ function decodeRailFence(cipher: string, rails: number): string {
 }
 
 function validate(opts: CipherBaseOptions): { rails: number } {
-  const rails = ((opts as Record<string, unknown>).rails as number | undefined) ?? 3
+  const rails = getOpt<number>(opts, "rails", 3)
   if (!Number.isInteger(rails) || rails < 2) throw new InvalidOptionError('rails', rails, 'must be integer >= 2')
   return { rails }
 }

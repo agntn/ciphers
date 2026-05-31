@@ -12,6 +12,7 @@ export type {
   CipherProvider,
   CipherProviderFactory,
 } from './types'
+export { getOpt } from './types'
 export {
   CipherError,
   UnknownCipherError,

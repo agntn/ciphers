@@ -1,4 +1,5 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { getOpt } from '../core/types'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -79,14 +80,14 @@ class AdfgvxProvider implements CipherProvider {
 
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = ((options as Record<string, unknown>)?.key as string | undefined) ?? ''
+      const key = getOpt<string>(options ?? {}, 'key', '')
       return { text: encodeAdfgvx(text, key), cipher: 'adfgvx', operation: 'encode', options: { key } }
     } catch (e) { throw normalizeError(e, 'adfgvx') }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = ((options as Record<string, unknown>)?.key as string | undefined) ?? ''
+      const key = getOpt<string>(options ?? {}, 'key', '')
       return { text: decodeAdfgvx(text, key), cipher: 'adfgvx', operation: 'decode', options: { key } }
     } catch (e) { throw normalizeError(e, 'adfgvx') }
   }

@@ -1,32 +1,9 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { getOpt } from '../core/types'
+import { buildPolybiusSquare, getOpt } from '../core/utils'
 import { MissingOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
-function buildTable(key: string): { table: string[][]; pos: Map<string, [number, number]> } {
-  const seen = new Set<string>()
-  const letters: string[] = []
-  for (const c of key.toUpperCase()) {
-    if (c < 'A' || c > 'Z') continue
-    const ch = c === 'J' ? 'I' : c
-    if (!seen.has(ch)) { seen.add(ch); letters.push(ch) }
-  }
-  for (let i = 65; i <= 90; i++) {
-    const ch = String.fromCharCode(i) === 'J' ? 'I' : String.fromCharCode(i)
-    if (!seen.has(ch)) { seen.add(ch); letters.push(ch) }
-  }
-  const table: string[][] = []
-  const pos = new Map<string, [number, number]>()
-  for (let r = 0; r < 5; r++) {
-    table[r] = []
-    for (let c = 0; c < 5; c++) {
-      const ch = letters[r * 5 + c]!
-      table[r]![c] = ch
-      pos.set(ch, [r, c])
-    }
-  }
-  return { table, pos }
-}
+// Uses shared buildPolybiusSquare (1-indexed positions)
 
 function prepareText(text: string): string[] {
   const clean = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I')
@@ -50,7 +27,10 @@ function prepareText(text: string): string[] {
 }
 
 function processPlayfair(text: string, key: string, decrypt: boolean): string {
-  const { table, pos } = buildTable(key)
+  const { square: table, pos: pos1 } = buildPolybiusSquare(key)
+  // Convert 1-indexed to 0-indexed for Playfair table lookups
+  const pos = new Map<string, [number, number]>()
+  for (const [k, [r, c]] of pos1) pos.set(k, [r - 1, c - 1])
   const bigrams = prepareText(text)
   const at = (r: number, c: number) => table[(r + 5) % 5]![(c + 5) % 5]!
   const result: string[] = []

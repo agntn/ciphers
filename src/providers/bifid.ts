@@ -1,41 +1,14 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { getOpt } from '../core/types'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
+import { buildPolybiusSquare, getOpt } from '../core/utils'
 
 // Bifid cipher: combines Polybius fractionation with transposition
-// Uses a 5×5 Polybius square (I/J share)
 // Encode: get row/col for each letter, concatenate all rows then all cols
 // Group by period, interleave back, map to letters
 
-function buildBifidSquare(key?: string): { square: string[][]; pos: Map<string, [number, number]> } {
-  const seen = new Set<string>()
-  const letters: string[] = []
-  const src = (key ?? '').toUpperCase()
-  for (const c of src) {
-    if (c < 'A' || c > 'Z') continue
-    const ch = c === 'J' ? 'I' : c
-    if (!seen.has(ch)) { seen.add(ch); letters.push(ch) }
-  }
-  for (let i = 65; i <= 90; i++) {
-    const ch = String.fromCharCode(i) === 'J' ? 'I' : String.fromCharCode(i)
-    if (!seen.has(ch)) { seen.add(ch); letters.push(ch) }
-  }
-  const square: string[][] = []
-  const pos = new Map<string, [number, number]>()
-  for (let r = 0; r < 5; r++) {
-    square[r] = []
-    for (let c = 0; c < 5; c++) {
-      const ch = letters[r * 5 + c]!
-      square[r]![c] = ch
-      pos.set(ch, [r + 1, c + 1]) // 1-indexed
-    }
-  }
-  return { square, pos }
-}
-
 function encodeBifid(text: string, key: string, period: number): string {
-  const { pos, square } = buildBifidSquare(key)
+  const { pos, square } = buildPolybiusSquare(key)
   const clean = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I')
   let result = ''
   for (let i = 0; i < clean.length; i += period) {
@@ -46,9 +19,8 @@ function encodeBifid(text: string, key: string, period: number): string {
       const p = pos.get(c)
       if (p) { rows.push(p[0]); cols.push(p[1]) }
     }
-    // Interleave: all rows then all cols
     const combined = [...rows, ...cols]
-    for (let j = 0; j < combined.length; j += 2) {
+    for (let j = 0; j + 1 < combined.length; j += 2) {
       const r = combined[j]! - 1
       const c = combined[j + 1]! - 1
       result += square[r]![c]
@@ -58,18 +30,16 @@ function encodeBifid(text: string, key: string, period: number): string {
 }
 
 function decodeBifid(text: string, key: string, period: number): string {
-  const { pos, square } = buildBifidSquare(key)
+  const { pos, square } = buildPolybiusSquare(key)
   const clean = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I')
   let result = ''
   for (let i = 0; i < clean.length; i += period) {
     const chunk = clean.slice(i, i + period)
-    // Get row/col for each letter
     const coords: number[] = []
     for (const c of chunk) {
       const p = pos.get(c)
       if (p) { coords.push(p[0], p[1]) }
     }
-    // Split: first half = rows, second half = cols
     const half = coords.length / 2
     for (let j = 0; j < half; j++) {
       const r = coords[j]! - 1
@@ -81,9 +51,10 @@ function decodeBifid(text: string, key: string, period: number): string {
 }
 
 function validate(opts: CipherBaseOptions): { key: string; period: number } {
-  const key = getOpt<string>(opts ?? {}, 'key', '')
-  const period = getOpt<number>(opts ?? {}, "period", 5)
-  return { key, period }
+  return {
+    key: getOpt<string>(opts, 'key', ''),
+    period: getOpt<number>(opts, 'period', 5),
+  }
 }
 
 class BifidProvider implements CipherProvider {

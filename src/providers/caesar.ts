@@ -1,6 +1,6 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { InvalidOptionError, normalizeError } from '../core/errors'
-import { getOpt } from '../core/types'
+import { getOpt } from '../core/utils'
 import { register } from '../core/registry'
 
 function caesarProcess(text: string, shift: number, preserveCase: boolean, stripNonAlpha: boolean): string {

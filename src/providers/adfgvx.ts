@@ -1,5 +1,5 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { getOpt } from '../core/types'
+import { getOpt } from '../core/utils'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 

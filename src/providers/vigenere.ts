@@ -1,22 +1,32 @@
-import type { CipherProvider, CipherInfo, CipherResult, EncodeOptions, DecodeOptions } from '../core/types'
+import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { MissingOptionError, InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
-function vigenere(text: string, key: string, decrypt: boolean): string {
+function vigenereProcess(text: string, key: string, decrypt: boolean, preserveCase: boolean, stripNonAlpha: boolean): string {
+  let input = text
+  if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
   const keyUpper = key.toUpperCase().replace(/[^A-Z]/g, '')
   if (keyUpper.length === 0) throw new InvalidOptionError('key', key, 'must contain at least one letter')
   let ki = 0
-  return Array.from(text, (c) => {
+  return Array.from(input, (c) => {
     const isUpper = c >= 'A' && c <= 'Z'
     const isLower = c >= 'a' && c <= 'z'
     if (!isUpper && !isLower) return c
-    const base = isUpper ? 65 : 97
+    const upper = isUpper ? c : c.toUpperCase()
+    const x = upper.charCodeAt(0) - 65
     const shift = keyUpper.charCodeAt(ki % keyUpper.length) - 65
     const effective = decrypt ? (26 - shift) % 26 : shift
-    const code = (c.charCodeAt(0) - base + effective) % 26
+    const code = ((x + effective) % 26 + 26) % 26
     ki++
-    return String.fromCharCode(code + base)
+    const result = String.fromCharCode(code + 65)
+    return preserveCase && isLower ? result.toLowerCase() : result
   }).join('')
+}
+
+function validate(opts: CipherBaseOptions): { key: string; preserveCase: boolean; stripNonAlpha: boolean } {
+  const key = (opts as Record<string, unknown>).key as string | undefined
+  if (!key) throw new MissingOptionError('key')
+  return { key, preserveCase: opts.preserveCase ?? true, stripNonAlpha: opts.stripNonAlpha ?? false }
 }
 
 class VigenereProvider implements CipherProvider {
@@ -36,19 +46,17 @@ class VigenereProvider implements CipherProvider {
     }
   }
 
-  encode(text: string, options?: EncodeOptions): CipherResult {
+  encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = options?.key as string
-      if (!key) throw new MissingOptionError('key')
-      return { text: vigenere(text, key, false), cipher: 'vigenere', operation: 'encode', options: { key } }
+      const { key, preserveCase, stripNonAlpha } = validate(options ?? {})
+      return { text: vigenereProcess(text, key, false, preserveCase, stripNonAlpha), cipher: 'vigenere', operation: 'encode', options: { key } }
     } catch (e) { throw normalizeError(e, 'vigenere') }
   }
 
-  decode(text: string, options?: DecodeOptions): CipherResult {
+  decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = options?.key as string
-      if (!key) throw new MissingOptionError('key')
-      return { text: vigenere(text, key, true), cipher: 'vigenere', operation: 'decode', options: { key } }
+      const { key, preserveCase, stripNonAlpha } = validate(options ?? {})
+      return { text: vigenereProcess(text, key, true, preserveCase, stripNonAlpha), cipher: 'vigenere', operation: 'decode', options: { key } }
     } catch (e) { throw normalizeError(e, 'vigenere') }
   }
 }

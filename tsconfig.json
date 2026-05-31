@@ -5,6 +5,8 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "types": ["node"],
+    "noUnusedLocals": true,
+    "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

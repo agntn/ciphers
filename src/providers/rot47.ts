@@ -1,4 +1,4 @@
-import type { CipherProvider, CipherInfo, CipherResult, EncodeOptions, DecodeOptions } from '../core/types'
+import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { register } from '../core/registry'
 
 function rot47(text: string): string {
@@ -24,11 +24,11 @@ class Rot47Provider implements CipherProvider {
     }
   }
 
-  encode(text: string, _options?: EncodeOptions): CipherResult {
+  encode(text: string, _options?: CipherBaseOptions): CipherResult {
     return { text: rot47(text), cipher: 'rot47', operation: 'encode', options: {} }
   }
 
-  decode(text: string, _options?: DecodeOptions): CipherResult {
+  decode(text: string, _options?: CipherBaseOptions): CipherResult {
     return { text: rot47(text), cipher: 'rot47', operation: 'decode', options: {} }
   }
 }

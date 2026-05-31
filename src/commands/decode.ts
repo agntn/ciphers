@@ -1,7 +1,17 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
 import { resolveCipher } from '../core/resolve'
-import type { DecodeOptions } from '../core/types'
+import type { CipherBaseOptions } from '../core/types'
+
+function parseIntOrFail(value: string | undefined, name: string): number | undefined {
+  if (value === undefined) return undefined
+  const n = Number(value)
+  if (!Number.isInteger(n)) {
+    consola.error(`Invalid --${name}: "${value}" is not an integer`)
+    process.exit(1)
+  }
+  return n
+}
 
 export default defineCommand({
   meta: { name: 'decode', description: 'Decode ciphertext with a cipher' },
@@ -16,12 +26,16 @@ export default defineCommand({
   },
   async run({ args }) {
     const provider = resolveCipher(args.cipher)
-    const opts: DecodeOptions = {}
-    if (args.shift) opts.shift = parseInt(args.shift, 10)
+    const opts: CipherBaseOptions & Record<string, unknown> = {}
+    const shift = parseIntOrFail(args.shift, 'shift')
+    const rails = parseIntOrFail(args.rails, 'rails')
+    const a = parseIntOrFail(args.a, 'a')
+    const b = parseIntOrFail(args.b, 'b')
+    if (shift !== undefined) opts.shift = shift
     if (args.key) opts.key = args.key
-    if (args.rails) opts.rails = parseInt(args.rails, 10)
-    if (args.a) opts.a = parseInt(args.a, 10)
-    if (args.b) opts.b = parseInt(args.b, 10)
+    if (rails !== undefined) opts.rails = rails
+    if (a !== undefined) opts.a = a
+    if (b !== undefined) opts.b = b
     const result = provider.decode(args.text, opts)
     consola.log(result.text)
   },

@@ -1,6 +1,6 @@
 {
   "name": "cipherhouse",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Unified classical cipher provider library for agents",
   "exports": {
@@ -16,7 +16,7 @@
     "extensions": ["./packages/pi/extensions/*.ts"]
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=25"
   },
   "packageManager": "pnpm@10.33.4",
   "scripts": {

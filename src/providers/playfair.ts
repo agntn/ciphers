@@ -1,4 +1,4 @@
-import type { CipherProvider, CipherInfo, CipherResult, EncodeOptions, DecodeOptions } from '../core/types'
+import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { MissingOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -19,8 +19,8 @@ function buildTable(key: string): { table: string[][]; pos: Map<string, [number,
   for (let r = 0; r < 5; r++) {
     table[r] = []
     for (let c = 0; c < 5; c++) {
-      const ch = letters[r * 5 + c]
-      table[r][c] = ch
+      const ch = letters[r * 5 + c]!
+      table[r]![c] = ch
       pos.set(ch, [r, c])
     }
   }
@@ -32,8 +32,8 @@ function prepareText(text: string): string[] {
   const bigrams: string[] = []
   let i = 0
   while (i < clean.length) {
-    const a = clean[i]
-    const b = i + 1 < clean.length ? clean[i + 1] : 'X'
+    const a = clean[i]!
+    const b = i + 1 < clean.length ? clean[i + 1]! : 'X'
     if (a === b) {
       bigrams.push(a + 'X')
       i++
@@ -42,8 +42,8 @@ function prepareText(text: string): string[] {
       i += 2
     }
   }
-  if (bigrams.length > 0 && bigrams[bigrams.length - 1].length === 1) {
-    bigrams[bigrams.length - 1] += 'X'
+  if (bigrams.length > 0 && bigrams[bigrams.length - 1]!.length === 1) {
+    bigrams[bigrams.length - 1]! += 'X'
   }
   return bigrams
 }
@@ -51,25 +51,28 @@ function prepareText(text: string): string[] {
 function processPlayfair(text: string, key: string, decrypt: boolean): string {
   const { table, pos } = buildTable(key)
   const bigrams = prepareText(text)
-  const at = (r: number, c: number) => table[(r + 5) % 5][(c + 5) % 5]
+  const at = (r: number, c: number) => table[(r + 5) % 5]![(c + 5) % 5]!
   const result: string[] = []
   for (const bg of bigrams) {
-    const [r1, c1] = pos.get(bg[0])!
-    const [r2, c2] = pos.get(bg[1])!
+    const [r1, c1] = pos.get(bg[0]!)!
+    const [r2, c2] = pos.get(bg[1]!)!
     if (r1 === r2) {
-      // Same row: encrypt=shift right, decrypt=shift left
       const dir = decrypt ? -1 : 1
       result.push(at(r1, c1 + dir) + at(r2, c2 + dir))
     } else if (c1 === c2) {
-      // Same column: encrypt=shift up, decrypt=shift down (standard Playfair)
       const dir = decrypt ? 1 : -1
       result.push(at(r1 + dir, c1) + at(r2 + dir, c2))
     } else {
-      // Rectangle: swap columns (self-inverse)
       result.push(at(r1, c2) + at(r2, c1))
     }
   }
   return result.join('')
+}
+
+function validate(opts: CipherBaseOptions): { key: string } {
+  const key = (opts as Record<string, unknown>).key as string | undefined
+  if (!key) throw new MissingOptionError('key')
+  return { key }
 }
 
 class PlayfairProvider implements CipherProvider {
@@ -89,18 +92,16 @@ class PlayfairProvider implements CipherProvider {
     }
   }
 
-  encode(text: string, options?: EncodeOptions): CipherResult {
+  encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = options?.key as string
-      if (!key) throw new MissingOptionError('key')
+      const { key } = validate(options ?? {})
       return { text: processPlayfair(text, key, false), cipher: 'playfair', operation: 'encode', options: { key } }
     } catch (e) { throw normalizeError(e, 'playfair') }
   }
 
-  decode(text: string, options?: DecodeOptions): CipherResult {
+  decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = options?.key as string
-      if (!key) throw new MissingOptionError('key')
+      const { key } = validate(options ?? {})
       return { text: processPlayfair(text, key, true), cipher: 'playfair', operation: 'decode', options: { key } }
     } catch (e) { throw normalizeError(e, 'playfair') }
   }

@@ -1,4 +1,4 @@
-import type { CipherProvider, CipherInfo, CipherResult, EncodeOptions, DecodeOptions } from '../core/types'
+import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -20,8 +20,8 @@ function buildSquare(key?: string): { square: string[][]; pos: Map<string, strin
   for (let r = 0; r < 5; r++) {
     square[r] = []
     for (let c = 0; c < 5; c++) {
-      const ch = letters[r * 5 + c]
-      square[r][c] = ch
+      const ch = letters[r * 5 + c]!
+      square[r]![c] = ch
       pos.set(ch, `${r + 1}${c + 1}`)
     }
   }
@@ -45,29 +45,43 @@ class PolybiusProvider implements CipherProvider {
     }
   }
 
-  encode(text: string, options?: EncodeOptions): CipherResult {
+  encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = (options?.key as string) ?? ''
+      const key = ((options as Record<string, unknown>)?.key as string | undefined) ?? ''
       const { pos } = buildSquare(key)
-      const result = Array.from(text.toUpperCase(), (c) => {
+      const encoded: string[] = []
+      for (const c of text.toUpperCase()) {
         const ch = c === 'J' ? 'I' : c
-        return pos.get(ch) ?? c
-      }).join('')
-      return { text: result, cipher: 'polybius', operation: 'encode', options: { key } }
+        const code = pos.get(ch)
+        if (code) {
+          encoded.push(code)
+        } else if (c >= 'A' && c <= 'Z') {
+          encoded.push(ch)
+        }
+        // non-alpha chars silently dropped in digit output
+      }
+      return { text: encoded.join(' '), cipher: 'polybius', operation: 'encode', options: { key } }
     } catch (e) { throw normalizeError(e, 'polybius') }
   }
 
-  decode(text: string, options?: DecodeOptions): CipherResult {
+  decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const key = (options?.key as string) ?? ''
+      const key = ((options as Record<string, unknown>)?.key as string | undefined) ?? ''
       const { square } = buildSquare(key)
-      const digits = text.replace(/[^0-9]/g, '')
+      const pairs = text.trim().split(/\s+/)
       let result = ''
-      for (let i = 0; i + 1 < digits.length; i += 2) {
-        const r = parseInt(digits[i]) - 1
-        const c = parseInt(digits[i + 1]) - 1
-        if (r >= 0 && r < 5 && c >= 0 && c < 5) result += square[r][c]
-        else result += digits[i] + digits[i + 1]
+      for (const pair of pairs) {
+        if (/^\d{2}$/.test(pair)) {
+          const r = parseInt(pair[0]!) - 1
+          const c = parseInt(pair[1]!) - 1
+          if (r >= 0 && r < 5 && c >= 0 && c < 5) {
+            result += square[r]![c]
+          } else {
+            result += pair
+          }
+        } else {
+          result += pair
+        }
       }
       return { text: result, cipher: 'polybius', operation: 'decode', options: { key } }
     } catch (e) { throw normalizeError(e, 'polybius') }

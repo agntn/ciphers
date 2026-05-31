@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import '../../src/index' // triggers registration
+import '../../src/index'
 import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
 
@@ -9,6 +9,12 @@ describe('registry', () => {
     for (const name of ['caesar', 'rot13', 'rot47', 'atbash', 'vigenere', 'rail-fence', 'affine', 'playfair', 'polybius']) {
       expect(has(name)).toBe(true)
     }
+  })
+
+  it('create returns cached singleton', () => {
+    const a = create('caesar')
+    const b = create('caesar')
+    expect(a).toBe(b)
   })
 })
 
@@ -35,6 +41,22 @@ describe('caesar', () => {
     expect(() => caesar.encode('X', { shift: 0 })).toThrow()
     expect(() => caesar.encode('X', { shift: 26 })).toThrow()
   })
+
+  it('preserveCase=false normalizes to uppercase', () => {
+    const result = caesar.encode('Hello World', { preserveCase: false, shift: 3 })
+    expect(result.text).toBe('KHOOR ZRUOG')
+    expect(result.text).toBe(result.text.toUpperCase())
+  })
+
+  it('stripNonAlpha=true removes non-alpha', () => {
+    const result = caesar.encode('ATTACK AT DAWN!', { shift: 3, stripNonAlpha: true })
+    expect(result.text).toBe('DWWDFNDWGDZQ')
+  })
+
+  it('empty string returns empty', () => {
+    expect(caesar.encode('').text).toBe('')
+    expect(caesar.decode('').text).toBe('')
+  })
 })
 
 describe('rot13', () => {
@@ -46,6 +68,14 @@ describe('rot13', () => {
 
   it('is self-inverse', () => {
     expect(rot13.decode('URYYB').text).toBe('HELLO')
+  })
+
+  it('empty string returns empty', () => {
+    expect(rot13.encode('').text).toBe('')
+  })
+
+  it('non-alpha preserved', () => {
+    expect(rot13.encode('Hello, World! 123').text).toBe('Uryyb, Jbeyq! 123')
   })
 })
 
@@ -60,6 +90,10 @@ describe('rot47', () => {
   it('is self-inverse', () => {
     const encoded = rot47.encode('Test 123!')
     expect(rot47.decode(encoded.text).text).toBe('Test 123!')
+  })
+
+  it('preserves whitespace and control chars', () => {
+    expect(rot47.encode('A\tB\nC').text).toBe('p\tq\nr')
   })
 })
 
@@ -99,6 +133,10 @@ describe('vigenere', () => {
   it('requires key', () => {
     expect(() => vigenere.encode('HELLO')).toThrow()
   })
+
+  it('rejects key without letters', () => {
+    expect(() => vigenere.encode('HELLO', { key: '123' })).toThrow()
+  })
 })
 
 describe('rail-fence', () => {
@@ -117,6 +155,11 @@ describe('rail-fence', () => {
     const encoded = railFence.encode('HELLO WORLD', { rails: 4 })
     const decoded = railFence.decode(encoded.text, { rails: 4 })
     expect(decoded.text).toBe('HELLO WORLD')
+  })
+
+  it('rejects rails < 2', () => {
+    expect(() => railFence.encode('HELLO', { rails: 1 })).toThrow(/must be integer >= 2/)
+    expect(() => railFence.encode('HELLO', { rails: 0 })).toThrow()
   })
 })
 
@@ -166,31 +209,52 @@ describe('playfair', () => {
   it('roundtrips (modulo padding)', () => {
     const encoded = playfair.encode('SECRETMESSAGE', { key: 'MONARCHY' })
     const decoded = playfair.decode(encoded.text, { key: 'MONARCHY' })
-    // Playfair adds X padding for double letters — decoded text includes those
     expect(decoded.text).toBe('SECRETMESXSAGE')
+  })
+
+  it('requires key', () => {
+    expect(() => playfair.encode('HELLO')).toThrow()
+  })
+
+  it('empty string returns empty', () => {
+    expect(playfair.encode('', { key: 'MONARCHY' }).text).toBe('')
   })
 })
 
 describe('polybius', () => {
   const polybius = create('polybius')
 
-  it('encodes to digit pairs', () => {
-    expect(polybius.encode('HELLO').text).toBe('2315313134')
+  it('encodes to space-separated digit pairs', () => {
+    expect(polybius.encode('HELLO').text).toBe('23 15 31 31 34')
   })
 
-  it('decodes from digit pairs', () => {
-    expect(polybius.decode('2315313134').text).toBe('HELLO')
+  it('decodes from space-separated pairs', () => {
+    expect(polybius.decode('23 15 31 31 34').text).toBe('HELLO')
   })
 
   it('converts J to I', () => {
-    expect(polybius.encode('JULIUS').text).toBe('244531244543')
+    expect(polybius.encode('JULIUS').text).toBe('24 45 31 24 45 43')
   })
 
   it('roundtrips', () => {
     const encoded = polybius.encode('ATTACK AT DAWN')
     const decoded = polybius.decode(encoded.text)
-    // Spaces are lost in encoding (digit-only output), join without spaces
-    expect(decoded.text.replace(/\s/g, '')).toBe('ATTACKATDAWN')
+    expect(decoded.text).toBe('ATTACKATDAWN')
+  })
+
+  it('handles non-alpha gracefully in encode', () => {
+    const result = polybius.encode('HI 123')
+    // non-alpha dropped, space between encoded letters
+    expect(result.text).toBe('23 24')
+  })
+
+  it('decodes non-digit pairs as-is', () => {
+    expect(polybius.decode('23 ab 24').text).toBe('HabI')
+  })
+
+  it('empty string returns empty', () => {
+    expect(polybius.encode('').text).toBe('')
+    expect(polybius.decode('').text).toBe('')
   })
 })
 
@@ -199,15 +263,47 @@ describe('resolveCipher', () => {
     expect(resolveCipher('caesar').name()).toBe('caesar')
   })
 
-  it('resolves by prefix', () => {
-    expect(resolveCipher('cae').name()).toBe('caesar')
-  })
-
   it('normalizes spaces to hyphens', () => {
     expect(resolveCipher('rail fence').name()).toBe('rail-fence')
   })
 
   it('throws for unknown cipher', () => {
-    expect(() => resolveCipher('enigma')).toThrow()
+    expect(() => resolveCipher('enigma')).toThrow(/Unknown cipher/)
+  })
+
+  it('throws with available list when no name given', () => {
+    expect(() => resolveCipher()).toThrow(/Available:/)
+  })
+
+  it('exact match required (no fuzzy prefix)', () => {
+    expect(() => resolveCipher('cae')).toThrow()
+  })
+})
+
+describe('edge cases', () => {
+  it('all ciphers handle empty string', () => {
+    for (const name of ciphers()) {
+      const cipher = create(name)
+      const opts = name === 'vigenere' || name === 'playfair' ? { key: 'TEST' } : {}
+      const result = cipher.encode('', opts)
+      expect(typeof result.text).toBe('string')
+    }
+  })
+
+  it('all ciphers handle non-alpha only input', () => {
+    for (const name of ciphers()) {
+      const cipher = create(name)
+      const opts = name === 'vigenere' || name === 'playfair' ? { key: 'TEST' } : {}
+      const result = cipher.encode('123 !@#', opts)
+      expect(typeof result.text).toBe('string')
+    }
+  })
+
+  it('caesar handles unicode input (non-BMP chars preserved)', () => {
+    const caesar = create('caesar')
+    const result = caesar.encode('HELLO café 🎉')
+    // café: é preserved (not in A-Z/a-z), 🎉 preserved
+    expect(result.text).toContain('🎉')
+    expect(result.text).toContain('é')
   })
 })

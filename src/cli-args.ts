@@ -2,7 +2,7 @@
 export function normalizeMainArgs(argv: string[]): string[] {
   const subcommands = ['encode', 'decode', 'ciphers', 'info', 'brute', 'frequency']
   if (argv.length === 0) return ['ciphers']
-  const first = argv[0].toLowerCase()
+  const first = argv[0]!.toLowerCase()
   if (subcommands.includes(first)) return argv
   // If it looks like a cipher name, prepend encode
   return ['encode', ...argv]

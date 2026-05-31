@@ -5,10 +5,20 @@ import { Type } from 'typebox'
 /** Lazy-load the library (registers all providers on import). */
 async function loadLib() {
   const mod = await import('cipherhouse').catch(() => {
-    // @ts-ignore — runtime fallback for dev (same package source)
+    // @ts-expect-error — runtime fallback for dev (same package source)
     return import('../../../src/index.ts')
   })
   return mod as typeof import('cipherhouse')
+}
+
+function buildOpts(params: Record<string, unknown>): Record<string, unknown> {
+  const opts: Record<string, unknown> = {}
+  if (params.shift !== undefined) opts.shift = params.shift
+  if (params.key) opts.key = params.key
+  if (params.rails !== undefined) opts.rails = params.rails
+  if (params.a !== undefined) opts.a = params.a
+  if (params.b !== undefined) opts.b = params.b
+  return opts
 }
 
 export default function cipherhouseExtension(pi: ExtensionAPI) {
@@ -36,20 +46,15 @@ export default function cipherhouseExtension(pi: ExtensionAPI) {
     async execute(_toolCallId, params): Promise<AgentToolResult> {
       try {
         const lib = await loadLib()
-        const provider = lib.resolveCipher(params.cipher)
-        const opts: Record<string, unknown> = {}
-        if (params.shift !== undefined) opts.shift = params.shift
-        if (params.key) opts.key = params.key
-        if (params.rails !== undefined) opts.rails = params.rails
-        if (params.a !== undefined) opts.a = params.a
-        if (params.b !== undefined) opts.b = params.b
-        const result = provider.encode(params.text, opts)
+        const provider = lib.resolveCipher(params.cipher as string)
+        const result = provider.encode(params.text as string, buildOpts(params as Record<string, unknown>))
         return {
           content: [{ type: 'text', text: result.text }],
           details: { cipher: result.cipher, operation: result.operation, options: result.options },
         }
-      } catch (e: any) {
-        return { content: [{ type: 'text', text: `Error: ${e.message}` }] }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        return { content: [{ type: 'text', text: `Error: ${msg}` }] }
       }
     },
   })
@@ -78,20 +83,15 @@ export default function cipherhouseExtension(pi: ExtensionAPI) {
     async execute(_toolCallId, params): Promise<AgentToolResult> {
       try {
         const lib = await loadLib()
-        const provider = lib.resolveCipher(params.cipher)
-        const opts: Record<string, unknown> = {}
-        if (params.shift !== undefined) opts.shift = params.shift
-        if (params.key) opts.key = params.key
-        if (params.rails !== undefined) opts.rails = params.rails
-        if (params.a !== undefined) opts.a = params.a
-        if (params.b !== undefined) opts.b = params.b
-        const result = provider.decode(params.text, opts)
+        const provider = lib.resolveCipher(params.cipher as string)
+        const result = provider.decode(params.text as string, buildOpts(params as Record<string, unknown>))
         return {
           content: [{ type: 'text', text: result.text }],
           details: { cipher: result.cipher, operation: result.operation, options: result.options },
         }
-      } catch (e: any) {
-        return { content: [{ type: 'text', text: `Error: ${e.message}` }] }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        return { content: [{ type: 'text', text: `Error: ${msg}` }] }
       }
     },
   })
@@ -117,12 +117,13 @@ export default function cipherhouseExtension(pi: ExtensionAPI) {
         const provider = lib.create('caesar')
         const lines: string[] = []
         for (let shift = 1; shift <= 25; shift++) {
-          const result = provider.decode(params.text, { shift })
-          lines.push(`shift=${String(shift).padStart(2)} → ${result.text}`)
+          const result = provider.decode(params.text as string, { shift })
+          lines.push(`shift=${String(shift).padStart(2)} \u2192 ${result.text}`)
         }
         return { content: [{ type: 'text', text: lines.join('\n') }] }
-      } catch (e: any) {
-        return { content: [{ type: 'text', text: `Error: ${e.message}` }] }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        return { content: [{ type: 'text', text: `Error: ${msg}` }] }
       }
     },
   })
@@ -144,7 +145,7 @@ export default function cipherhouseExtension(pi: ExtensionAPI) {
       return new Text(`📊 frequency: "${args.text.slice(0, 40)}..."`, 0, 0)
     },
     async execute(_toolCallId, params): Promise<AgentToolResult> {
-      const text = params.text.toUpperCase().replace(/[^A-Z]/g, '')
+      const text = (params.text as string).toUpperCase().replace(/[^A-Z]/g, '')
       const total = text.length
       if (total === 0) return { content: [{ type: 'text', text: 'No letters found in input.' }] }
 
@@ -154,15 +155,15 @@ export default function cipherhouseExtension(pi: ExtensionAPI) {
 
       const langRef: Record<string, string> = {
         en: 'ETAOINSHRDLCUMWFGYPBVKJXQZ',
-        pl: 'AIOEZNSWRCYTKLDPMJUŁBGFHĄŚŻÓĆĘŃŹ',
+        pl: 'AIOEZNSWRCYTKLDPMJUBGFHV',
       }
-      const lang = params.lang ?? 'en'
-      const ref = langRef[lang] ?? langRef.en
+      const lang = (params.lang as string | undefined) ?? 'en'
+      const ref = langRef[lang] ?? langRef['en']!
 
       const lines = [`Frequency Analysis (${total} letters, lang=${lang}):\n`]
       for (const [char, count] of sorted) {
         const pct = ((count / total) * 100).toFixed(1)
-        const bar = '█'.repeat(Math.ceil((count / sorted[0][1]) * 15))
+        const bar = '\u2588'.repeat(Math.ceil((count / sorted[0]![1]) * 15))
         lines.push(`  ${char} ${String(count).padStart(4)} (${pct.padStart(5)}%) ${bar}`)
       }
       lines.push(`\nExpected (${lang}): ${ref.split('').join(' ')}`)

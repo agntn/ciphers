@@ -1,20 +1,28 @@
-import type { CipherProvider, CipherInfo, CipherResult, EncodeOptions, DecodeOptions } from '../core/types'
+import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions, CaesarOptions } from '../core/types'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
-function shiftChar(c: string, shift: number, preserveCase: boolean): string {
-  const isUpper = c >= 'A' && c <= 'Z'
-  const isLower = c >= 'a' && c <= 'z'
-  if (!isUpper && !isLower) return c
-  const base = isUpper ? 65 : 97
-  const preserve = preserveCase ?? true
-  const effectiveBase = preserve ? base : 65
-  const code = (c.charCodeAt(0) - effectiveBase + shift) % 26
-  return String.fromCharCode((code < 0 ? code + 26 : code) + effectiveBase)
+function caesarProcess(text: string, shift: number, preserveCase: boolean, stripNonAlpha: boolean): string {
+  let input = text
+  if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
+  return Array.from(input, (c) => {
+    const isUpper = c >= 'A' && c <= 'Z'
+    const isLower = c >= 'a' && c <= 'z'
+    if (!isUpper && !isLower) return c
+    const upper = isUpper ? c : c.toUpperCase()
+    const x = upper.charCodeAt(0) - 65
+    const code = ((x + shift) % 26 + 26) % 26
+    const result = String.fromCharCode(code + 65)
+    return preserveCase && isLower ? result.toLowerCase() : result
+  }).join('')
 }
 
-function process(text: string, shift: number, preserveCase: boolean): string {
-  return Array.from(text, (c) => shiftChar(c, shift, preserveCase)).join('')
+function validate(opts: CipherBaseOptions): { shift: number; preserveCase: boolean; stripNonAlpha: boolean } {
+  const shift = ((opts as CaesarOptions).shift ?? 3)
+  if (!Number.isInteger(shift) || shift < 1 || shift > 25) {
+    throw new InvalidOptionError('shift', shift, 'must be integer 1-25')
+  }
+  return { shift, preserveCase: opts.preserveCase ?? true, stripNonAlpha: opts.stripNonAlpha ?? false }
 }
 
 class CaesarProvider implements CipherProvider {
@@ -34,25 +42,17 @@ class CaesarProvider implements CipherProvider {
     }
   }
 
-  encode(text: string, options?: EncodeOptions): CipherResult {
+  encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const shift = (options?.shift as number) ?? 3
-      if (!Number.isInteger(shift) || shift < 1 || shift > 25) {
-        throw new InvalidOptionError('shift', shift, 'must be integer 1-25')
-      }
-      const preserveCase = options?.preserveCase ?? true
-      return { text: process(text, shift, preserveCase), cipher: 'caesar', operation: 'encode', options: { shift, preserveCase } }
+      const { shift, preserveCase, stripNonAlpha } = validate(options ?? {})
+      return { text: caesarProcess(text, shift, preserveCase, stripNonAlpha), cipher: 'caesar', operation: 'encode', options: { shift, preserveCase, stripNonAlpha } }
     } catch (e) { throw normalizeError(e, 'caesar') }
   }
 
-  decode(text: string, options?: DecodeOptions): CipherResult {
+  decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const shift = (options?.shift as number) ?? 3
-      if (!Number.isInteger(shift) || shift < 1 || shift > 25) {
-        throw new InvalidOptionError('shift', shift, 'must be integer 1-25')
-      }
-      const preserveCase = options?.preserveCase ?? true
-      return { text: process(text, 26 - shift, preserveCase), cipher: 'caesar', operation: 'decode', options: { shift, preserveCase } }
+      const { shift, preserveCase, stripNonAlpha } = validate(options ?? {})
+      return { text: caesarProcess(text, 26 - shift, preserveCase, stripNonAlpha), cipher: 'caesar', operation: 'decode', options: { shift, preserveCase, stripNonAlpha } }
     } catch (e) { throw normalizeError(e, 'caesar') }
   }
 }

@@ -1,8 +1,10 @@
-import type { CipherProvider, CipherInfo, CipherResult, EncodeOptions, DecodeOptions } from '../core/types'
+import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { register } from '../core/registry'
 
-function rot13(text: string): string {
-  return Array.from(text, (c) => {
+function rot13(text: string, stripNonAlpha: boolean): string {
+  let input = text
+  if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
+  return Array.from(input, (c) => {
     if (c >= 'A' && c <= 'Z') return String.fromCharCode(((c.charCodeAt(0) - 65 + 13) % 26) + 65)
     if (c >= 'a' && c <= 'z') return String.fromCharCode(((c.charCodeAt(0) - 97 + 13) % 26) + 97)
     return c
@@ -24,12 +26,12 @@ class Rot13Provider implements CipherProvider {
     }
   }
 
-  encode(text: string, _options?: EncodeOptions): CipherResult {
-    return { text: rot13(text), cipher: 'rot13', operation: 'encode', options: {} }
+  encode(text: string, options?: CipherBaseOptions): CipherResult {
+    return { text: rot13(text, options?.stripNonAlpha ?? false), cipher: 'rot13', operation: 'encode', options: {} }
   }
 
-  decode(text: string, _options?: DecodeOptions): CipherResult {
-    return { text: rot13(text), cipher: 'rot13', operation: 'decode', options: {} }
+  decode(text: string, options?: CipherBaseOptions): CipherResult {
+    return { text: rot13(text, options?.stripNonAlpha ?? false), cipher: 'rot13', operation: 'decode', options: {} }
   }
 }
 

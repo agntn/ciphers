@@ -16,7 +16,7 @@ export default defineCommand({
     consola.info(`  Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)
     if (info.keyspace) consola.info(`  Keyspace: ${info.keyspace}`)
     if (info.options.length > 0) {
-      consola.info(`  Options:`)
+      consola.info('  Options:')
       for (const opt of info.options) {
         const req = opt.required ? 'required' : `default=${opt.default ?? 'none'}`
         consola.info(`    --${opt.name} (${opt.type}, ${req}): ${opt.description}`)

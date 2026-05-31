@@ -12,18 +12,53 @@ export interface CipherResult {
   normalizedInput?: string
 }
 
-/** Options for cipher encoding. */
-export interface EncodeOptions {
+/** Common options for all ciphers. Cipher-specific keys (shift, key, rails, a, b) allowed. */
+export interface CipherBaseOptions {
   /** Preserve original case. Default: true. */
   preserveCase?: boolean
-  /** Preserve non-alpha characters. Default: true. */
-  preserveNonAlpha?: boolean
-  /** Cipher-specific options (shift, key, rails, multiplier, etc.). */
+  /** Strip non-alpha characters before processing. Default: false. */
+  stripNonAlpha?: boolean
+  /** Cipher-specific options (shift, key, rails, a, b). */
   [key: string]: unknown
 }
 
-/** Options for cipher decoding. */
-export interface DecodeOptions extends EncodeOptions {}
+/** Caesar cipher options. */
+export interface CaesarOptions extends CipherBaseOptions {
+  /** Number of positions to shift (1-25). Default: 3. */
+  shift?: number
+}
+
+/** Vigenère cipher options. */
+export interface VigenereOptions extends CipherBaseOptions {
+  /** Keyword (letters only, case-insensitive). Required. */
+  key: string
+}
+
+/** Rail Fence cipher options. */
+export interface RailFenceOptions extends CipherBaseOptions {
+  /** Number of rails (2 or more). Default: 3. */
+  rails?: number
+}
+
+/** Affine cipher options. */
+export interface AffineOptions extends CipherBaseOptions {
+  /** Multiplier (must be coprime with 26). Default: 5. */
+  a?: number
+  /** Additive shift (0-25). Default: 8. */
+  b?: number
+}
+
+/** Playfair cipher options. */
+export interface PlayfairOptions extends CipherBaseOptions {
+  /** Keyword for the 5×5 table. Required. */
+  key: string
+}
+
+/** Polybius cipher options. */
+export interface PolybiusOptions extends CipherBaseOptions {
+  /** Optional keyword for the 5×5 table. */
+  key?: string
+}
 
 /** Cipher-specific options exposed to the user. */
 export interface CipherOption {
@@ -59,9 +94,9 @@ export interface CipherProvider {
   /** Cipher metadata. */
   info(): CipherInfo
   /** Encode plaintext. */
-  encode(text: string, options?: EncodeOptions): CipherResult
+  encode(text: string, options?: CipherBaseOptions): CipherResult
   /** Decode ciphertext. */
-  decode(text: string, options?: DecodeOptions): CipherResult
+  decode(text: string, options?: CipherBaseOptions): CipherResult
 }
 
 /** Factory function to create a cipher provider. */

@@ -1,8 +1,10 @@
-import type { CipherProvider, CipherInfo, CipherResult, EncodeOptions, DecodeOptions } from '../core/types'
+import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { register } from '../core/registry'
 
-function atbash(text: string): string {
-  return Array.from(text, (c) => {
+function atbash(text: string, stripNonAlpha: boolean): string {
+  let input = text
+  if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
+  return Array.from(input, (c) => {
     if (c >= 'A' && c <= 'Z') return String.fromCharCode(90 - (c.charCodeAt(0) - 65))
     if (c >= 'a' && c <= 'z') return String.fromCharCode(122 - (c.charCodeAt(0) - 97))
     return c
@@ -24,12 +26,12 @@ class AtbashProvider implements CipherProvider {
     }
   }
 
-  encode(text: string, _options?: EncodeOptions): CipherResult {
-    return { text: atbash(text), cipher: 'atbash', operation: 'encode', options: {} }
+  encode(text: string, options?: CipherBaseOptions): CipherResult {
+    return { text: atbash(text, options?.stripNonAlpha ?? false), cipher: 'atbash', operation: 'encode', options: {} }
   }
 
-  decode(text: string, _options?: DecodeOptions): CipherResult {
-    return { text: atbash(text), cipher: 'atbash', operation: 'decode', options: {} }
+  decode(text: string, options?: CipherBaseOptions): CipherResult {
+    return { text: atbash(text, options?.stripNonAlpha ?? false), cipher: 'atbash', operation: 'decode', options: {} }
   }
 }
 

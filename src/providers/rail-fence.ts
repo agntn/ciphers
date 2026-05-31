@@ -1,4 +1,4 @@
-import type { CipherProvider, CipherInfo, CipherResult, EncodeOptions, DecodeOptions } from '../core/types'
+import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -8,7 +8,7 @@ function encodeRailFence(text: string, rails: number): string {
   let row = 0
   let dir = 1
   for (const c of text) {
-    rows[row].push(c)
+    rows[row]!.push(c)
     if (row === 0) dir = 1
     else if (row === rails - 1) dir = -1
     row += dir
@@ -19,7 +19,6 @@ function encodeRailFence(text: string, rails: number): string {
 function decodeRailFence(cipher: string, rails: number): string {
   if (rails < 2) return cipher
   const n = cipher.length
-  // Build the zigzag pattern indices
   const pattern: number[] = []
   let row = 0
   let dir = 1
@@ -29,18 +28,22 @@ function decodeRailFence(cipher: string, rails: number): string {
     else if (row === rails - 1) dir = -1
     row += dir
   }
-  // Map each rail to its positions in the pattern
   const railPositions: number[][] = Array.from({ length: rails }, () => [])
-  for (let i = 0; i < n; i++) railPositions[pattern[i]].push(i)
-  // Fill each rail from the ciphertext
-  const result = new Array(n)
+  for (let i = 0; i < n; i++) railPositions[pattern[i]!]!.push(i)
+  const result: string[] = new Array(n)
   let idx = 0
   for (let r = 0; r < rails; r++) {
-    for (const pos of railPositions[r]) {
-      result[pos] = cipher[idx++]
+    for (const pos of railPositions[r]!) {
+      result[pos] = cipher[idx++]!
     }
   }
   return result.join('')
+}
+
+function validate(opts: CipherBaseOptions): { rails: number } {
+  const rails = ((opts as Record<string, unknown>).rails as number | undefined) ?? 3
+  if (!Number.isInteger(rails) || rails < 2) throw new InvalidOptionError('rails', rails, 'must be integer >= 2')
+  return { rails }
 }
 
 class RailFenceProvider implements CipherProvider {
@@ -60,18 +63,16 @@ class RailFenceProvider implements CipherProvider {
     }
   }
 
-  encode(text: string, options?: EncodeOptions): CipherResult {
+  encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const rails = (options?.rails as number) ?? 3
-      if (!Number.isInteger(rails) || rails < 2) throw new InvalidOptionError('rails', rails, 'must be integer >= 2')
+      const { rails } = validate(options ?? {})
       return { text: encodeRailFence(text, rails), cipher: 'rail-fence', operation: 'encode', options: { rails } }
     } catch (e) { throw normalizeError(e, 'rail-fence') }
   }
 
-  decode(text: string, options?: DecodeOptions): CipherResult {
+  decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const rails = (options?.rails as number) ?? 3
-      if (!Number.isInteger(rails) || rails < 2) throw new InvalidOptionError('rails', rails, 'must be integer >= 2')
+      const { rails } = validate(options ?? {})
       return { text: decodeRailFence(text, rails), cipher: 'rail-fence', operation: 'decode', options: { rails } }
     } catch (e) { throw normalizeError(e, 'rail-fence') }
   }

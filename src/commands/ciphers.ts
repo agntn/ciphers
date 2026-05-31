@@ -19,7 +19,7 @@ export default defineCommand({
         consola.info(`  Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)
         if (info.keyspace) consola.info(`  Keyspace: ${info.keyspace}`)
         if (info.options.length > 0) {
-          consola.info(`  Options:`)
+          consola.info('  Options:')
           for (const opt of info.options) {
             const req = opt.required ? 'required' : `default=${opt.default ?? 'none'}`
             consola.info(`    --${opt.name} (${opt.type}, ${req}): ${opt.description}`)
@@ -30,7 +30,7 @@ export default defineCommand({
       consola.info('Available ciphers:')
       for (const name of names) {
         const info = create(name).info()
-        consola.info(`  \x1b[1m${name}\x1b[0m — ${info.description}`)
+        consola.info(`  \x1b[1m${name}\x1b[0m \u2014 ${info.description}`)
       }
     }
   },

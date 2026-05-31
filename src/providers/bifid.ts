@@ -34,7 +34,7 @@ function buildBifidSquare(key?: string): { square: string[][]; pos: Map<string, 
 }
 
 function encodeBifid(text: string, key: string, period: number): string {
-  const { pos } = buildBifidSquare(key)
+  const { pos, square } = buildBifidSquare(key)
   const clean = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I')
   let result = ''
   for (let i = 0; i < clean.length; i += period) {
@@ -50,7 +50,6 @@ function encodeBifid(text: string, key: string, period: number): string {
     for (let j = 0; j < combined.length; j += 2) {
       const r = combined[j]! - 1
       const c = combined[j + 1]! - 1
-      const { square } = buildBifidSquare(key)
       result += square[r]![c]
     }
   }

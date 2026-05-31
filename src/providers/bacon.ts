@@ -2,7 +2,7 @@ import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
-const BACON_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' // 26 letters, I/J traditionally merge
+const BACON_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' // 26 letters (standard Bacon uses 24 with I/J merged; this variant keeps all 26)
 // Standard: A=AAAAA, B=AAAAB, C=AAABA, D=AAABB, E=AABAA, ...
 // For encoding: uppercase=A(0), lowercase=B(1) in hidden message
 

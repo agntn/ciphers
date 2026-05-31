@@ -1,5 +1,5 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { getOpt } from '../core/utils'
+import { getOpt, processBaseOptions } from '../core/utils'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -40,7 +40,8 @@ function validate(opts: CipherBaseOptions): { a: number; b: number; preserveCase
   if (!Number.isInteger(a) || a < 1 || a > 25) throw new InvalidOptionError('a', a, 'must be integer 1-25')
   if (!Number.isInteger(b) || b < 0 || b > 25) throw new InvalidOptionError('b', b, 'must be integer 0-25')
   if (gcd(a, 26) !== 1) throw new InvalidOptionError('a', a, 'must be coprime with 26 (gcd(a,26)=1)')
-  return { a, b, preserveCase: opts.preserveCase ?? true, stripNonAlpha: opts.stripNonAlpha ?? false }
+  const base = processBaseOptions(opts as Record<string, unknown>)
+  return { a, b, ...base }
 }
 
 class AffineProvider implements CipherProvider {

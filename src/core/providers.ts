@@ -9,6 +9,12 @@ export const builtinCiphers = [
   'affine',
   'playfair',
   'polybius',
+  'morse',
+  'bacon',
+  'tap-code',
+  'columnar',
+  'adfgvx',
+  'bifid',
 ] as const
 
 export type BuiltinCipher = (typeof builtinCiphers)[number]

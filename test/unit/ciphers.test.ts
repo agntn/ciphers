@@ -4,8 +4,8 @@ import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
 
 describe('registry', () => {
-  it('registers all 9 ciphers', () => {
-    expect(ciphers()).toHaveLength(9)
+  it('registers all 15 ciphers', () => {
+    expect(ciphers()).toHaveLength(15)
     for (const name of ['caesar', 'rot13', 'rot47', 'atbash', 'vigenere', 'rail-fence', 'affine', 'playfair', 'polybius']) {
       expect(has(name)).toBe(true)
     }
@@ -258,6 +258,128 @@ describe('polybius', () => {
   })
 })
 
+describe('morse', () => {
+  const morse = create('morse')
+
+  it('encodes SOS', () => {
+    expect(morse.encode('SOS').text).toBe('... --- ...')
+  })
+
+  it('decodes SOS', () => {
+    expect(morse.decode('... --- ...').text).toBe('SOS')
+  })
+
+  it('roundtrips', () => {
+    const encoded = morse.encode('HELLO WORLD')
+    const decoded = morse.decode(encoded.text)
+    expect(decoded.text).toBe('HELLO WORLD')
+  })
+
+  it('empty string returns empty', () => {
+    expect(morse.encode('').text).toBe('')
+  })
+})
+
+describe('bacon', () => {
+  const bacon = create('bacon')
+
+  it('encodes A to AAAAA', () => {
+    expect(bacon.encode('A').text).toBe('AAAAA')
+  })
+
+  it('encodes HI', () => {
+    expect(bacon.encode('HI').text).toBe('AABBBABAAA')
+  })
+
+  it('roundtrips', () => {
+    const encoded = bacon.encode('HELLO')
+    const decoded = bacon.decode(encoded.text)
+    expect(decoded.text).toBe('HELLO')
+  })
+
+  it('is 5-char per letter', () => {
+    const encoded = bacon.encode('ABC')
+    expect(encoded.text.length).toBe(15)
+  })
+})
+
+describe('tap-code', () => {
+  const tap = create('tap-code')
+
+  it('encodes HELP', () => {
+    expect(tap.encode('HELP').text).toBe('2 3 1 5 3 1 3 5')
+  })
+
+  it('roundtrips', () => {
+    const encoded = tap.encode('HELLO')
+    const decoded = tap.decode(encoded.text)
+    expect(decoded.text).toBe('HELLO')
+  })
+
+  it('K maps to C', () => {
+    const kResult = tap.encode('K')
+    const cResult = tap.encode('C')
+    expect(kResult.text).toBe(cResult.text)
+  })
+})
+
+describe('columnar', () => {
+  const col = create('columnar')
+
+  it('encodes with key', () => {
+    expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe('N W ETSLD ALEE  DEA FHT')
+  })
+
+  it('roundtrips', () => {
+    const encoded = col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' })
+    const decoded = col.decode(encoded.text, { key: 'GERMAN' })
+    expect(decoded.text).toBe('DEFEND THE EAST WALL')
+  })
+
+  it('requires key', () => {
+    expect(() => col.encode('TEST')).toThrow()
+  })
+})
+
+describe('adfgvx', () => {
+  const adf = create('adfgvx')
+
+  it('encodes ATTACK', () => {
+    expect(adf.encode('ATTACK').text).toBe('AAGDGDAAAFDV')
+  })
+
+  it('roundtrips with letters and digits', () => {
+    const encoded = adf.encode('HELLO123')
+    const decoded = adf.decode(encoded.text)
+    expect(decoded.text).toBe('HELLO123')
+  })
+
+  it('output only contains ADFGVX', () => {
+    const encoded = adf.encode('TESTING 123')
+    expect(encoded.text).toMatch(/^[ADFGVX]+$/)
+  })
+})
+
+describe('bifid', () => {
+  const bifid = create('bifid')
+
+  it('encodes FLEE AT ONCE', () => {
+    expect(bifid.encode('FLEE AT ONCE', { key: 'BICONDITIONAL', period: 5 }).text).toBe('GTDUXDBTUM')
+  })
+
+  it('roundtrips', () => {
+    const encoded = bifid.encode('HELLO', { key: 'BICONDITIONAL' })
+    const decoded = bifid.decode(encoded.text, { key: 'BICONDITIONAL' })
+    expect(decoded.text).toBe('HELLO')
+  })
+
+  it('roundtrips with period', () => {
+    const encoded = bifid.encode('CRYPTOGRAPHY', { key: 'EXAMPLE', period: 3 })
+    const decoded = bifid.decode(encoded.text, { key: 'EXAMPLE', period: 3 })
+    expect(decoded.text).toBe('CRYPTOGRAPHY')
+  })
+})
+
 describe('resolveCipher', () => {
   it('resolves by name', () => {
     expect(resolveCipher('caesar').name()).toBe('caesar')
@@ -281,10 +403,17 @@ describe('resolveCipher', () => {
 })
 
 describe('edge cases', () => {
+  const keyOpts: Record<string, Record<string, unknown>> = {
+    vigenere: { key: 'TEST' },
+    playfair: { key: 'TEST' },
+    columnar: { key: 'TEST' },
+    bifid: { key: 'TEST' },
+  }
+
   it('all ciphers handle empty string', () => {
     for (const name of ciphers()) {
       const cipher = create(name)
-      const opts = name === 'vigenere' || name === 'playfair' ? { key: 'TEST' } : {}
+      const opts = keyOpts[name] ?? {}
       const result = cipher.encode('', opts)
       expect(typeof result.text).toBe('string')
     }
@@ -293,7 +422,7 @@ describe('edge cases', () => {
   it('all ciphers handle non-alpha only input', () => {
     for (const name of ciphers()) {
       const cipher = create(name)
-      const opts = name === 'vigenere' || name === 'playfair' ? { key: 'TEST' } : {}
+      const opts = keyOpts[name] ?? {}
       const result = cipher.encode('123 !@#', opts)
       expect(typeof result.text).toBe('string')
     }

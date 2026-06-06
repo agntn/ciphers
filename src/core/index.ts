@@ -23,3 +23,4 @@ export {
 export { register, create, ciphers, has } from './registry'
 export { resolveCipher } from './resolve'
 export { builtinCiphers, type BuiltinCipher } from './providers'
+export { LruCache, RateLimiter, RateLimitError, cipherCacheKey } from './utils'

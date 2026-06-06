@@ -1,7 +1,9 @@
 import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { getOpt } from '../core/utils'
+import { getOpt, LruCache, RateLimiter, RateLimitError, cipherCacheKey } from '../core/utils'
 import { MissingOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
+
+// ── Columnar transposition internals ────────────────────────────────────
 
 function buildColumnOrder(key: string): number[] {
   const upper = key.toUpperCase()
@@ -16,13 +18,11 @@ function encodeColumnar(text: string, key: string): string {
   const order = buildColumnOrder(key)
   const cols = order.length
   const rows = Math.ceil(text.length / cols)
-  // Pad with spaces to fill grid
   const padded = text.padEnd(rows * cols, ' ')
   const grid: string[][] = []
   for (let r = 0; r < rows; r++) {
     grid[r] = Array.from(padded.slice(r * cols, (r + 1) * cols))
   }
-  // Read columns in key order
   const colOrder = order.map((_, i) => order.indexOf(i))
   let result = ''
   for (const col of colOrder) {
@@ -39,14 +39,11 @@ function decodeColumnar(text: string, key: string): string {
   const rows = Math.ceil(text.length / cols)
   const fullLen = rows * cols
   const padCount = fullLen - text.length
-  // Determine how many chars per column (some cols may have one fewer)
   const colOrder = order.map((_, i) => order.indexOf(i))
   const colLens = new Array(cols).fill(rows)
-  // Last `padCount` columns in reading order get one fewer char
   for (let i = cols - padCount; i < cols; i++) {
     colLens[colOrder[i]!]!--
   }
-  // Fill columns from ciphertext
   const columns: string[][] = Array.from({ length: cols }, () => [])
   let idx = 0
   for (const col of colOrder) {
@@ -55,7 +52,6 @@ function decodeColumnar(text: string, key: string): string {
       columns[col]!.push(text[idx++]!)
     }
   }
-  // Read row by row
   let result = ''
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -71,7 +67,20 @@ function validate(opts: CipherBaseOptions): { key: string } {
   return { key }
 }
 
+// ── Cache + rate limiter (per-instance) ─────────────────────────────────
+
+const DEFAULT_CACHE_SIZE = 128
+const DEFAULT_RATE_LIMIT = 100 // calls per second
+
 class ColumnarProvider implements CipherProvider {
+  private cache: LruCache<string, string>
+  private limiter: RateLimiter
+
+  constructor() {
+    this.cache = new LruCache(DEFAULT_CACHE_SIZE)
+    this.limiter = new RateLimiter(DEFAULT_RATE_LIMIT)
+  }
+
   name(): string { return 'columnar' }
 
   info(): CipherInfo {
@@ -91,15 +100,37 @@ class ColumnarProvider implements CipherProvider {
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { key } = validate(options ?? {})
-      return { text: encodeColumnar(text, key), cipher: 'columnar', operation: 'encode', options: { key } }
+      const ck = cipherCacheKey('encode', text, { key })
+      const cached = this.cache.get(ck)
+      if (cached !== undefined) {
+        return { text: cached, cipher: 'columnar', operation: 'encode', options: { key } }
+      }
+      if (!this.limiter.allow()) throw new RateLimitError('columnar')
+      const result = encodeColumnar(text, key)
+      this.cache.set(ck, result)
+      return { text: result, cipher: 'columnar', operation: 'encode', options: { key } }
     } catch (e) { throw normalizeError(e, 'columnar') }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { key } = validate(options ?? {})
-      return { text: decodeColumnar(text, key), cipher: 'columnar', operation: 'decode', options: { key } }
+      const ck = cipherCacheKey('decode', text, { key })
+      const cached = this.cache.get(ck)
+      if (cached !== undefined) {
+        return { text: cached, cipher: 'columnar', operation: 'decode', options: { key } }
+      }
+      if (!this.limiter.allow()) throw new RateLimitError('columnar')
+      const result = decodeColumnar(text, key)
+      this.cache.set(ck, result)
+      return { text: result, cipher: 'columnar', operation: 'decode', options: { key } }
     } catch (e) { throw normalizeError(e, 'columnar') }
+  }
+
+  /** Reset cache and rate limiter. Useful for testing. */
+  reset(): void {
+    this.cache.clear()
+    this.limiter = new RateLimiter(DEFAULT_RATE_LIMIT)
   }
 }
 

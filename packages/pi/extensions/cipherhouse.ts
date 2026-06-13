@@ -2,6 +2,7 @@ import type { AgentToolResult, ExtensionAPI } from '@earendil-works/pi-coding-ag
 import { defineTool } from '@earendil-works/pi-coding-agent'
 import { Text } from '@earendil-works/pi-tui'
 import { type Static, Type } from 'typebox'
+import type * as CipherhouseModule from 'cipherhouse'
 
 /** Lazy-load the library (registers all providers on import). */
 async function loadLib() {
@@ -9,7 +10,7 @@ async function loadLib() {
     // @ts-expect-error — dev fallback when library isn't built yet
     return import('../../../src/index.ts')
   })
-  return mod as typeof import('cipherhouse')
+  return mod as typeof CipherhouseModule
 }
 
 /** Shared parameter schema for encode/decode tools. */

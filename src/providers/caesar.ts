@@ -23,7 +23,7 @@ function validate(opts: CipherBaseOptions): { shift: number; preserveCase: boole
   if (!Number.isInteger(shift) || shift < 1 || shift > 25) {
     throw new InvalidOptionError('shift', shift, 'must be integer 1-25')
   }
-  const base = processBaseOptions(opts as Record<string, unknown>)
+  const base = processBaseOptions(opts)
   return { shift, ...base }
 }
 

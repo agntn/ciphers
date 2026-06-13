@@ -27,7 +27,7 @@ function vigenereProcess(text: string, key: string, decrypt: boolean, preserveCa
 function validate(opts: CipherBaseOptions): { key: string; preserveCase: boolean; stripNonAlpha: boolean } {
   const key = getOpt<string | undefined>(opts, "key", undefined)
   if (!key) throw new MissingOptionError('key')
-  const base = processBaseOptions(opts as Record<string, unknown>)
+  const base = processBaseOptions(opts)
     return { key, ...base }
 }
 

@@ -11,6 +11,7 @@ import {
   processBaseOptions,
   withCipherError,
 } from '../../src/core/utils'
+import { UnknownCipherError, InvalidOptionError, MissingOptionError } from '../../src/core/errors'
 
 describe('LruCache', () => {
   it('stores and retrieves values', () => {
@@ -155,5 +156,31 @@ describe('withCipherError', () => {
 
   it('normalizes errors thrown by the operation', () => {
     expect(() => withCipherError('test', () => { throw new Error('boom') })).toThrow()
+  })
+
+  it('passes through UnknownCipherError subclass unchanged (preserves .cipher)', () => {
+    const original = new UnknownCipherError('foo')
+    let caught: unknown
+    try { withCipherError('test', () => { throw original }) } catch (e) { caught = e }
+    expect(caught).toBe(original)
+    expect(caught).toBeInstanceOf(UnknownCipherError)
+    expect((caught as UnknownCipherError).cipher).toBe('foo')
+  })
+
+  it('passes through InvalidOptionError subclass unchanged (preserves .option/.value/.reason)', () => {
+    const original = new InvalidOptionError('shift', 99, 'out of range')
+    let caught: unknown
+    try { withCipherError('test', () => { throw original }) } catch (e) { caught = e }
+    expect(caught).toBe(original)
+    expect(caught).toBeInstanceOf(InvalidOptionError)
+    expect((caught as InvalidOptionError).option).toBe('shift')
+  })
+
+  it('passes through MissingOptionError subclass unchanged', () => {
+    const original = new MissingOptionError('key')
+    let caught: unknown
+    try { withCipherError('test', () => { throw original }) } catch (e) { caught = e }
+    expect(caught).toBe(original)
+    expect(caught).toBeInstanceOf(MissingOptionError)
   })
 })

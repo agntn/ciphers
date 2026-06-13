@@ -1,4 +1,5 @@
 import type { CipherBaseOptions } from './types'
+import { CipherError } from './errors'
 
 /** Shared cipher utilities — extracted from provider implementations. */
 
@@ -128,7 +129,7 @@ export function withCipherError<T>(name: string, fn: () => T): T {
   try {
     return fn()
   } catch (e) {
-    if (e instanceof Error && e.name === 'CipherError') throw e
+    if (e instanceof CipherError) throw e
     const msg = e instanceof Error ? e.message : String(e)
     throw new (class extends Error {
       name = 'CipherError'

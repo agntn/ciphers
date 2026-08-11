@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 import { buildPolybiusSquare, getOpt } from '../core/utils'
@@ -57,7 +58,7 @@ function validate(opts: CipherBaseOptions): { key: string; period: number } {
   }
 }
 
-class BifidProvider implements CipherProvider {
+class Bifid extends Cipher {
   name(): string { return 'bifid' }
 
   info(): CipherInfo {
@@ -90,4 +91,4 @@ class BifidProvider implements CipherProvider {
   }
 }
 
-register('bifid', () => new BifidProvider())
+register('bifid', Bifid)

@@ -2,8 +2,8 @@ import { runMain, defineCommand } from 'citty'
 import { normalizeMainArgs } from './cli-args'
 import { version } from './version'
 
-// Register all providers
-import './providers/index'
+// Register all ciphers
+import './ciphers/index'
 
 const main = defineCommand({
   meta: {

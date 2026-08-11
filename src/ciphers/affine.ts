@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { getOpt, processBaseOptions } from '../core/utils'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
@@ -44,7 +45,7 @@ function validate(opts: CipherBaseOptions): { a: number; b: number; preserveCase
   return { a, b, ...base }
 }
 
-class AffineProvider implements CipherProvider {
+class Affine extends Cipher {
   name(): string { return 'affine' }
 
   info(): CipherInfo {
@@ -77,4 +78,4 @@ class AffineProvider implements CipherProvider {
   }
 }
 
-register('affine', () => new AffineProvider())
+register('affine', Affine)

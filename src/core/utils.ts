@@ -1,7 +1,7 @@
 import type { CipherBaseOptions } from './types'
 import { CipherError } from './errors'
 
-/** Shared cipher utilities — extracted from provider implementations. */
+/** Shared utilities extracted from cipher implementations. */
 
 /**
  * Build a 5×5 Polybius square from an optional keyword.

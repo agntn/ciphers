@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { getOpt, processBaseOptions } from '../core/utils'
 import { register } from '../core/registry'
@@ -27,7 +28,7 @@ function validate(opts: CipherBaseOptions): { shift: number; preserveCase: boole
   return { shift, ...base }
 }
 
-class CaesarProvider implements CipherProvider {
+class Caesar extends Cipher {
   name(): string { return 'caesar' }
 
   info(): CipherInfo {
@@ -59,4 +60,4 @@ class CaesarProvider implements CipherProvider {
   }
 }
 
-register('caesar', () => new CaesarProvider())
+register('caesar', Caesar)

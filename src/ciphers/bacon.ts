@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -38,7 +39,7 @@ function decodeBacon(text: string): string {
   return result
 }
 
-class BaconProvider implements CipherProvider {
+class Bacon extends Cipher {
   name(): string { return 'bacon' }
 
   info(): CipherInfo {
@@ -66,4 +67,4 @@ class BaconProvider implements CipherProvider {
   }
 }
 
-register('bacon', () => new BaconProvider())
+register('bacon', Bacon)

@@ -25,7 +25,7 @@ export default defineCommand({
     b: { type: 'string', description: 'Additive shift (Affine)' },
   },
   async run({ args }) {
-    const provider = resolveCipher(args.cipher)
+    const cipher = resolveCipher(args.cipher)
     const opts: CipherBaseOptions & Record<string, unknown> = {}
     const shift = parseIntOrFail(args.shift, 'shift')
     const rails = parseIntOrFail(args.rails, 'rails')
@@ -36,7 +36,7 @@ export default defineCommand({
     if (rails !== undefined) opts.rails = rails
     if (a !== undefined) opts.a = a
     if (b !== undefined) opts.b = b
-    const result = provider.decode(args.text, opts)
+    const result = cipher.decode(args.text, opts)
     consola.log(result.text)
   },
 })

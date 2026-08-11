@@ -119,7 +119,7 @@ describe('cipherCacheKey', () => {
   })
 })
 
-// ── Columnar provider: cache behavior ───────────────────────────────────
+// ── Columnar cipher: cache behavior ─────────────────────────────────────
 
 describe('columnar — cache', () => {
   const col = create('columnar')
@@ -167,7 +167,7 @@ describe('columnar — cache', () => {
   })
 })
 
-// ── Columnar provider: rate limiting ────────────────────────────────────
+// ── Columnar cipher: rate limiting ──────────────────────────────────────
 
 describe('columnar — rate limit', () => {
   it('allows normal-rate calls', () => {
@@ -218,7 +218,7 @@ describe('columnar — rate limit', () => {
   })
 })
 
-// ── Columnar provider: backwards compatibility ──────────────────────────
+// ── Columnar cipher: backwards compatibility ────────────────────────────
 
 describe('columnar — backwards compatibility', () => {
   it('encodes with key', () => {

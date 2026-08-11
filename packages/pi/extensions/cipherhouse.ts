@@ -4,7 +4,7 @@ import { Text } from '@earendil-works/pi-tui'
 import { type Static, Type } from 'typebox'
 import type * as CipherhouseModule from 'cipherhouse'
 
-/** Lazy-load the library (registers all providers on import). */
+/** Lazy-load the library (registers all ciphers on import). */
 async function loadLib() {
   const mod = await import('cipherhouse').catch(() => {
     // @ts-expect-error — dev fallback when library isn't built yet
@@ -54,8 +54,8 @@ export default function cipherhouseExtension(pi: ExtensionAPI) {
     async execute(_toolCallId, params): Promise<AgentToolResult> {
       try {
         const lib = await loadLib()
-        const provider = lib.resolveCipher(params.cipher)
-        const result = provider.encode(params.text, buildOpts(params))
+        const cipher = lib.resolveCipher(params.cipher)
+        const result = cipher.encode(params.text, buildOpts(params))
         return {
           content: [{ type: 'text', text: result.text }],
           details: { cipher: result.cipher, operation: result.operation, options: result.options },
@@ -83,8 +83,8 @@ export default function cipherhouseExtension(pi: ExtensionAPI) {
     async execute(_toolCallId, params): Promise<AgentToolResult> {
       try {
         const lib = await loadLib()
-        const provider = lib.resolveCipher(params.cipher)
-        const result = provider.decode(params.text, buildOpts(params))
+        const cipher = lib.resolveCipher(params.cipher)
+        const result = cipher.decode(params.text, buildOpts(params))
         return {
           content: [{ type: 'text', text: result.text }],
           details: { cipher: result.cipher, operation: result.operation, options: result.options },
@@ -116,10 +116,10 @@ export default function cipherhouseExtension(pi: ExtensionAPI) {
     async execute(_toolCallId, params): Promise<AgentToolResult> {
       try {
         const lib = await loadLib()
-        const provider = lib.create('caesar')
+        const cipher = lib.create('caesar')
         const lines: string[] = []
         for (let shift = 1; shift <= 25; shift++) {
-          const result = provider.decode(params.text, { shift })
+          const result = cipher.decode(params.text, { shift })
           lines.push(`shift=${String(shift).padStart(2)} → ${result.text}`)
         }
         return { content: [{ type: 'text', text: lines.join('\n') }] }

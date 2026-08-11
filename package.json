@@ -2,7 +2,7 @@
   "name": "cipherhouse",
   "version": "0.1.1",
   "type": "module",
-  "description": "Unified classical cipher provider library for agents",
+  "description": "Unified classical cipher library for agents",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",

@@ -93,17 +93,3 @@ export interface CipherInfo {
   keyspace?: string
 }
 
-/** A cipher provider — can encode and decode text. */
-export interface CipherProvider {
-  /** Cipher name. */
-  name(): string
-  /** Cipher metadata. */
-  info(): CipherInfo
-  /** Encode plaintext. */
-  encode(text: string, options?: CipherBaseOptions): CipherResult
-  /** Decode ciphertext. */
-  decode(text: string, options?: CipherBaseOptions): CipherResult
-}
-
-/** Factory function to create a cipher provider. */
-export type CipherProviderFactory = () => CipherProvider

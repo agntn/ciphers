@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { getOpt, processBaseOptions } from '../core/utils'
 import { MissingOptionError, InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
@@ -31,7 +32,7 @@ function validate(opts: CipherBaseOptions): { key: string; preserveCase: boolean
     return { key, ...base }
 }
 
-class VigenereProvider implements CipherProvider {
+class Vigenere extends Cipher {
   name(): string { return 'vigenere' }
 
   info(): CipherInfo {
@@ -63,4 +64,4 @@ class VigenereProvider implements CipherProvider {
   }
 }
 
-register('vigenere', () => new VigenereProvider())
+register('vigenere', Vigenere)

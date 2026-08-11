@@ -8,8 +8,8 @@ export default defineCommand({
     cipher: { type: 'positional', description: 'Cipher name', required: true },
   },
   async run({ args }) {
-    const provider = resolveCipher(args.cipher)
-    const info = provider.info()
+    const cipher = resolveCipher(args.cipher)
+    const info = cipher.info()
     consola.info(`\x1b[1m${info.label}\x1b[0m (${info.name})`)
     consola.info(`  ${info.description}`)
     consola.info(`  Family: ${info.family}`)

@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -57,7 +58,7 @@ function decodeTapCode(text: string): string {
   return result
 }
 
-class TapCodeProvider implements CipherProvider {
+class TapCode extends Cipher {
   name(): string { return 'tap-code' }
 
   info(): CipherInfo {
@@ -85,4 +86,4 @@ class TapCodeProvider implements CipherProvider {
   }
 }
 
-register('tap-code', () => new TapCodeProvider())
+register('tap-code', TapCode)

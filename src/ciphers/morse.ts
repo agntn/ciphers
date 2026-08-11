@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
@@ -32,7 +33,7 @@ function decodeMorse(text: string): string {
   ).join(' ')
 }
 
-class MorseProvider implements CipherProvider {
+class Morse extends Cipher {
   name(): string { return 'morse' }
 
   info(): CipherInfo {
@@ -60,4 +61,4 @@ class MorseProvider implements CipherProvider {
   }
 }
 
-register('morse', () => new MorseProvider())
+register('morse', Morse)

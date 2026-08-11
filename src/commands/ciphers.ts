@@ -11,8 +11,8 @@ export default defineCommand({
     const names = listCiphers()
     if (args.verbose) {
       for (const name of names) {
-        const provider = create(name)
-        const info = provider.info()
+        const cipher = create(name)
+        const info = cipher.info()
         consola.info(`\x1b[1m${info.label}\x1b[0m (${info.name})`)
         consola.info(`  ${info.description}`)
         consola.info(`  Family: ${info.family}`)

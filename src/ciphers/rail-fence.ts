@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { getOpt } from '../core/utils'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
@@ -47,7 +48,7 @@ function validate(opts: CipherBaseOptions): { rails: number } {
   return { rails }
 }
 
-class RailFenceProvider implements CipherProvider {
+class RailFence extends Cipher {
   name(): string { return 'rail-fence' }
 
   info(): CipherInfo {
@@ -79,4 +80,4 @@ class RailFenceProvider implements CipherProvider {
   }
 }
 
-register('rail-fence', () => new RailFenceProvider())
+register('rail-fence', RailFence)

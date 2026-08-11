@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { getOpt, LruCache, RateLimiter, RateLimitError, cipherCacheKey } from '../core/utils'
 import { MissingOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
@@ -72,11 +73,12 @@ function validate(opts: CipherBaseOptions): { key: string } {
 const DEFAULT_CACHE_SIZE = 128
 const DEFAULT_RATE_LIMIT = 100 // calls per second
 
-class ColumnarProvider implements CipherProvider {
+class Columnar extends Cipher {
   private cache: LruCache<string, string>
   private limiter: RateLimiter
 
   constructor() {
+    super()
     this.cache = new LruCache(DEFAULT_CACHE_SIZE)
     this.limiter = new RateLimiter(DEFAULT_RATE_LIMIT)
   }
@@ -134,4 +136,4 @@ class ColumnarProvider implements CipherProvider {
   }
 }
 
-register('columnar', () => new ColumnarProvider())
+register('columnar', Columnar)

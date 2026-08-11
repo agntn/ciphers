@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { register } from '../core/registry'
 
 function atbash(text: string, stripNonAlpha: boolean): string {
@@ -11,7 +12,7 @@ function atbash(text: string, stripNonAlpha: boolean): string {
   }).join('')
 }
 
-class AtbashProvider implements CipherProvider {
+class Atbash extends Cipher {
   name(): string { return 'atbash' }
 
   info(): CipherInfo {
@@ -35,4 +36,4 @@ class AtbashProvider implements CipherProvider {
   }
 }
 
-register('atbash', () => new AtbashProvider())
+register('atbash', Atbash)

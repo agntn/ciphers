@@ -9,10 +9,9 @@ export type {
   PolybiusOptions,
   CipherInfo,
   CipherOption,
-  CipherProvider,
-  CipherProviderFactory,
 } from './types'
 export { getOpt } from './types'
+export { Cipher, type CipherConstructor } from './cipher'
 export {
   CipherError,
   UnknownCipherError,
@@ -22,5 +21,5 @@ export {
 } from './errors'
 export { register, create, ciphers, has } from './registry'
 export { resolveCipher } from './resolve'
-export { builtinCiphers, type BuiltinCipher } from './providers'
+export { builtinCiphers, type BuiltinCipher } from './ciphers'
 export { LruCache, RateLimiter, RateLimitError, cipherCacheKey } from './utils'

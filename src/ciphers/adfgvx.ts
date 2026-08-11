@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { getOpt } from '../core/utils'
 import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
@@ -61,7 +62,7 @@ function decodeAdfgvx(text: string, key?: string): string {
   return result
 }
 
-class AdfgvxProvider implements CipherProvider {
+class Adfgvx extends Cipher {
   name(): string { return 'adfgvx' }
 
   info(): CipherInfo {
@@ -93,4 +94,4 @@ class AdfgvxProvider implements CipherProvider {
   }
 }
 
-register('adfgvx', () => new AdfgvxProvider())
+register('adfgvx', Adfgvx)

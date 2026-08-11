@@ -1,4 +1,5 @@
-import type { CipherProvider, CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
+import { Cipher } from '../core/cipher'
 import { buildPolybiusSquare, getOpt } from '../core/utils'
 import { MissingOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
@@ -56,7 +57,7 @@ function validate(opts: CipherBaseOptions): { key: string } {
   return { key }
 }
 
-class PlayfairProvider implements CipherProvider {
+class Playfair extends Cipher {
   name(): string { return 'playfair' }
 
   info(): CipherInfo {
@@ -88,4 +89,4 @@ class PlayfairProvider implements CipherProvider {
   }
 }
 
-register('playfair', () => new PlayfairProvider())
+register('playfair', Playfair)

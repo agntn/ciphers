@@ -1,6 +1,6 @@
 # cipherhouse
 
-Unified classical cipher provider library for agents. 15 ciphers, self-registering, zero HTTP.
+Unified classical cipher library for agents. 15 concrete cipher classes share an abstract `Cipher` base and self-register without HTTP.
 
 ## Ciphers
 
@@ -59,6 +59,8 @@ const rot13 = create('rot13')
 rot13.encode('HELLO').text === rot13.decode('URYYB').text // true
 ```
 
+Ciphers extend the exported abstract `Cipher` class. Custom ciphers can be registered by constructor with `register(name, CipherClass)`; `create()` instantiates and caches them.
+
 ## Pi Extension
 
 Four tools available:
@@ -78,7 +80,7 @@ pnpm build
 ## Test
 
 ```bash
-pnpm test:run   # 72 tests
+pnpm test:run
 ```
 
 ## License

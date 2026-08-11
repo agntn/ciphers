@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import '../../src/index'
 import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
+import { Cipher } from '../../src/core/cipher'
 
 describe('registry', () => {
   it('registers all 15 ciphers', () => {
@@ -15,6 +16,12 @@ describe('registry', () => {
     const a = create('caesar')
     const b = create('caesar')
     expect(a).toBe(b)
+  })
+
+  it('creates instances of the abstract cipher base', () => {
+    for (const name of ciphers()) {
+      expect(create(name)).toBeInstanceOf(Cipher)
+    }
   })
 })
 

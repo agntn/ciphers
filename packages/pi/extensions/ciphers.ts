@@ -2,15 +2,15 @@ import type { AgentToolResult, ExtensionAPI } from '@earendil-works/pi-coding-ag
 import { defineTool } from '@earendil-works/pi-coding-agent'
 import { Text } from '@earendil-works/pi-tui'
 import { type Static, Type } from 'typebox'
-import type * as CipherhouseModule from 'cipherhouse'
+import type * as CiphersModule from '@oritwoen/ciphers'
 
 /** Lazy-load the library (registers all ciphers on import). */
 async function loadLib() {
-  const mod = await import('cipherhouse').catch(() => {
+  const mod = await import('@oritwoen/ciphers').catch(() => {
     // @ts-expect-error — dev fallback when library isn't built yet
     return import('../../../src/index.ts')
   })
-  return mod as typeof CipherhouseModule
+  return mod as typeof CiphersModule
 }
 
 /** Shared parameter schema for encode/decode tools. */
@@ -37,7 +37,7 @@ function buildOpts(params: CipherParams): Record<string, unknown> {
   return opts
 }
 
-export default function cipherhouseExtension(pi: ExtensionAPI) {
+export default function ciphersExtension(pi: ExtensionAPI) {
   pi.registerTool(defineTool({
     name: 'cipher_encode',
     label: 'Cipher Encode',

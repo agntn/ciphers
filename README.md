@@ -1,4 +1,4 @@
-# cipherhouse
+# @oritwoen/ciphers
 
 Unified classical cipher library for agents. 15 concrete cipher classes share an abstract `Cipher` base and self-register without HTTP.
 
@@ -42,8 +42,8 @@ ch encode bifid "TEST" --key EXAMPLE              # OSUT
 ## Library
 
 ```typescript
-import 'cipherhouse'
-import { create, resolveCipher, getOpt } from 'cipherhouse'
+import '@oritwoen/ciphers'
+import { create, resolveCipher, getOpt } from '@oritwoen/ciphers'
 
 // Direct
 const caesar = create('caesar')

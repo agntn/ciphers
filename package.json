@@ -1,5 +1,5 @@
 {
-  "name": "cipherhouse",
+  "name": "@oritwoen/ciphers",
   "version": "0.1.1",
   "type": "module",
   "description": "Unified classical cipher library for agents",

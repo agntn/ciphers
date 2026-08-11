@@ -1,4 +1,4 @@
-/** Base error for cipherhouse. */
+/** Base error for ciphers. */
 export class CipherError extends Error {
   constructor(message: string) {
     super(message)

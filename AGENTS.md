@@ -1,4 +1,4 @@
-# cipherhouse/AGENTS.md
+# ciphers/AGENTS.md
 
 ## Scope
 
@@ -22,7 +22,7 @@ Classical cipher library. 15 ciphers as self-registering classes in `src/ciphers
 - `src/core/registry.ts` — class registration and singleton cache
 - `src/core/resolve.ts` — exact-match cipher resolution
 - `src/ciphers/*.ts` — individual cipher implementations
-- `packages/pi/extensions/cipherhouse.ts` — Pi agent tools
+- `packages/pi/extensions/ciphers.ts` — Pi agent tools
 - `test/unit/ciphers.test.ts` — roundtrip and edge-case coverage
 
 ## Ciphers (15)

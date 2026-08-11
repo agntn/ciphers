@@ -9,7 +9,7 @@ const main = defineCommand({
   meta: {
     name: 'ch',
     version,
-    description: 'cipherhouse — classical cipher encode/decode/analyze CLI',
+    description: 'ciphers — classical cipher encode/decode/analyze CLI',
   },
   subCommands: {
     encode: () => import('./commands/encode').then((m) => m.default),

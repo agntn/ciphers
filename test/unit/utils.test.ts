@@ -1,5 +1,5 @@
 /**
- * cipherhouse pure utility tests.
+ * ciphers pure utility tests.
  */
 import { describe, it, expect } from 'vitest'
 import {

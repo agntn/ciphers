@@ -1,23 +1,23 @@
 # @oritwoen/ciphers
 
-Unified classical cipher library for agents. 15 concrete cipher classes share an abstract `Cipher` base and self-register without HTTP.
+15 classical ciphers behind one small local API and CLI. No HTTP, no API keys, no pretending these are secure encryption.
 
 ## Ciphers
 
 | Cipher | Family | Self-inverse | Options |
 |--------|--------|:---:|---------|
 | **caesar** | substitution-shift | ✗ | `--shift` (1-25, default 3) |
-| **rot13** | substitution-shift | ✓ | — |
-| **rot47** | substitution-shift | ✓ | — |
-| **atbash** | substitution-reflection | ✓ | — |
+| **rot13** | substitution-shift | ✓ | - |
+| **rot47** | substitution-shift | ✓ | - |
+| **atbash** | substitution-reflection | ✓ | - |
 | **vigenere** | polyalphabetic | ✗ | `--key` (required) |
 | **rail-fence** | transposition | ✗ | `--rails` (default 3) |
 | **affine** | substitution-multiplicative | ✗ | `--a` (multiplier), `--b` (shift) |
 | **playfair** | digraph | ✗ | `--key` (required) |
 | **polybius** | fractionation | ✗ | `--key` (optional) |
-| **morse** | fractionation | ✗ | — |
-| **bacon** | fractionation | ✗ | — |
-| **tap-code** | fractionation | ✗ | — |
+| **morse** | fractionation | ✗ | - |
+| **bacon** | fractionation | ✗ | - |
+| **tap-code** | fractionation | ✗ | - |
 | **columnar** | transposition | ✗ | `--key` (required) |
 | **adfgvx** | fractionation | ✗ | `--key` (optional) |
 | **bifid** | fractionation | ✗ | `--key` (optional), `--period` (default 5) |
@@ -45,30 +45,30 @@ ch encode bifid "TEST" --key EXAMPLE              # OSUT
 import '@oritwoen/ciphers'
 import { create, resolveCipher, getOpt } from '@oritwoen/ciphers'
 
-// Direct
+// Create by exact cipher name
 const caesar = create('caesar')
 const result = caesar.encode('HELLO', { shift: 5 })
 // result.text === 'MJQQT'
 
-// Resolve by name
+// Options stay specific to each cipher
 const cipher = resolveCipher('vigenere')
 const encoded = cipher.encode('SECRET', { key: 'KEY' })
 
-// Self-inverse ciphers
+// These do the same thing in both directions
 const rot13 = create('rot13')
 rot13.encode('HELLO').text === rot13.decode('URYYB').text // true
 ```
 
-Ciphers extend the exported abstract `Cipher` class. Custom ciphers can be registered by constructor with `register(name, CipherClass)`; `create()` instantiates and caches them.
+Every built-in cipher is a concrete class extending the exported abstract `Cipher`. Adding your own is deliberately boring: extend `Cipher`, then register the constructor with `register(name, CipherClass)`. `create()` keeps one cached instance per name.
 
 ## OMP and Pi Extensions
 
-Both integrations expose four tools:
+Both integrations expose the same four local tools, so agents don't need a second cipher API:
 
-- `cipher_encode` — encode text with any cipher
-- `cipher_decode` — decode text with any cipher
-- `cipher_brute_caesar` — brute-force all 25 Caesar shifts
-- `cipher_frequency` — letter frequency analysis
+- `cipher_encode`: encode text with any cipher
+- `cipher_decode`: decode text with any cipher
+- `cipher_brute_caesar`: try all 25 Caesar shifts
+- `cipher_frequency`: inspect letter frequency
 
 ## Install
 

@@ -5,7 +5,7 @@ import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
 function encodeRailFence(text: string, rails: number): string {
-  if (rails < 2) return text
+  if (text.length < 2 || rails >= text.length) return text
   const rows: string[][] = Array.from({ length: rails }, () => [])
   let row = 0
   let dir = 1
@@ -19,7 +19,7 @@ function encodeRailFence(text: string, rails: number): string {
 }
 
 function decodeRailFence(cipher: string, rails: number): string {
-  if (rails < 2) return cipher
+  if (cipher.length < 2 || rails >= cipher.length) return cipher
   const n = cipher.length
   const pattern: number[] = []
   let row = 0

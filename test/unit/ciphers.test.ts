@@ -168,6 +168,12 @@ describe('rail-fence', () => {
     expect(() => railFence.encode('HELLO', { rails: 1 })).toThrow(/must be integer >= 2/)
     expect(() => railFence.encode('HELLO', { rails: 0 })).toThrow()
   })
+
+  it('avoids allocating unused rails beyond the text length', () => {
+    const rails = Number.MAX_SAFE_INTEGER
+    expect(railFence.encode('A', { rails }).text).toBe('A')
+    expect(railFence.decode('A', { rails }).text).toBe('A')
+  })
 })
 
 describe('affine', () => {
@@ -384,6 +390,11 @@ describe('bifid', () => {
     const encoded = bifid.encode('CRYPTOGRAPHY', { key: 'EXAMPLE', period: 3 })
     const decoded = bifid.decode(encoded.text, { key: 'EXAMPLE', period: 3 })
     expect(decoded.text).toBe('CRYPTOGRAPHY')
+  })
+
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])('rejects invalid period %s', (period) => {
+    expect(() => bifid.encode('HELLO', { period })).toThrow(/must be a positive integer/)
+    expect(() => bifid.decode('HELLO', { period })).toThrow(/must be a positive integer/)
   })
 })
 

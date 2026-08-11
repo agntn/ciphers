@@ -61,9 +61,9 @@ rot13.encode('HELLO').text === rot13.decode('URYYB').text // true
 
 Ciphers extend the exported abstract `Cipher` class. Custom ciphers can be registered by constructor with `register(name, CipherClass)`; `create()` instantiates and caches them.
 
-## Pi Extension
+## OMP and Pi Extensions
 
-Four tools available:
+Both integrations expose four tools:
 
 - `cipher_encode` — encode text with any cipher
 - `cipher_decode` — decode text with any cipher

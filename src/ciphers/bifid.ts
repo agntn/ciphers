@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
-import { normalizeError } from '../core/errors'
+import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 import { buildPolybiusSquare, getOpt } from '../core/utils'
 
@@ -52,10 +52,12 @@ function decodeBifid(text: string, key: string, period: number): string {
 }
 
 function validate(opts: CipherBaseOptions): { key: string; period: number } {
-  return {
-    key: getOpt<string>(opts, 'key', ''),
-    period: getOpt<number>(opts, 'period', 5),
+  const key = getOpt<string>(opts, 'key', '')
+  const period = getOpt<number>(opts, 'period', 5)
+  if (!Number.isInteger(period) || period < 1) {
+    throw new InvalidOptionError('period', period, 'must be a positive integer')
   }
+  return { key, period }
 }
 
 class Bifid extends Cipher {

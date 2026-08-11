@@ -17,6 +17,11 @@
       "./packages/pi/extensions/*.ts"
     ]
   },
+  "omp": {
+    "extensions": [
+      "./packages/omp/extensions/ciphers.ts"
+    ]
+  },
   "engines": {
     "node": ">=25"
   },
@@ -24,7 +29,7 @@
   "scripts": {
     "build": "obuild",
     "dev": "obuild --stub",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.omp.json",
     "test": "vitest",
     "test:run": "vitest --run"
   },
@@ -33,13 +38,15 @@
     "consola": "^3.4.2"
   },
   "devDependencies": {
-    "obuild": "^0.4.36",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.7",
-    "tsx": "^4.22.4",
-    "@types/node": "latest",
-    "typebox": "^1.1.39",
     "@earendil-works/pi-coding-agent": "latest",
-    "@earendil-works/pi-tui": "latest"
+    "@earendil-works/pi-tui": "latest",
+    "@oh-my-pi/omptype": "17.2.12",
+    "@oh-my-pi/pi-coding-agent": "17.2.12",
+    "@types/node": "latest",
+    "obuild": "^0.4.36",
+    "tsx": "^4.22.4",
+    "typebox": "^1.1.39",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
   }
 }

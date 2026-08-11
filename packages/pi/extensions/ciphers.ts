@@ -149,29 +149,22 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       return new Text(`📊 frequency: "${args.text.slice(0, 40)}..."`, 0, 0)
     },
     async execute(_toolCallId, params): Promise<AgentToolResult> {
-      const text = params.text.toUpperCase().replace(/[^A-Z]/g, '')
-      const total = text.length
-      if (total === 0) return { content: [{ type: 'text', text: 'No letters found in input.' }] }
-
-      const freq = new Map<string, number>()
-      for (const c of text) freq.set(c, (freq.get(c) ?? 0) + 1)
-      const sorted = [...freq.entries()].sort((a, b) => b[1] - a[1])
-
-      const langRef: Record<string, string> = {
-        en: 'ETAOINSHRDLCUMWFGYPBVKJXQZ',
-        pl: 'AIOEZNSWRCYTKLDPMJUBGFHV',
+      const lib = await loadLib()
+      const language = params.lang === 'pl' ? 'pl' : 'en'
+      const analysis = lib.analyzeFrequency(params.text, language)
+      if (analysis === undefined) {
+        return { content: [{ type: 'text', text: 'No letters found in input.' }] }
       }
-      const lang = params.lang ?? 'en'
-      const ref = langRef[lang] ?? langRef['en']!
 
-      const lines = [`Frequency Analysis (${total} letters, lang=${lang}):\n`]
-      for (const [char, count] of sorted) {
-        const pct = ((count / total) * 100).toFixed(1)
-        const bar = '█'.repeat(Math.ceil((count / sorted[0]![1]) * 15))
-        lines.push(`  ${char} ${String(count).padStart(4)} (${pct.padStart(5)}%) ${bar}`)
+      const maximum = analysis.counts[0]?.[1] ?? 1
+      const lines = [`Frequency Analysis (${analysis.total} letters, lang=${analysis.language}):\n`]
+      for (const [character, count] of analysis.counts) {
+        const percentage = ((count / analysis.total) * 100).toFixed(1)
+        const bar = '█'.repeat(Math.ceil((count / maximum) * 15))
+        lines.push(`  ${character} ${String(count).padStart(4)} (${percentage.padStart(5)}%) ${bar}`)
       }
-      lines.push(`\nExpected (${lang}): ${ref.split('').join(' ')}`)
-      lines.push(`Actual:         ${sorted.map(([c]) => c).join(' ')}`)
+      lines.push(`\nExpected (${analysis.language}): ${analysis.reference.split('').join(' ')}`)
+      lines.push(`Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`)
       return { content: [{ type: 'text', text: lines.join('\n') }] }
     },
   }))

@@ -164,6 +164,11 @@ describe('rail-fence', () => {
     expect(decoded.text).toBe('HELLO WORLD')
   })
 
+  it('roundtrips non-BMP characters', () => {
+    const encoded = railFence.encode('A🎉B', { rails: 2 })
+    expect(railFence.decode(encoded.text, { rails: 2 }).text).toBe('A🎉B')
+  })
+
   it('rejects rails < 2', () => {
     expect(() => railFence.encode('HELLO', { rails: 1 })).toThrow(/must be integer >= 2/)
     expect(() => railFence.encode('HELLO', { rails: 0 })).toThrow()

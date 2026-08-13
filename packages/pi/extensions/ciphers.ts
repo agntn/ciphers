@@ -15,13 +15,16 @@ async function loadLib() {
 
 /** Shared parameter schema for encode/decode tools. */
 const cipherParams = Type.Object({
-  cipher: Type.String({ description: 'Cipher name: caesar, rot13, rot47, atbash, vigenere, rail-fence, affine, playfair, polybius' }),
+  cipher: Type.String({ description: 'Cipher name: caesar, rot13, rot47, atbash, vigenere, rail-fence, affine, playfair, polybius, enigma' }),
   text: Type.String({ description: 'Plaintext to encode' }),
   shift: Type.Optional(Type.Number({ description: 'Shift value for Caesar cipher (1-25, default 3)' })),
   key: Type.Optional(Type.String({ description: 'Keyword for Vigenère, Playfair, Polybius' })),
   rails: Type.Optional(Type.Number({ description: 'Number of rails for Rail Fence (default 3)' })),
   a: Type.Optional(Type.Number({ description: 'Multiplier for Affine cipher (coprime with 26)' })),
   b: Type.Optional(Type.Number({ description: 'Additive shift for Affine cipher (0-25)' })),
+  positions: Type.Optional(Type.String({ minLength: 3, maxLength: 3, description: 'Initial rotor positions for Enigma (default AAA)' })),
+  rings: Type.Optional(Type.String({ minLength: 3, maxLength: 3, description: 'Ring settings for Enigma (default AAA)' })),
+  plugboard: Type.Optional(Type.String({ maxLength: 38, description: 'Space-separated plugboard pairs for Enigma' })),
 })
 
 type CipherParams = Static<typeof cipherParams>
@@ -34,6 +37,9 @@ function buildOpts(params: CipherParams): Record<string, unknown> {
   if (params.rails !== undefined) opts.rails = params.rails
   if (params.a !== undefined) opts.a = params.a
   if (params.b !== undefined) opts.b = params.b
+  if (params.positions) opts.positions = params.positions
+  if (params.rings) opts.rings = params.rings
+  if (params.plugboard) opts.plugboard = params.plugboard
   return opts
 }
 
@@ -41,8 +47,8 @@ export default function ciphersExtension(pi: ExtensionAPI) {
   pi.registerTool(defineTool({
     name: 'cipher_encode',
     label: 'Cipher Encode',
-    description: 'Encode plaintext with a classical cipher (caesar, rot13, vigenere, playfair, etc.)',
-    promptSnippet: 'Use cipher_encode to encode text with classical ciphers.',
+    description: 'Encode plaintext with a local cipher (caesar, vigenere, enigma, etc.)',
+    promptSnippet: 'Use cipher_encode to encode text with local educational and puzzle ciphers.',
     promptGuidelines: [
       'Specify the cipher name and the text to encode.',
       'Caesar needs --shift (default 3), Vigenère/Playfair need --key, Rail Fence needs --rails, Affine needs --a and --b.',
@@ -70,8 +76,8 @@ export default function ciphersExtension(pi: ExtensionAPI) {
   pi.registerTool(defineTool({
     name: 'cipher_decode',
     label: 'Cipher Decode',
-    description: 'Decode ciphertext with a classical cipher',
-    promptSnippet: 'Use cipher_decode to decode text encoded with classical ciphers.',
+    description: 'Decode ciphertext with a local educational or puzzle cipher',
+    promptSnippet: 'Use cipher_decode to decode text encoded with local educational and puzzle ciphers.',
     promptGuidelines: [
       'Specify the cipher name and the ciphertext.',
       'Same options as cipher_encode.',

@@ -2,7 +2,7 @@
 
 ## Scope
 
-Classical cipher library. 15 ciphers as self-registering classes in `src/ciphers/`. CLI via citty. Pi extension for agent use.
+Cipher library for local educational and puzzle-oriented text transformations. 16 ciphers as self-registering classes in `src/ciphers/`. CLI via citty. Pi extension for agent use.
 
 ## Conventions
 
@@ -25,9 +25,9 @@ Classical cipher library. 15 ciphers as self-registering classes in `src/ciphers
 - `packages/pi/extensions/ciphers.ts` — Pi agent tools
 - `test/unit/ciphers.test.ts` — roundtrip and edge-case coverage
 
-## Ciphers (15)
+## Ciphers (16)
 
-caesar, rot13, rot47, atbash, vigenere, rail-fence, affine, playfair, polybius, morse, bacon, tap-code, columnar, adfgvx, bifid
+caesar, rot13, rot47, atbash, vigenere, rail-fence, affine, playfair, polybius, morse, bacon, tap-code, columnar, adfgvx, bifid, enigma
 
 ## Adding a New Cipher
 
@@ -42,9 +42,10 @@ caesar, rot13, rot47, atbash, vigenere, rail-fence, affine, playfair, polybius, 
 
 ## Ograniczenia
 
-- Classical ciphers only — not secure for real encryption
+- Educational and puzzle-oriented ciphers; production cryptographic primitives belong in a separate package
 - No HTTP/API — all ciphers are local text transformations
 - Alphabet: Latin (A-Z), J→I mapping for Playfair/Polybius/Bacon
 - C/K share in tap-code
 - Morse: dot/dash with space separator, / for word breaks
 - Bacon: 26-letter alphabet (standard A-Z)
+- Enigma: Wehrmacht M3, rotors I-II-III, reflector B

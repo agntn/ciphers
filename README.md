@@ -1,6 +1,6 @@
 # @oritwoen/ciphers
 
-15 classical ciphers behind one small local API and CLI. No HTTP, no API keys, no pretending these are secure encryption.
+16 ciphers behind one small local API and CLI. Local text transformations for educational and puzzle use, with no HTTP or API keys.
 
 ## Ciphers
 
@@ -21,6 +21,7 @@
 | **columnar** | transposition | ✗ | `--key` (required) |
 | **adfgvx** | fractionation | ✗ | `--key` (optional) |
 | **bifid** | fractionation | ✗ | `--key` (optional), `--period` (default 5) |
+| **enigma** | rotor | ✓ | `--positions`, `--rings`, `--plugboard` |
 
 ## CLI
 
@@ -37,6 +38,7 @@ ch encode tap-code "HELP"                         # 2 3 1 5 3 1 3 5
 ch encode columnar "ATTACK" --key KEY             # TCAATK
 ch encode adfgvx "HELLO"                          # DDAVDXDXFF
 ch encode bifid "TEST" --key EXAMPLE              # OSUT
+ch encode enigma "AAAAA"                          # BDZGO
 ```
 
 ## Library

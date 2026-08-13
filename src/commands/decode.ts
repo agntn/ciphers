@@ -39,9 +39,9 @@ export default defineCommand({
     if (rails !== undefined) opts.rails = rails
     if (a !== undefined) opts.a = a
     if (b !== undefined) opts.b = b
-    if (args.positions) opts.positions = args.positions
-    if (args.rings) opts.rings = args.rings
-    if (args.plugboard) opts.plugboard = args.plugboard
+    if (args.positions !== undefined) opts.positions = args.positions
+    if (args.rings !== undefined) opts.rings = args.rings
+    if (args.plugboard !== undefined) opts.plugboard = args.plugboard
     const result = cipher.decode(args.text, opts)
     consola.log(result.text)
   },

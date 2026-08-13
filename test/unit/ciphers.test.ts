@@ -444,7 +444,7 @@ describe('enigma', () => {
     expect(enigma.decode(encoded.text).text).toBe('Aı🎉')
   })
 
-  it('honors common case and non-alpha options', () => {
+  it('honors preserveCase and stripNonAlpha options', () => {
     expect(enigma.encode('a a', { preserveCase: false, stripNonAlpha: true }).text).toBe('BD')
   })
 

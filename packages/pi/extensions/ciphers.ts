@@ -22,8 +22,8 @@ const cipherParams = Type.Object({
   rails: Type.Optional(Type.Number({ description: 'Number of rails for Rail Fence (default 3)' })),
   a: Type.Optional(Type.Number({ description: 'Multiplier for Affine cipher (coprime with 26)' })),
   b: Type.Optional(Type.Number({ description: 'Additive shift for Affine cipher (0-25)' })),
-  positions: Type.Optional(Type.String({ minLength: 3, maxLength: 3, description: 'Initial rotor positions for Enigma (default AAA)' })),
-  rings: Type.Optional(Type.String({ minLength: 3, maxLength: 3, description: 'Ring settings for Enigma (default AAA)' })),
+  positions: Type.Optional(Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Initial rotor positions for Enigma (default AAA)' })),
+  rings: Type.Optional(Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Ring settings for Enigma (default AAA)' })),
   plugboard: Type.Optional(Type.String({ maxLength: 38, description: 'Space-separated plugboard pairs for Enigma' })),
 })
 
@@ -37,9 +37,9 @@ function buildOpts(params: CipherParams): Record<string, unknown> {
   if (params.rails !== undefined) opts.rails = params.rails
   if (params.a !== undefined) opts.a = params.a
   if (params.b !== undefined) opts.b = params.b
-  if (params.positions) opts.positions = params.positions
-  if (params.rings) opts.rings = params.rings
-  if (params.plugboard) opts.plugboard = params.plugboard
+  if (params.positions !== undefined) opts.positions = params.positions
+  if (params.rings !== undefined) opts.rings = params.rings
+  if (params.plugboard !== undefined) opts.plugboard = params.plugboard
   return opts
 }
 

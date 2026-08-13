@@ -49,6 +49,29 @@ function parsePlugboard(options: CipherBaseOptions): number[] {
   return wiring
 }
 
+interface EnigmaConfig {
+  positions: number[]
+  rings: number[]
+  plugboard: number[]
+  preserveCase: boolean
+  stripNonAlpha: boolean
+  resultOptions: Record<string, unknown>
+}
+
+function parseConfig(options: CipherBaseOptions): EnigmaConfig {
+  const positionLetters = stringOption(options, 'positions', 'AAA').toUpperCase()
+  const ringLetters = stringOption(options, 'rings', 'AAA').toUpperCase()
+  const plugboardPairs = stringOption(options, 'plugboard', '').trim().toUpperCase()
+  return {
+    positions: parseLetters(options, 'positions', 'AAA'),
+    rings: parseLetters(options, 'rings', 'AAA'),
+    plugboard: parsePlugboard(options),
+    preserveCase: options.preserveCase ?? true,
+    stripNonAlpha: options.stripNonAlpha ?? false,
+    resultOptions: { positions: positionLetters, rings: ringLetters, plugboard: plugboardPairs },
+  }
+}
+
 function mod26(value: number): number {
   return ((value % 26) + 26) % 26
 }
@@ -60,12 +83,9 @@ function throughRotor(value: number, rotorIndex: number, position: number, ring:
   return mod26(wired - position + ring)
 }
 
-function transform(text: string, options: CipherBaseOptions): string {
-  const positions = parseLetters(options, 'positions', 'AAA')
-  const rings = parseLetters(options, 'rings', 'AAA')
-  const plugboard = parsePlugboard(options)
-  const stripNonAlpha = options.stripNonAlpha ?? false
-  const preserveCase = options.preserveCase ?? true
+function transform(text: string, config: EnigmaConfig): string {
+  const positions = [...config.positions]
+  const { rings, plugboard, stripNonAlpha, preserveCase } = config
   let output = ''
 
   for (const character of text) {
@@ -117,21 +137,15 @@ class Enigma extends Cipher {
 
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const opts = options ?? {}
-      const positions = stringOption(opts, 'positions', 'AAA').toUpperCase()
-      const rings = stringOption(opts, 'rings', 'AAA').toUpperCase()
-      const plugboard = stringOption(opts, 'plugboard', '').trim().toUpperCase()
-      return { text: transform(text, opts), cipher: 'enigma', operation: 'encode', options: { positions, rings, plugboard } }
+      const config = parseConfig(options ?? {})
+      return { text: transform(text, config), cipher: 'enigma', operation: 'encode', options: config.resultOptions }
     } catch (error) { throw normalizeError(error, 'enigma') }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      const opts = options ?? {}
-      const positions = stringOption(opts, 'positions', 'AAA').toUpperCase()
-      const rings = stringOption(opts, 'rings', 'AAA').toUpperCase()
-      const plugboard = stringOption(opts, 'plugboard', '').trim().toUpperCase()
-      return { text: transform(text, opts), cipher: 'enigma', operation: 'decode', options: { positions, rings, plugboard } }
+      const config = parseConfig(options ?? {})
+      return { text: transform(text, config), cipher: 'enigma', operation: 'decode', options: config.resultOptions }
     } catch (error) { throw normalizeError(error, 'enigma') }
   }
 }

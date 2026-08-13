@@ -72,9 +72,9 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     period: Type.Optional(Type.Integer({ minimum: 1, description: 'Bifid period (default 5)' })),
     preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
     stripNonAlpha: Type.Optional(Type.Boolean({ description: 'Remove non-letter characters before processing (default false)' })),
-    positions: Type.Optional(Type.String({ minLength: 3, maxLength: 3, description: 'Enigma initial rotor positions (default AAA)' })),
-    rings: Type.Optional(Type.String({ minLength: 3, maxLength: 3, description: 'Enigma ring settings (default AAA)' })),
-    plugboard: Type.Optional(Type.String({ maxLength: 77, description: 'Enigma plugboard pairs, for example \"AV BS CG\"' })),
+    positions: Type.Optional(Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma initial rotor positions (default AAA)' })),
+    rings: Type.Optional(Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma ring settings (default AAA)' })),
+    plugboard: Type.Optional(Type.String({ maxLength: 38, description: 'Enigma plugboard pairs, for example \"AV BS CG\"' })),
   })
 
   omp.registerTool({

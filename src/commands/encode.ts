@@ -23,6 +23,9 @@ export default defineCommand({
     rails: { type: 'string', description: 'Number of rails (Rail Fence)', alias: 'r' },
     a: { type: 'string', description: 'Multiplier (Affine)' },
     b: { type: 'string', description: 'Additive shift (Affine)' },
+    positions: { type: 'string', description: 'Initial rotor positions (Enigma; default AAA)' },
+    rings: { type: 'string', description: 'Ring settings (Enigma; default AAA)' },
+    plugboard: { type: 'string', description: 'Space-separated plugboard pairs (Enigma)' },
   },
   async run({ args }) {
     const cipher = resolveCipher(args.cipher)
@@ -36,6 +39,9 @@ export default defineCommand({
     if (rails !== undefined) opts.rails = rails
     if (a !== undefined) opts.a = a
     if (b !== undefined) opts.b = b
+    if (args.positions !== undefined) opts.positions = args.positions
+    if (args.rings !== undefined) opts.rings = args.rings
+    if (args.plugboard !== undefined) opts.plugboard = args.plugboard
     const result = cipher.encode(args.text, opts)
     consola.log(result.text)
   },

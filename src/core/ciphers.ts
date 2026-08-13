@@ -15,6 +15,7 @@ export const builtinCiphers = [
   'columnar',
   'adfgvx',
   'bifid',
+  'enigma',
 ] as const
 
 export type BuiltinCipher = (typeof builtinCiphers)[number]

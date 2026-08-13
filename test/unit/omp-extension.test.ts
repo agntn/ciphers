@@ -96,6 +96,12 @@ describe('OMP extension', () => {
     expect(transformSchema.safeParse({ cipher: 'bifid', text: 'X', period: 0 }).success).toBe(false)
     expect(transformSchema.safeParse({ cipher: 'rail-fence', text: 'X', rails: 1 }).success).toBe(false)
     expect(transformSchema.safeParse({ cipher: 'vigenere', text: 'X', key: 'K'.repeat(1_001) }).success).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: 'AAA', rings: 'AAA', plugboard: 'AV BS' }).success).toBe(true)
+    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: 'AA' }).success).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', rings: 'AAAA' }).success).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: '123' }).success).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', rings: 'A1A' }).success).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', plugboard: 'A'.repeat(78) }).success).toBe(false)
 
     const bruteSchema = getTool('cipher_brute_caesar').parameters
     expect(bruteSchema.safeParse({ text: 'X'.repeat(2_001) }).success).toBe(false)

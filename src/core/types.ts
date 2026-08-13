@@ -34,6 +34,17 @@ export interface VigenereOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Enigma M3 options. */
+export interface EnigmaOptions extends CipherBaseOptions {
+  /** Initial rotor positions, left to right. Default: AAA. */
+  positions?: string
+  /** Ring settings, left to right. Default: AAA. */
+  rings?: string
+  /** Space-separated plugboard pairs. Default: none. */
+  plugboard?: string
+}
+
+
 /** Rail Fence cipher options. */
 export interface RailFenceOptions extends CipherBaseOptions {
   /** Number of rails (2 or more). Default: 3. */
@@ -84,7 +95,7 @@ export interface CipherInfo {
   /** One-line description. */
   description: string
   /** Cipher family. */
-  family: 'substitution-shift' | 'substitution-keyed' | 'substitution-multiplicative' | 'substitution-reflection' | 'digraph' | 'fractionation' | 'transposition' | 'polyalphabetic'
+  family: 'substitution-shift' | 'substitution-keyed' | 'substitution-multiplicative' | 'substitution-reflection' | 'digraph' | 'fractionation' | 'transposition' | 'polyalphabetic' | 'rotor'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
   /** Required/optional options. */

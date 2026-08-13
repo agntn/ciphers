@@ -5,9 +5,9 @@ import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'
 
 describe('registry', () => {
-  it('registers all 15 ciphers', () => {
-    expect(ciphers()).toHaveLength(15)
-    for (const name of ['caesar', 'rot13', 'rot47', 'atbash', 'vigenere', 'rail-fence', 'affine', 'playfair', 'polybius']) {
+  it('registers all 16 ciphers', () => {
+    expect(ciphers()).toHaveLength(16)
+    for (const name of ['caesar', 'rot13', 'rot47', 'atbash', 'vigenere', 'rail-fence', 'affine', 'playfair', 'polybius', 'enigma']) {
       expect(has(name)).toBe(true)
     }
   })
@@ -415,6 +415,49 @@ describe('bifid', () => {
   })
 })
 
+
+describe('enigma', () => {
+  const enigma = create('enigma')
+
+  it('matches the standard M3 I-II-III/B known vector', () => {
+    expect(enigma.encode('AAAAA').text).toBe('BDZGO')
+  })
+
+  it('matches an independent py-enigma double-step vector', () => {
+    expect(enigma.encode('AAA', { positions: 'ADU' }).text).toBe('EQI')
+  })
+
+  it('is reciprocal with positions, rings, and plugboard', () => {
+    const options = { positions: 'MCK', rings: 'BDF', plugboard: 'AV BS CG DL FU HZ IN KM OW RX' }
+    const encoded = enigma.encode('SECRETMESSAGE', options)
+    expect(encoded.text).toBe('KILYLYNVKOEPS')
+    expect(enigma.decode(encoded.text, options).text).toBe('SECRETMESSAGE')
+  })
+
+  it('steps only for letters and preserves non-letters', () => {
+    expect(enigma.encode('AA AA').text).toBe('BD ZG')
+  })
+
+  it('preserves non-ASCII letters without feeding them through the A-Z machine', () => {
+    const encoded = enigma.encode('Aı🎉')
+    expect(encoded.text).toBe('Bı🎉')
+    expect(enigma.decode(encoded.text).text).toBe('Aı🎉')
+  })
+
+  it('honors preserveCase and stripNonAlpha options', () => {
+    expect(enigma.encode('a a', { preserveCase: false, stripNonAlpha: true }).text).toBe('BD')
+  })
+
+  it('rejects invalid settings', () => {
+    expect(() => enigma.encode('A', { positions: 'AA' })).toThrow(/three letters/)
+    expect(() => enigma.encode('A', { rings: '123' })).toThrow(/three letters/)
+    expect(() => enigma.encode('A', { plugboard: 'AB AC' })).toThrow(/at most one pair/)
+    expect(() => enigma.encode('A', { positions: 'ſſſ' })).toThrow(/three letters/)
+    expect(() => enigma.encode('A', { plugboard: 'Aſ' })).toThrow(/distinct letter pairs/)
+    expect(() => enigma.encode('A', { positions: 123 })).toThrow(/must be a string/)
+  })
+})
+
 describe('resolveCipher', () => {
   it('resolves by name', () => {
     expect(resolveCipher('caesar').name()).toBe('caesar')
@@ -425,7 +468,7 @@ describe('resolveCipher', () => {
   })
 
   it('throws for unknown cipher', () => {
-    expect(() => resolveCipher('enigma')).toThrow(/Unknown cipher/)
+    expect(() => resolveCipher('unknown')).toThrow(/Unknown cipher/)
   })
 
   it('throws UnknownCipherError when no name given', () => {

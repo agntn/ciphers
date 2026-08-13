@@ -22,6 +22,9 @@ type CipherParams = {
   period?: number
   preserveCase?: boolean
   stripNonAlpha?: boolean
+  positions?: string
+  rings?: string
+  plugboard?: string
 }
 
 const sourceEntry = new URL('../../../src/index.ts', import.meta.url)
@@ -48,11 +51,14 @@ function buildOptions(params: CipherParams): Record<string, unknown> {
   if (params.period !== undefined) options.period = params.period
   if (params.preserveCase !== undefined) options.preserveCase = params.preserveCase
   if (params.stripNonAlpha !== undefined) options.stripNonAlpha = params.stripNonAlpha
+  if (params.positions !== undefined) options.positions = params.positions
+  if (params.rings !== undefined) options.rings = params.rings
+  if (params.plugboard !== undefined) options.plugboard = params.plugboard
   return options
 }
 
 
-/** Register local classical-cipher tools in OMP. */
+/** Register local educational and puzzle-cipher tools in OMP. */
 export default function ciphersExtension(omp: ExtensionAPI): void {
   const { Type } = omp.typebox
   const cipherParams = Type.Object({
@@ -66,12 +72,15 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     period: Type.Optional(Type.Integer({ minimum: 1, description: 'Bifid period (default 5)' })),
     preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
     stripNonAlpha: Type.Optional(Type.Boolean({ description: 'Remove non-letter characters before processing (default false)' })),
+    positions: Type.Optional(Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma initial rotor positions (default AAA)' })),
+    rings: Type.Optional(Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma ring settings (default AAA)' })),
+    plugboard: Type.Optional(Type.String({ maxLength: 38, description: 'Enigma plugboard pairs, for example \"AV BS CG\"' })),
   })
 
   omp.registerTool({
     name: 'cipher_encode',
     label: 'Cipher Encode',
-    description: 'Encode text with an exact-name built-in classical cipher.',
+    description: 'Encode text with an exact-name built-in cipher.',
     parameters: cipherParams,
     approval: 'read',
     loadMode: 'essential',
@@ -88,7 +97,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
   omp.registerTool({
     name: 'cipher_decode',
     label: 'Cipher Decode',
-    description: 'Decode text with an exact-name built-in classical cipher.',
+    description: 'Decode text with an exact-name built-in cipher.',
     parameters: cipherParams,
     approval: 'read',
     loadMode: 'essential',

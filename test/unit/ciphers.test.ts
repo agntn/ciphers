@@ -361,9 +361,9 @@ describe('columnar', () => {
   })
 
   it('roundtrips non-BMP characters', () => {
-    const encoded = col.encode('A🎉B', { key: 'ABC' })
-    expect(encoded.text).toBe('A🎉B')
-    expect(col.decode(encoded.text, { key: 'ABC' }).text).toBe('A🎉B')
+    const encoded = col.encode('A🎉B', { key: 'ZAB' })
+    expect(encoded.text).toBe('🎉BA')
+    expect(col.decode(encoded.text, { key: 'ZAB' }).text).toBe('A🎉B')
   })
 
   it('requires key', () => {

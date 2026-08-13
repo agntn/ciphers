@@ -2,7 +2,7 @@
 
 ## Scope
 
-Cipher library for local educational and puzzle-oriented text transformations. 16 ciphers as self-registering classes in `src/ciphers/`. CLI via citty. Pi extension for agent use.
+Cipher library for local educational and puzzle-oriented text transformations. 17 ciphers as self-registering classes in `src/ciphers/`. CLI via citty. Pi extension for agent use.
 
 ## Conventions
 
@@ -25,9 +25,9 @@ Cipher library for local educational and puzzle-oriented text transformations. 1
 - `packages/pi/extensions/ciphers.ts` — Pi agent tools
 - `test/unit/ciphers.test.ts` — roundtrip and edge-case coverage
 
-## Ciphers (16)
+## Ciphers (17)
 
-caesar, rot13, rot47, atbash, vigenere, rail-fence, affine, playfair, polybius, morse, bacon, tap-code, columnar, adfgvx, bifid, enigma
+caesar, rot13, rot47, atbash, vigenere, trithemius, rail-fence, affine, playfair, polybius, morse, bacon, tap-code, columnar, adfgvx, bifid, enigma
 
 ## Adding a New Cipher
 

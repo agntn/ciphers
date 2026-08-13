@@ -360,6 +360,12 @@ describe('columnar', () => {
     expect(decoded.text).toBe('DEFEND THE EAST WALL')
   })
 
+  it('roundtrips non-BMP characters', () => {
+    const encoded = col.encode('A🎉B', { key: 'ABC' })
+    expect(encoded.text).toBe('A🎉B')
+    expect(col.decode(encoded.text, { key: 'ABC' }).text).toBe('A🎉B')
+  })
+
   it('requires key', () => {
     expect(() => col.encode('TEST')).toThrow()
   })

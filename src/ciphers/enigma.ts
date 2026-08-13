@@ -18,16 +18,15 @@ function stringOption(options: CipherBaseOptions, name: string, fallback: string
   return value
 }
 
-function parseLetters(options: CipherBaseOptions, name: string, fallback: string): number[] {
-  const value = stringOption(options, name, fallback)
+function parseLetters(value: string, name: string): { normalized: string; values: number[] } {
   if (!/^[A-Za-z]{3}$/.test(value)) throw new InvalidOptionError(name, value, 'must be exactly three letters A-Z')
-  return Array.from(value.toUpperCase(), (letter) => letter.charCodeAt(0) - 65)
+  const normalized = value.toUpperCase()
+  return { normalized, values: Array.from(normalized, (letter) => letter.charCodeAt(0) - 65) }
 }
 
-function parsePlugboard(options: CipherBaseOptions): number[] {
+function parsePlugboard(value: string): { normalized: string; wiring: number[] } {
   const wiring = Array.from({ length: 26 }, (_, index) => index)
-  const value = stringOption(options, 'plugboard', '').trim()
-  if (value === '') return wiring
+  if (value === '') return { normalized: '', wiring }
 
   const used = new Set<string>()
   for (const rawPair of value.split(/\s+/)) {
@@ -46,7 +45,7 @@ function parsePlugboard(options: CipherBaseOptions): number[] {
     wiring[ai] = bi
     wiring[bi] = ai
   }
-  return wiring
+  return { normalized: value.toUpperCase(), wiring }
 }
 
 interface EnigmaConfig {
@@ -59,16 +58,16 @@ interface EnigmaConfig {
 }
 
 function parseConfig(options: CipherBaseOptions): EnigmaConfig {
-  const positionLetters = stringOption(options, 'positions', 'AAA').toUpperCase()
-  const ringLetters = stringOption(options, 'rings', 'AAA').toUpperCase()
-  const plugboardPairs = stringOption(options, 'plugboard', '').trim().toUpperCase()
+  const positions = parseLetters(stringOption(options, 'positions', 'AAA'), 'positions')
+  const rings = parseLetters(stringOption(options, 'rings', 'AAA'), 'rings')
+  const plugboard = parsePlugboard(stringOption(options, 'plugboard', '').trim())
   return {
-    positions: parseLetters(options, 'positions', 'AAA'),
-    rings: parseLetters(options, 'rings', 'AAA'),
-    plugboard: parsePlugboard(options),
+    positions: positions.values,
+    rings: rings.values,
+    plugboard: plugboard.wiring,
     preserveCase: options.preserveCase ?? true,
     stripNonAlpha: options.stripNonAlpha ?? false,
-    resultOptions: { positions: positionLetters, rings: ringLetters, plugboard: plugboardPairs },
+    resultOptions: { positions: positions.normalized, rings: rings.normalized, plugboard: plugboard.normalized },
   }
 }
 

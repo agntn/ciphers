@@ -1,6 +1,6 @@
 # @oritwoen/ciphers
 
-17 ciphers behind one small local API and CLI. Local text transformations for educational and puzzle use, with no HTTP or API keys.
+18 ciphers behind one small local API and CLI. Local text transformations for educational and puzzle use, with no HTTP or API keys.
 
 ## Ciphers
 
@@ -12,6 +12,7 @@
 | **atbash** | substitution-reflection | ✓ | - |
 | **vigenere** | polyalphabetic | ✗ | `--key` (required) |
 | **trithemius** | polyalphabetic | ✗ | - |
+| **alberti** | polyalphabetic | ✗ | `--key`, `--period` (both required) |
 | **rail-fence** | transposition | ✗ | `--rails` (default 3) |
 | **affine** | substitution-multiplicative | ✗ | `--a` (multiplier), `--b` (shift) |
 | **playfair** | digraph | ✗ | `--key` (required) |
@@ -23,6 +24,8 @@
 | **adfgvx** | fractionation | ✗ | `--key` (optional) |
 | **bifid** | fractionation | ✗ | `--key` (optional), `--period` (default 5) |
 | **enigma** | rotor | ✓ | `--positions`, `--rings`, `--plugboard` |
+
+`alberti` implements the reproducible, simplified keyed-disk variant: the inner disk rotates one position after each `period` Latin letters.
 
 ## CLI
 

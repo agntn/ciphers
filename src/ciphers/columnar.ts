@@ -18,11 +18,12 @@ function buildColumnOrder(key: string): number[] {
 function encodeColumnar(text: string, key: string): string {
   const order = buildColumnOrder(key)
   const cols = order.length
-  const rows = Math.ceil(text.length / cols)
-  const padded = text.padEnd(rows * cols, ' ')
+  const chars = Array.from(text)
+  const rows = Math.ceil(chars.length / cols)
+  while (chars.length < rows * cols) chars.push(' ')
   const grid: string[][] = []
   for (let r = 0; r < rows; r++) {
-    grid[r] = Array.from(padded.slice(r * cols, (r + 1) * cols))
+    grid[r] = chars.slice(r * cols, (r + 1) * cols)
   }
   const colOrder = order.map((_, i) => order.indexOf(i))
   let result = ''
@@ -37,9 +38,10 @@ function encodeColumnar(text: string, key: string): string {
 function decodeColumnar(text: string, key: string): string {
   const order = buildColumnOrder(key)
   const cols = order.length
-  const rows = Math.ceil(text.length / cols)
+  const chars = Array.from(text)
+  const rows = Math.ceil(chars.length / cols)
   const fullLen = rows * cols
-  const padCount = fullLen - text.length
+  const padCount = fullLen - chars.length
   const colOrder = order.map((_, i) => order.indexOf(i))
   const colLens = new Array(cols).fill(rows)
   for (let i = cols - padCount; i < cols; i++) {
@@ -50,7 +52,7 @@ function decodeColumnar(text: string, key: string): string {
   for (const col of colOrder) {
     const len = colLens[col]!
     for (let i = 0; i < len; i++) {
-      columns[col]!.push(text[idx++]!)
+      columns[col]!.push(chars[idx++]!)
     }
   }
   let result = ''

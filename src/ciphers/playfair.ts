@@ -27,12 +27,21 @@ function prepareText(text: string): string[] {
   return bigrams
 }
 
+function pairCiphertext(text: string): string[] {
+  const clean = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I')
+  const bigrams: string[] = []
+  for (let i = 0; i < clean.length; i += 2) {
+    bigrams.push(clean[i]! + (clean[i + 1] ?? 'X'))
+  }
+  return bigrams
+}
+
 function processPlayfair(text: string, key: string, decrypt: boolean): string {
   const { square: table, pos: pos1 } = buildPolybiusSquare(key)
   // Convert 1-indexed to 0-indexed for Playfair table lookups
   const pos = new Map<string, [number, number]>()
   for (const [k, [r, c]] of pos1) pos.set(k, [r - 1, c - 1])
-  const bigrams = prepareText(text)
+  const bigrams = decrypt ? pairCiphertext(text) : prepareText(text)
   const at = (r: number, c: number) => table[(r + 5) % 5]![(c + 5) % 5]!
   const result: string[] = []
   for (const bg of bigrams) {

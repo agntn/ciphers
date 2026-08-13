@@ -3,6 +3,7 @@ export type {
   CipherBaseOptions,
   CaesarOptions,
   VigenereOptions,
+  AlbertiOptions,
   EnigmaOptions,
   RailFenceOptions,
   AffineOptions,

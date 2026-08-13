@@ -6,6 +6,7 @@ export const builtinCiphers = [
   'atbash',
   'vigenere',
   'trithemius',
+  'alberti',
   'rail-fence',
   'affine',
   'playfair',

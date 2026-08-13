@@ -34,6 +34,14 @@ export interface VigenereOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Alberti disk cipher options. */
+export interface AlbertiOptions extends CipherBaseOptions {
+  /** Keyword used to construct the movable inner disk. Required. */
+  key: string
+  /** Letters processed before rotating the inner disk. Required. */
+  period: number
+}
+
 /** Enigma M3 options. */
 export interface EnigmaOptions extends CipherBaseOptions {
   /** Initial rotor positions, left to right. Default: AAA. */

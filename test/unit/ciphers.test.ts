@@ -5,9 +5,9 @@ import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'
 
 describe('registry', () => {
-  it('registers all 17 ciphers', () => {
-    expect(ciphers()).toHaveLength(17)
-    for (const name of ['caesar', 'rot13', 'rot47', 'atbash', 'vigenere', 'trithemius', 'rail-fence', 'affine', 'playfair', 'polybius', 'enigma']) {
+  it('registers all 18 ciphers', () => {
+    expect(ciphers()).toHaveLength(18)
+    for (const name of ['caesar', 'rot13', 'rot47', 'atbash', 'vigenere', 'trithemius', 'alberti', 'rail-fence', 'affine', 'playfair', 'polybius', 'enigma']) {
       expect(has(name)).toBe(true)
     }
   })
@@ -164,6 +164,33 @@ describe('trithemius', () => {
     expect(encoded.options).toEqual({ preserveCase: false, stripNonAlpha: true })
     expect(trithemius.decode(encoded.text, { preserveCase: false }).text).toBe('ATTACKATDAWN')
     expect(trithemius.decode(encoded.text).options).toEqual({ preserveCase: true, stripNonAlpha: false })
+  })
+})
+
+describe('alberti', () => {
+  const alberti = create('alberti')
+
+  it('matches a keyed fixed-period disk vector', () => {
+    expect(alberti.encode('ATTACK AT DAWN', { key: 'ALBERTI', period: 4 }).text).toBe('ASSAEH LU TBYN')
+    expect(alberti.decode('ASSAEH LU TBYN', { key: 'ALBERTI', period: 4 }).text).toBe('ATTACK AT DAWN')
+  })
+
+  it('advances the disk only after the configured number of Latin letters', () => {
+    expect(alberti.encode('AAAA 🎉 A', { key: 'KEY', period: 4 }).text).toBe('KKKK 🎉 E')
+  })
+
+  it('normalizes duplicate key letters and honors base options', () => {
+    const encoded = alberti.encode('Attack at dawn!', { key: 'Letter', period: 3, preserveCase: false, stripNonAlpha: true })
+    expect(encoded.options).toEqual({ key: 'LETR', period: 3, preserveCase: false, stripNonAlpha: true })
+    expect(alberti.decode(encoded.text, { key: 'Letter', period: 3, preserveCase: false }).text).toBe('ATTACKATDAWN')
+  })
+
+  it('requires an ASCII-letter key and positive integer period', () => {
+    expect(() => alberti.encode('HELLO', { period: 4 })).toThrow()
+    expect(() => alberti.encode('HELLO', { key: 'KEY' })).toThrow()
+    expect(() => alberti.encode('HELLO', { key: 'ſ', period: 4 })).toThrow()
+    expect(() => alberti.encode('HELLO', { key: 'KEY', period: 0 })).toThrow()
+    expect(() => alberti.encode('HELLO', { key: 'KEY', period: 1.5 })).toThrow()
   })
 })
 
@@ -504,6 +531,7 @@ describe('resolveCipher', () => {
 describe('edge cases', () => {
   const keyOpts: Record<string, Record<string, unknown>> = {
     vigenere: { key: 'TEST' },
+    alberti: { key: 'TEST', period: 4 },
     playfair: { key: 'TEST' },
     columnar: { key: 'TEST' },
     bifid: { key: 'TEST' },

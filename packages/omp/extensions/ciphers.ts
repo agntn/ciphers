@@ -69,7 +69,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     rails: Type.Optional(Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' })),
     a: Type.Optional(Type.Integer({ minimum: 1, maximum: 25, description: 'Affine multiplier, coprime with 26 (default 5)' })),
     b: Type.Optional(Type.Integer({ minimum: 0, maximum: 25, description: 'Affine additive shift (0-25; default 8)' })),
-    period: Type.Optional(Type.Integer({ minimum: 1, description: 'Bifid period (default 5)' })),
+    period: Type.Optional(Type.Integer({ minimum: 1, description: 'Rotation or fractionation period for Alberti and Bifid' })),
     preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
     stripNonAlpha: Type.Optional(Type.Boolean({ description: 'Remove non-letter characters before processing (default false)' })),
     positions: Type.Optional(Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma initial rotor positions (default AAA)' })),

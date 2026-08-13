@@ -19,8 +19,9 @@ export default defineCommand({
     cipher: { type: 'positional', description: 'Cipher name (caesar, rot13, vigenere, ...)', required: true },
     text: { type: 'positional', description: 'Text to encode', required: true },
     shift: { type: 'string', description: 'Shift value (Caesar)', alias: 's' },
-    key: { type: 'string', description: 'Keyword (Vigenère, Playfair, Polybius)', alias: 'k' },
+    key: { type: 'string', description: 'Keyword for keyed ciphers', alias: 'k' },
     rails: { type: 'string', description: 'Number of rails (Rail Fence)', alias: 'r' },
+    period: { type: 'string', description: 'Rotation period (Alberti, Bifid)' },
     a: { type: 'string', description: 'Multiplier (Affine)' },
     b: { type: 'string', description: 'Additive shift (Affine)' },
     positions: { type: 'string', description: 'Initial rotor positions (Enigma; default AAA)' },
@@ -34,9 +35,11 @@ export default defineCommand({
     const rails = parseIntOrFail(args.rails, 'rails')
     const a = parseIntOrFail(args.a, 'a')
     const b = parseIntOrFail(args.b, 'b')
+    const period = parseIntOrFail(args.period, 'period')
     if (shift !== undefined) opts.shift = shift
     if (args.key) opts.key = args.key
     if (rails !== undefined) opts.rails = rails
+    if (period !== undefined) opts.period = period
     if (a !== undefined) opts.a = a
     if (b !== undefined) opts.b = b
     if (args.positions !== undefined) opts.positions = args.positions

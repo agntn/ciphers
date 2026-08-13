@@ -15,11 +15,12 @@ async function loadLib() {
 
 /** Shared parameter schema for encode/decode tools. */
 const cipherParams = Type.Object({
-  cipher: Type.String({ description: 'Cipher name: caesar, rot13, rot47, atbash, vigenere, trithemius, rail-fence, affine, playfair, polybius, enigma' }),
+  cipher: Type.String({ description: 'Cipher name: caesar, rot13, rot47, atbash, vigenere, trithemius, alberti, rail-fence, affine, playfair, polybius, morse, bacon, tap-code, columnar, adfgvx, bifid, enigma' }),
   text: Type.String({ description: 'Plaintext to encode' }),
   shift: Type.Optional(Type.Number({ description: 'Shift value for Caesar cipher (1-25, default 3)' })),
-  key: Type.Optional(Type.String({ description: 'Keyword for Vigenère, Playfair, Polybius' })),
+  key: Type.Optional(Type.String({ description: 'Keyword for keyed ciphers' })),
   rails: Type.Optional(Type.Number({ description: 'Number of rails for Rail Fence (default 3)' })),
+  period: Type.Optional(Type.Integer({ minimum: 1, description: 'Rotation or fractionation period for Alberti and Bifid' })),
   a: Type.Optional(Type.Number({ description: 'Multiplier for Affine cipher (coprime with 26)' })),
   b: Type.Optional(Type.Number({ description: 'Additive shift for Affine cipher (0-25)' })),
   positions: Type.Optional(Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Initial rotor positions for Enigma (default AAA)' })),
@@ -35,6 +36,7 @@ function buildOpts(params: CipherParams): Record<string, unknown> {
   if (params.shift !== undefined) opts.shift = params.shift
   if (params.key) opts.key = params.key
   if (params.rails !== undefined) opts.rails = params.rails
+  if (params.period !== undefined) opts.period = params.period
   if (params.a !== undefined) opts.a = params.a
   if (params.b !== undefined) opts.b = params.b
   if (params.positions !== undefined) opts.positions = params.positions
@@ -51,7 +53,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
     promptSnippet: 'Use cipher_encode to encode text with local educational and puzzle ciphers.',
     promptGuidelines: [
       'Specify the cipher name and the text to encode.',
-      'Caesar needs --shift (default 3), Vigenère/Playfair need --key, Rail Fence needs --rails, Affine needs --a and --b.',
+      'Caesar needs --shift (default 3), Vigenère/Playfair need --key, Alberti needs --key and --period, Rail Fence needs --rails, Affine needs --a and --b.',
     ],
     parameters: cipherParams,
     renderCall(args, _theme) {

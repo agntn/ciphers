@@ -5,9 +5,9 @@ import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'
 
 describe('registry', () => {
-  it('registers all 16 ciphers', () => {
-    expect(ciphers()).toHaveLength(16)
-    for (const name of ['caesar', 'rot13', 'rot47', 'atbash', 'vigenere', 'rail-fence', 'affine', 'playfair', 'polybius', 'enigma']) {
+  it('registers all 17 ciphers', () => {
+    expect(ciphers()).toHaveLength(17)
+    for (const name of ['caesar', 'rot13', 'rot47', 'atbash', 'vigenere', 'trithemius', 'rail-fence', 'affine', 'playfair', 'polybius', 'enigma']) {
       expect(has(name)).toBe(true)
     }
   })
@@ -143,6 +143,27 @@ describe('vigenere', () => {
 
   it('rejects key without letters', () => {
     expect(() => vigenere.encode('HELLO', { key: '123' })).toThrow()
+  })
+})
+
+describe('trithemius', () => {
+  const trithemius = create('trithemius')
+
+  it('matches the progressive-shift vector', () => {
+    expect(trithemius.encode('HELLO WORLD').text).toBe('HFNOS BUYTM')
+    expect(trithemius.decode('HFNOS BUYTM').text).toBe('HELLO WORLD')
+  })
+
+  it('advances only for Latin letters', () => {
+    expect(trithemius.encode('A 🎉 A!A').text).toBe('A 🎉 B!C')
+  })
+
+  it('honors base options and roundtrips', () => {
+    const encoded = trithemius.encode('Attack at dawn!', { preserveCase: false, stripNonAlpha: true })
+    expect(encoded.text).toBe('AUVDGPGALJGY')
+    expect(encoded.options).toEqual({ preserveCase: false, stripNonAlpha: true })
+    expect(trithemius.decode(encoded.text, { preserveCase: false }).text).toBe('ATTACKATDAWN')
+    expect(trithemius.decode(encoded.text).options).toEqual({ preserveCase: true, stripNonAlpha: false })
   })
 })
 

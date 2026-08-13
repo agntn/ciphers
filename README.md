@@ -1,6 +1,6 @@
 # @oritwoen/ciphers
 
-16 ciphers behind one small local API and CLI. Local text transformations for educational and puzzle use, with no HTTP or API keys.
+17 ciphers behind one small local API and CLI. Local text transformations for educational and puzzle use, with no HTTP or API keys.
 
 ## Ciphers
 
@@ -11,6 +11,7 @@
 | **rot47** | substitution-shift | ✓ | - |
 | **atbash** | substitution-reflection | ✓ | - |
 | **vigenere** | polyalphabetic | ✗ | `--key` (required) |
+| **trithemius** | polyalphabetic | ✗ | - |
 | **rail-fence** | transposition | ✗ | `--rails` (default 3) |
 | **affine** | substitution-multiplicative | ✗ | `--a` (multiplier), `--b` (shift) |
 | **playfair** | digraph | ✗ | `--key` (required) |

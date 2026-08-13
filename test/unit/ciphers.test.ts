@@ -225,6 +225,12 @@ describe('playfair', () => {
     expect(decoded.text).toBe('SECRETMESXSAGE')
   })
 
+  it('does not insert filler into repeated ciphertext letters', () => {
+    const encoded = playfair.encode('AABX', { key: 'MONARCHY' })
+    expect(encoded.text).toBe('XSXAZZ')
+    expect(playfair.decode(encoded.text, { key: 'MONARCHY' }).text).toBe('AXABXX')
+  })
+
   it('requires key', () => {
     expect(() => playfair.encode('HELLO')).toThrow()
   })

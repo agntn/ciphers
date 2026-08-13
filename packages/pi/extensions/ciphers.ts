@@ -15,7 +15,7 @@ async function loadLib() {
 
 /** Shared parameter schema for encode/decode tools. */
 const cipherParams = Type.Object({
-  cipher: Type.String({ description: 'Cipher name: caesar, rot13, rot47, atbash, vigenere, trithemius, alberti, rail-fence, affine, playfair, polybius, enigma' }),
+  cipher: Type.String({ description: 'Cipher name: caesar, rot13, rot47, atbash, vigenere, trithemius, alberti, rail-fence, affine, playfair, polybius, morse, bacon, tap-code, columnar, adfgvx, bifid, enigma' }),
   text: Type.String({ description: 'Plaintext to encode' }),
   shift: Type.Optional(Type.Number({ description: 'Shift value for Caesar cipher (1-25, default 3)' })),
   key: Type.Optional(Type.String({ description: 'Keyword for keyed ciphers' })),

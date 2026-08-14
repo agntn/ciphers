@@ -21,7 +21,8 @@
     "format:check": "vp fmt --check",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.omp.json",
     "test": "vp test",
-    "test:run": "vp test"
+    "prepack": "pnpm run build",
+    "release": "pnpm test && pnpm build && changelogen --release --push"
   },
   "dependencies": {
     "citty": "^0.2.2",
@@ -33,6 +34,7 @@
     "@oh-my-pi/omptype": "17.2.12",
     "@oh-my-pi/pi-coding-agent": "17.2.12",
     "@types/node": "latest",
+    "changelogen": "^0.6.2",
     "obuild": "^0.4.36",
     "tsx": "^4.22.4",
     "typebox": "^1.1.39",

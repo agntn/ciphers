@@ -1,6 +1,6 @@
 {
   "name": "@agntn/ciphers",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Unified educational and puzzle cipher library for agents",
   "bin": {
     "ciphers": "./dist/cli.mjs"

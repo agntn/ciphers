@@ -11,7 +11,7 @@ Cipher library for local educational and puzzle-oriented text transformations. 1
 - Concrete ciphers extend `Cipher` and self-register their class on import
 - Registry: `register()` stores constructors; `create()` returns a cached instance — no HTTP, no API keys
 - Errors: `CipherError` hierarchy with `normalizeError()`
-- CLI: `ch` command with citty subcommands
+- CLI: `ciphers` command with citty subcommands
 - Pi extension: 4 tools (cipher_encode, cipher_decode, cipher_brute_caesar, cipher_frequency)
 - Resolve: exact match only (no fuzzy prefix matching)
 

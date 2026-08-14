@@ -1,5 +1,5 @@
 {
-  "name": "@oritwoen/ciphers",
+  "name": "@agntn/ciphers",
   "version": "0.1.1",
   "type": "module",
   "description": "Unified educational and puzzle cipher library for agents",

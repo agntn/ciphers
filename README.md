@@ -1,4 +1,4 @@
-# @oritwoen/ciphers
+# @agntn/ciphers
 
 18 ciphers behind one small local API and CLI. Local text transformations for educational and puzzle use, with no HTTP or API keys.
 
@@ -48,8 +48,8 @@ ch encode enigma "AAAAA"                          # BDZGO
 ## Library
 
 ```typescript
-import '@oritwoen/ciphers'
-import { create, resolveCipher, getOpt } from '@oritwoen/ciphers'
+import '@agntn/ciphers'
+import { create, resolveCipher, getOpt } from '@agntn/ciphers'
 
 // Create by exact cipher name
 const caesar = create('caesar')

@@ -7,7 +7,7 @@ import './ciphers/index'
 
 const main = defineCommand({
   meta: {
-    name: 'ch',
+    name: 'ciphers',
     version,
     description: 'ciphers: educational and puzzle cipher encode/decode/analyze CLI',
   },

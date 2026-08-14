@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "description": "Unified educational and puzzle cipher library for agents",
   "bin": {
-    "ch": "./dist/cli.mjs"
+    "ciphers": "./dist/cli.mjs"
   },
   "type": "module",
   "exports": {

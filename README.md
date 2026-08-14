@@ -30,19 +30,19 @@
 ## CLI
 
 ```bash
-ch encode caesar "ATTACK AT DAWN" --shift 3     # DWWDFN DW GDZQ
-ch decode atbash "ZGGZXP ZG WZDM"                # ATTACK AT DAWN
-ch brute "KHOOR"                                  # shift=3 → HELLO
-ch frequency "DWWDFN DW GDZQ" --lang en          # histogram
-ch ciphers -v                                     # full list with options
-ch info vigenere                                  # cipher details
-ch encode morse "SOS"                             # ... --- ...
-ch encode bacon "SECRET"                          # ABBAB AABAA ...
-ch encode tap-code "HELP"                         # 2 3 1 5 3 1 3 5
-ch encode columnar "ATTACK" --key KEY             # TCAATK
-ch encode adfgvx "HELLO"                          # DDAVDXDXFF
-ch encode bifid "TEST" --key EXAMPLE              # OSUT
-ch encode enigma "AAAAA"                          # BDZGO
+ciphers encode caesar "ATTACK AT DAWN" --shift 3     # DWWDFN DW GDZQ
+ciphers decode atbash "ZGGZXP ZG WZDM"                # ATTACK AT DAWN
+ciphers brute "KHOOR"                                  # shift=3 → HELLO
+ciphers frequency "DWWDFN DW GDZQ" --lang en          # histogram
+ciphers ciphers -v                                     # full list with options
+ciphers info vigenere                                  # cipher details
+ciphers encode morse "SOS"                             # ... --- ...
+ciphers encode bacon "SECRET"                          # ABBAB AABAA ...
+ciphers encode tap-code "HELP"                         # 2 3 1 5 3 1 3 5
+ciphers encode columnar "ATTACK" --key KEY             # TCAATK
+ciphers encode adfgvx "HELLO"                          # DDAVDXDXFF
+ciphers encode bifid "TEST" --key EXAMPLE              # OSUT
+ciphers encode enigma "AAAAA"                          # BDZGO
 ```
 
 ## Library

@@ -86,7 +86,7 @@ pnpm build
 ## Test
 
 ```bash
-pnpm test:run
+pnpm test
 ```
 
 ## License

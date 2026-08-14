@@ -40,7 +40,9 @@ function decodeBacon(text: string): string {
 }
 
 class Bacon extends Cipher {
-  name(): string { return 'bacon' }
+  name(): string {
+    return 'bacon'
+  }
 
   info(): CipherInfo {
     return {
@@ -56,14 +58,23 @@ class Bacon extends Cipher {
 
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
-      return { text: encodeBacon(text, options?.stripNonAlpha ?? false), cipher: 'bacon', operation: 'encode', options: {} }
-    } catch (e) { throw normalizeError(e, 'bacon') }
+      return {
+        text: encodeBacon(text, options?.stripNonAlpha ?? false),
+        cipher: 'bacon',
+        operation: 'encode',
+        options: {},
+      }
+    } catch (e) {
+      throw normalizeError(e, 'bacon')
+    }
   }
 
   decode(text: string, _options?: CipherBaseOptions): CipherResult {
     try {
       return { text: decodeBacon(text), cipher: 'bacon', operation: 'decode', options: {} }
-    } catch (e) { throw normalizeError(e, 'bacon') }
+    } catch (e) {
+      throw normalizeError(e, 'bacon')
+    }
   }
 }
 

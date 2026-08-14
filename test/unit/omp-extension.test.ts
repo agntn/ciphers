@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vite-plus/test'
 import { Type } from '@oh-my-pi/omptype/typebox'
 import ciphersExtension from '../../packages/omp/extensions/ciphers'
 
@@ -21,12 +21,14 @@ type RegisteredTool = {
 const tools = new Map<string, RegisteredTool>()
 
 function isRegisteredTool(value: unknown): value is RegisteredTool {
-  return typeof value === 'object'
-    && value !== null
-    && typeof Reflect.get(value, 'name') === 'string'
-    && typeof Reflect.get(value, 'label') === 'string'
-    && typeof Reflect.get(value, 'parameters') === 'function'
-    && typeof Reflect.get(value, 'execute') === 'function'
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof Reflect.get(value, 'name') === 'string' &&
+    typeof Reflect.get(value, 'label') === 'string' &&
+    typeof Reflect.get(value, 'parameters') === 'function' &&
+    typeof Reflect.get(value, 'execute') === 'function'
+  )
 }
 
 function getTool(name: string): RegisteredTool {
@@ -50,16 +52,28 @@ beforeAll(() => {
 
 describe('OMP extension', () => {
   it('registers four essential read-only tools', () => {
-    expect([...tools.values()].map(({ name, label, approval, loadMode }) => ({
-      name,
-      label,
-      approval,
-      loadMode,
-    }))).toEqual([
+    expect(
+      [...tools.values()].map(({ name, label, approval, loadMode }) => ({
+        name,
+        label,
+        approval,
+        loadMode,
+      })),
+    ).toEqual([
       { name: 'cipher_encode', label: 'Cipher Encode', approval: 'read', loadMode: 'essential' },
       { name: 'cipher_decode', label: 'Cipher Decode', approval: 'read', loadMode: 'essential' },
-      { name: 'cipher_brute_caesar', label: 'Brute Force Caesar', approval: 'read', loadMode: 'essential' },
-      { name: 'cipher_frequency', label: 'Frequency Analysis', approval: 'read', loadMode: 'essential' },
+      {
+        name: 'cipher_brute_caesar',
+        label: 'Brute Force Caesar',
+        approval: 'read',
+        loadMode: 'essential',
+      },
+      {
+        name: 'cipher_frequency',
+        label: 'Frequency Analysis',
+        approval: 'read',
+        loadMode: 'essential',
+      },
     ])
   })
 
@@ -78,10 +92,12 @@ describe('OMP extension', () => {
     })
     expect(decoded.content[0]?.text).toBe('ATTACK AT DAWN')
 
-    await expect(getTool('cipher_encode').execute('failure', {
-      cipher: 'cae',
-      text: 'TEST',
-    })).rejects.toThrow('Unknown cipher')
+    await expect(
+      getTool('cipher_encode').execute('failure', {
+        cipher: 'cae',
+        text: 'TEST',
+      }),
+    ).rejects.toThrow('Unknown cipher')
   })
 
   it('enforces language, option, and resource boundaries in OMP schemas', () => {
@@ -91,17 +107,43 @@ describe('OMP extension', () => {
     expect(frequencySchema.safeParse({ text: 'X'.repeat(100_001) }).success).toBe(false)
 
     const transformSchema = getTool('cipher_encode').parameters
-    expect(transformSchema.safeParse({ cipher: 'caesar', text: 'X'.repeat(10_000) }).success).toBe(true)
-    expect(transformSchema.safeParse({ cipher: 'caesar', text: 'X'.repeat(10_001) }).success).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'caesar', text: 'X'.repeat(10_000) }).success).toBe(
+      true,
+    )
+    expect(transformSchema.safeParse({ cipher: 'caesar', text: 'X'.repeat(10_001) }).success).toBe(
+      false,
+    )
     expect(transformSchema.safeParse({ cipher: 'bifid', text: 'X', period: 0 }).success).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'rail-fence', text: 'X', rails: 1 }).success).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'vigenere', text: 'X', key: 'K'.repeat(1_001) }).success).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: 'AAA', rings: 'AAA', plugboard: 'AV BS' }).success).toBe(true)
-    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: 'AA' }).success).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', rings: 'AAAA' }).success).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: '123' }).success).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', rings: 'A1A' }).success).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', plugboard: 'A'.repeat(78) }).success).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'rail-fence', text: 'X', rails: 1 }).success).toBe(
+      false,
+    )
+    expect(
+      transformSchema.safeParse({ cipher: 'vigenere', text: 'X', key: 'K'.repeat(1_001) }).success,
+    ).toBe(false)
+    expect(
+      transformSchema.safeParse({
+        cipher: 'enigma',
+        text: 'A',
+        positions: 'AAA',
+        rings: 'AAA',
+        plugboard: 'AV BS',
+      }).success,
+    ).toBe(true)
+    expect(
+      transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: 'AA' }).success,
+    ).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', rings: 'AAAA' }).success).toBe(
+      false,
+    )
+    expect(
+      transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: '123' }).success,
+    ).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', rings: 'A1A' }).success).toBe(
+      false,
+    )
+    expect(
+      transformSchema.safeParse({ cipher: 'enigma', text: 'A', plugboard: 'A'.repeat(78) }).success,
+    ).toBe(false)
 
     const bruteSchema = getTool('cipher_brute_caesar').parameters
     expect(bruteSchema.safeParse({ text: 'X'.repeat(2_001) }).success).toBe(false)

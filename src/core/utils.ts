@@ -18,11 +18,17 @@ export function buildPolybiusSquare(key?: string): {
   for (const c of src) {
     if (c < 'A' || c > 'Z') continue
     const ch = c === 'J' ? 'I' : c
-    if (!seen.has(ch)) { seen.add(ch); letters.push(ch) }
+    if (!seen.has(ch)) {
+      seen.add(ch)
+      letters.push(ch)
+    }
   }
   for (let i = 65; i <= 90; i++) {
     const ch = String.fromCharCode(i) === 'J' ? 'I' : String.fromCharCode(i)
-    if (!seen.has(ch)) { seen.add(ch); letters.push(ch) }
+    if (!seen.has(ch)) {
+      seen.add(ch)
+      letters.push(ch)
+    }
   }
   const square: string[][] = []
   const pos = new Map<string, [number, number]>()
@@ -73,13 +79,23 @@ export class LruCache<K, V> {
     }
     this.map.set(key, { value, ts: performance.now() })
   }
-  has(key: K): boolean { return this.map.has(key) }
-  clear(): void { this.map.clear() }
-  get size(): number { return this.map.size }
+  has(key: K): boolean {
+    return this.map.has(key)
+  }
+  clear(): void {
+    this.map.clear()
+  }
+  get size(): number {
+    return this.map.size
+  }
 }
 
 /** Build a stable cache key from encode/decode arguments. */
-export function cipherCacheKey(operation: string, text: string, options?: Record<string, unknown>): string {
+export function cipherCacheKey(
+  operation: string,
+  text: string,
+  options?: Record<string, unknown>,
+): string {
   return `${operation}|${text}|${JSON.stringify(options ?? {})}`
 }
 
@@ -89,16 +105,17 @@ export function cipherCacheKey(operation: string, text: string, options?: Record
 export class RateLimiter {
   private tokens: number
   private lastRefill: number
-  constructor(
-    private readonly maxPerSec: number,
-  ) {
+  constructor(private readonly maxPerSec: number) {
     this.tokens = maxPerSec
     this.lastRefill = Date.now()
   }
   /** Returns true if call is allowed; false if throttled. */
   allow(): boolean {
     this.refill()
-    if (this.tokens >= 1) { this.tokens--; return true }
+    if (this.tokens >= 1) {
+      this.tokens--
+      return true
+    }
     return false
   }
   private refill(): void {
@@ -133,7 +150,9 @@ export function withCipherError<T>(name: string, fn: () => T): T {
     const msg = e instanceof Error ? e.message : String(e)
     throw new (class extends Error {
       name = 'CipherError'
-      constructor() { super(`[${name}] ${msg}`) }
+      constructor() {
+        super(`[${name}] ${msg}`)
+      }
     })()
   }
 }

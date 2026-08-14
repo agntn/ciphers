@@ -21,7 +21,7 @@ export class InvalidOptionError extends CipherError {
     public readonly value: unknown,
     public readonly reason: string,
   ) {
-    super(`Invalid option ${option}=${value}: ${reason}`)
+    super(`Invalid option ${option}=${String(value)}: ${reason}`)
     this.name = 'InvalidOptionError'
   }
 }

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vite-plus/test'
 import '../../src/index'
 import { create } from '../../src/core/registry'
-import { LruCache, RateLimiter, RateLimitError, cipherCacheKey } from '../../src/core/utils'
+import { LruCache, RateLimiter, cipherCacheKey } from '../../src/core/utils'
 
 // ── LruCache unit tests ─────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ describe('RateLimiter', () => {
     for (let i = 0; i < 10; i++) limiter.allow()
     expect(limiter.allow()).toBe(false)
     // Wait 200ms → ~2 tokens refilled (10/sec)
-    await new Promise(r => setTimeout(r, 250))
+    await new Promise((r) => setTimeout(r, 250))
     expect(limiter.allow()).toBe(true)
   })
 })
@@ -205,7 +205,9 @@ describe('columnar — rate limit', () => {
     col.reset()
     // Force rate limit
     for (let i = 0; i < 200; i++) {
-      try { col.encode(`X-${i}`, { key: 'K' }) } catch {}
+      try {
+        col.encode(`X-${i}`, { key: 'K' })
+      } catch {}
     }
     let gotCipherError = false
     try {
@@ -224,7 +226,9 @@ describe('columnar — backwards compatibility', () => {
   it('encodes with key', () => {
     const col = create('columnar')
     col.reset()
-    expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe('N W ETSLD ALEE  DEA FHT')
+    expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe(
+      'N W ETSLD ALEE  DEA FHT',
+    )
   })
 
   it('roundtrips', () => {

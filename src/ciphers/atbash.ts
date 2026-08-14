@@ -13,7 +13,9 @@ function atbash(text: string, stripNonAlpha: boolean): string {
 }
 
 class Atbash extends Cipher {
-  name(): string { return 'atbash' }
+  name(): string {
+    return 'atbash'
+  }
 
   info(): CipherInfo {
     return {
@@ -28,11 +30,21 @@ class Atbash extends Cipher {
   }
 
   encode(text: string, options?: CipherBaseOptions): CipherResult {
-    return { text: atbash(text, options?.stripNonAlpha ?? false), cipher: 'atbash', operation: 'encode', options: {} }
+    return {
+      text: atbash(text, options?.stripNonAlpha ?? false),
+      cipher: 'atbash',
+      operation: 'encode',
+      options: {},
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
-    return { text: atbash(text, options?.stripNonAlpha ?? false), cipher: 'atbash', operation: 'decode', options: {} }
+    return {
+      text: atbash(text, options?.stripNonAlpha ?? false),
+      cipher: 'atbash',
+      operation: 'decode',
+      options: {},
+    }
   }
 }
 

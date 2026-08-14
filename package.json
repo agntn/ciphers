@@ -1,37 +1,27 @@
 {
   "name": "@agntn/ciphers",
   "version": "0.1.1",
-  "type": "module",
   "description": "Unified educational and puzzle cipher library for agents",
+  "bin": {
+    "ch": "./dist/cli.mjs"
+  },
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     }
   },
-  "bin": {
-    "ch": "./dist/cli.mjs"
-  },
-  "pi": {
-    "extensions": [
-      "./packages/pi/extensions/*.ts"
-    ]
-  },
-  "omp": {
-    "extensions": [
-      "./packages/omp/extensions/ciphers.ts"
-    ]
-  },
-  "engines": {
-    "node": ">=25"
-  },
-  "packageManager": "pnpm@10.33.4",
   "scripts": {
     "build": "obuild",
     "dev": "obuild --stub",
+    "check": "vp check",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.omp.json",
-    "test": "vitest",
-    "test:run": "vitest --run"
+    "test": "vp test",
+    "test:run": "vp test"
   },
   "dependencies": {
     "citty": "^0.2.2",
@@ -47,6 +37,20 @@
     "tsx": "^4.22.4",
     "typebox": "^1.1.39",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.7"
+    "vite-plus": "0.2.9"
+  },
+  "engines": {
+    "node": ">=25"
+  },
+  "packageManager": "pnpm@10.33.4",
+  "omp": {
+    "extensions": [
+      "./packages/omp/extensions/ciphers.ts"
+    ]
+  },
+  "pi": {
+    "extensions": [
+      "./packages/pi/extensions/*.ts"
+    ]
   }
 }

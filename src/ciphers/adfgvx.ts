@@ -13,16 +13,25 @@ function buildAdfgvxGrid(key?: string): { grid: string[][]; pos: Map<string, [nu
   const src = (key ?? '').toUpperCase()
   for (const c of src) {
     if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
-      if (!seen.has(c)) { seen.add(c); chars.push(c) }
+      if (!seen.has(c)) {
+        seen.add(c)
+        chars.push(c)
+      }
     }
   }
   for (let i = 65; i <= 90; i++) {
     const c = String.fromCharCode(i)
-    if (!seen.has(c)) { seen.add(c); chars.push(c) }
+    if (!seen.has(c)) {
+      seen.add(c)
+      chars.push(c)
+    }
   }
   for (let i = 48; i <= 57; i++) {
     const c = String.fromCharCode(i)
-    if (!seen.has(c)) { seen.add(c); chars.push(c) }
+    if (!seen.has(c)) {
+      seen.add(c)
+      chars.push(c)
+    }
   }
   const grid: string[][] = []
   const pos = new Map<string, [number, number]>()
@@ -44,7 +53,7 @@ function encodeAdfgvx(text: string, key?: string): string {
   for (const c of normalized) {
     const p = pos.get(c)
     if (p) {
-      result += (ADFGVX_LETTERS[p[0]] ?? "") + (ADFGVX_LETTERS[p[1]] ?? "")
+      result += (ADFGVX_LETTERS[p[0]] ?? '') + (ADFGVX_LETTERS[p[1]] ?? '')
     }
   }
   return result
@@ -63,17 +72,26 @@ function decodeAdfgvx(text: string, key?: string): string {
 }
 
 class Adfgvx extends Cipher {
-  name(): string { return 'adfgvx' }
+  name(): string {
+    return 'adfgvx'
+  }
 
   info(): CipherInfo {
     return {
       name: 'adfgvx',
       label: 'ADFGVX',
-      description: 'WWI fractionation cipher — 6×6 grid (letters+digits) with ADFGVX coordinate encoding',
+      description:
+        'WWI fractionation cipher — 6×6 grid (letters+digits) with ADFGVX coordinate encoding',
       family: 'fractionation',
       selfInverse: false,
       options: [
-        { name: 'key', type: 'string', required: false, default: '', description: 'Optional keyword for the 6×6 grid' },
+        {
+          name: 'key',
+          type: 'string',
+          required: false,
+          default: '',
+          description: 'Optional keyword for the 6×6 grid',
+        },
       ],
       keyspace: '36! (full grid) or keyed subset',
     }
@@ -82,15 +100,29 @@ class Adfgvx extends Cipher {
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const key = getOpt<string>(options ?? {}, 'key', '')
-      return { text: encodeAdfgvx(text, key), cipher: 'adfgvx', operation: 'encode', options: { key } }
-    } catch (e) { throw normalizeError(e, 'adfgvx') }
+      return {
+        text: encodeAdfgvx(text, key),
+        cipher: 'adfgvx',
+        operation: 'encode',
+        options: { key },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'adfgvx')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const key = getOpt<string>(options ?? {}, 'key', '')
-      return { text: decodeAdfgvx(text, key), cipher: 'adfgvx', operation: 'decode', options: { key } }
-    } catch (e) { throw normalizeError(e, 'adfgvx') }
+      return {
+        text: decodeAdfgvx(text, key),
+        cipher: 'adfgvx',
+        operation: 'decode',
+        options: { key },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'adfgvx')
+    }
   }
 }
 

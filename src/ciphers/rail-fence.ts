@@ -34,7 +34,7 @@ function decodeRailFence(cipher: string, rails: number): string {
   }
   const railPositions: number[][] = Array.from({ length: rails }, () => [])
   for (let i = 0; i < n; i++) railPositions[pattern[i]!]!.push(i)
-  const result: string[] = new Array(n)
+  const result = Array.from({ length: n }, () => '')
   let idx = 0
   for (let r = 0; r < rails; r++) {
     for (const pos of railPositions[r]!) {
@@ -45,13 +45,16 @@ function decodeRailFence(cipher: string, rails: number): string {
 }
 
 function validate(opts: CipherBaseOptions): { rails: number } {
-  const rails = getOpt<number>(opts, "rails", 3)
-  if (!Number.isInteger(rails) || rails < 2) throw new InvalidOptionError('rails', rails, 'must be integer >= 2')
+  const rails = getOpt<number>(opts, 'rails', 3)
+  if (!Number.isInteger(rails) || rails < 2)
+    throw new InvalidOptionError('rails', rails, 'must be integer >= 2')
   return { rails }
 }
 
 class RailFence extends Cipher {
-  name(): string { return 'rail-fence' }
+  name(): string {
+    return 'rail-fence'
+  }
 
   info(): CipherInfo {
     return {
@@ -61,7 +64,13 @@ class RailFence extends Cipher {
       family: 'transposition',
       selfInverse: false,
       options: [
-        { name: 'rails', type: 'number', required: false, default: 3, description: 'Number of rails (2 or more)' },
+        {
+          name: 'rails',
+          type: 'number',
+          required: false,
+          default: 3,
+          description: 'Number of rails (2 or more)',
+        },
       ],
       keyspace: '~n (number of rails)',
     }
@@ -70,15 +79,29 @@ class RailFence extends Cipher {
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { rails } = validate(options ?? {})
-      return { text: encodeRailFence(text, rails), cipher: 'rail-fence', operation: 'encode', options: { rails } }
-    } catch (e) { throw normalizeError(e, 'rail-fence') }
+      return {
+        text: encodeRailFence(text, rails),
+        cipher: 'rail-fence',
+        operation: 'encode',
+        options: { rails },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'rail-fence')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { rails } = validate(options ?? {})
-      return { text: decodeRailFence(text, rails), cipher: 'rail-fence', operation: 'decode', options: { rails } }
-    } catch (e) { throw normalizeError(e, 'rail-fence') }
+      return {
+        text: decodeRailFence(text, rails),
+        cipher: 'rail-fence',
+        operation: 'decode',
+        options: { rails },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'rail-fence')
+    }
   }
 }
 

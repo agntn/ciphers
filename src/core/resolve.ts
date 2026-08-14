@@ -8,6 +8,6 @@ export function resolveCipher(preferred?: string): Cipher {
     const normalized = preferred.toLowerCase().replace(/\s+/g, '-')
     if (has(normalized)) return create(normalized)
   }
-  
+
   throw new UnknownCipherError(preferred ?? '(none)')
 }

@@ -4,26 +4,26 @@
 
 ## Ciphers
 
-| Cipher | Family | Self-inverse | Options |
-|--------|--------|:---:|---------|
-| **caesar** | substitution-shift | ✗ | `--shift` (1-25, default 3) |
-| **rot13** | substitution-shift | ✓ | - |
-| **rot47** | substitution-shift | ✓ | - |
-| **atbash** | substitution-reflection | ✓ | - |
-| **vigenere** | polyalphabetic | ✗ | `--key` (required) |
-| **trithemius** | polyalphabetic | ✗ | - |
-| **alberti** | polyalphabetic | ✗ | `--key`, `--period` (both required) |
-| **rail-fence** | transposition | ✗ | `--rails` (default 3) |
-| **affine** | substitution-multiplicative | ✗ | `--a` (multiplier), `--b` (shift) |
-| **playfair** | digraph | ✗ | `--key` (required) |
-| **polybius** | fractionation | ✗ | `--key` (optional) |
-| **morse** | fractionation | ✗ | - |
-| **bacon** | fractionation | ✗ | - |
-| **tap-code** | fractionation | ✗ | - |
-| **columnar** | transposition | ✗ | `--key` (required) |
-| **adfgvx** | fractionation | ✗ | `--key` (optional) |
-| **bifid** | fractionation | ✗ | `--key` (optional), `--period` (default 5) |
-| **enigma** | rotor | ✓ | `--positions`, `--rings`, `--plugboard` |
+| Cipher         | Family                      | Self-inverse | Options                                    |
+| -------------- | --------------------------- | :----------: | ------------------------------------------ |
+| **caesar**     | substitution-shift          |      ✗       | `--shift` (1-25, default 3)                |
+| **rot13**      | substitution-shift          |      ✓       | -                                          |
+| **rot47**      | substitution-shift          |      ✓       | -                                          |
+| **atbash**     | substitution-reflection     |      ✓       | -                                          |
+| **vigenere**   | polyalphabetic              |      ✗       | `--key` (required)                         |
+| **trithemius** | polyalphabetic              |      ✗       | -                                          |
+| **alberti**    | polyalphabetic              |      ✗       | `--key`, `--period` (both required)        |
+| **rail-fence** | transposition               |      ✗       | `--rails` (default 3)                      |
+| **affine**     | substitution-multiplicative |      ✗       | `--a` (multiplier), `--b` (shift)          |
+| **playfair**   | digraph                     |      ✗       | `--key` (required)                         |
+| **polybius**   | fractionation               |      ✗       | `--key` (optional)                         |
+| **morse**      | fractionation               |      ✗       | -                                          |
+| **bacon**      | fractionation               |      ✗       | -                                          |
+| **tap-code**   | fractionation               |      ✗       | -                                          |
+| **columnar**   | transposition               |      ✗       | `--key` (required)                         |
+| **adfgvx**     | fractionation               |      ✗       | `--key` (optional)                         |
+| **bifid**      | fractionation               |      ✗       | `--key` (optional), `--period` (default 5) |
+| **enigma**     | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`    |
 
 `alberti` implements the reproducible, simplified keyed-disk variant: the inner disk rotates one position after each `period` Latin letters.
 

@@ -4,7 +4,12 @@ import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 import { processBaseOptions } from '../core/utils'
 
-function transform(text: string, decrypt: boolean, preserveCase: boolean, stripNonAlpha: boolean): string {
+function transform(
+  text: string,
+  decrypt: boolean,
+  preserveCase: boolean,
+  stripNonAlpha: boolean,
+): string {
   const input = stripNonAlpha ? text.replace(/[^A-Za-z]/g, '') : text
   let position = 0
 
@@ -15,14 +20,16 @@ function transform(text: string, decrypt: boolean, preserveCase: boolean, stripN
 
     const code = character.toUpperCase().charCodeAt(0) - 65
     const shift = decrypt ? -position : position
-    const transformed = String.fromCharCode(((code + shift) % 26 + 26) % 26 + 65)
+    const transformed = String.fromCharCode(((((code + shift) % 26) + 26) % 26) + 65)
     position++
     return preserveCase && isLower ? transformed.toLowerCase() : transformed
   }).join('')
 }
 
 class Trithemius extends Cipher {
-  name(): string { return 'trithemius' }
+  name(): string {
+    return 'trithemius'
+  }
 
   info(): CipherInfo {
     return {
@@ -39,15 +46,29 @@ class Trithemius extends Cipher {
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { preserveCase, stripNonAlpha } = processBaseOptions(options ?? {})
-      return { text: transform(text, false, preserveCase, stripNonAlpha), cipher: 'trithemius', operation: 'encode', options: { preserveCase, stripNonAlpha } }
-    } catch (error) { throw normalizeError(error, 'trithemius') }
+      return {
+        text: transform(text, false, preserveCase, stripNonAlpha),
+        cipher: 'trithemius',
+        operation: 'encode',
+        options: { preserveCase, stripNonAlpha },
+      }
+    } catch (error) {
+      throw normalizeError(error, 'trithemius')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { preserveCase, stripNonAlpha } = processBaseOptions(options ?? {})
-      return { text: transform(text, true, preserveCase, stripNonAlpha), cipher: 'trithemius', operation: 'decode', options: { preserveCase, stripNonAlpha } }
-    } catch (error) { throw normalizeError(error, 'trithemius') }
+      return {
+        text: transform(text, true, preserveCase, stripNonAlpha),
+        cipher: 'trithemius',
+        operation: 'decode',
+        options: { preserveCase, stripNonAlpha },
+      }
+    } catch (error) {
+      throw normalizeError(error, 'trithemius')
+    }
   }
 }
 

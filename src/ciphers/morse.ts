@@ -4,15 +4,60 @@ import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
 const CHAR_TO_MORSE: Record<string, string> = {
-  A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.', H: '....',
-  I: '..', J: '.---', K: '-.-', L: '.-..', M: '--', N: '-.', O: '---', P: '.--.',
-  Q: '--.-', R: '.-.', S: '...', T: '-', U: '..-', V: '...-', W: '.--', X: '-..-',
-  Y: '-.--', Z: '--..', '0': '-----', '1': '.----', '2': '..---', '3': '...--',
-  '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.',
-  '.': '.-.-.-', ',': '--..--', '?': '..--..', '!': '-.-.--', '/': '-..-.',
-  '(': '-.--.', ')': '-.--.-', '&': '.-...', ':': '---...', ';': '-.-.-.',
-  '=': '-...-', '+': '.-.-.', '-': '-....-', '_': '..--.-', '"': '.-..-.',
-  '$': '...-..-', '@': '.--.-.', "'": '.----.',
+  A: '.-',
+  B: '-...',
+  C: '-.-.',
+  D: '-..',
+  E: '.',
+  F: '..-.',
+  G: '--.',
+  H: '....',
+  I: '..',
+  J: '.---',
+  K: '-.-',
+  L: '.-..',
+  M: '--',
+  N: '-.',
+  O: '---',
+  P: '.--.',
+  Q: '--.-',
+  R: '.-.',
+  S: '...',
+  T: '-',
+  U: '..-',
+  V: '...-',
+  W: '.--',
+  X: '-..-',
+  Y: '-.--',
+  Z: '--..',
+  '0': '-----',
+  '1': '.----',
+  '2': '..---',
+  '3': '...--',
+  '4': '....-',
+  '5': '.....',
+  '6': '-....',
+  '7': '--...',
+  '8': '---..',
+  '9': '----.',
+  '.': '.-.-.-',
+  ',': '--..--',
+  '?': '..--..',
+  '!': '-.-.--',
+  '/': '-..-.',
+  '(': '-.--.',
+  ')': '-.--.-',
+  '&': '.-...',
+  ':': '---...',
+  ';': '-.-.-.',
+  '=': '-...-',
+  '+': '.-.-.',
+  '-': '-....-',
+  _: '..--.-',
+  '"': '.-..-.',
+  $: '...-..-',
+  '@': '.--.-.',
+  "'": '.----.',
 }
 
 const MORSE_TO_CHAR: Record<string, string> = Object.fromEntries(
@@ -28,13 +73,20 @@ function encodeMorse(text: string): string {
 
 function decodeMorse(text: string): string {
   const words = text.trim().split(/\s*\/\s*/)
-  return words.map((word) =>
-    word.split(/\s+/).map((code) => MORSE_TO_CHAR[code] ?? code).join('')
-  ).join(' ')
+  return words
+    .map((word) =>
+      word
+        .split(/\s+/)
+        .map((code) => MORSE_TO_CHAR[code] ?? code)
+        .join(''),
+    )
+    .join(' ')
 }
 
 class Morse extends Cipher {
-  name(): string { return 'morse' }
+  name(): string {
+    return 'morse'
+  }
 
   info(): CipherInfo {
     return {
@@ -51,13 +103,17 @@ class Morse extends Cipher {
   encode(text: string, _options?: CipherBaseOptions): CipherResult {
     try {
       return { text: encodeMorse(text), cipher: 'morse', operation: 'encode', options: {} }
-    } catch (e) { throw normalizeError(e, 'morse') }
+    } catch (e) {
+      throw normalizeError(e, 'morse')
+    }
   }
 
   decode(text: string, _options?: CipherBaseOptions): CipherResult {
     try {
       return { text: decodeMorse(text), cipher: 'morse', operation: 'decode', options: {} }
-    } catch (e) { throw normalizeError(e, 'morse') }
+    } catch (e) {
+      throw normalizeError(e, 'morse')
+    }
   }
 }
 

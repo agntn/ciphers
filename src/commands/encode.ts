@@ -16,7 +16,11 @@ function parseIntOrFail(value: string | undefined, name: string): number | undef
 export default defineCommand({
   meta: { name: 'encode', description: 'Encode plaintext with a cipher' },
   args: {
-    cipher: { type: 'positional', description: 'Cipher name (caesar, rot13, vigenere, ...)', required: true },
+    cipher: {
+      type: 'positional',
+      description: 'Cipher name (caesar, rot13, vigenere, ...)',
+      required: true,
+    },
     text: { type: 'positional', description: 'Text to encode', required: true },
     shift: { type: 'string', description: 'Shift value (Caesar)', alias: 's' },
     key: { type: 'string', description: 'Keyword for keyed ciphers', alias: 'k' },

@@ -10,7 +10,10 @@ import { buildPolybiusSquare, getOpt } from '../core/utils'
 
 function encodeBifid(text: string, key: string, period: number): string {
   const { pos, square } = buildPolybiusSquare(key)
-  const clean = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I')
+  const clean = text
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
+    .replace(/J/g, 'I')
   let result = ''
   for (let i = 0; i < clean.length; i += period) {
     const chunk = clean.slice(i, i + period)
@@ -18,7 +21,10 @@ function encodeBifid(text: string, key: string, period: number): string {
     const cols: number[] = []
     for (const c of chunk) {
       const p = pos.get(c)
-      if (p) { rows.push(p[0]); cols.push(p[1]) }
+      if (p) {
+        rows.push(p[0])
+        cols.push(p[1])
+      }
     }
     const combined = [...rows, ...cols]
     for (let j = 0; j + 1 < combined.length; j += 2) {
@@ -32,14 +38,19 @@ function encodeBifid(text: string, key: string, period: number): string {
 
 function decodeBifid(text: string, key: string, period: number): string {
   const { pos, square } = buildPolybiusSquare(key)
-  const clean = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I')
+  const clean = text
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
+    .replace(/J/g, 'I')
   let result = ''
   for (let i = 0; i < clean.length; i += period) {
     const chunk = clean.slice(i, i + period)
     const coords: number[] = []
     for (const c of chunk) {
       const p = pos.get(c)
-      if (p) { coords.push(p[0], p[1]) }
+      if (p) {
+        coords.push(p[0], p[1])
+      }
     }
     const half = coords.length / 2
     for (let j = 0; j < half; j++) {
@@ -61,7 +72,9 @@ function validate(opts: CipherBaseOptions): { key: string; period: number } {
 }
 
 class Bifid extends Cipher {
-  name(): string { return 'bifid' }
+  name(): string {
+    return 'bifid'
+  }
 
   info(): CipherInfo {
     return {
@@ -71,8 +84,20 @@ class Bifid extends Cipher {
       family: 'fractionation',
       selfInverse: false,
       options: [
-        { name: 'key', type: 'string', required: false, default: '', description: 'Optional keyword for Polybius square' },
-        { name: 'period', type: 'number', required: false, default: 5, description: 'Transposition period length' },
+        {
+          name: 'key',
+          type: 'string',
+          required: false,
+          default: '',
+          description: 'Optional keyword for Polybius square',
+        },
+        {
+          name: 'period',
+          type: 'number',
+          required: false,
+          default: 5,
+          description: 'Transposition period length',
+        },
       ],
       keyspace: '25! × period variants',
     }
@@ -81,15 +106,29 @@ class Bifid extends Cipher {
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { key, period } = validate(options ?? {})
-      return { text: encodeBifid(text, key, period), cipher: 'bifid', operation: 'encode', options: { key, period } }
-    } catch (e) { throw normalizeError(e, 'bifid') }
+      return {
+        text: encodeBifid(text, key, period),
+        cipher: 'bifid',
+        operation: 'encode',
+        options: { key, period },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'bifid')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { key, period } = validate(options ?? {})
-      return { text: decodeBifid(text, key, period), cipher: 'bifid', operation: 'decode', options: { key, period } }
-    } catch (e) { throw normalizeError(e, 'bifid') }
+      return {
+        text: decodeBifid(text, key, period),
+        cipher: 'bifid',
+        operation: 'decode',
+        options: { key, period },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'bifid')
+    }
   }
 }
 

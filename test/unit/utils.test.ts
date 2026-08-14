@@ -1,11 +1,10 @@
 /**
  * ciphers pure utility tests.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vite-plus/test'
 import {
   LruCache,
   RateLimiter,
-  RateLimitError,
   cipherCacheKey,
   buildPolybiusSquare,
   processBaseOptions,
@@ -31,7 +30,7 @@ describe('LruCache', () => {
     const c = new LruCache<string, number>(2)
     c.set('a', 1)
     c.set('b', 2)
-    c.set('c', 3)  // evicts 'a'
+    c.set('c', 3) // evicts 'a'
     expect(c.get('a')).toBeUndefined()
     expect(c.get('b')).toBe(2)
     expect(c.get('c')).toBe(3)
@@ -41,8 +40,8 @@ describe('LruCache', () => {
     const c = new LruCache<string, number>(2)
     c.set('a', 1)
     c.set('b', 2)
-    c.get('a')  // 'a' is now most recent
-    c.set('c', 3)  // evicts 'b'
+    c.get('a') // 'a' is now most recent
+    c.set('c', 3) // evicts 'b'
     expect(c.get('a')).toBe(1)
     expect(c.get('b')).toBeUndefined()
     expect(c.get('c')).toBe(3)
@@ -142,7 +141,7 @@ describe('RateLimiter', () => {
     // Drain
     for (let i = 0; i < 10; i++) rl.allow()
     // Wait briefly for refill
-    await new Promise(r => setTimeout(r, 150))
+    await new Promise((r) => setTimeout(r, 150))
     // Should have some tokens back
     expect(rl.allow()).toBe(true)
   })
@@ -155,13 +154,23 @@ describe('withCipherError', () => {
   })
 
   it('normalizes errors thrown by the operation', () => {
-    expect(() => withCipherError('test', () => { throw new Error('boom') })).toThrow()
+    expect(() =>
+      withCipherError('test', () => {
+        throw new Error('boom')
+      }),
+    ).toThrow()
   })
 
   it('passes through UnknownCipherError subclass unchanged (preserves .cipher)', () => {
     const original = new UnknownCipherError('foo')
     let caught: unknown
-    try { withCipherError('test', () => { throw original }) } catch (e) { caught = e }
+    try {
+      withCipherError('test', () => {
+        throw original
+      })
+    } catch (e) {
+      caught = e
+    }
     expect(caught).toBe(original)
     expect(caught).toBeInstanceOf(UnknownCipherError)
     expect((caught as UnknownCipherError).cipher).toBe('foo')
@@ -170,7 +179,13 @@ describe('withCipherError', () => {
   it('passes through InvalidOptionError subclass unchanged (preserves .option/.value/.reason)', () => {
     const original = new InvalidOptionError('shift', 99, 'out of range')
     let caught: unknown
-    try { withCipherError('test', () => { throw original }) } catch (e) { caught = e }
+    try {
+      withCipherError('test', () => {
+        throw original
+      })
+    } catch (e) {
+      caught = e
+    }
     expect(caught).toBe(original)
     expect(caught).toBeInstanceOf(InvalidOptionError)
     expect((caught as InvalidOptionError).option).toBe('shift')
@@ -179,7 +194,13 @@ describe('withCipherError', () => {
   it('passes through MissingOptionError subclass unchanged', () => {
     const original = new MissingOptionError('key')
     let caught: unknown
-    try { withCipherError('test', () => { throw original }) } catch (e) { caught = e }
+    try {
+      withCipherError('test', () => {
+        throw original
+      })
+    } catch (e) {
+      caught = e
+    }
     expect(caught).toBe(original)
     expect(caught).toBeInstanceOf(MissingOptionError)
   })

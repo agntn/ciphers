@@ -10,7 +10,7 @@ function buildColumnOrder(key: string): number[] {
   const upper = key.toUpperCase()
   const indexed = Array.from(upper, (c, i) => ({ char: c, idx: i }))
   const sorted = [...indexed].sort((a, b) => a.char.localeCompare(b.char) || a.idx - b.idx)
-  const order = new Array(sorted.length)
+  const order = Array.from({ length: sorted.length }, () => 0)
   for (let i = 0; i < sorted.length; i++) order[sorted[i]!.idx] = i
   return order
 }
@@ -43,7 +43,7 @@ function decodeColumnar(text: string, key: string): string {
   const fullLen = rows * cols
   const padCount = fullLen - chars.length
   const colOrder = order.map((_, i) => order.indexOf(i))
-  const colLens = new Array(cols).fill(rows)
+  const colLens = Array.from({ length: cols }, () => rows)
   for (let i = cols - padCount; i < cols; i++) {
     colLens[colOrder[i]!]!--
   }
@@ -65,7 +65,7 @@ function decodeColumnar(text: string, key: string): string {
 }
 
 function validate(opts: CipherBaseOptions): { key: string } {
-  const key = getOpt<string | undefined>(opts, "key", undefined)
+  const key = getOpt<string | undefined>(opts, 'key', undefined)
   if (!key) throw new MissingOptionError('key')
   return { key }
 }
@@ -85,7 +85,9 @@ class Columnar extends Cipher {
     this.limiter = new RateLimiter(DEFAULT_RATE_LIMIT)
   }
 
-  name(): string { return 'columnar' }
+  name(): string {
+    return 'columnar'
+  }
 
   info(): CipherInfo {
     return {
@@ -95,7 +97,12 @@ class Columnar extends Cipher {
       family: 'transposition',
       selfInverse: false,
       options: [
-        { name: 'key', type: 'string', required: true, description: 'Keyword determining column order' },
+        {
+          name: 'key',
+          type: 'string',
+          required: true,
+          description: 'Keyword determining column order',
+        },
       ],
       keyspace: 'n! (column permutations)',
     }
@@ -113,7 +120,9 @@ class Columnar extends Cipher {
       const result = encodeColumnar(text, key)
       this.cache.set(ck, result)
       return { text: result, cipher: 'columnar', operation: 'encode', options: { key } }
-    } catch (e) { throw normalizeError(e, 'columnar') }
+    } catch (e) {
+      throw normalizeError(e, 'columnar')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
@@ -128,7 +137,9 @@ class Columnar extends Cipher {
       const result = decodeColumnar(text, key)
       this.cache.set(ck, result)
       return { text: result, cipher: 'columnar', operation: 'decode', options: { key } }
-    } catch (e) { throw normalizeError(e, 'columnar') }
+    } catch (e) {
+      throw normalizeError(e, 'columnar')
+    }
   }
 
   /** Reset cache and rate limiter. Useful for testing. */

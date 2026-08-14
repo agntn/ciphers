@@ -7,7 +7,10 @@ import { register } from '../core/registry'
 // Uses shared buildPolybiusSquare (1-indexed positions)
 
 function prepareText(text: string): string[] {
-  const clean = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I')
+  const clean = text
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
+    .replace(/J/g, 'I')
   const bigrams: string[] = []
   let i = 0
   while (i < clean.length) {
@@ -28,7 +31,10 @@ function prepareText(text: string): string[] {
 }
 
 function pairCiphertext(text: string): string[] {
-  const clean = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I')
+  const clean = text
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
+    .replace(/J/g, 'I')
   const bigrams: string[] = []
   for (let i = 0; i < clean.length; i += 2) {
     bigrams.push(clean[i]! + (clean[i + 1] ?? 'X'))
@@ -61,23 +67,31 @@ function processPlayfair(text: string, key: string, decrypt: boolean): string {
 }
 
 function validate(opts: CipherBaseOptions): { key: string } {
-  const key = getOpt<string | undefined>(opts, "key", undefined)
+  const key = getOpt<string | undefined>(opts, 'key', undefined)
   if (!key) throw new MissingOptionError('key')
   return { key }
 }
 
 class Playfair extends Cipher {
-  name(): string { return 'playfair' }
+  name(): string {
+    return 'playfair'
+  }
 
   info(): CipherInfo {
     return {
       name: 'playfair',
       label: 'Playfair',
-      description: 'Digraph substitution — encrypts letter pairs using a 5×5 key table (I/J share cell)',
+      description:
+        'Digraph substitution — encrypts letter pairs using a 5×5 key table (I/J share cell)',
       family: 'digraph',
       selfInverse: false,
       options: [
-        { name: 'key', type: 'string', required: true, description: 'Keyword for the 5×5 table (letters only)' },
+        {
+          name: 'key',
+          type: 'string',
+          required: true,
+          description: 'Keyword for the 5×5 table (letters only)',
+        },
       ],
       keyspace: '25! ≈ 1.5×10²⁵',
     }
@@ -86,15 +100,29 @@ class Playfair extends Cipher {
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { key } = validate(options ?? {})
-      return { text: processPlayfair(text, key, false), cipher: 'playfair', operation: 'encode', options: { key } }
-    } catch (e) { throw normalizeError(e, 'playfair') }
+      return {
+        text: processPlayfair(text, key, false),
+        cipher: 'playfair',
+        operation: 'encode',
+        options: { key },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'playfair')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { key } = validate(options ?? {})
-      return { text: processPlayfair(text, key, true), cipher: 'playfair', operation: 'decode', options: { key } }
-    } catch (e) { throw normalizeError(e, 'playfair') }
+      return {
+        text: processPlayfair(text, key, true),
+        cipher: 'playfair',
+        operation: 'decode',
+        options: { key },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'playfair')
+    }
   }
 }
 

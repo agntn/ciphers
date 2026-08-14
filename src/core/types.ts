@@ -52,7 +52,6 @@ export interface EnigmaOptions extends CipherBaseOptions {
   plugboard?: string
 }
 
-
 /** Rail Fence cipher options. */
 export interface RailFenceOptions extends CipherBaseOptions {
   /** Number of rails (2 or more). Default: 3. */
@@ -103,7 +102,16 @@ export interface CipherInfo {
   /** One-line description. */
   description: string
   /** Cipher family. */
-  family: 'substitution-shift' | 'substitution-keyed' | 'substitution-multiplicative' | 'substitution-reflection' | 'digraph' | 'fractionation' | 'transposition' | 'polyalphabetic' | 'rotor'
+  family:
+    | 'substitution-shift'
+    | 'substitution-keyed'
+    | 'substitution-multiplicative'
+    | 'substitution-reflection'
+    | 'digraph'
+    | 'fractionation'
+    | 'transposition'
+    | 'polyalphabetic'
+    | 'rotor'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
   /** Required/optional options. */
@@ -111,4 +119,3 @@ export interface CipherInfo {
   /** Keyspace size description. */
   keyspace?: string
 }
-

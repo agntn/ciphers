@@ -2,50 +2,33 @@
 
 ## Scope
 
-Cipher library for local educational and puzzle-oriented text transformations. 18 ciphers as self-registering classes in `src/ciphers/`. CLI via citty. Pi extension for agent use.
+Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides this file only for its subtree.
 
-## Conventions
+`@agntn/ciphers` provides local text transformations for educational, agent, and puzzle use. Keep production cryptographic primitives in a separate package. Cipher operations must not require HTTP, API keys, or another external service.
 
-- Ciphers: one class per file in `src/ciphers/`, self-register on import
-- Base class: abstract `Cipher` with `encode()` / `decode()` / `info()` / `name()`
-- Concrete ciphers extend `Cipher` and self-register their class on import
-- Registry: `register()` stores constructors; `create()` returns a cached instance — no HTTP, no API keys
-- Errors: `CipherError` hierarchy with `normalizeError()`
-- CLI: `ciphers` command with citty subcommands
-- Pi extension: 4 tools (cipher_encode, cipher_decode, cipher_brute_caesar, cipher_frequency)
-- Resolve: exact match only (no fuzzy prefix matching)
+## Architecture
 
-## Key Files
+- Put each cipher in one `src/ciphers/<name>.ts` file. Its concrete class extends `Cipher`, implements `name()`, `info()`, `encode()`, and `decode()`, then registers its constructor at module load.
+- Keep `src/core/registry.ts` constructor-based. `create()` returns one cached instance per name, and re-registering a name invalidates that instance.
+- Report domain failures through the `CipherError` hierarchy and normalize unknown thrown values with `normalizeError()`.
+- Resolution may normalize case and spaces to hyphens, then it must match a registered name exactly. Do not add fuzzy or prefix matching.
+- Keep the `ciphers` Citty CLI and the Pi/OMP extensions aligned with the library. Both extensions expose encode, decode, Caesar brute force, and frequency analysis.
 
-- `src/core/cipher.ts` — abstract `Cipher` + constructor type
-- `src/core/types.ts` — result, metadata, and cipher-specific option types
-- `src/core/registry.ts` — class registration and singleton cache
-- `src/core/resolve.ts` — exact-match cipher resolution
-- `src/ciphers/*.ts` — individual cipher implementations
-- `packages/pi/extensions/ciphers.ts` — Pi agent tools
-- `test/unit/ciphers.test.ts` — roundtrip and edge-case coverage
+## Cipher Contracts
 
-## Ciphers (18)
+- Latin cipher alphabets use A-Z.
+- Playfair and Polybius map J to I.
+- Tap code shares C and K.
+- Morse uses dots and dashes, spaces between letters, and `/` between words.
+- Bacon uses this project's 26-letter A-Z variant, not the historical 24-letter alphabet.
+- Enigma models Wehrmacht M3 with rotors I-II-III and reflector B.
 
-caesar, rot13, rot47, atbash, vigenere, trithemius, alberti, rail-fence, affine, playfair, polybius, morse, bacon, tap-code, columnar, adfgvx, bifid, enigma
+## Adding or Changing a Cipher
 
-## Adding a New Cipher
+1. Add or update the cipher class and its option types.
+2. For a new cipher, import its module from `src/ciphers/index.ts` and add its name to `builtinCiphers` in `src/core/ciphers.ts`.
+3. Run a roundtrip probe before writing fixtures.
+4. Add an independently known fixed vector plus relevant edge cases to `test/unit/ciphers.test.ts`. Never manufacture the expected value from the implementation under test.
+5. Update the CLI, Pi/OMP tools, exports, and README only where the public contract changed.
 
-1. Create `src/ciphers/<name>.ts`
-2. Extend `Cipher` and implement `name`, `encode`, `decode`, and `info`
-3. Call `register('<name>', CipherClass)` at module level
-4. Add `import './<name>'` to `src/ciphers/index.ts`
-5. Add to `builtinCiphers` in `src/core/ciphers.ts`
-6. **Run roundtrip verification FIRST** (node --import tsx)
-7. Get actual output, copy as expected value in test
-8. Add test cases to `test/unit/ciphers.test.ts`
-
-## Ograniczenia
-
-- Educational and puzzle-oriented ciphers; production cryptographic primitives belong in a separate package
-- No HTTP/API — all ciphers are local text transformations
-- Alphabet: Latin (A-Z), J→I mapping for Playfair/Polybius/Bacon
-- C/K share in tap-code
-- Morse: dot/dash with space separator, / for word breaks
-- Bacon: 26-letter alphabet (standard A-Z)
-- Enigma: Wehrmacht M3, rotors I-II-III, reflector B
+Use the scripts in `package.json` as the command source of truth. A cipher change is complete when its focused tests pass and every affected public surface builds and typechecks.

@@ -139,6 +139,7 @@ describe('vigenere', () => {
 
   it('reports resolved base options', () => {
     const encoded = vigenere.encode('Attack at dawn!', { key: 'LEMON', preserveCase: false, stripNonAlpha: true })
+    expect(encoded.text).toBe('LXFOPVEFRNHR')
     expect(encoded.options).toEqual({ key: 'LEMON', preserveCase: false, stripNonAlpha: true })
     expect(vigenere.decode(encoded.text, { key: 'LEMON' }).options).toEqual({ key: 'LEMON', preserveCase: true, stripNonAlpha: false })
   })

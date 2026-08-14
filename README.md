@@ -1,6 +1,6 @@
 # @agntn/ciphers
 
-18 ciphers behind one small local API and CLI. Local text transformations for educational and puzzle use, with no HTTP or API keys.
+18 classical ciphers behind one small local API and CLI. Everything runs locally. No HTTP, no API keys, just text transformations for learning and puzzles.
 
 ## Ciphers
 
@@ -25,7 +25,7 @@
 | **bifid**      | fractionation               |      ✗       | `--key` (optional), `--period` (default 5) |
 | **enigma**     | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`    |
 
-`alberti` implements the reproducible, simplified keyed-disk variant: the inner disk rotates one position after each `period` Latin letters.
+`alberti` uses a simplified keyed disk, not a full historical simulation. The inner disk rotates one position after every `period` Latin letters, which keeps results reproducible.
 
 ## CLI
 
@@ -51,25 +51,25 @@ ciphers encode enigma "AAAAA"                          # BDZGO
 import '@agntn/ciphers'
 import { create, resolveCipher, getOpt } from '@agntn/ciphers'
 
-// Create by exact cipher name
+// Cipher names match exactly
 const caesar = create('caesar')
 const result = caesar.encode('HELLO', { shift: 5 })
 // result.text === 'MJQQT'
 
-// Options stay specific to each cipher
+// Each cipher keeps its own options
 const cipher = resolveCipher('vigenere')
 const encoded = cipher.encode('SECRET', { key: 'KEY' })
 
-// These do the same thing in both directions
+// Self-inverse ciphers use the same transformation both ways
 const rot13 = create('rot13')
-rot13.encode('HELLO').text === rot13.decode('URYYB').text // true
+rot13.decode(rot13.encode('HELLO').text).text === 'HELLO' // true
 ```
 
-Every built-in cipher is a concrete class extending the exported abstract `Cipher`. Adding your own is deliberately boring: extend `Cipher`, then register the constructor with `register(name, CipherClass)`. `create()` keeps one cached instance per name.
+Every built-in cipher is a concrete class extending the exported abstract `Cipher`. Custom ciphers stay boring: extend `Cipher` and register the constructor with `register(name, CipherClass)`. `create()` caches one instance per name.
 
 ## OMP and Pi Extensions
 
-Both integrations expose the same four local tools, so agents don't need a second cipher API:
+Both integrations expose the same four local tools. Agents get the same API instead of another wrapper to learn:
 
 - `cipher_encode`: encode text with any cipher
 - `cipher_decode`: decode text with any cipher

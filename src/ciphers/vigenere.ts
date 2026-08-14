@@ -52,14 +52,14 @@ class Vigenere extends Cipher {
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { key, preserveCase, stripNonAlpha } = validate(options ?? {})
-      return { text: vigenereProcess(text, key, false, preserveCase, stripNonAlpha), cipher: 'vigenere', operation: 'encode', options: { key } }
+      return { text: vigenereProcess(text, key, false, preserveCase, stripNonAlpha), cipher: 'vigenere', operation: 'encode', options: { key, preserveCase, stripNonAlpha } }
     } catch (e) { throw normalizeError(e, 'vigenere') }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { key, preserveCase, stripNonAlpha } = validate(options ?? {})
-      return { text: vigenereProcess(text, key, true, preserveCase, stripNonAlpha), cipher: 'vigenere', operation: 'decode', options: { key } }
+      return { text: vigenereProcess(text, key, true, preserveCase, stripNonAlpha), cipher: 'vigenere', operation: 'decode', options: { key, preserveCase, stripNonAlpha } }
     } catch (e) { throw normalizeError(e, 'vigenere') }
   }
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vite-plus/test'
 import '../../src/index'
 import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
@@ -7,7 +7,20 @@ import { Cipher } from '../../src/core/cipher'
 describe('registry', () => {
   it('registers all 18 ciphers', () => {
     expect(ciphers()).toHaveLength(18)
-    for (const name of ['caesar', 'rot13', 'rot47', 'atbash', 'vigenere', 'trithemius', 'alberti', 'rail-fence', 'affine', 'playfair', 'polybius', 'enigma']) {
+    for (const name of [
+      'caesar',
+      'rot13',
+      'rot47',
+      'atbash',
+      'vigenere',
+      'trithemius',
+      'alberti',
+      'rail-fence',
+      'affine',
+      'playfair',
+      'polybius',
+      'enigma',
+    ]) {
       expect(has(name)).toBe(true)
     }
   })
@@ -138,10 +151,18 @@ describe('vigenere', () => {
   })
 
   it('reports resolved base options', () => {
-    const encoded = vigenere.encode('Attack at dawn!', { key: 'LEMON', preserveCase: false, stripNonAlpha: true })
+    const encoded = vigenere.encode('Attack at dawn!', {
+      key: 'LEMON',
+      preserveCase: false,
+      stripNonAlpha: true,
+    })
     expect(encoded.text).toBe('LXFOPVEFRNHR')
     expect(encoded.options).toEqual({ key: 'LEMON', preserveCase: false, stripNonAlpha: true })
-    expect(vigenere.decode(encoded.text, { key: 'LEMON' }).options).toEqual({ key: 'LEMON', preserveCase: true, stripNonAlpha: false })
+    expect(vigenere.decode(encoded.text, { key: 'LEMON' }).options).toEqual({
+      key: 'LEMON',
+      preserveCase: true,
+      stripNonAlpha: false,
+    })
   })
 
   it('requires key', () => {
@@ -166,11 +187,17 @@ describe('trithemius', () => {
   })
 
   it('honors base options and roundtrips', () => {
-    const encoded = trithemius.encode('Attack at dawn!', { preserveCase: false, stripNonAlpha: true })
+    const encoded = trithemius.encode('Attack at dawn!', {
+      preserveCase: false,
+      stripNonAlpha: true,
+    })
     expect(encoded.text).toBe('AUVDGPGALJGY')
     expect(encoded.options).toEqual({ preserveCase: false, stripNonAlpha: true })
     expect(trithemius.decode(encoded.text, { preserveCase: false }).text).toBe('ATTACKATDAWN')
-    expect(trithemius.decode(encoded.text).options).toEqual({ preserveCase: true, stripNonAlpha: false })
+    expect(trithemius.decode(encoded.text).options).toEqual({
+      preserveCase: true,
+      stripNonAlpha: false,
+    })
   })
 })
 
@@ -178,8 +205,12 @@ describe('alberti', () => {
   const alberti = create('alberti')
 
   it('matches a keyed fixed-period disk vector', () => {
-    expect(alberti.encode('ATTACK AT DAWN', { key: 'ALBERTI', period: 4 }).text).toBe('ASSAEH LU TBYN')
-    expect(alberti.decode('ASSAEH LU TBYN', { key: 'ALBERTI', period: 4 }).text).toBe('ATTACK AT DAWN')
+    expect(alberti.encode('ATTACK AT DAWN', { key: 'ALBERTI', period: 4 }).text).toBe(
+      'ASSAEH LU TBYN',
+    )
+    expect(alberti.decode('ASSAEH LU TBYN', { key: 'ALBERTI', period: 4 }).text).toBe(
+      'ATTACK AT DAWN',
+    )
   })
 
   it('advances the disk only after the configured number of Latin letters', () => {
@@ -187,9 +218,21 @@ describe('alberti', () => {
   })
 
   it('normalizes duplicate key letters and honors base options', () => {
-    const encoded = alberti.encode('Attack at dawn!', { key: 'Letter', period: 3, preserveCase: false, stripNonAlpha: true })
-    expect(encoded.options).toEqual({ key: 'LETR', period: 3, preserveCase: false, stripNonAlpha: true })
-    expect(alberti.decode(encoded.text, { key: 'Letter', period: 3, preserveCase: false }).text).toBe('ATTACKATDAWN')
+    const encoded = alberti.encode('Attack at dawn!', {
+      key: 'Letter',
+      period: 3,
+      preserveCase: false,
+      stripNonAlpha: true,
+    })
+    expect(encoded.options).toEqual({
+      key: 'LETR',
+      period: 3,
+      preserveCase: false,
+      stripNonAlpha: true,
+    })
+    expect(
+      alberti.decode(encoded.text, { key: 'Letter', period: 3, preserveCase: false }).text,
+    ).toBe('ATTACKATDAWN')
   })
 
   it('requires an ASCII-letter key and positive integer period', () => {
@@ -205,7 +248,9 @@ describe('rail-fence', () => {
   const railFence = create('rail-fence')
 
   it('encodes with 3 rails', () => {
-    expect(railFence.encode('WEAREDISCOVEREDRUNATONCE', { rails: 3 }).text).toBe('WECRUOERDSOEERNTNEAIVDAC')
+    expect(railFence.encode('WEAREDISCOVEREDRUNATONCE', { rails: 3 }).text).toBe(
+      'WECRUOERDSOEERNTNEAIVDAC',
+    )
   })
 
   it('decodes with 3 rails', () => {
@@ -406,7 +451,9 @@ describe('columnar', () => {
   const col = create('columnar')
 
   it('encodes with key', () => {
-    expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe('N W ETSLD ALEE  DEA FHT')
+    expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe(
+      'N W ETSLD ALEE  DEA FHT',
+    )
   })
 
   it('roundtrips', () => {
@@ -449,7 +496,9 @@ describe('bifid', () => {
   const bifid = create('bifid')
 
   it('encodes FLEE AT ONCE', () => {
-    expect(bifid.encode('FLEE AT ONCE', { key: 'BICONDITIONAL', period: 5 }).text).toBe('GTDUXDBTUM')
+    expect(bifid.encode('FLEE AT ONCE', { key: 'BICONDITIONAL', period: 5 }).text).toBe(
+      'GTDUXDBTUM',
+    )
   })
 
   it('roundtrips', () => {
@@ -464,12 +513,14 @@ describe('bifid', () => {
     expect(decoded.text).toBe('CRYPTOGRAPHY')
   })
 
-  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])('rejects invalid period %s', (period) => {
-    expect(() => bifid.encode('HELLO', { period })).toThrow(/must be a positive integer/)
-    expect(() => bifid.decode('HELLO', { period })).toThrow(/must be a positive integer/)
-  })
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects invalid period %s',
+    (period) => {
+      expect(() => bifid.encode('HELLO', { period })).toThrow(/must be a positive integer/)
+      expect(() => bifid.decode('HELLO', { period })).toThrow(/must be a positive integer/)
+    },
+  )
 })
-
 
 describe('enigma', () => {
   const enigma = create('enigma')

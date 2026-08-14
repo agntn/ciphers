@@ -6,7 +6,12 @@ import { getOpt, processBaseOptions } from '../core/utils'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-function parseOptions(options: CipherBaseOptions): { key: string; period: number; preserveCase: boolean; stripNonAlpha: boolean } {
+function parseOptions(options: CipherBaseOptions): {
+  key: string
+  period: number
+  preserveCase: boolean
+  stripNonAlpha: boolean
+} {
   const rawKey = getOpt<string | undefined>(options, 'key', undefined)
   if (rawKey === undefined || rawKey === '') throw new MissingOptionError('key')
   if (typeof rawKey !== 'string' || !/^[A-Za-z]+$/.test(rawKey)) {
@@ -23,8 +28,16 @@ function parseOptions(options: CipherBaseOptions): { key: string; period: number
   return { key, period, ...processBaseOptions(options) }
 }
 
-function transform(text: string, key: string, period: number, decrypt: boolean, preserveCase: boolean, stripNonAlpha: boolean): string {
-  const innerDisk = key + Array.from(ALPHABET, letter => key.includes(letter) ? '' : letter).join('')
+function transform(
+  text: string,
+  key: string,
+  period: number,
+  decrypt: boolean,
+  preserveCase: boolean,
+  stripNonAlpha: boolean,
+): string {
+  const innerDisk =
+    key + Array.from(ALPHABET, (letter) => (key.includes(letter) ? '' : letter)).join('')
   const input = stripNonAlpha ? text.replace(/[^A-Za-z]/g, '') : text
   let position = 0
 
@@ -45,18 +58,31 @@ function transform(text: string, key: string, period: number, decrypt: boolean, 
 }
 
 class Alberti extends Cipher {
-  name(): string { return 'alberti' }
+  name(): string {
+    return 'alberti'
+  }
 
   info(): CipherInfo {
     return {
       name: 'alberti',
       label: 'Alberti',
-      description: 'Simplified Alberti disk cipher with a keyed inner alphabet rotated at a fixed period',
+      description:
+        'Simplified Alberti disk cipher with a keyed inner alphabet rotated at a fixed period',
       family: 'polyalphabetic',
       selfInverse: false,
       options: [
-        { name: 'key', type: 'string', required: true, description: 'Keyword used to construct the movable inner disk' },
-        { name: 'period', type: 'number', required: true, description: 'Letters processed before rotating the inner disk' },
+        {
+          name: 'key',
+          type: 'string',
+          required: true,
+          description: 'Keyword used to construct the movable inner disk',
+        },
+        {
+          name: 'period',
+          type: 'number',
+          required: true,
+          description: 'Letters processed before rotating the inner disk',
+        },
       ],
     }
   }
@@ -70,7 +96,9 @@ class Alberti extends Cipher {
         operation: 'encode',
         options: { key, period, preserveCase, stripNonAlpha },
       }
-    } catch (error) { throw normalizeError(error, 'alberti') }
+    } catch (error) {
+      throw normalizeError(error, 'alberti')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
@@ -82,7 +110,9 @@ class Alberti extends Cipher {
         operation: 'decode',
         options: { key, period, preserveCase, stripNonAlpha },
       }
-    } catch (error) { throw normalizeError(error, 'alberti') }
+    } catch (error) {
+      throw normalizeError(error, 'alberti')
+    }
   }
 }
 

@@ -4,7 +4,9 @@ import { getOpt, processBaseOptions } from '../core/utils'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
-function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b) }
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b)
+}
 
 function modInverse(a: number, m: number): number {
   let [old_r, r] = [a % m, m]
@@ -17,7 +19,14 @@ function modInverse(a: number, m: number): number {
   return ((old_s % m) + m) % m
 }
 
-function affineProcess(text: string, a: number, b: number, decrypt: boolean, preserveCase: boolean, stripNonAlpha: boolean): string {
+function affineProcess(
+  text: string,
+  a: number,
+  b: number,
+  decrypt: boolean,
+  preserveCase: boolean,
+  stripNonAlpha: boolean,
+): string {
   let input = text
   if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
   const aInv = decrypt ? modInverse(a, 26) : a
@@ -27,26 +36,34 @@ function affineProcess(text: string, a: number, b: number, decrypt: boolean, pre
     if (!isUpper && !isLower) return c
     const upper = isUpper ? c : c.toUpperCase()
     const x = upper.charCodeAt(0) - 65
-    const result = decrypt
-      ? (aInv * ((x - b + 26) % 26)) % 26
-      : (a * x + b) % 26
-    const code = String.fromCharCode(((result % 26) + 26) % 26 + 65)
+    const result = decrypt ? (aInv * ((x - b + 26) % 26)) % 26 : (a * x + b) % 26
+    const code = String.fromCharCode((((result % 26) + 26) % 26) + 65)
     return preserveCase && isLower ? code.toLowerCase() : code
   }).join('')
 }
 
-function validate(opts: CipherBaseOptions): { a: number; b: number; preserveCase: boolean; stripNonAlpha: boolean } {
-  const a = getOpt<number>(opts, "a", 5)
-  const b = getOpt<number>(opts, "b", 8)
-  if (!Number.isInteger(a) || a < 1 || a > 25) throw new InvalidOptionError('a', a, 'must be integer 1-25')
-  if (!Number.isInteger(b) || b < 0 || b > 25) throw new InvalidOptionError('b', b, 'must be integer 0-25')
-  if (gcd(a, 26) !== 1) throw new InvalidOptionError('a', a, 'must be coprime with 26 (gcd(a,26)=1)')
+function validate(opts: CipherBaseOptions): {
+  a: number
+  b: number
+  preserveCase: boolean
+  stripNonAlpha: boolean
+} {
+  const a = getOpt<number>(opts, 'a', 5)
+  const b = getOpt<number>(opts, 'b', 8)
+  if (!Number.isInteger(a) || a < 1 || a > 25)
+    throw new InvalidOptionError('a', a, 'must be integer 1-25')
+  if (!Number.isInteger(b) || b < 0 || b > 25)
+    throw new InvalidOptionError('b', b, 'must be integer 0-25')
+  if (gcd(a, 26) !== 1)
+    throw new InvalidOptionError('a', a, 'must be coprime with 26 (gcd(a,26)=1)')
   const base = processBaseOptions(opts)
   return { a, b, ...base }
 }
 
 class Affine extends Cipher {
-  name(): string { return 'affine' }
+  name(): string {
+    return 'affine'
+  }
 
   info(): CipherInfo {
     return {
@@ -56,8 +73,20 @@ class Affine extends Cipher {
       family: 'substitution-multiplicative',
       selfInverse: false,
       options: [
-        { name: 'a', type: 'number', required: false, default: 5, description: 'Multiplier (must be coprime with 26: 1,3,5,7,9,11,15,17,19,21,23,25)' },
-        { name: 'b', type: 'number', required: false, default: 8, description: 'Additive shift (0-25)' },
+        {
+          name: 'a',
+          type: 'number',
+          required: false,
+          default: 5,
+          description: 'Multiplier (must be coprime with 26: 1,3,5,7,9,11,15,17,19,21,23,25)',
+        },
+        {
+          name: 'b',
+          type: 'number',
+          required: false,
+          default: 8,
+          description: 'Additive shift (0-25)',
+        },
       ],
       keyspace: '12 × 26 = 312 (12 valid multipliers × 26 shifts)',
     }
@@ -66,15 +95,29 @@ class Affine extends Cipher {
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { a, b, preserveCase, stripNonAlpha } = validate(options ?? {})
-      return { text: affineProcess(text, a, b, false, preserveCase, stripNonAlpha), cipher: 'affine', operation: 'encode', options: { a, b } }
-    } catch (e) { throw normalizeError(e, 'affine') }
+      return {
+        text: affineProcess(text, a, b, false, preserveCase, stripNonAlpha),
+        cipher: 'affine',
+        operation: 'encode',
+        options: { a, b },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'affine')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const { a, b, preserveCase, stripNonAlpha } = validate(options ?? {})
-      return { text: affineProcess(text, a, b, true, preserveCase, stripNonAlpha), cipher: 'affine', operation: 'decode', options: { a, b } }
-    } catch (e) { throw normalizeError(e, 'affine') }
+      return {
+        text: affineProcess(text, a, b, true, preserveCase, stripNonAlpha),
+        cipher: 'affine',
+        operation: 'decode',
+        options: { a, b },
+      }
+    } catch (e) {
+      throw normalizeError(e, 'affine')
+    }
   }
 }
 

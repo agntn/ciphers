@@ -5,7 +5,12 @@ import { ciphers as listCiphers, create } from '../core/registry'
 export default defineCommand({
   meta: { name: 'ciphers', description: 'List all available ciphers' },
   args: {
-    verbose: { type: 'boolean', description: 'Show detailed info for each cipher', alias: 'v', default: false },
+    verbose: {
+      type: 'boolean',
+      description: 'Show detailed info for each cipher',
+      alias: 'v',
+      default: false,
+    },
   },
   async run({ args }) {
     const names = listCiphers()

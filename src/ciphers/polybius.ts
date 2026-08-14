@@ -5,7 +5,9 @@ import { register } from '../core/registry'
 import { buildPolybiusSquare, getOpt } from '../core/utils'
 
 class Polybius extends Cipher {
-  name(): string { return 'polybius' }
+  name(): string {
+    return 'polybius'
+  }
 
   info(): CipherInfo {
     return {
@@ -15,7 +17,13 @@ class Polybius extends Cipher {
       family: 'fractionation',
       selfInverse: false,
       options: [
-        { name: 'key', type: 'string', required: false, default: '', description: 'Optional keyword for the 5×5 table' },
+        {
+          name: 'key',
+          type: 'string',
+          required: false,
+          default: '',
+          description: 'Optional keyword for the 5×5 table',
+        },
       ],
       keyspace: '1 (standard) or 25! (keyed)',
     }
@@ -34,7 +42,9 @@ class Polybius extends Cipher {
         }
       }
       return { text: encoded.join(' '), cipher: 'polybius', operation: 'encode', options: { key } }
-    } catch (e) { throw normalizeError(e, 'polybius') }
+    } catch (e) {
+      throw normalizeError(e, 'polybius')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
@@ -57,7 +67,9 @@ class Polybius extends Cipher {
         }
       }
       return { text: result, cipher: 'polybius', operation: 'decode', options: { key } }
-    } catch (e) { throw normalizeError(e, 'polybius') }
+    } catch (e) {
+      throw normalizeError(e, 'polybius')
+    }
   }
 }
 

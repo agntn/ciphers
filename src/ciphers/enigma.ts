@@ -19,7 +19,8 @@ function stringOption(options: CipherBaseOptions, name: string, fallback: string
 }
 
 function parseLetters(value: string, name: string): { normalized: string; values: number[] } {
-  if (!/^[A-Za-z]{3}$/.test(value)) throw new InvalidOptionError(name, value, 'must be exactly three letters A-Z')
+  if (!/^[A-Za-z]{3}$/.test(value))
+    throw new InvalidOptionError(name, value, 'must be exactly three letters A-Z')
   const normalized = value.toUpperCase()
   return { normalized, values: Array.from(normalized, (letter) => letter.charCodeAt(0) - 65) }
 }
@@ -31,7 +32,11 @@ function parsePlugboard(value: string): { normalized: string; wiring: number[] }
   const used = new Set<string>()
   for (const rawPair of value.split(/\s+/)) {
     if (!/^[A-Za-z]{2}$/.test(rawPair) || rawPair[0]!.toUpperCase() === rawPair[1]!.toUpperCase()) {
-      throw new InvalidOptionError('plugboard', value, 'must contain distinct letter pairs such as "AB CD"')
+      throw new InvalidOptionError(
+        'plugboard',
+        value,
+        'must contain distinct letter pairs such as "AB CD"',
+      )
     }
     const pair = rawPair.toUpperCase()
     const [a, b] = pair
@@ -67,7 +72,11 @@ function parseConfig(options: CipherBaseOptions): EnigmaConfig {
     plugboard: plugboard.wiring,
     preserveCase: options.preserveCase ?? true,
     stripNonAlpha: options.stripNonAlpha ?? false,
-    resultOptions: { positions: positions.normalized, rings: rings.normalized, plugboard: plugboard.normalized },
+    resultOptions: {
+      positions: positions.normalized,
+      rings: rings.normalized,
+      plugboard: plugboard.normalized,
+    },
   }
 }
 
@@ -75,7 +84,13 @@ function mod26(value: number): number {
   return ((value % 26) + 26) % 26
 }
 
-function throughRotor(value: number, rotorIndex: number, position: number, ring: number, reverse: boolean): number {
+function throughRotor(
+  value: number,
+  rotorIndex: number,
+  position: number,
+  ring: number,
+  reverse: boolean,
+): number {
   const wiring = ROTORS[rotorIndex]!.wiring
   const shifted = mod26(value + position - ring)
   const wired = reverse ? wiring.indexOf(ALPHABET[shifted]!) : wiring.charCodeAt(shifted) - 65
@@ -103,9 +118,11 @@ function transform(text: string, config: EnigmaConfig): string {
     positions[2] = mod26(positions[2]! + 1)
 
     let value = plugboard[input]!
-    for (let rotor = 2; rotor >= 0; rotor--) value = throughRotor(value, rotor, positions[rotor]!, rings[rotor]!, false)
+    for (let rotor = 2; rotor >= 0; rotor--)
+      value = throughRotor(value, rotor, positions[rotor]!, rings[rotor]!, false)
     value = REFLECTOR_B.charCodeAt(value) - 65
-    for (let rotor = 0; rotor < 3; rotor++) value = throughRotor(value, rotor, positions[rotor]!, rings[rotor]!, true)
+    for (let rotor = 0; rotor < 3; rotor++)
+      value = throughRotor(value, rotor, positions[rotor]!, rings[rotor]!, true)
     value = plugboard[value]!
 
     const encoded = ALPHABET[value]!
@@ -116,7 +133,9 @@ function transform(text: string, config: EnigmaConfig): string {
 }
 
 class Enigma extends Cipher {
-  name(): string { return 'enigma' }
+  name(): string {
+    return 'enigma'
+  }
 
   info(): CipherInfo {
     return {
@@ -126,9 +145,27 @@ class Enigma extends Cipher {
       family: 'rotor',
       selfInverse: true,
       options: [
-        { name: 'positions', type: 'string', required: false, default: 'AAA', description: 'Initial rotor positions, left to right' },
-        { name: 'rings', type: 'string', required: false, default: 'AAA', description: 'Ring settings, left to right' },
-        { name: 'plugboard', type: 'string', required: false, default: '', description: 'Space-separated letter pairs, for example "AV BS CG"' },
+        {
+          name: 'positions',
+          type: 'string',
+          required: false,
+          default: 'AAA',
+          description: 'Initial rotor positions, left to right',
+        },
+        {
+          name: 'rings',
+          type: 'string',
+          required: false,
+          default: 'AAA',
+          description: 'Ring settings, left to right',
+        },
+        {
+          name: 'plugboard',
+          type: 'string',
+          required: false,
+          default: '',
+          description: 'Space-separated letter pairs, for example "AV BS CG"',
+        },
       ],
       keyspace: '26^6 × plugboard configurations',
     }
@@ -137,15 +174,29 @@ class Enigma extends Cipher {
   encode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const config = parseConfig(options ?? {})
-      return { text: transform(text, config), cipher: 'enigma', operation: 'encode', options: config.resultOptions }
-    } catch (error) { throw normalizeError(error, 'enigma') }
+      return {
+        text: transform(text, config),
+        cipher: 'enigma',
+        operation: 'encode',
+        options: config.resultOptions,
+      }
+    } catch (error) {
+      throw normalizeError(error, 'enigma')
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
     try {
       const config = parseConfig(options ?? {})
-      return { text: transform(text, config), cipher: 'enigma', operation: 'decode', options: config.resultOptions }
-    } catch (error) { throw normalizeError(error, 'enigma') }
+      return {
+        text: transform(text, config),
+        cipher: 'enigma',
+        operation: 'decode',
+        options: config.resultOptions,
+      }
+    } catch (error) {
+      throw normalizeError(error, 'enigma')
+    }
   }
 }
 

@@ -50,7 +50,11 @@ function encodeTapCode(text: string): string {
 
 function decodeTapCode(text: string): string {
   // Input: space-separated digit pairs like "2 3 1 5 3 1 3 1 3 4"
-  const nums = text.trim().split(/\s+/).map(Number).filter((n) => n >= 1 && n <= 5)
+  const nums = text
+    .trim()
+    .split(/\s+/)
+    .map(Number)
+    .filter((n) => n >= 1 && n <= 5)
   let result = ''
   for (let i = 0; i + 1 < nums.length; i += 2) {
     result += tapReverse(nums[i]!, nums[i + 1]!)
@@ -59,7 +63,9 @@ function decodeTapCode(text: string): string {
 }
 
 class TapCode extends Cipher {
-  name(): string { return 'tap-code' }
+  name(): string {
+    return 'tap-code'
+  }
 
   info(): CipherInfo {
     return {
@@ -76,13 +82,17 @@ class TapCode extends Cipher {
   encode(text: string, _options?: CipherBaseOptions): CipherResult {
     try {
       return { text: encodeTapCode(text), cipher: 'tap-code', operation: 'encode', options: {} }
-    } catch (e) { throw normalizeError(e, 'tap-code') }
+    } catch (e) {
+      throw normalizeError(e, 'tap-code')
+    }
   }
 
   decode(text: string, _options?: CipherBaseOptions): CipherResult {
     try {
       return { text: decodeTapCode(text), cipher: 'tap-code', operation: 'decode', options: {} }
-    } catch (e) { throw normalizeError(e, 'tap-code') }
+    } catch (e) {
+      throw normalizeError(e, 'tap-code')
+    }
   }
 }
 

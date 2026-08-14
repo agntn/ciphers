@@ -13,7 +13,9 @@ function rot13(text: string, stripNonAlpha: boolean): string {
 }
 
 class Rot13 extends Cipher {
-  name(): string { return 'rot13' }
+  name(): string {
+    return 'rot13'
+  }
 
   info(): CipherInfo {
     return {
@@ -28,11 +30,21 @@ class Rot13 extends Cipher {
   }
 
   encode(text: string, options?: CipherBaseOptions): CipherResult {
-    return { text: rot13(text, options?.stripNonAlpha ?? false), cipher: 'rot13', operation: 'encode', options: {} }
+    return {
+      text: rot13(text, options?.stripNonAlpha ?? false),
+      cipher: 'rot13',
+      operation: 'encode',
+      options: {},
+    }
   }
 
   decode(text: string, options?: CipherBaseOptions): CipherResult {
-    return { text: rot13(text, options?.stripNonAlpha ?? false), cipher: 'rot13', operation: 'decode', options: {} }
+    return {
+      text: rot13(text, options?.stripNonAlpha ?? false),
+      cipher: 'rot13',
+      operation: 'decode',
+      options: {},
+    }
   }
 }
 

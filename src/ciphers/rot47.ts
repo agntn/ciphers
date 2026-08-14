@@ -11,7 +11,9 @@ function rot47(text: string): string {
 }
 
 class Rot47 extends Cipher {
-  name(): string { return 'rot47' }
+  name(): string {
+    return 'rot47'
+  }
 
   info(): CipherInfo {
     return {

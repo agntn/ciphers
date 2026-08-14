@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import type { ExtensionAPI } from '@oh-my-pi/pi-coding-agent'
-import type * as CiphersModule from '@oritwoen/ciphers'
+import type * as CiphersModule from '@agntn/ciphers'
 type CiphersLibrary = Pick<typeof CiphersModule, 'analyzeFrequency' | 'create' | 'resolveCipher'>
 // Bound model-controlled work and returned context; Caesar brute force expands input 25×.
 const MAX_TRANSFORM_TEXT_LENGTH = 10_000
@@ -36,7 +36,7 @@ function loadLibrary(): Promise<CiphersLibrary> {
   const isCheckout = existsSync(fileURLToPath(checkoutMarker))
   libraryPromise ??= isCheckout && existsSync(fileURLToPath(sourceEntry))
     ? import(sourceEntry.href)
-    : import('@oritwoen/ciphers')
+    : import('@agntn/ciphers')
   return libraryPromise
 }
 

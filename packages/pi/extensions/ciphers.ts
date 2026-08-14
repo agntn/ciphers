@@ -2,11 +2,11 @@ import type { AgentToolResult, ExtensionAPI } from '@earendil-works/pi-coding-ag
 import { defineTool } from '@earendil-works/pi-coding-agent'
 import { Text } from '@earendil-works/pi-tui'
 import { type Static, Type } from 'typebox'
-import type * as CiphersModule from '@oritwoen/ciphers'
+import type * as CiphersModule from '@agntn/ciphers'
 
 /** Lazy-load the library (registers all ciphers on import). */
 async function loadLib() {
-  const mod = await import('@oritwoen/ciphers').catch(() => {
+  const mod = await import('@agntn/ciphers').catch(() => {
     // @ts-expect-error — dev fallback when library isn't built yet
     return import('../../../src/index.ts')
   })

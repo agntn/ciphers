@@ -7,7 +7,13 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 import { type TSchema, Type } from 'typebox'
 import { Value } from 'typebox/value'
-import { analyzeFrequency, builtinCiphers, create, resolveCipher } from './index'
+import {
+  bruteForceCaesar,
+  formatFrequencyAnalysis,
+  transformCipher,
+  type CipherToolParams,
+} from './tool-operations'
+import * as ciphersLibrary from './index'
 import { version } from './version'
 
 const MAX_TRANSFORM_TEXT_LENGTH = 10_000
@@ -28,7 +34,7 @@ type ToolDefinition = {
   execute(args: Record<string, unknown>): ToolResult
 }
 
-const cipherNameSchema = Type.Union(builtinCiphers.map((name) => Type.Literal(name)))
+const cipherNameSchema = Type.Union(ciphersLibrary.builtinCiphers.map((name) => Type.Literal(name)))
 
 const cipherInputSchema = Type.Object(
   {
@@ -111,46 +117,20 @@ const cipherInputSchema = Type.Object(
   },
 )
 
-function cipherOptions(args: Record<string, unknown>): Record<string, unknown> {
-  const options: Record<string, unknown> = {}
-  for (const name of [
-    'shift',
-    'key',
-    'rails',
-    'a',
-    'b',
-    'period',
-    'preserveCase',
-    'stripNonAlpha',
-    'positions',
-    'rings',
-    'plugboard',
-  ]) {
-    if (args[name] !== undefined) options[name] = args[name]
-  }
-  return options
-}
-
-function transform(operation: 'encode' | 'decode', args: Record<string, unknown>): ToolResult {
-  const cipher = resolveCipher(args.cipher as string)
-  const result = cipher[operation](args.text as string, cipherOptions(args))
-  return { content: [{ type: 'text', text: result.text }] }
-}
-
 const tools: ToolDefinition[] = [
   {
     name: 'cipher_encode',
     title: 'Cipher Encode',
     description: 'Encode text with an exact-name built-in cipher.',
     inputSchema: cipherInputSchema,
-    execute: (args) => transform('encode', args),
+    execute: (args) => transformCipher(ciphersLibrary, 'encode', args as CipherToolParams),
   },
   {
     name: 'cipher_decode',
     title: 'Cipher Decode',
     description: 'Decode text with an exact-name built-in cipher.',
     inputSchema: cipherInputSchema,
-    execute: (args) => transform('decode', args),
+    execute: (args) => transformCipher(ciphersLibrary, 'decode', args as CipherToolParams),
   },
   {
     name: 'cipher_brute_caesar',
@@ -162,15 +142,7 @@ const tools: ToolDefinition[] = [
         description: 'Caesar ciphertext to brute-force',
       }),
     }),
-    execute(args) {
-      const cipher = create('caesar')
-      const lines: string[] = []
-      for (let shift = 1; shift <= 25; shift++) {
-        const result = cipher.decode(args.text as string, { shift })
-        lines.push(`shift=${String(shift).padStart(2)} -> ${result.text}`)
-      }
-      return { content: [{ type: 'text', text: lines.join('\n') }] }
-    },
+    execute: (args) => bruteForceCaesar(ciphersLibrary, args.text as string),
   },
   {
     name: 'cipher_frequency',
@@ -184,28 +156,12 @@ const tools: ToolDefinition[] = [
         }),
       ),
     }),
-    execute(args) {
-      const analysis = analyzeFrequency(args.text as string, args.lang as 'en' | 'pl' | undefined)
-      if (analysis === undefined) {
-        return { content: [{ type: 'text', text: 'No A-Z letters found in input.' }] }
-      }
-
-      const maximum = analysis.counts[0]?.[1] ?? 1
-      const lines = [
-        `Frequency Analysis (${analysis.total} letters, lang=${analysis.language}):`,
-        '',
-      ]
-      for (const [character, count] of analysis.counts) {
-        const percentage = ((count / analysis.total) * 100).toFixed(1)
-        const bar = '#'.repeat(Math.ceil((count / maximum) * 15))
-        lines.push(
-          `  ${character} ${String(count).padStart(4)} (${percentage.padStart(5)}%) ${bar}`,
-        )
-      }
-      lines.push('', `Expected (${analysis.language}): ${analysis.reference.split('').join(' ')}`)
-      lines.push(`Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`)
-      return { content: [{ type: 'text', text: lines.join('\n') }] }
-    },
+    execute: (args) =>
+      formatFrequencyAnalysis(
+        ciphersLibrary,
+        args.text as string,
+        args.lang as 'en' | 'pl' | undefined,
+      ),
   },
 ]
 

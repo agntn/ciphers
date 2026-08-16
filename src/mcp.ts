@@ -30,62 +30,86 @@ type ToolDefinition = {
 
 const cipherNameSchema = Type.Union(builtinCiphers.map((name) => Type.Literal(name)))
 
-const cipherInputSchema = Type.Object({
-  cipher: cipherNameSchema,
-  text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Text to transform' }),
-  shift: Type.Optional(
-    Type.Integer({ minimum: 1, maximum: 25, description: 'Caesar shift (1-25; default 3)' }),
-  ),
-  key: Type.Optional(
-    Type.String({ maxLength: MAX_KEY_LENGTH, description: 'Key for keyed ciphers' }),
-  ),
-  rails: Type.Optional(
-    Type.Integer({
-      minimum: 2,
-      maximum: MAX_TRANSFORM_TEXT_LENGTH,
-      description: 'Rail Fence rails (at least 2; default 3)',
-    }),
-  ),
-  a: Type.Optional(
-    Type.Union(
-      [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25].map((value) => Type.Literal(value)),
-      { description: 'Affine multiplier, coprime with 26 (default 5)' },
+const cipherInputSchema = Type.Object(
+  {
+    cipher: cipherNameSchema,
+    text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Text to transform' }),
+    shift: Type.Optional(
+      Type.Integer({ minimum: 1, maximum: 25, description: 'Caesar shift (1-25; default 3)' }),
     ),
-  ),
-  b: Type.Optional(
-    Type.Integer({
-      minimum: 0,
-      maximum: 25,
-      description: 'Affine additive shift (0-25; default 8)',
-    }),
-  ),
-  period: Type.Optional(
-    Type.Integer({
-      minimum: 1,
-      maximum: MAX_TRANSFORM_TEXT_LENGTH,
-      description: 'Rotation or fractionation period for Alberti and Bifid',
-    }),
-  ),
-  preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
-  stripNonAlpha: Type.Optional(
-    Type.Boolean({ description: 'Remove non-letter characters before processing (default false)' }),
-  ),
-  positions: Type.Optional(
-    Type.String({
-      pattern: '^[A-Za-z]{3}$',
-      description: 'Enigma initial rotor positions (default AAA)',
-    }),
-  ),
-  rings: Type.Optional(
-    Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma ring settings (default AAA)' }),
-  ),
-  plugboard: Type.Optional(
-    Type.String({
-      maxLength: 38,
-      description: 'Enigma plugboard pairs, for example "AV BS CG"',
-    }),
-  ),
-})
+    key: Type.Optional(
+      Type.String({ maxLength: MAX_KEY_LENGTH, description: 'Key for keyed ciphers' }),
+    ),
+    rails: Type.Optional(
+      Type.Integer({
+        minimum: 2,
+        maximum: MAX_TRANSFORM_TEXT_LENGTH,
+        description: 'Rail Fence rails (at least 2; default 3)',
+      }),
+    ),
+    a: Type.Optional(
+      Type.Union(
+        [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25].map((value) => Type.Literal(value)),
+        { description: 'Affine multiplier, coprime with 26 (default 5)' },
+      ),
+    ),
+    b: Type.Optional(
+      Type.Integer({
+        minimum: 0,
+        maximum: 25,
+        description: 'Affine additive shift (0-25; default 8)',
+      }),
+    ),
+    period: Type.Optional(
+      Type.Integer({
+        minimum: 1,
+        maximum: MAX_TRANSFORM_TEXT_LENGTH,
+        description: 'Rotation or fractionation period for Alberti and Bifid',
+      }),
+    ),
+    preserveCase: Type.Optional(
+      Type.Boolean({ description: 'Preserve letter case (default true)' }),
+    ),
+    stripNonAlpha: Type.Optional(
+      Type.Boolean({
+        description: 'Remove non-letter characters before processing (default false)',
+      }),
+    ),
+    positions: Type.Optional(
+      Type.String({
+        pattern: '^[A-Za-z]{3}$',
+        description: 'Enigma initial rotor positions (default AAA)',
+      }),
+    ),
+    rings: Type.Optional(
+      Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma ring settings (default AAA)' }),
+    ),
+    plugboard: Type.Optional(
+      Type.String({
+        maxLength: 38,
+        description: 'Enigma plugboard pairs, for example "AV BS CG"',
+      }),
+    ),
+  },
+  {
+    allOf: [
+      {
+        if: { properties: { cipher: { const: 'alberti' } } },
+        // oxlint-disable-next-line unicorn/no-thenable -- JSON Schema conditional keyword.
+        ['then']: { required: ['key', 'period'] },
+      },
+      {
+        if: {
+          properties: {
+            cipher: { enum: ['vigenere', 'playfair', 'columnar'] },
+          },
+        },
+        // oxlint-disable-next-line unicorn/no-thenable -- JSON Schema conditional keyword.
+        ['then']: { required: ['key'] },
+      },
+    ],
+  },
+)
 
 function cipherOptions(args: Record<string, unknown>): Record<string, unknown> {
   const options: Record<string, unknown> = {}

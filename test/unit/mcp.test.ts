@@ -87,6 +87,22 @@ describe('Ciphers MCP server', () => {
         { type: 'text', text: expect.stringContaining(`Invalid arguments at /${field}`) },
       ])
     }
+
+    for (const arguments_ of [
+      { cipher: 'vigenere', text: 'abc' },
+      { cipher: 'alberti', text: 'abc', period: 5 },
+      { cipher: 'alberti', text: 'abc', key: 'KEY' },
+    ]) {
+      const response = await client.callTool({
+        name: 'cipher_encode',
+        arguments: arguments_,
+      })
+
+      expect(response.isError).toBe(true)
+      expect(response.content).toEqual([
+        { type: 'text', text: expect.stringContaining('Invalid arguments') },
+      ])
+    }
   })
 
   it('reports unknown tools and cipher names as tool errors', async () => {

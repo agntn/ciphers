@@ -33,6 +33,10 @@ const cipherParams = Type.Object({
   ),
   a: Type.Optional(Type.Number({ description: 'Multiplier for Affine cipher (coprime with 26)' })),
   b: Type.Optional(Type.Number({ description: 'Additive shift for Affine cipher (0-25)' })),
+  preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
+  stripNonAlpha: Type.Optional(
+    Type.Boolean({ description: 'Remove non-letter characters before processing (default false)' }),
+  ),
   positions: Type.Optional(
     Type.String({
       pattern: '^[A-Za-z]{3}$',
@@ -61,6 +65,8 @@ function buildOpts(params: CipherParams): Record<string, unknown> {
   if (params.period !== undefined) opts.period = params.period
   if (params.a !== undefined) opts.a = params.a
   if (params.b !== undefined) opts.b = params.b
+  if (params.preserveCase !== undefined) opts.preserveCase = params.preserveCase
+  if (params.stripNonAlpha !== undefined) opts.stripNonAlpha = params.stripNonAlpha
   if (params.positions !== undefined) opts.positions = params.positions
   if (params.rings !== undefined) opts.rings = params.rings
   if (params.plugboard !== undefined) opts.plugboard = params.plugboard

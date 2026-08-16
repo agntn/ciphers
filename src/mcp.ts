@@ -40,14 +40,17 @@ const cipherInputSchema = Type.Object({
     Type.String({ maxLength: MAX_KEY_LENGTH, description: 'Key for keyed ciphers' }),
   ),
   rails: Type.Optional(
-    Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' }),
+    Type.Integer({
+      minimum: 2,
+      maximum: MAX_TRANSFORM_TEXT_LENGTH,
+      description: 'Rail Fence rails (at least 2; default 3)',
+    }),
   ),
   a: Type.Optional(
-    Type.Integer({
-      minimum: 1,
-      maximum: 25,
-      description: 'Affine multiplier, coprime with 26 (default 5)',
-    }),
+    Type.Union(
+      [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25].map((value) => Type.Literal(value)),
+      { description: 'Affine multiplier, coprime with 26 (default 5)' },
+    ),
   ),
   b: Type.Optional(
     Type.Integer({
@@ -59,6 +62,7 @@ const cipherInputSchema = Type.Object({
   period: Type.Optional(
     Type.Integer({
       minimum: 1,
+      maximum: MAX_TRANSFORM_TEXT_LENGTH,
       description: 'Rotation or fractionation period for Alberti and Bifid',
     }),
   ),

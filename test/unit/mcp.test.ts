@@ -71,15 +71,22 @@ describe('Ciphers MCP server', () => {
   it('validates arguments before execution', async () => {
     const client = await connectTestClient()
 
-    const response = await client.callTool({
-      name: 'cipher_encode',
-      arguments: { cipher: 'caesar', text: 'abc', shift: 26 },
-    })
+    for (const [field, arguments_] of [
+      ['shift', { cipher: 'caesar', text: 'abc', shift: 26 }],
+      ['rails', { cipher: 'rail-fence', text: 'abc', rails: 10_001 }],
+      ['a', { cipher: 'affine', text: 'abc', a: 2 }],
+      ['period', { cipher: 'bifid', text: 'abc', period: 10_001 }],
+    ] as const) {
+      const response = await client.callTool({
+        name: 'cipher_encode',
+        arguments: arguments_,
+      })
 
-    expect(response.isError).toBe(true)
-    expect(response.content).toEqual([
-      { type: 'text', text: expect.stringContaining('Invalid arguments at /shift') },
-    ])
+      expect(response.isError).toBe(true)
+      expect(response.content).toEqual([
+        { type: 'text', text: expect.stringContaining(`Invalid arguments at /${field}`) },
+      ])
+    }
   })
 
   it('reports unknown tools and cipher names as tool errors', async () => {

@@ -97,7 +97,7 @@ For clients that accept JSON server configuration:
 }
 ```
 
-The server validates every request against its published JSON Schema. It runs entirely
+The server validates each tool call's arguments against its published JSON Schema. It runs entirely
 locally and does not require network access or credentials.
 
 ## Install

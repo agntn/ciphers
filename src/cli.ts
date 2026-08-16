@@ -17,6 +17,7 @@ const main = defineCommand({
     ciphers: () => import('./commands/ciphers').then((m) => m.default),
     info: () => import('./commands/info').then((m) => m.default),
     brute: () => import('./commands/brute').then((m) => m.default),
+    mcp: () => import('./commands/mcp').then((m) => m.default),
     frequency: () => import('./commands/frequency').then((m) => m.default),
   },
 })

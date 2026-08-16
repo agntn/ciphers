@@ -1,6 +1,6 @@
 /** If first arg is not a known subcommand, prepend 'encode' as default. */
 export function normalizeMainArgs(argv: string[]): string[] {
-  const subcommands = ['encode', 'decode', 'ciphers', 'info', 'brute', 'frequency']
+  const subcommands = ['encode', 'decode', 'ciphers', 'info', 'brute', 'frequency', 'mcp']
   if (argv.length === 0) return ['ciphers']
   const first = argv[0]!.toLowerCase()
   if (subcommands.includes(first)) return argv

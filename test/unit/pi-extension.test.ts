@@ -44,25 +44,42 @@ beforeAll(() => {
 })
 
 describe('Pi extension', () => {
-  it('exposes and forwards common cipher options', async () => {
-    const encode = getTool('cipher_encode')
-    expect(encode.parameters.properties).toHaveProperty('preserveCase')
-    expect(encode.parameters.properties).toHaveProperty('stripNonAlpha')
+  it('registers all four cipher tools', () => {
+    expect([...tools.keys()]).toEqual([
+      'cipher_encode',
+      'cipher_decode',
+      'cipher_brute_caesar',
+      'cipher_frequency',
+    ])
+  })
 
+  it('exposes and forwards common cipher options for encode and decode', async () => {
+    const encode = getTool('cipher_encode')
+    const decode = getTool('cipher_decode')
+    for (const tool of [encode, decode]) {
+      expect(tool.parameters.properties).toHaveProperty('preserveCase')
+      expect(tool.parameters.properties).toHaveProperty('stripNonAlpha')
+    }
+
+    const options = {
+      shift: 1,
+      preserveCase: false,
+      stripNonAlpha: true,
+    }
     const encoded = await encode.execute('encode', {
       cipher: 'caesar',
       text: 'a-b c',
-      shift: 1,
-      preserveCase: false,
-      stripNonAlpha: true,
+      ...options,
+    })
+    const decoded = await decode.execute('decode', {
+      cipher: 'caesar',
+      text: 'b-c d',
+      ...options,
     })
 
-    const libraryResult = create('caesar').encode('a-b c', {
-      shift: 1,
-      preserveCase: false,
-      stripNonAlpha: true,
-    })
     expect(encoded.content[0]?.text).toBe('BCD')
-    expect(encoded.content[0]?.text).toBe(libraryResult.text)
+    expect(encoded.content[0]?.text).toBe(create('caesar').encode('a-b c', options).text)
+    expect(decoded.content[0]?.text).toBe('ABC')
+    expect(decoded.content[0]?.text).toBe(create('caesar').decode('b-c d', options).text)
   })
 })

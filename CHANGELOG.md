@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.4
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.1.3...v0.1.4)
+
+### 🩹 Fixes
+
+- Add repository metadata ([0e211e8](https://github.com/agntn/ciphers/commit/0e211e8))
+
+### ❤️ Contributors
+
+- Aei ([@aeitwoen](https://github.com/aeitwoen))
+
 ## v0.1.3
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.1.2...v0.1.3)

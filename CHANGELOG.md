@@ -1,8 +1,22 @@
 # Changelog
 
+## v0.1.3
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.1.2...v0.1.3)
+
+### 🚀 Enhancements
+
+- Expose cipher tools over MCP ([#18](https://github.com/agntn/ciphers/pull/18))
+
+### 🩹 Fixes
+
+- Keep Pi cipher options in sync ([#19](https://github.com/agntn/ciphers/pull/19))
+
+### ❤️ Contributors
+
+- Aeitwoen <aeitwoen@gmail.com>
 
 ## v0.1.2
-
 
 ### 🚀 Enhancements
 
@@ -62,4 +76,3 @@
 - Oritwoen ([@oritwoen](https://github.com/oritwoen))
 - Ori ([@oritwoen](https://github.com/oritwoen))
 - Or <or@local>
-

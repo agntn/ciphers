@@ -2,6 +2,10 @@
   "name": "@agntn/ciphers",
   "version": "0.1.3",
   "description": "Unified educational and puzzle cipher library for agents",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agntn/ciphers"
+  },
   "bin": {
     "ciphers": "./dist/cli.mjs"
   },

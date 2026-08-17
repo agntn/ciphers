@@ -88,11 +88,13 @@ describe('Ciphers MCP server', () => {
       ])
     }
 
-    for (const arguments_ of [
-      { cipher: 'vigenere', text: 'abc' },
-      { cipher: 'alberti', text: 'abc', period: 5 },
-      { cipher: 'alberti', text: 'abc', key: 'KEY' },
-    ]) {
+    for (const [field, arguments_] of [
+      ['key', { cipher: 'vigenere', text: 'abc' }],
+      ['key', { cipher: 'alberti', text: 'abc', period: 5 }],
+      ['period', { cipher: 'alberti', text: 'abc', key: 'KEY' }],
+      ['key', { cipher: 'alberti', text: 'abc', key: '123', period: 5 }],
+      ['key', { cipher: 'vigenere', text: 'abc', key: '123' }],
+    ] as const) {
       const response = await client.callTool({
         name: 'cipher_encode',
         arguments: arguments_,
@@ -100,9 +102,21 @@ describe('Ciphers MCP server', () => {
 
       expect(response.isError).toBe(true)
       expect(response.content).toEqual([
-        { type: 'text', text: expect.stringContaining('Invalid arguments') },
+        { type: 'text', text: expect.stringContaining(`Invalid arguments at /${field}`) },
       ])
     }
+
+    const unrelatedSchema = await client.callTool({
+      name: 'cipher_frequency',
+      arguments: { cipher: 'vigenere' },
+    })
+    expect(unrelatedSchema.isError).toBe(true)
+    expect(unrelatedSchema.content).toEqual([
+      { type: 'text', text: expect.stringContaining('required properties text') },
+    ])
+    expect(unrelatedSchema.content).not.toEqual([
+      { type: 'text', text: expect.stringContaining('/key') },
+    ])
   })
 
   it('reports unknown tools and cipher names as tool errors', async () => {

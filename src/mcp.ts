@@ -100,18 +100,45 @@ const cipherInputSchema = Type.Object(
   {
     allOf: [
       {
-        if: { properties: { cipher: { const: 'alberti' } } },
+        if: {
+          properties: { cipher: { const: 'alberti' } },
+          required: ['cipher'],
+        },
         // oxlint-disable-next-line unicorn/no-thenable -- JSON Schema conditional keyword.
-        ['then']: { required: ['key', 'period'] },
+        ['then']: {
+          properties: {
+            key: { type: 'string', minLength: 1, pattern: '^[A-Za-z]+$' },
+          },
+          required: ['key', 'period'],
+        },
+      },
+      {
+        if: {
+          properties: { cipher: { const: 'vigenere' } },
+          required: ['cipher'],
+        },
+        // oxlint-disable-next-line unicorn/no-thenable -- JSON Schema conditional keyword.
+        ['then']: {
+          properties: {
+            key: { type: 'string', pattern: '[A-Za-z]' },
+          },
+          required: ['key'],
+        },
       },
       {
         if: {
           properties: {
-            cipher: { enum: ['vigenere', 'playfair', 'columnar'] },
+            cipher: { enum: ['playfair', 'columnar'] },
           },
+          required: ['cipher'],
         },
         // oxlint-disable-next-line unicorn/no-thenable -- JSON Schema conditional keyword.
-        ['then']: { required: ['key'] },
+        ['then']: {
+          properties: {
+            key: { type: 'string', minLength: 1 },
+          },
+          required: ['key'],
+        },
       },
     ],
   },
@@ -166,6 +193,24 @@ const tools: ToolDefinition[] = [
 ]
 
 function validationError(schema: TSchema, value: unknown): string {
+  if (schema === cipherInputSchema && typeof value === 'object' && value !== null) {
+    const args = value as Record<string, unknown>
+    const cipher = args.cipher
+    const requiresKey = ['alberti', 'vigenere', 'playfair', 'columnar'].includes(cipher as string)
+    if (requiresKey && (args.key === undefined || args.key === '')) {
+      return `Invalid arguments at /key: required for ${String(cipher)}`
+    }
+    if (cipher === 'alberti' && args.period === undefined) {
+      return 'Invalid arguments at /period: required for alberti'
+    }
+    if (cipher === 'alberti' && typeof args.key === 'string' && !/^[A-Za-z]+$/.test(args.key)) {
+      return 'Invalid arguments at /key: must contain ASCII letters only'
+    }
+    if (cipher === 'vigenere' && typeof args.key === 'string' && !/[A-Za-z]/.test(args.key)) {
+      return 'Invalid arguments at /key: must contain at least one ASCII letter'
+    }
+  }
+
   const first = Value.Errors(schema, value)[0]
   if (!first) return 'Invalid arguments'
   return `Invalid arguments at ${first.instancePath || '/'}: ${first.message}`

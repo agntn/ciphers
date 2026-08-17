@@ -76,6 +76,30 @@ Both integrations expose the same four local tools. Agents get the same API inst
 - `cipher_brute_caesar`: try all 25 Caesar shifts
 - `cipher_frequency`: inspect letter frequency
 
+## MCP Server
+
+The package exposes the same four local tools through an MCP server over stdio:
+
+```bash
+ciphers mcp
+```
+
+For clients that accept JSON server configuration:
+
+```json
+{
+  "mcpServers": {
+    "ciphers": {
+      "command": "ciphers",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+The server validates each tool call's arguments against its published JSON Schema. It runs entirely
+locally and does not require network access or credentials.
+
 ## Install
 
 ```bash

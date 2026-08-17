@@ -25,6 +25,7 @@
     "release": "pnpm test && pnpm build && changelogen --release --push"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "citty": "^0.2.2",
     "consola": "^3.4.2"
   },

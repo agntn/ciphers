@@ -3,28 +3,18 @@ import { fileURLToPath } from 'node:url'
 
 import type { ExtensionAPI } from '@oh-my-pi/pi-coding-agent'
 import type * as CiphersModule from '@agntn/ciphers'
+import {
+  bruteForceCaesar,
+  formatFrequencyAnalysis,
+  transformCipher,
+  type CipherToolParams,
+} from '../../../src/tool-operations'
 type CiphersLibrary = Pick<typeof CiphersModule, 'analyzeFrequency' | 'create' | 'resolveCipher'>
 // Bound model-controlled work and returned context; Caesar brute force expands input 25×.
 const MAX_TRANSFORM_TEXT_LENGTH = 10_000
 const MAX_BRUTE_TEXT_LENGTH = 2_000
 const MAX_FREQUENCY_TEXT_LENGTH = 100_000
 const MAX_KEY_LENGTH = 1_000
-
-type CipherParams = {
-  cipher: string
-  text: string
-  shift?: number
-  key?: string
-  rails?: number
-  a?: number
-  b?: number
-  period?: number
-  preserveCase?: boolean
-  stripNonAlpha?: boolean
-  positions?: string
-  rings?: string
-  plugboard?: string
-}
 
 const sourceEntry = new URL('../../../src/index.ts', import.meta.url)
 const checkoutMarker = new URL('../../../.git', import.meta.url)
@@ -38,23 +28,6 @@ function loadLibrary(): Promise<CiphersLibrary> {
       ? import(sourceEntry.href)
       : import('@agntn/ciphers')
   return libraryPromise
-}
-
-/** Build library options from the parameters exposed by OMP. */
-function buildOptions(params: CipherParams): Record<string, unknown> {
-  const options: Record<string, unknown> = {}
-  if (params.shift !== undefined) options.shift = params.shift
-  if (params.key !== undefined) options.key = params.key
-  if (params.rails !== undefined) options.rails = params.rails
-  if (params.a !== undefined) options.a = params.a
-  if (params.b !== undefined) options.b = params.b
-  if (params.period !== undefined) options.period = params.period
-  if (params.preserveCase !== undefined) options.preserveCase = params.preserveCase
-  if (params.stripNonAlpha !== undefined) options.stripNonAlpha = params.stripNonAlpha
-  if (params.positions !== undefined) options.positions = params.positions
-  if (params.rings !== undefined) options.rings = params.rings
-  if (params.plugboard !== undefined) options.plugboard = params.plugboard
-  return options
 }
 
 /** Register local educational and puzzle-cipher tools in OMP. */
@@ -125,12 +98,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     approval: 'read',
     loadMode: 'essential',
     async execute(_toolCallId, params) {
-      const library = await loadLibrary()
-      const result = library.resolveCipher(params.cipher).encode(params.text, buildOptions(params))
-      return {
-        content: [{ type: 'text', text: result.text }],
-        details: { cipher: result.cipher, operation: result.operation, options: result.options },
-      }
+      return transformCipher(await loadLibrary(), 'encode', params as CipherToolParams)
     },
   })
 
@@ -142,12 +110,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     approval: 'read',
     loadMode: 'essential',
     async execute(_toolCallId, params) {
-      const library = await loadLibrary()
-      const result = library.resolveCipher(params.cipher).decode(params.text, buildOptions(params))
-      return {
-        content: [{ type: 'text', text: result.text }],
-        details: { cipher: result.cipher, operation: result.operation, options: result.options },
-      }
+      return transformCipher(await loadLibrary(), 'decode', params as CipherToolParams)
     },
   })
 
@@ -164,14 +127,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     approval: 'read',
     loadMode: 'essential',
     async execute(_toolCallId, params) {
-      const library = await loadLibrary()
-      const cipher = library.create('caesar')
-      const lines: string[] = []
-      for (let shift = 1; shift <= 25; shift++) {
-        const result = cipher.decode(params.text, { shift })
-        lines.push(`shift=${String(shift).padStart(2)} -> ${result.text}`)
-      }
-      return { content: [{ type: 'text', text: lines.join('\n') }] }
+      return bruteForceCaesar(await loadLibrary(), params.text)
     },
   })
 
@@ -190,28 +146,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     approval: 'read',
     loadMode: 'essential',
     async execute(_toolCallId, params) {
-      const library = await loadLibrary()
-      const analysis = library.analyzeFrequency(params.text, params.lang)
-      if (analysis === undefined) {
-        return { content: [{ type: 'text', text: 'No A-Z letters found in input.' }] }
-      }
-
-      const maximum = analysis.counts[0]?.[1] ?? 1
-      const lines = [
-        `Frequency Analysis (${analysis.total} letters, lang=${analysis.language}):`,
-        '',
-      ]
-
-      for (const [character, count] of analysis.counts) {
-        const percentage = ((count / analysis.total) * 100).toFixed(1)
-        const bar = '#'.repeat(Math.ceil((count / maximum) * 15))
-        lines.push(
-          `  ${character} ${String(count).padStart(4)} (${percentage.padStart(5)}%) ${bar}`,
-        )
-      }
-      lines.push('', `Expected (${analysis.language}): ${analysis.reference.split('').join(' ')}`)
-      lines.push(`Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`)
-      return { content: [{ type: 'text', text: lines.join('\n') }] }
+      return formatFrequencyAnalysis(await loadLibrary(), params.text, params.lang)
     },
   })
 }

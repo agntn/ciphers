@@ -7,6 +7,8 @@ export interface FrequencyAnalysis {
   readonly language: FrequencyLanguage
   readonly counts: ReadonlyArray<readonly [character: string, count: number]>
   readonly reference: string
+  /** Index of coincidence; absent when the input has fewer than two letters. */
+  readonly ic?: number
 }
 
 const frequencyReferences: Record<FrequencyLanguage, string> = {
@@ -27,10 +29,15 @@ export function analyzeFrequency(
     frequencies.set(character, (frequencies.get(character) ?? 0) + 1)
   }
 
+  const total = letters.length
+  let coincidences = 0
+  for (const count of frequencies.values()) coincidences += count * (count - 1)
+
   return {
-    total: letters.length,
+    total,
     language,
     counts: [...frequencies.entries()].sort((left, right) => right[1] - left[1]),
     reference: frequencyReferences[language],
+    ...(total < 2 ? {} : { ic: coincidences / (total * (total - 1)) }),
   }
 }

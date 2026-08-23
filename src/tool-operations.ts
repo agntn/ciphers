@@ -1,6 +1,9 @@
 import type * as CiphersModule from './index'
 
-type CiphersLibrary = Pick<typeof CiphersModule, 'analyzeFrequency' | 'create' | 'resolveCipher'>
+type CiphersLibrary = Pick<
+  typeof CiphersModule,
+  'analyzeFrequency' | 'ciphers' | 'create' | 'resolveCipher'
+>
 
 export type CipherToolParams = {
   cipher: string
@@ -55,6 +58,30 @@ export function transformCipher(
   }
 }
 
+export function formatCipherInfo(library: CiphersLibrary, cipherName?: string): CipherToolResult {
+  if (cipherName === undefined) {
+    const lines = library.ciphers().map((name) => {
+      const info = library.create(name).info()
+      return `${name} [${info.family}] — ${info.description}`
+    })
+    lines.push('', 'Call cipher_info with a cipher name to see its options.')
+    return { content: [{ type: 'text', text: lines.join('\n') }] }
+  }
+
+  const info = library.resolveCipher(cipherName).info()
+  const lines = [`${info.label} (${info.name}) — ${info.family}`, info.description]
+  lines.push(`Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)
+  if (info.keyspace) lines.push(`Keyspace: ${info.keyspace}`)
+  if (info.options.length > 0) {
+    lines.push('Options:')
+    for (const option of info.options) {
+      const requirement = option.required ? 'required' : `default=${option.default ?? 'none'}`
+      lines.push(`  ${option.name} (${option.type}, ${requirement}): ${option.description}`)
+    }
+  }
+  return { content: [{ type: 'text', text: lines.join('\n') }], details: { info } }
+}
+
 export function bruteForceCaesar(library: CiphersLibrary, text: string): CipherToolResult {
   const cipher = library.create('caesar')
   const lines: string[] = []
@@ -84,5 +111,10 @@ export function formatFrequencyAnalysis(
   }
   lines.push('', `Expected (${analysis.language}): ${analysis.reference.split('').join(' ')}`)
   lines.push(`Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`)
+  if (analysis.ic !== undefined) {
+    lines.push(
+      `Index of coincidence: ${analysis.ic.toFixed(4)} (English ~0.067, uniform random ~0.038)`,
+    )
+  }
   return { content: [{ type: 'text', text: lines.join('\n') }] }
 }

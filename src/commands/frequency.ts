@@ -32,5 +32,10 @@ export default defineCommand({
       `\n  Expected order (${analysis.language}): ${analysis.reference.split('').join(' ')}`,
     )
     consola.info(`  Actual order:   ${analysis.counts.map(([character]) => character).join(' ')}`)
+    if (analysis.ic !== undefined) {
+      consola.info(
+        `\n  Index of coincidence: ${analysis.ic.toFixed(4)} (English ~0.067, uniform random ~0.038)`,
+      )
+    }
   },
 })

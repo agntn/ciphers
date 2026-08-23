@@ -3,6 +3,7 @@ import { defineTool } from '@earendil-works/pi-coding-agent'
 import { Text } from '@earendil-works/pi-tui'
 import { type Static, Type } from 'typebox'
 import type * as CiphersModule from '@agntn/ciphers'
+import { formatCipherInfo } from '../../../src/tool-operations'
 
 /** Lazy-load the library (registers all ciphers on import). */
 async function loadLib() {
@@ -196,6 +197,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       promptGuidelines: [
         'Useful for identifying substitution ciphers (frequency distribution preserved).',
         'Compare actual frequency order with expected language order (EN: ETAOIN...).',
+        'An index of coincidence near 0.067 suggests monoalphabetic English; near 0.038 suggests polyalphabetic or random.',
       ],
       parameters: freqParams,
       renderCall(args, _theme) {
@@ -222,7 +224,47 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         }
         lines.push(`\nExpected (${analysis.language}): ${analysis.reference.split('').join(' ')}`)
         lines.push(`Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`)
+        if (analysis.ic !== undefined) {
+          lines.push(
+            `Index of coincidence: ${analysis.ic.toFixed(4)} (English ~0.067, uniform random ~0.038)`,
+          )
+        }
         return { content: [{ type: 'text', text: lines.join('\n') }] }
+      },
+    }),
+  )
+
+  const infoParams = Type.Object({
+    cipher: Type.Optional(
+      Type.String({
+        maxLength: 32,
+        description: 'Cipher name; omit to list every available cipher',
+      }),
+    ),
+  })
+
+  pi.registerTool(
+    defineTool({
+      name: 'cipher_info',
+      label: 'Cipher Info',
+      description: "List available ciphers or show one cipher's options and metadata",
+      promptSnippet:
+        'Use cipher_info to check cipher names and required options before encoding or decoding.',
+      promptGuidelines: [
+        'Without a cipher name it lists every cipher with its family and description.',
+        'With a name it shows options, defaults, self-inverse, and keyspace.',
+      ],
+      parameters: infoParams,
+      renderCall(args, _theme) {
+        return new Text(`ℹ️ cipher info${args.cipher ? `: ${args.cipher}` : ''}`, 0, 0)
+      },
+      async execute(_toolCallId, params): Promise<AgentToolResult> {
+        try {
+          return formatCipherInfo(await loadLib(), params.cipher)
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e)
+          return { content: [{ type: 'text', text: `Error: ${msg}` }] }
+        }
       },
     }),
   )

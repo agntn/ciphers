@@ -44,13 +44,26 @@ beforeAll(() => {
 })
 
 describe('Pi extension', () => {
-  it('registers all four cipher tools', () => {
+  it('registers all five cipher tools', () => {
     expect([...tools.keys()]).toEqual([
       'cipher_encode',
       'cipher_decode',
       'cipher_brute_caesar',
       'cipher_frequency',
+      'cipher_info',
     ])
+  })
+
+  it('describes ciphers for discovery', async () => {
+    const info = getTool('cipher_info')
+
+    const list = await info.execute('info', {})
+    expect(list.content[0]?.text).toContain('caesar [substitution-shift]')
+    expect(list.content[0]?.text).toContain('enigma [rotor]')
+
+    const detail = await info.execute('info', { cipher: 'vigenere' })
+    expect(detail.content[0]?.text).toContain('(vigenere) — polyalphabetic')
+    expect(detail.content[0]?.text).toContain('key (string, required)')
   })
 
   it('exposes and forwards common cipher options for encode and decode', async () => {

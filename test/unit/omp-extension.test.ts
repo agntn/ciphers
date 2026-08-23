@@ -51,7 +51,7 @@ beforeAll(() => {
 })
 
 describe('OMP extension', () => {
-  it('registers four essential read-only tools', () => {
+  it('registers five essential read-only tools', () => {
     expect(
       [...tools.values()].map(({ name, label, approval, loadMode }) => ({
         name,
@@ -74,7 +74,18 @@ describe('OMP extension', () => {
         approval: 'read',
         loadMode: 'essential',
       },
+      { name: 'cipher_info', label: 'Cipher Info', approval: 'read', loadMode: 'essential' },
     ])
+  })
+
+  it('describes ciphers for discovery', async () => {
+    const list = await getTool('cipher_info').execute('info', {})
+    expect(list.content[0]?.text).toContain('caesar [substitution-shift]')
+    expect(list.content[0]?.text).toContain('enigma [rotor]')
+
+    const detail = await getTool('cipher_info').execute('info', { cipher: 'playfair' })
+    expect(detail.content[0]?.text).toContain('(playfair) — digraph')
+    expect(detail.content[0]?.text).toContain('key (string, required)')
   })
 
   it('encodes, decodes, and throws on resolution failures', async () => {
@@ -160,5 +171,6 @@ describe('OMP extension', () => {
     })
     expect(frequency.content[0]?.text).toContain('A    3 ( 50.0%)')
     expect(frequency.content[0]?.text).toContain('Actual:         A B C')
+    expect(frequency.content[0]?.text).toContain('Index of coincidence: 0.2667')
   })
 })

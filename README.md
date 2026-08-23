@@ -69,16 +69,17 @@ Every built-in cipher is a concrete class extending the exported abstract `Ciphe
 
 ## OMP and Pi Extensions
 
-Both integrations expose the same four local tools. Agents get the same API instead of another wrapper to learn:
+Both integrations expose the same five local tools. Agents get the same API instead of another wrapper to learn:
 
 - `cipher_encode`: encode text with any cipher
 - `cipher_decode`: decode text with any cipher
 - `cipher_brute_caesar`: try all 25 Caesar shifts
-- `cipher_frequency`: inspect letter frequency
+- `cipher_frequency`: inspect letter frequency and the index of coincidence
+- `cipher_info`: list ciphers or inspect one cipher's options
 
 ## MCP Server
 
-The package exposes the same four local tools through an MCP server over stdio:
+The package exposes the same five local tools through an MCP server over stdio:
 
 ```bash
 ciphers mcp

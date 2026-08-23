@@ -5,11 +5,15 @@ import type { ExtensionAPI } from '@oh-my-pi/pi-coding-agent'
 import type * as CiphersModule from '@agntn/ciphers'
 import {
   bruteForceCaesar,
+  formatCipherInfo,
   formatFrequencyAnalysis,
   transformCipher,
   type CipherToolParams,
 } from '../../../src/tool-operations'
-type CiphersLibrary = Pick<typeof CiphersModule, 'analyzeFrequency' | 'create' | 'resolveCipher'>
+type CiphersLibrary = Pick<
+  typeof CiphersModule,
+  'analyzeFrequency' | 'ciphers' | 'create' | 'resolveCipher'
+>
 // Bound model-controlled work and returned context; Caesar brute force expands input 25×.
 const MAX_TRANSFORM_TEXT_LENGTH = 10_000
 const MAX_BRUTE_TEXT_LENGTH = 2_000
@@ -93,7 +97,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
   omp.registerTool({
     name: 'cipher_encode',
     label: 'Cipher Encode',
-    description: 'Encode text with an exact-name built-in cipher.',
+    description: 'Encode text with an exact-name built-in cipher. cipher_info lists the options.',
     parameters: cipherParams,
     approval: 'read',
     loadMode: 'essential',
@@ -105,7 +109,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
   omp.registerTool({
     name: 'cipher_decode',
     label: 'Cipher Decode',
-    description: 'Decode text with an exact-name built-in cipher.',
+    description: 'Decode text with an exact-name built-in cipher. cipher_info lists the options.',
     parameters: cipherParams,
     approval: 'read',
     loadMode: 'essential',
@@ -134,7 +138,8 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
   omp.registerTool({
     name: 'cipher_frequency',
     label: 'Frequency Analysis',
-    description: 'Analyze A-Z letter frequencies and compare their order with English or Polish.',
+    description:
+      'Analyze A-Z letter frequencies, compare their order with English or Polish, and report the index of coincidence.',
     parameters: Type.Object({
       text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
       lang: Type.Optional(
@@ -147,6 +152,25 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     loadMode: 'essential',
     async execute(_toolCallId, params) {
       return formatFrequencyAnalysis(await loadLibrary(), params.text, params.lang)
+    },
+  })
+
+  omp.registerTool({
+    name: 'cipher_info',
+    label: 'Cipher Info',
+    description: "List the built-in ciphers, or show one cipher's options, family, and keyspace.",
+    parameters: Type.Object({
+      cipher: Type.Optional(
+        Type.String({
+          maxLength: 32,
+          description: 'Cipher to describe; omit to list every cipher',
+        }),
+      ),
+    }),
+    approval: 'read',
+    loadMode: 'essential',
+    async execute(_toolCallId, params) {
+      return formatCipherInfo(await loadLibrary(), params.cipher)
     },
   })
 }

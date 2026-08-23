@@ -12,7 +12,14 @@ describe('analyzeFrequency', () => {
         ['C', 1],
       ],
       reference: 'ETAOINSHRDLCUMWFGYPBVKJXQZ',
+      ic: 8 / 30,
     })
+  })
+
+  it('computes the index of coincidence from letter pairs', () => {
+    expect(analyzeFrequency('AAAA')?.ic).toBe(1)
+    expect(analyzeFrequency('ABCDEFGHIJKLMNOPQRSTUVWXYZ')?.ic).toBe(0)
+    expect(analyzeFrequency('A')?.ic).toBeUndefined()
   })
 
   it('uses the Polish reference order', () => {

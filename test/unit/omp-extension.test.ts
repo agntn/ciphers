@@ -160,5 +160,6 @@ describe('OMP extension', () => {
     })
     expect(frequency.content[0]?.text).toContain('A    3 ( 50.0%)')
     expect(frequency.content[0]?.text).toContain('Actual:         A B C')
+    expect(frequency.content[0]?.text).toContain('Index of coincidence: 0.2667')
   })
 })

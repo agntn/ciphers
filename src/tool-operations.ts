@@ -84,5 +84,10 @@ export function formatFrequencyAnalysis(
   }
   lines.push('', `Expected (${analysis.language}): ${analysis.reference.split('').join(' ')}`)
   lines.push(`Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`)
+  if (analysis.ic !== undefined) {
+    lines.push(
+      `Index of coincidence: ${analysis.ic.toFixed(4)} (English ~0.067, uniform random ~0.038)`,
+    )
+  }
   return { content: [{ type: 'text', text: lines.join('\n') }] }
 }

@@ -139,7 +139,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     name: 'cipher_frequency',
     label: 'Frequency Analysis',
     description:
-      'Analyze A-Z letter frequencies and the index of coincidence against English or Polish.',
+      'Analyze A-Z letter frequencies, compare their order with English or Polish, and report the index of coincidence.',
     parameters: Type.Object({
       text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
       lang: Type.Optional(

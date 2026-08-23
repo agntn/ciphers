@@ -3,6 +3,7 @@ import { defineTool } from '@earendil-works/pi-coding-agent'
 import { Text } from '@earendil-works/pi-tui'
 import { type Static, Type } from 'typebox'
 import type * as CiphersModule from '@agntn/ciphers'
+import { formatCipherInfo } from '../../../src/tool-operations'
 
 /** Lazy-load the library (registers all ciphers on import). */
 async function loadLib() {
@@ -259,26 +260,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       },
       async execute(_toolCallId, params): Promise<AgentToolResult> {
         try {
-          const lib = await loadLib()
-          if (params.cipher === undefined) {
-            const lines = lib.ciphers().map((name) => {
-              const info = lib.create(name).info()
-              return `${name} [${info.family}] — ${info.description}`
-            })
-            return { content: [{ type: 'text', text: lines.join('\n') }] }
-          }
-          const info = lib.resolveCipher(params.cipher).info()
-          const lines = [`${info.label} (${info.name}) — ${info.family}`, info.description]
-          lines.push(`Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)
-          if (info.keyspace) lines.push(`Keyspace: ${info.keyspace}`)
-          if (info.options.length > 0) {
-            lines.push('Options:')
-            for (const opt of info.options) {
-              const req = opt.required ? 'required' : `default=${opt.default ?? 'none'}`
-              lines.push(`  ${opt.name} (${opt.type}, ${req}): ${opt.description}`)
-            }
-          }
-          return { content: [{ type: 'text', text: lines.join('\n') }] }
+          return formatCipherInfo(await loadLib(), params.cipher)
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e)
           return { content: [{ type: 'text', text: `Error: ${msg}` }] }

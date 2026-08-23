@@ -235,7 +235,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
 
   const infoParams = Type.Object({
     cipher: Type.Optional(
-      Type.String({ description: 'Cipher name; omit to list every available cipher' }),
+      Type.String({ maxLength: 32, description: 'Cipher name; omit to list every available cipher' }),
     ),
   })
 

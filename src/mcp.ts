@@ -221,10 +221,10 @@ const tools: ToolDefinition[] = [
     description: "List the built-in ciphers, or show one cipher's options, family, and keyspace.",
     inputSchema: Type.Object({
       cipher: Type.Optional(
-        Type.Union(
-          ciphersLibrary.builtinCiphers.map((name) => Type.Literal(name)),
-          { description: 'Cipher to describe; omit to list every cipher' },
-        ),
+        Type.String({
+          maxLength: 32,
+          description: 'Registered cipher to describe; omit to list every cipher',
+        }),
       ),
     }),
     execute: (args) => formatCipherInfo(ciphersLibrary, args.cipher as string | undefined),

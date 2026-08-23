@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { afterEach, describe, expect, it } from 'vite-plus/test'
+import { Cipher, register, type CipherInfo, type CipherResult } from '../../src'
 import { createMcpServer } from '../../src/mcp'
 
 const openConnections: Array<{ close(): Promise<void> }> = []
@@ -138,8 +139,58 @@ describe('Ciphers MCP server', () => {
     const unknown = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'missing' } })
     expect(unknown.isError).toBe(true)
     expect(unknown.content).toEqual([
+      { type: 'text', text: 'cipher_info failed: Unknown cipher: missing' },
+    ])
+
+    const oversized = await client.callTool({
+      name: 'cipher_info',
+      arguments: { cipher: 'x'.repeat(33) },
+    })
+    expect(oversized.isError).toBe(true)
+    expect(oversized.content).toEqual([
       { type: 'text', text: expect.stringContaining('Invalid arguments at /cipher') },
     ])
+  })
+
+  it('serves ciphers registered beyond the built-ins', async () => {
+    class CustomTest extends Cipher {
+      name(): string {
+        return 'custom-test'
+      }
+
+      info(): CipherInfo {
+        return {
+          name: 'custom-test',
+          label: 'Custom Test',
+          description: 'Registry round-trip probe',
+          family: 'transposition',
+          selfInverse: true,
+          options: [],
+        }
+      }
+
+      encode(text: string): CipherResult {
+        return { text, cipher: 'custom-test', operation: 'encode', options: {} }
+      }
+
+      decode(text: string): CipherResult {
+        return { text, cipher: 'custom-test', operation: 'decode', options: {} }
+      }
+    }
+    register('custom-test', CustomTest)
+    const client = await connectTestClient()
+
+    const list = await client.callTool({ name: 'cipher_info', arguments: {} })
+    const [listEntry] = list.content as [{ type: string; text: string }]
+    expect(listEntry.text).toContain('custom-test [transposition]')
+
+    const detail = await client.callTool({
+      name: 'cipher_info',
+      arguments: { cipher: 'custom-test' },
+    })
+    expect(detail.isError).not.toBe(true)
+    const [detailEntry] = detail.content as [{ type: string; text: string }]
+    expect(detailEntry.text).toContain('Custom Test (custom-test)')
   })
 
   it('reports the index of coincidence over the protocol', async () => {

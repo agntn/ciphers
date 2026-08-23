@@ -20,7 +20,7 @@ const MAX_BRUTE_TEXT_LENGTH = 2_000
 const MAX_FREQUENCY_TEXT_LENGTH = 100_000
 const MAX_KEY_LENGTH = 1_000
 
-const sourceEntry = new URL('../../../src/index.ts', import.meta.url)
+const sourcePath = fileURLToPath(new URL('../../../src/index.ts', import.meta.url))
 const checkoutMarker = new URL('../../../.git', import.meta.url)
 let libraryPromise: Promise<CiphersLibrary> | undefined
 
@@ -28,8 +28,8 @@ let libraryPromise: Promise<CiphersLibrary> | undefined
 function loadLibrary(): Promise<CiphersLibrary> {
   const isCheckout = existsSync(fileURLToPath(checkoutMarker))
   libraryPromise ??=
-    isCheckout && existsSync(fileURLToPath(sourceEntry))
-      ? import(sourceEntry.href)
+    isCheckout && existsSync(sourcePath)
+      ? import('../../../src/index.ts')
       : import('@agntn/ciphers')
   return libraryPromise
 }

@@ -196,6 +196,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       promptGuidelines: [
         'Useful for identifying substitution ciphers (frequency distribution preserved).',
         'Compare actual frequency order with expected language order (EN: ETAOIN...).',
+        'An index of coincidence near 0.067 suggests monoalphabetic English; near 0.038 suggests polyalphabetic or random.',
       ],
       parameters: freqParams,
       renderCall(args, _theme) {
@@ -228,6 +229,57 @@ export default function ciphersExtension(pi: ExtensionAPI) {
           )
         }
         return { content: [{ type: 'text', text: lines.join('\n') }] }
+      },
+    }),
+  )
+
+  const infoParams = Type.Object({
+    cipher: Type.Optional(
+      Type.String({ description: 'Cipher name; omit to list every available cipher' }),
+    ),
+  })
+
+  pi.registerTool(
+    defineTool({
+      name: 'cipher_info',
+      label: 'Cipher Info',
+      description: "List available ciphers or show one cipher's options and metadata",
+      promptSnippet:
+        'Use cipher_info to check cipher names and required options before encoding or decoding.',
+      promptGuidelines: [
+        'Without a cipher name it lists every cipher with its family and description.',
+        'With a name it shows options, defaults, self-inverse, and keyspace.',
+      ],
+      parameters: infoParams,
+      renderCall(args, _theme) {
+        return new Text(`ℹ️ cipher info${args.cipher ? `: ${args.cipher}` : ''}`, 0, 0)
+      },
+      async execute(_toolCallId, params): Promise<AgentToolResult> {
+        try {
+          const lib = await loadLib()
+          if (params.cipher === undefined) {
+            const lines = lib.ciphers().map((name) => {
+              const info = lib.create(name).info()
+              return `${name} [${info.family}] — ${info.description}`
+            })
+            return { content: [{ type: 'text', text: lines.join('\n') }] }
+          }
+          const info = lib.resolveCipher(params.cipher).info()
+          const lines = [`${info.label} (${info.name}) — ${info.family}`, info.description]
+          lines.push(`Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)
+          if (info.keyspace) lines.push(`Keyspace: ${info.keyspace}`)
+          if (info.options.length > 0) {
+            lines.push('Options:')
+            for (const opt of info.options) {
+              const req = opt.required ? 'required' : `default=${opt.default ?? 'none'}`
+              lines.push(`  ${opt.name} (${opt.type}, ${req}): ${opt.description}`)
+            }
+          }
+          return { content: [{ type: 'text', text: lines.join('\n') }] }
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e)
+          return { content: [{ type: 'text', text: `Error: ${msg}` }] }
+        }
       },
     }),
   )

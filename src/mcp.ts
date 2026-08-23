@@ -9,6 +9,7 @@ import { type TSchema, Type } from 'typebox'
 import { Value } from 'typebox/value'
 import {
   bruteForceCaesar,
+  formatCipherInfo,
   formatFrequencyAnalysis,
   transformCipher,
   type CipherToolParams,
@@ -171,14 +172,14 @@ const tools: ToolDefinition[] = [
   {
     name: 'cipher_encode',
     title: 'Cipher Encode',
-    description: 'Encode text with an exact-name built-in cipher.',
+    description: 'Encode text with an exact-name built-in cipher. cipher_info lists the options.',
     inputSchema: cipherInputSchema,
     execute: (args) => transformCipher(ciphersLibrary, 'encode', args as CipherToolParams),
   },
   {
     name: 'cipher_decode',
     title: 'Cipher Decode',
-    description: 'Decode text with an exact-name built-in cipher.',
+    description: 'Decode text with an exact-name built-in cipher. cipher_info lists the options.',
     inputSchema: cipherInputSchema,
     execute: (args) => transformCipher(ciphersLibrary, 'decode', args as CipherToolParams),
   },
@@ -197,7 +198,8 @@ const tools: ToolDefinition[] = [
   {
     name: 'cipher_frequency',
     title: 'Frequency Analysis',
-    description: 'Analyze A-Z letter frequencies and compare their order with English or Polish.',
+    description:
+      'Analyze A-Z letter frequencies and the index of coincidence against English or Polish.',
     inputSchema: Type.Object({
       text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
       lang: Type.Optional(
@@ -212,6 +214,20 @@ const tools: ToolDefinition[] = [
         args.text as string,
         args.lang as 'en' | 'pl' | undefined,
       ),
+  },
+  {
+    name: 'cipher_info',
+    title: 'Cipher Info',
+    description: "List the built-in ciphers, or show one cipher's options, family, and keyspace.",
+    inputSchema: Type.Object({
+      cipher: Type.Optional(
+        Type.Union(
+          ciphersLibrary.builtinCiphers.map((name) => Type.Literal(name)),
+          { description: 'Cipher to describe; omit to list every cipher' },
+        ),
+      ),
+    }),
+    execute: (args) => formatCipherInfo(ciphersLibrary, args.cipher as string | undefined),
   },
 ]
 

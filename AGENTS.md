@@ -12,7 +12,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - Keep `src/core/registry.ts` constructor-based. `create()` returns one cached instance per name, and re-registering a name invalidates that instance.
 - Report domain failures through the `CipherError` hierarchy and normalize unknown thrown values with `normalizeError()`.
 - Resolution may normalize case and spaces to hyphens, then it must match a registered name exactly. Do not add fuzzy or prefix matching.
-- Keep the `ciphers` Citty CLI and the Pi/OMP extensions aligned with the library. Both extensions expose encode, decode, Caesar brute force, and frequency analysis.
+- Keep the `ciphers` Citty CLI and the Pi/OMP extensions aligned with the library. Both extensions expose encode, decode, Caesar brute force, frequency analysis, and cipher info lookup.
 
 ## Cipher Contracts
 

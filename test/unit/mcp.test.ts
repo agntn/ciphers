@@ -29,6 +29,7 @@ describe('Ciphers MCP server', () => {
       'cipher_decode',
       'cipher_brute_caesar',
       'cipher_frequency',
+      'cipher_info',
     ])
     const encodeTool = response.tools.find((tool) => tool.name === 'cipher_encode')
     expect(encodeTool?.inputSchema).toMatchObject({
@@ -117,6 +118,40 @@ describe('Ciphers MCP server', () => {
     expect(unrelatedSchema.content).not.toEqual([
       { type: 'text', text: expect.stringContaining('/key') },
     ])
+  })
+
+  it('describes ciphers for discovery', async () => {
+    const client = await connectTestClient()
+
+    const list = await client.callTool({ name: 'cipher_info', arguments: {} })
+    expect(list.isError).not.toBe(true)
+    const [listEntry] = list.content as [{ type: string; text: string }]
+    expect(listEntry.text).toContain('caesar [substitution-shift]')
+    expect(listEntry.text).toContain('enigma [rotor]')
+
+    const detail = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'playfair' } })
+    expect(detail.isError).not.toBe(true)
+    const [detailEntry] = detail.content as [{ type: string; text: string }]
+    expect(detailEntry.text).toContain('(playfair) — digraph')
+    expect(detailEntry.text).toContain('key (string, required)')
+
+    const unknown = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'missing' } })
+    expect(unknown.isError).toBe(true)
+    expect(unknown.content).toEqual([
+      { type: 'text', text: expect.stringContaining('Invalid arguments at /cipher') },
+    ])
+  })
+
+  it('reports the index of coincidence over the protocol', async () => {
+    const client = await connectTestClient()
+
+    const frequency = await client.callTool({
+      name: 'cipher_frequency',
+      arguments: { text: 'AAAA' },
+    })
+    expect(frequency.isError).not.toBe(true)
+    const [entry] = frequency.content as [{ type: string; text: string }]
+    expect(entry.text).toContain('Index of coincidence: 1.0000')
   })
 
   it('reports unknown tools and cipher names as tool errors', async () => {

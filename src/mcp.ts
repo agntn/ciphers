@@ -199,7 +199,7 @@ const tools: ToolDefinition[] = [
     name: 'cipher_frequency',
     title: 'Frequency Analysis',
     description:
-'Analyze A-Z letter frequencies, compare their order with English or Polish, and report the index of coincidence.',
+      'Analyze A-Z letter frequencies, compare their order with English or Polish, and report the index of coincidence.',
     inputSchema: Type.Object({
       text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
       lang: Type.Optional(

@@ -99,6 +99,13 @@ describe('result shapes', () => {
     expect(renderToolResult({}, {}, plain)).toBe('')
   })
 
+  it('keeps the trailing spaces a cipher carried over from its input', () => {
+    const spaced = 'DWWDFN DW GDZQ  '
+
+    expect(renderToolResult(textResult(spaced), { expanded: true }, plain)).toBe(spaced)
+    expect(renderToolResult(textResult(spaced), {}, plain)).toBe(spaced)
+  })
+
   it('skips content parts that carry no text', () => {
     const result = {
       content: [{ type: 'image', data: 'AAAA' }, { type: 'text', text: 'KHOOR' }, null],

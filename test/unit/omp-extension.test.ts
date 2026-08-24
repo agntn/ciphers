@@ -190,11 +190,38 @@ describe('OMP extension', () => {
       text: 'A'.repeat(10_000),
       shift: 3,
     })
+    const decoded = await getTool('cipher_decode').execute('decode', {
+      cipher: 'caesar',
+      text: 'D'.repeat(10_000),
+      shift: 3,
+    })
 
-    expect(getTool('cipher_encode').renderResult?.(encoded, {}, {})?.text).toHaveLength(200)
-    expect(getTool('cipher_decode').renderResult).toBeTypeOf('function')
+    for (const [tool, result] of [
+      [getTool('cipher_encode'), encoded],
+      [getTool('cipher_decode'), decoded],
+    ] as const) {
+      const preview = tool.renderResult?.(result, {}, {})?.text
+      expect(preview).toHaveLength(200)
+      expect(preview?.endsWith('…')).toBe(true)
+      expect(tool.renderResult?.(result, { expanded: true }, {})?.text).toBe(
+        result.content[0]?.text,
+      )
+    }
+
     expect(getTool('cipher_info').renderResult).toBeUndefined()
     expect(getTool('cipher_frequency').renderResult).toBeUndefined()
+  })
+
+  it('renders the trailing spaces caesar carries over from its input', async () => {
+    const tool = getTool('cipher_encode')
+    const result = await tool.execute('encode', {
+      cipher: 'caesar',
+      text: 'ATTACK AT DAWN  ',
+      shift: 3,
+    })
+
+    expect(result.content[0]?.text).toBe('DWWDFN DW GDZQ  ')
+    expect(tool.renderResult?.(result, { expanded: true }, {})?.text).toBe('DWWDFN DW GDZQ  ')
   })
 
   it('brute-forces Caesar and analyzes frequencies', async () => {

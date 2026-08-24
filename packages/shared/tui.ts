@@ -113,7 +113,13 @@ function takeLines(body: string, max: number): { lines: string[]; hidden: number
   return { lines, hidden }
 }
 
-/** Join the text the tool returned, skipping parts that carry no text. */
+/**
+ * Join the text the tool returned, skipping parts that carry no text.
+ *
+ * Trailing whitespace is part of the result, not noise around it. A cipher that
+ * preserves non-letters carries the spaces at the end of its input straight
+ * through, so the renderer hands the text on exactly as the cipher produced it.
+ */
 function resultText(result: RenderedToolResult): string {
   const parts: string[] = []
   for (const part of result.content ?? []) {
@@ -121,7 +127,7 @@ function resultText(result: RenderedToolResult): string {
     const text = Reflect.get(part, 'text')
     if (typeof text === 'string') parts.push(text)
   }
-  return parts.join('\n').trimEnd()
+  return parts.join('\n')
 }
 
 /**

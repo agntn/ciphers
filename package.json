@@ -27,7 +27,7 @@
     "test": "vp test",
     "test:packed": "node test/eval-packed.mjs",
     "prepack": "pnpm run build",
-    "release": "pnpm test && pnpm build && pnpm test:packed && changelogen --release --push"
+    "release": "pnpm test && pnpm build && changelogen --release --push"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

@@ -1,9 +1,29 @@
-import type { AgentToolResult, ExtensionAPI } from '@earendil-works/pi-coding-agent'
+import type {
+  AgentToolResult,
+  ExtensionAPI,
+  ToolRenderResultOptions,
+} from '@earendil-works/pi-coding-agent'
 import { defineTool } from '@earendil-works/pi-coding-agent'
 import { Text } from '@earendil-works/pi-tui'
 import { type Static, Type } from 'typebox'
 import type * as CiphersModule from '@agntn/ciphers'
 import { formatCipherInfo } from '../../../src/tool-operations'
+import type { OutputTheme, RenderedToolResult } from '../../shared/tui'
+import { renderToolResult } from '../../shared/tui'
+
+/**
+ * Render a finished call for the tools whose output has no width of its own:
+ * a transformed text runs as long as the input allows, and brute force returns
+ * 25 such lines. Frequency and info tools keep the generic fallback, since
+ * their lines are short and their count is bounded.
+ */
+function resultLine(
+  result: RenderedToolResult,
+  options: ToolRenderResultOptions,
+  theme: OutputTheme,
+) {
+  return new Text(renderToolResult(result, options, theme), 0, 0)
+}
 
 /** Lazy-load the library (registers all ciphers on import). */
 async function loadLib() {
@@ -89,6 +109,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       renderCall(args, _theme) {
         return new Text(`🔐 encode ${args.cipher}: "${args.text}"`, 0, 0)
       },
+      renderResult: resultLine,
       async execute(_toolCallId, params): Promise<AgentToolResult> {
         try {
           const lib = await loadLib()
@@ -125,6 +146,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       renderCall(args, _theme) {
         return new Text(`🔓 decode ${args.cipher}: "${args.text}"`, 0, 0)
       },
+      renderResult: resultLine,
       async execute(_toolCallId, params): Promise<AgentToolResult> {
         try {
           const lib = await loadLib()
@@ -164,6 +186,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       renderCall(args, _theme) {
         return new Text(`🔍 brute caesar: "${args.text}"`, 0, 0)
       },
+      renderResult: resultLine,
       async execute(_toolCallId, params): Promise<AgentToolResult> {
         try {
           const lib = await loadLib()

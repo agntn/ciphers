@@ -10,6 +10,8 @@ import {
   transformCipher,
   type CipherToolParams,
 } from '../../../src/tool-operations'
+import type { OutputTheme, RenderedToolResult, RenderOptions } from '../../shared/tui'
+import { renderToolResult } from '../../shared/tui'
 type CiphersLibrary = Pick<
   typeof CiphersModule,
   'analyzeFrequency' | 'ciphers' | 'create' | 'resolveCipher'
@@ -37,6 +39,19 @@ function loadLibrary(): Promise<CiphersLibrary> {
 /** Register local educational and puzzle-cipher tools in OMP. */
 export default function ciphersExtension(omp: ExtensionAPI): void {
   const { Type } = omp.typebox
+  // The host injects its own TUI exports, so the wrapper renders with the
+  // running Text component instead of pulling in a second copy of it.
+  const { Text } = omp.pi
+
+  /**
+   * Render a finished call for the tools whose output has no width of its own:
+   * a transformed text runs as long as the input allows, and brute force
+   * returns 25 such lines. Frequency and info keep the generic fallback, since
+   * their lines are short and their count is bounded.
+   */
+  const resultLine = (result: RenderedToolResult, options: RenderOptions, theme: OutputTheme) =>
+    new Text(renderToolResult(result, options, theme), 0, 0)
+
   const cipherParams = Type.Object({
     cipher: Type.String({ maxLength: 32, description: 'Exact built-in cipher name' }),
     text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Text to transform' }),
@@ -104,6 +119,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     async execute(_toolCallId, params) {
       return transformCipher(await loadLibrary(), 'encode', params as CipherToolParams)
     },
+    renderResult: resultLine,
   })
 
   omp.registerTool({
@@ -116,6 +132,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     async execute(_toolCallId, params) {
       return transformCipher(await loadLibrary(), 'decode', params as CipherToolParams)
     },
+    renderResult: resultLine,
   })
 
   omp.registerTool({
@@ -133,6 +150,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     async execute(_toolCallId, params) {
       return bruteForceCaesar(await loadLibrary(), params.text)
     },
+    renderResult: resultLine,
   })
 
   omp.registerTool({

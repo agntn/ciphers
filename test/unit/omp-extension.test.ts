@@ -16,6 +16,16 @@ type RegisteredTool = {
     safeParse(input: unknown): { success: boolean }
   }
   execute(toolCallId: string, params: Record<string, unknown>): Promise<ToolResult>
+  renderResult?: (
+    result: ToolResult,
+    options: { expanded?: boolean },
+    theme: Record<string, unknown>,
+  ) => RenderedText
+}
+
+/** Stand-in for the host Text component, which records what it was given. */
+class RenderedText {
+  constructor(readonly text: string) {}
 }
 
 const tools = new Map<string, RegisteredTool>()
@@ -40,13 +50,14 @@ function getTool(name: string): RegisteredTool {
 beforeAll(() => {
   const api = {
     typebox: { Type },
+    pi: { Text: RenderedText },
     registerTool(tool: unknown) {
       if (!isRegisteredTool(tool)) throw new Error('Invalid tool registration')
       tools.set(tool.name, tool)
     },
   }
 
-  // SAFETY: the extension uses only typebox.Type and registerTool; this test double implements both runtime members.
+  // SAFETY: the extension uses only typebox.Type, pi.Text, and registerTool; this test double implements all three runtime members.
   ciphersExtension(api as unknown as Parameters<typeof ciphersExtension>[0])
 })
 
@@ -158,6 +169,59 @@ describe('OMP extension', () => {
 
     const bruteSchema = getTool('cipher_brute_caesar').parameters
     expect(bruteSchema.safeParse({ text: 'X'.repeat(2_001) }).success).toBe(false)
+  })
+
+  it('clips a collapsed result preview and keeps the expanded one whole', async () => {
+    const tool = getTool('cipher_brute_caesar')
+    const result = await tool.execute('brute', { text: 'K'.repeat(2_000) })
+
+    const collapsed = tool.renderResult?.(result, {}, {})?.text.split('\n')
+    expect(collapsed).toHaveLength(11)
+    for (const line of collapsed?.slice(0, 10) ?? []) expect(line).toHaveLength(200)
+    expect(collapsed?.[10]).toBe('… 15 more lines')
+
+    const expanded = tool.renderResult?.(result, { expanded: true }, {})?.text
+    expect(expanded).toBe(result.content[0]?.text)
+  })
+
+  it('renders encode and decode results through the same preview', async () => {
+    const encoded = await getTool('cipher_encode').execute('encode', {
+      cipher: 'caesar',
+      text: 'A'.repeat(10_000),
+      shift: 3,
+    })
+    const decoded = await getTool('cipher_decode').execute('decode', {
+      cipher: 'caesar',
+      text: 'D'.repeat(10_000),
+      shift: 3,
+    })
+
+    for (const [tool, result] of [
+      [getTool('cipher_encode'), encoded],
+      [getTool('cipher_decode'), decoded],
+    ] as const) {
+      const preview = tool.renderResult?.(result, {}, {})?.text
+      expect(preview).toHaveLength(200)
+      expect(preview?.endsWith('…')).toBe(true)
+      expect(tool.renderResult?.(result, { expanded: true }, {})?.text).toBe(
+        result.content[0]?.text,
+      )
+    }
+
+    expect(getTool('cipher_info').renderResult).toBeUndefined()
+    expect(getTool('cipher_frequency').renderResult).toBeUndefined()
+  })
+
+  it('renders the trailing spaces caesar carries over from its input', async () => {
+    const tool = getTool('cipher_encode')
+    const result = await tool.execute('encode', {
+      cipher: 'caesar',
+      text: 'ATTACK AT DAWN  ',
+      shift: 3,
+    })
+
+    expect(result.content[0]?.text).toBe('DWWDFN DW GDZQ  ')
+    expect(tool.renderResult?.(result, { expanded: true }, {})?.text).toBe('DWWDFN DW GDZQ  ')
   })
 
   it('brute-forces Caesar and analyzes frequencies', async () => {

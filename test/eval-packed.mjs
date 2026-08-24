@@ -7,12 +7,20 @@
 // the kernel refuses the file, the shell fallback reads a JavaScript bundle as a
 // shell script, and `ciphers --help` never reaches Node.
 //
+// POSIX only. Windows installs the bin as a generated .cmd shim, so neither the
+// shebang nor the execute bit decides anything there.
+//
 // Run: pnpm test:packed
 
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
+
+if (process.platform === 'win32') {
+  console.log('Skipped on Windows, where npm installs the bin as a .cmd shim')
+  process.exit(0)
+}
 
 const root = path.resolve(import.meta.dirname, '..')
 

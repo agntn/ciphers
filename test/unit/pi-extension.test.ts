@@ -12,6 +12,11 @@ type RegisteredTool = {
     properties?: Record<string, unknown>
   }
   execute(toolCallId: string, params: Record<string, unknown>): Promise<ToolResult>
+  renderResult?: (
+    result: ToolResult,
+    options: { expanded: boolean; isPartial: boolean },
+    theme: Record<string, unknown>,
+  ) => unknown
 }
 
 const tools = new Map<string, RegisteredTool>()
@@ -52,6 +57,15 @@ describe('Pi extension', () => {
       'cipher_frequency',
       'cipher_info',
     ])
+  })
+
+  it('renders the results whose width the tool cannot bound', () => {
+    for (const name of ['cipher_encode', 'cipher_decode', 'cipher_brute_caesar']) {
+      expect(getTool(name).renderResult).toBeTypeOf('function')
+    }
+    for (const name of ['cipher_frequency', 'cipher_info']) {
+      expect(getTool(name).renderResult).toBeUndefined()
+    }
   })
 
   it('describes ciphers for discovery', async () => {

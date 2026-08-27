@@ -452,7 +452,7 @@ describe('columnar', () => {
 
   it('encodes with key', () => {
     expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe(
-      'N W ETSLD ALEE  DEA FHT',
+      'N WETSLD ALEE DEAFHT',
     )
   })
 
@@ -466,6 +466,23 @@ describe('columnar', () => {
     const encoded = col.encode('A🎉B', { key: 'ZAB' })
     expect(encoded.text).toBe('🎉BA')
     expect(col.decode(encoded.text, { key: 'ZAB' }).text).toBe('A🎉B')
+  })
+
+  it('roundtrips plaintext with trailing whitespace', () => {
+    const encSpace = col.encode('A ', { key: 'KEY' })
+    expect(encSpace.text).toBe(' A')
+    expect(col.decode(encSpace.text, { key: 'KEY' }).text).toBe('A ')
+
+    const encSpaces = col.encode('A  ', { key: 'KEY' })
+    expect(encSpaces.text).toBe(' A ')
+    expect(col.decode(encSpaces.text, { key: 'KEY' }).text).toBe('A  ')
+
+    const encNewline = col.encode('A
+', { key: 'KEY' })
+    expect(encNewline.text).toBe('
+A')
+    expect(col.decode(encNewline.text, { key: 'KEY' }).text).toBe('A
+')
   })
 
   it('requires key', () => {

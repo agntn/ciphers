@@ -19,34 +19,42 @@ function encodeColumnar(text: string, key: string): string {
   const order = buildColumnOrder(key)
   const cols = order.length
   const chars = Array.from(text)
+  if (chars.length === 0) return ''
   const rows = Math.ceil(chars.length / cols)
-  while (chars.length < rows * cols) chars.push(' ')
-  const grid: string[][] = []
+  const remainder = chars.length % cols
+  const numFullCols = remainder === 0 ? cols : remainder
+
+  const colLens = Array.from({ length: cols }, (_, c) => (c < numFullCols ? rows : rows - 1))
+  const grid: string[][] = Array.from({ length: cols }, () => [])
+  let idx = 0
   for (let r = 0; r < rows; r++) {
-    grid[r] = chars.slice(r * cols, (r + 1) * cols)
+    for (let c = 0; c < cols; c++) {
+      if (r < colLens[c]! && idx < chars.length) {
+        grid[c]!.push(chars[idx++]!)
+      }
+    }
   }
+
   const colOrder = order.map((_, i) => order.indexOf(i))
   let result = ''
   for (const col of colOrder) {
-    for (let r = 0; r < rows; r++) {
-      result += grid[r]![col]
-    }
+    result += grid[col]!.join('')
   }
-  return result.trimEnd()
+  return result
 }
 
 function decodeColumnar(text: string, key: string): string {
   const order = buildColumnOrder(key)
   const cols = order.length
   const chars = Array.from(text)
+  if (chars.length === 0) return ''
   const rows = Math.ceil(chars.length / cols)
-  const fullLen = rows * cols
-  const padCount = fullLen - chars.length
+  const remainder = chars.length % cols
+  const numFullCols = remainder === 0 ? cols : remainder
+
+  const colLens = Array.from({ length: cols }, (_, c) => (c < numFullCols ? rows : rows - 1))
   const colOrder = order.map((_, i) => order.indexOf(i))
-  const colLens = Array.from({ length: cols }, () => rows)
-  for (let i = cols - padCount; i < cols; i++) {
-    colLens[colOrder[i]!]!--
-  }
+
   const columns: string[][] = Array.from({ length: cols }, () => [])
   let idx = 0
   for (const col of colOrder) {
@@ -55,13 +63,16 @@ function decodeColumnar(text: string, key: string): string {
       columns[col]!.push(chars[idx++]!)
     }
   }
+
   let result = ''
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (columns[c]![r] !== undefined) result += columns[c]![r]
+      if (r < colLens[c]!) {
+        result += columns[c]![r]
+      }
     }
   }
-  return result.trimEnd()
+  return result
 }
 
 function validate(opts: CipherBaseOptions): { key: string } {

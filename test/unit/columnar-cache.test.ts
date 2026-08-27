@@ -135,8 +135,8 @@ describe('columnar — cache', () => {
 
   it('caches decode results', () => {
     col.reset()
-    const r1 = col.decode('N W ETSLD ALEE  DEA FHT', { key: 'GERMAN' })
-    const r2 = col.decode('N W ETSLD ALEE  DEA FHT', { key: 'GERMAN' })
+    const r1 = col.decode('N WETSLD ALEE DEAFHT', { key: 'GERMAN' })
+    const r2 = col.decode('N WETSLD ALEE DEAFHT', { key: 'GERMAN' })
     expect(r1.text).toBe(r2.text)
   })
 
@@ -227,7 +227,7 @@ describe('columnar — backwards compatibility', () => {
     const col = create('columnar')
     col.reset()
     expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe(
-      'N W ETSLD ALEE  DEA FHT',
+      'N WETSLD ALEE DEAFHT',
     )
   })
 

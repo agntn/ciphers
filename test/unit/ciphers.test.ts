@@ -445,6 +445,16 @@ describe('tap-code', () => {
     const cResult = tap.encode('C')
     expect(kResult.text).toBe(cResult.text)
   })
+
+  it('rejects invalid coordinates', () => {
+    expect(() => tap.decode('2 3 0 1 5')).toThrow(/Invalid tap code coordinate: 0/)
+    expect(() => tap.decode('2 3 6 1 5')).toThrow(/Invalid tap code coordinate: 6/)
+    expect(() => tap.decode('2 3 X 1 5')).toThrow(/Invalid tap code coordinate: X/)
+  })
+
+  it('rejects odd number of coordinates', () => {
+    expect(() => tap.decode('2 3 1')).toThrow(/odd number of coordinates/)
+  })
 })
 
 describe('columnar', () => {
@@ -452,7 +462,7 @@ describe('columnar', () => {
 
   it('encodes with key', () => {
     expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe(
-      'N W ETSLD ALEE  DEA FHT',
+      'N WETSLD ALEE DEAFHT',
     )
   })
 
@@ -466,6 +476,20 @@ describe('columnar', () => {
     const encoded = col.encode('A🎉B', { key: 'ZAB' })
     expect(encoded.text).toBe('🎉BA')
     expect(col.decode(encoded.text, { key: 'ZAB' }).text).toBe('A🎉B')
+  })
+
+  it('roundtrips plaintext with trailing whitespace', () => {
+    const encSpace = col.encode('A ', { key: 'KEY' })
+    expect(encSpace.text).toBe(' A')
+    expect(col.decode(encSpace.text, { key: 'KEY' }).text).toBe('A ')
+
+    const encSpaces = col.encode('A  ', { key: 'KEY' })
+    expect(encSpaces.text).toBe(' A ')
+    expect(col.decode(encSpaces.text, { key: 'KEY' }).text).toBe('A  ')
+
+    const encNewline = col.encode('A\n', { key: 'KEY' })
+    expect(encNewline.text).toBe('\nA')
+    expect(col.decode(encNewline.text, { key: 'KEY' }).text).toBe('A\n')
   })
 
   it('requires key', () => {

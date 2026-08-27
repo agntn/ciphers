@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-import { runMain, defineCommand } from 'citty'
+import { runCommand, runMain, defineCommand } from 'citty'
+import consola from 'consola'
 import { normalizeMainArgs } from './cli-args'
 import { version } from './version'
+import { CipherError } from './core/errors'
 
 // Register all ciphers
 import './ciphers/index'
@@ -23,4 +25,23 @@ const main = defineCommand({
   },
 })
 
-await runMain(main, { rawArgs: normalizeMainArgs(process.argv.slice(2)) })
+const rawArgs = normalizeMainArgs(process.argv.slice(2))
+
+try {
+  if (
+    rawArgs.includes('-h') ||
+    rawArgs.includes('--help') ||
+    rawArgs.includes('-v') ||
+    rawArgs.includes('--version')
+  ) {
+    await runMain(main, { rawArgs })
+  } else {
+    await runCommand(main, { rawArgs })
+  }
+} catch (error) {
+  if (error instanceof CipherError) {
+    consola.error(error.message)
+    process.exit(1)
+  }
+  throw error
+}

@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "checkJs": true,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": [
+    "build.config.ts",
+    "vite.config.ts",
+    "src/**/*.ts",
+    "packages/**/*.ts",
+    "test/**/*.ts",
+    "test/**/*.mjs"
+  ]
+}

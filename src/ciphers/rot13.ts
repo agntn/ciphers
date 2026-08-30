@@ -4,10 +4,10 @@ import { register } from '../core/registry'
 
 function rot13(text: string, stripNonAlpha: boolean): string {
   let input = text
-  if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
+  if (stripNonAlpha) input = input.replaceAll(/[^A-Za-z]/g, '')
   return Array.from(input, (c) => {
-    if (c >= 'A' && c <= 'Z') return String.fromCharCode(((c.charCodeAt(0) - 65 + 13) % 26) + 65)
-    if (c >= 'a' && c <= 'z') return String.fromCharCode(((c.charCodeAt(0) - 97 + 13) % 26) + 97)
+    if (c >= 'A' && c <= 'Z') return String.fromCodePoint(((c.codePointAt(0)! - 65 + 13) % 26) + 65)
+    if (c >= 'a' && c <= 'z') return String.fromCodePoint(((c.codePointAt(0)! - 97 + 13) % 26) + 97)
     return c
   }).join('')
 }
@@ -29,7 +29,7 @@ class Rot13 extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     return {
       text: rot13(text, options?.stripNonAlpha ?? false),
       cipher: 'rot13',
@@ -38,7 +38,7 @@ class Rot13 extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     return {
       text: rot13(text, options?.stripNonAlpha ?? false),
       cipher: 'rot13',

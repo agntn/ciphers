@@ -4,13 +4,23 @@ import { UnknownCipherError } from './errors'
 const constructors = new Map<string, CipherConstructor>()
 const instances = new Map<string, Cipher>()
 
-/** Register a cipher class. */
+/**
+ * Register a cipher class.
+ *
+ * @param name - Exact registry name.
+ * @param CipherClass - Cipher constructor.
+ */
 export function register(name: string, CipherClass: CipherConstructor): void {
   constructors.set(name, CipherClass)
   instances.delete(name) // invalidate cached instance on re-register
 }
 
-/** Create a cipher instance by name (cached singleton). */
+/**
+ * Create a cached cipher instance by name.
+ *
+ * @param name - Exact registry name.
+ * @returns {Cipher} The cached cipher instance.
+ */
 export function create(name: string): Cipher {
   const cached = instances.get(name)
   if (cached) return cached
@@ -21,12 +31,21 @@ export function create(name: string): Cipher {
   return cipher
 }
 
-/** List all registered cipher names. */
+/**
+ * List all registered cipher names.
+ *
+ * @returns {string[]} Registered names in insertion order.
+ */
 export function ciphers(): string[] {
   return [...constructors.keys()]
 }
 
-/** Check if a cipher is registered. */
+/**
+ * Check whether a cipher is registered.
+ *
+ * @param name - Exact registry name.
+ * @returns {boolean} Whether the name is registered.
+ */
 export function has(name: string): boolean {
   return constructors.has(name)
 }

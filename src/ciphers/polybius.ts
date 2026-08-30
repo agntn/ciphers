@@ -29,7 +29,7 @@ class Polybius extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const key = getOpt<string>(options ?? {}, 'key', '')
       const { pos } = buildPolybiusSquare(key)
@@ -47,7 +47,7 @@ class Polybius extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const key = getOpt<string>(options ?? {}, 'key', '')
       const { square } = buildPolybiusSquare(key)

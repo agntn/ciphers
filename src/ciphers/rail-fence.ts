@@ -44,7 +44,7 @@ function decodeRailFence(cipher: string, rails: number): string {
   return result.join('')
 }
 
-function validate(opts: CipherBaseOptions): { rails: number } {
+function validate(opts: Readonly<CipherBaseOptions>): { rails: number } {
   const rails = getOpt<number>(opts, 'rails', 3)
   if (!Number.isInteger(rails) || rails < 2)
     throw new InvalidOptionError('rails', rails, 'must be integer >= 2')
@@ -76,7 +76,7 @@ class RailFence extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { rails } = validate(options ?? {})
       return {
@@ -90,7 +90,7 @@ class RailFence extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { rails } = validate(options ?? {})
       return {

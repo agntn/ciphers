@@ -1,17 +1,7 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
 import { resolveCipher } from '../core/resolve'
-import type { CipherBaseOptions } from '../core/types'
-
-function parseIntOrFail(value: string | undefined, name: string): number | undefined {
-  if (value === undefined) return undefined
-  const n = Number(value)
-  if (!Number.isInteger(n)) {
-    consola.error(`Invalid --${name}: "${value}" is not an integer`)
-    process.exit(1)
-  }
-  return n
-}
+import { parseTransformOptions } from './transform-options'
 
 export default defineCommand({
   meta: { name: 'decode', description: 'Decode ciphertext with a cipher' },
@@ -34,22 +24,7 @@ export default defineCommand({
   },
   async run({ args }) {
     const cipher = resolveCipher(args.cipher)
-    const opts: CipherBaseOptions & Record<string, unknown> = {}
-    const shift = parseIntOrFail(args.shift, 'shift')
-    const rails = parseIntOrFail(args.rails, 'rails')
-    const a = parseIntOrFail(args.a, 'a')
-    const b = parseIntOrFail(args.b, 'b')
-    const period = parseIntOrFail(args.period, 'period')
-    if (shift !== undefined) opts.shift = shift
-    if (args.key) opts.key = args.key
-    if (rails !== undefined) opts.rails = rails
-    if (period !== undefined) opts.period = period
-    if (a !== undefined) opts.a = a
-    if (b !== undefined) opts.b = b
-    if (args.positions !== undefined) opts.positions = args.positions
-    if (args.rings !== undefined) opts.rings = args.rings
-    if (args.plugboard !== undefined) opts.plugboard = args.plugboard
-    const result = cipher.decode(args.text, opts)
+    const result = cipher.decode(args.text, parseTransformOptions(args))
     consola.log(result.text)
   },
 })

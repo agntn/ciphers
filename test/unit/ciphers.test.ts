@@ -214,8 +214,14 @@ describe('alberti', () => {
     )
   })
 
-  it('advances the disk only after the configured number of Latin letters', () => {
+  it('advances the disk only after the configured number of ASCII letters', () => {
     expect(alberti.encode('AAAA 🎉 A', { key: 'KEY', period: 4 }).text).toBe('KKKK 🎉 E')
+  })
+
+  it('preserves non-ASCII letters without advancing the disk', () => {
+    const encoded = alberti.encode('Aı🎉A', { key: 'KEY', period: 4 })
+    expect(encoded.text).toBe('Kı🎉K')
+    expect(alberti.decode(encoded.text, { key: 'KEY', period: 4 }).text).toBe('Aı🎉A')
   })
 
   it('normalizes duplicate key letters and honors base options', () => {

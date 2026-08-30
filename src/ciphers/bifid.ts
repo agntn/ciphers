@@ -12,8 +12,8 @@ function encodeBifid(text: string, key: string, period: number): string {
   const { pos, square } = buildPolybiusSquare(key)
   const clean = text
     .toUpperCase()
-    .replace(/[^A-Z]/g, '')
-    .replace(/J/g, 'I')
+    .replaceAll(/[^A-Z]/g, '')
+    .replaceAll('J', 'I')
   let result = ''
   for (let i = 0; i < clean.length; i += period) {
     const chunk = clean.slice(i, i + period)
@@ -40,8 +40,8 @@ function decodeBifid(text: string, key: string, period: number): string {
   const { pos, square } = buildPolybiusSquare(key)
   const clean = text
     .toUpperCase()
-    .replace(/[^A-Z]/g, '')
-    .replace(/J/g, 'I')
+    .replaceAll(/[^A-Z]/g, '')
+    .replaceAll('J', 'I')
   let result = ''
   for (let i = 0; i < clean.length; i += period) {
     const chunk = clean.slice(i, i + period)
@@ -62,7 +62,7 @@ function decodeBifid(text: string, key: string, period: number): string {
   return result
 }
 
-function validate(opts: CipherBaseOptions): { key: string; period: number } {
+function validate(opts: Readonly<CipherBaseOptions>): { key: string; period: number } {
   const key = getOpt<string>(opts, 'key', '')
   const period = getOpt<number>(opts, 'period', 5)
   if (!Number.isInteger(period) || period < 1) {
@@ -103,7 +103,7 @@ class Bifid extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key, period } = validate(options ?? {})
       return {
@@ -117,7 +117,7 @@ class Bifid extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key, period } = validate(options ?? {})
       return {

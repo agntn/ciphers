@@ -11,20 +11,20 @@ function caesarProcess(
   stripNonAlpha: boolean,
 ): string {
   let input = text
-  if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
+  if (stripNonAlpha) input = input.replaceAll(/[^A-Za-z]/g, '')
   return Array.from(input, (c) => {
     const isUpper = c >= 'A' && c <= 'Z'
     const isLower = c >= 'a' && c <= 'z'
     if (!isUpper && !isLower) return c
     const upper = isUpper ? c : c.toUpperCase()
-    const x = upper.charCodeAt(0) - 65
+    const x = upper.codePointAt(0)! - 65
     const code = (((x + shift) % 26) + 26) % 26
-    const result = String.fromCharCode(code + 65)
+    const result = String.fromCodePoint(code + 65)
     return preserveCase && isLower ? result.toLowerCase() : result
   }).join('')
 }
 
-function validate(opts: CipherBaseOptions): {
+function validate(opts: Readonly<CipherBaseOptions>): {
   shift: number
   preserveCase: boolean
   stripNonAlpha: boolean
@@ -62,7 +62,7 @@ class Caesar extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { shift, preserveCase, stripNonAlpha } = validate(options ?? {})
       return {
@@ -76,7 +76,7 @@ class Caesar extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { shift, preserveCase, stripNonAlpha } = validate(options ?? {})
       return {

@@ -19,7 +19,7 @@ export default defineCommand({
     const maxCount = analysis.counts[0]![1]
 
     consola.info(
-      `\x1b[1mFrequency Analysis\x1b[0m (${analysis.total} letters, lang=${analysis.language}):\n`,
+      `\x1B[1mFrequency Analysis\x1B[0m (${analysis.total} letters, lang=${analysis.language}):\n`,
     )
     consola.info('  Letter | Count | Freq   | Bar')
     consola.info('  -------+-------+--------+' + '-'.repeat(30))

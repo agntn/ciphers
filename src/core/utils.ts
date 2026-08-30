@@ -7,6 +7,9 @@ import { CipherError } from './errors'
  * Build a 5×5 Polybius square from an optional keyword.
  * I/J share a cell. Used by Polybius, Bifid, Playfair.
  * Returns 1-indexed positions for compatibility with all consumers.
+ *
+ * @param key - Optional keyword placed before the remaining alphabet.
+ * @returns {object} The square and its one-indexed letter positions.
  */
 export function buildPolybiusSquare(key?: string): {
   square: string[][]
@@ -14,21 +17,13 @@ export function buildPolybiusSquare(key?: string): {
 } {
   const seen = new Set<string>()
   const letters: string[] = []
-  const src = (key ?? '').toUpperCase()
-  for (const c of src) {
-    if (c < 'A' || c > 'Z') continue
-    const ch = c === 'J' ? 'I' : c
-    if (!seen.has(ch)) {
-      seen.add(ch)
-      letters.push(ch)
-    }
-  }
-  for (let i = 65; i <= 90; i++) {
-    const ch = String.fromCharCode(i) === 'J' ? 'I' : String.fromCharCode(i)
-    if (!seen.has(ch)) {
-      seen.add(ch)
-      letters.push(ch)
-    }
+  const candidates = `${(key ?? '').toUpperCase()}ABCDEFGHIJKLMNOPQRSTUVWXYZ`
+  for (const candidate of candidates) {
+    if (candidate < 'A' || candidate > 'Z') continue
+    const letter = candidate === 'J' ? 'I' : candidate
+    if (seen.has(letter)) continue
+    seen.add(letter)
+    letters.push(letter)
   }
   const square: string[][] = []
   const pos = new Map<string, [number, number]>()
@@ -43,8 +38,13 @@ export function buildPolybiusSquare(key?: string): {
   return { square, pos }
 }
 
-/** Extract common base options (preserveCase, stripNonAlpha) with defaults. */
-export function processBaseOptions(opts: CipherBaseOptions): {
+/**
+ * Extract common base options with defaults.
+ *
+ * @param opts - Cipher options.
+ * @returns {object} Resolved `preserveCase` and `stripNonAlpha` values.
+ */
+export function processBaseOptions(opts: Readonly<CipherBaseOptions>): {
   preserveCase: boolean
   stripNonAlpha: boolean
 } {
@@ -90,11 +90,18 @@ export class LruCache<K, V> {
   }
 }
 
-/** Build a stable cache key from encode/decode arguments. */
+/**
+ * Build a stable cache key from encode/decode arguments.
+ *
+ * @param operation - Cipher operation.
+ * @param text - Input text.
+ * @param options - Effective cipher options.
+ * @returns {string} Serialized cache key.
+ */
 export function cipherCacheKey(
   operation: string,
   text: string,
-  options?: Record<string, unknown>,
+  options?: Readonly<Record<string, unknown>>,
 ): string {
   return `${operation}|${text}|${JSON.stringify(options ?? {})}`
 }
@@ -109,7 +116,11 @@ export class RateLimiter {
     this.tokens = maxPerSec
     this.lastRefill = Date.now()
   }
-  /** Returns true if call is allowed; false if throttled. */
+  /**
+   * Consume one token when available.
+   *
+   * @returns {boolean} Whether the call is allowed.
+   */
   allow(): boolean {
     this.refill()
     if (this.tokens >= 1) {
@@ -141,6 +152,10 @@ export class RateLimitError extends Error {
 /**
  * Wrap a cipher operation with standardized error handling.
  * Catches any error and normalizes it via normalizeError.
+ *
+ * @param name - Cipher name included in the fallback error.
+ * @param fn - Cipher operation to execute.
+ * @returns {T} The operation result.
  */
 export function withCipherError<T>(name: string, fn: () => T): T {
   try {

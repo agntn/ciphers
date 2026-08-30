@@ -10,18 +10,18 @@ const BACON_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' // 26 letters (standard Baco
 function toBacon(char: string): string | null {
   const idx = BACON_ALPHABET.indexOf(char.toUpperCase())
   if (idx < 0) return null
-  return idx.toString(2).padStart(5, '0').replace(/0/g, 'A').replace(/1/g, 'B')
+  return idx.toString(2).padStart(5, '0').replaceAll('0', 'A').replaceAll('1', 'B')
 }
 
 function fromBacon(code: string): string {
-  const binary = code.replace(/A/g, '0').replace(/B/g, '1')
+  const binary = code.replaceAll('A', '0').replaceAll('B', '1')
   const idx = parseInt(binary, 2)
   return BACON_ALPHABET[idx] ?? '?'
 }
 
 function encodeBacon(text: string, stripNonAlpha: boolean): string {
   let input = text
-  if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
+  if (stripNonAlpha) input = input.replaceAll(/[^A-Za-z]/g, '')
   let result = ''
   for (const c of input.toUpperCase()) {
     const code = toBacon(c)
@@ -31,7 +31,7 @@ function encodeBacon(text: string, stripNonAlpha: boolean): string {
 }
 
 function decodeBacon(text: string): string {
-  const clean = text.toUpperCase().replace(/[^AB]/g, '')
+  const clean = text.toUpperCase().replaceAll(/[^AB]/g, '')
   let result = ''
   for (let i = 0; i + 4 < clean.length; i += 5) {
     result += fromBacon(clean.slice(i, i + 5))
@@ -56,7 +56,7 @@ class Bacon extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       return {
         text: encodeBacon(text, options?.stripNonAlpha ?? false),
@@ -69,7 +69,7 @@ class Bacon extends Cipher {
     }
   }
 
-  decode(text: string, _options?: CipherBaseOptions): CipherResult {
+  decode(text: string, _options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       return { text: decodeBacon(text), cipher: 'bacon', operation: 'decode', options: {} }
     } catch (e) {

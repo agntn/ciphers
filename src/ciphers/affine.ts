@@ -28,21 +28,21 @@ function affineProcess(
   stripNonAlpha: boolean,
 ): string {
   let input = text
-  if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
+  if (stripNonAlpha) input = input.replaceAll(/[^A-Za-z]/g, '')
   const aInv = decrypt ? modInverse(a, 26) : a
   return Array.from(input, (c) => {
     const isUpper = c >= 'A' && c <= 'Z'
     const isLower = c >= 'a' && c <= 'z'
     if (!isUpper && !isLower) return c
     const upper = isUpper ? c : c.toUpperCase()
-    const x = upper.charCodeAt(0) - 65
+    const x = upper.codePointAt(0)! - 65
     const result = decrypt ? (aInv * ((x - b + 26) % 26)) % 26 : (a * x + b) % 26
-    const code = String.fromCharCode((((result % 26) + 26) % 26) + 65)
+    const code = String.fromCodePoint((((result % 26) + 26) % 26) + 65)
     return preserveCase && isLower ? code.toLowerCase() : code
   }).join('')
 }
 
-function validate(opts: CipherBaseOptions): {
+function validate(opts: Readonly<CipherBaseOptions>): {
   a: number
   b: number
   preserveCase: boolean
@@ -92,7 +92,7 @@ class Affine extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { a, b, preserveCase, stripNonAlpha } = validate(options ?? {})
       return {
@@ -106,7 +106,7 @@ class Affine extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { a, b, preserveCase, stripNonAlpha } = validate(options ?? {})
       return {

@@ -1,5 +1,4 @@
 import { defineCommand } from 'citty'
-import consola from 'consola'
 import { resolveCipher } from '../core/resolve'
 import { parseTransformOptions } from './transform-options'
 
@@ -25,6 +24,6 @@ export default defineCommand({
   async run({ args }) {
     const cipher = resolveCipher(args.cipher)
     const result = cipher.encode(args.text, parseTransformOptions(args))
-    consola.log(result.text)
+    process.stdout.write(`${result.text}\n`)
   },
 })

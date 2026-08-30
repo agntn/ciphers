@@ -35,6 +35,7 @@ function run(command, args) {
   return execFileSync(command, args, {
     cwd: root,
     encoding: 'utf8',
+    env: { ...process.env, CI: 'true' },
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 60_000,
   })

@@ -6,6 +6,24 @@ import { createMcpServer } from '../../src/mcp'
 
 const openConnections: Array<{ close(): Promise<void> }> = []
 
+function onlyText(content: unknown): string {
+  if (!Array.isArray(content)) throw new TypeError('Expected content blocks')
+  const parts: readonly unknown[] = content
+  if (parts.length !== 1) throw new TypeError(`Expected one content block, got ${parts.length}`)
+  const part: unknown = parts[0]
+  if (
+    typeof part !== 'object' ||
+    part === null ||
+    !('type' in part) ||
+    part.type !== 'text' ||
+    !('text' in part) ||
+    typeof part.text !== 'string'
+  ) {
+    throw new TypeError('Expected one text content block')
+  }
+  return part.text
+}
+
 async function connectTestClient(): Promise<Client> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
   const server = createMcpServer()
@@ -85,9 +103,7 @@ describe('Ciphers MCP server', () => {
       })
 
       expect(response.isError).toBe(true)
-      expect(response.content).toEqual([
-        { type: 'text', text: expect.stringContaining(`Invalid arguments at /${field}`) },
-      ])
+      expect(onlyText(response.content)).toContain(`Invalid arguments at /${field}`)
     }
 
     for (const [field, arguments_] of [
@@ -103,9 +119,7 @@ describe('Ciphers MCP server', () => {
       })
 
       expect(response.isError).toBe(true)
-      expect(response.content).toEqual([
-        { type: 'text', text: expect.stringContaining(`Invalid arguments at /${field}`) },
-      ])
+      expect(onlyText(response.content)).toContain(`Invalid arguments at /${field}`)
     }
 
     const unrelatedSchema = await client.callTool({
@@ -113,12 +127,8 @@ describe('Ciphers MCP server', () => {
       arguments: { cipher: 'vigenere' },
     })
     expect(unrelatedSchema.isError).toBe(true)
-    expect(unrelatedSchema.content).toEqual([
-      { type: 'text', text: expect.stringContaining('required properties text') },
-    ])
-    expect(unrelatedSchema.content).not.toEqual([
-      { type: 'text', text: expect.stringContaining('/key') },
-    ])
+    expect(onlyText(unrelatedSchema.content)).toContain('required properties text')
+    expect(onlyText(unrelatedSchema.content)).not.toContain('/key')
   })
 
   it('describes ciphers for discovery', async () => {
@@ -147,9 +157,7 @@ describe('Ciphers MCP server', () => {
       arguments: { cipher: 'x'.repeat(33) },
     })
     expect(oversized.isError).toBe(true)
-    expect(oversized.content).toEqual([
-      { type: 'text', text: expect.stringContaining('Invalid arguments at /cipher') },
-    ])
+    expect(onlyText(oversized.content)).toContain('Invalid arguments at /cipher')
   })
 
   it('serves ciphers registered beyond the built-ins', async () => {
@@ -219,8 +227,6 @@ describe('Ciphers MCP server', () => {
       arguments: { cipher: 'missing', text: 'abc' },
     })
     expect(unknownCipher.isError).toBe(true)
-    expect(unknownCipher.content).toEqual([
-      { type: 'text', text: expect.stringContaining('Invalid arguments at /cipher') },
-    ])
+    expect(onlyText(unknownCipher.content)).toContain('Invalid arguments at /cipher')
   })
 })

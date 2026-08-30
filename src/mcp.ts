@@ -32,16 +32,16 @@ type ToolDefinition = {
   title: string
   description: string
   inputSchema: TSchema
-  execute(args: Record<string, unknown>): ToolResult
+  execute(args: Readonly<Record<string, unknown>>): ToolResult
 }
 
 type CipherOptionRequirement = {
-  ciphers: readonly string[]
-  required: readonly ('key' | 'period')[]
-  key?: {
-    minLength?: number
-    pattern?: RegExp
-    error?: string
+  readonly ciphers: readonly string[]
+  readonly required: readonly ('key' | 'period')[]
+  readonly key?: {
+    readonly minLength?: number
+    readonly pattern?: RegExp
+    readonly error?: string
   }
 }
 
@@ -231,27 +231,52 @@ const tools: ToolDefinition[] = [
   },
 ]
 
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null
+}
+
+function requiredOptionError(
+  args: Readonly<Record<string, unknown>>,
+  required: readonly ('key' | 'period')[],
+  cipher: string,
+): string | undefined {
+  for (const field of required) {
+    const missing = args[field] === undefined
+    const emptyKey = field === 'key' && args.key === ''
+    if (missing || emptyKey) return `Invalid arguments at /${field}: required for ${cipher}`
+  }
+  return undefined
+}
+
+function invalidKeyError(
+  key: unknown,
+  matches: (value: string) => boolean,
+  message?: string,
+): string | undefined {
+  if (typeof key !== 'string') return undefined
+  if (matches(key)) return undefined
+  return `Invalid arguments at /key: ${message ?? 'invalid key'}`
+}
+
+function cipherInputError(value: unknown): string | undefined {
+  if (!isRecord(value) || typeof value.cipher !== 'string') return undefined
+  const cipher = value.cipher
+  const requirement = cipherOptionRequirements.find((candidate) =>
+    candidate.ciphers.includes(cipher),
+  )
+  if (requirement === undefined) return undefined
+  const requiredError = requiredOptionError(value, requirement.required, cipher)
+  if (requiredError !== undefined) return requiredError
+
+  const keyRule = requirement.key
+  if (keyRule?.pattern === undefined) return undefined
+  return invalidKeyError(value.key, keyRule.pattern.test.bind(keyRule.pattern), keyRule.error)
+}
+
 function validationError(schema: TSchema, value: unknown): string {
-  if (schema === cipherInputSchema && typeof value === 'object' && value !== null) {
-    const args = value as Record<string, unknown>
-    const cipher = args.cipher
-    const requirement = cipherOptionRequirements.find((candidate) =>
-      candidate.ciphers.includes(cipher as string),
-    )
-    if (requirement) {
-      for (const field of requirement.required) {
-        if (args[field] === undefined || (field === 'key' && args.key === '')) {
-          return `Invalid arguments at /${field}: required for ${String(cipher)}`
-        }
-      }
-      if (
-        requirement.key?.pattern &&
-        typeof args.key === 'string' &&
-        !requirement.key.pattern.test(args.key)
-      ) {
-        return `Invalid arguments at /key: ${requirement.key.error ?? 'invalid key'}`
-      }
-    }
+  if (schema === cipherInputSchema) {
+    const inputError = cipherInputError(value)
+    if (inputError !== undefined) return inputError
   }
 
   const first = Value.Errors(schema, value)[0]
@@ -266,7 +291,11 @@ function toCallToolResult(result: ToolResult): CallToolResult {
   }
 }
 
-/** Create an unconnected MCP server exposing the four local cipher tools. */
+/**
+ * Create an unconnected MCP server exposing the local cipher tools.
+ *
+ * @returns {Server} A server ready to connect to an MCP transport.
+ */
 export function createMcpServer(): Server {
   const toolsByName = new Map(tools.map((tool) => [tool.name, tool]))
   const server = new Server({ name: 'ciphers', version }, { capabilities: { tools: {} } })

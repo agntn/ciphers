@@ -11,26 +11,16 @@ import { formatCipherInfo } from '../../../src/tool-operations'
 import type { OutputTheme, RenderedToolResult } from '../../shared/tui'
 import { renderToolResult } from '../../shared/tui'
 
-/**
- * Render a finished call for the tools whose output has no width of its own:
- * a transformed text runs as long as the input allows, and brute force returns
- * 25 such lines. Frequency and info tools keep the generic fallback, since
- * their lines are short and their count is bounded.
- */
 function resultLine(
-  result: RenderedToolResult,
-  options: ToolRenderResultOptions,
-  theme: OutputTheme,
+  result: Readonly<RenderedToolResult>,
+  options: Readonly<ToolRenderResultOptions>,
+  theme: Readonly<OutputTheme>,
 ) {
   return new Text(renderToolResult(result, options, theme), 0, 0)
 }
 
-/** Lazy-load the library (registers all ciphers on import). */
 async function loadLib() {
-  const mod = await import('@agntn/ciphers').catch(() => {
-    // @ts-expect-error — dev fallback when library isn't built yet
-    return import('../../../src/index.ts')
-  })
+  const mod = await import('@agntn/ciphers').catch(() => import('../../../src/index.ts'))
   return mod as typeof CiphersModule
 }
 
@@ -76,21 +66,38 @@ const cipherParams = Type.Object({
 })
 
 type CipherParams = Static<typeof cipherParams>
+type PiToolResult = AgentToolResult<Record<string, unknown>>
 
-/** Extract cipher-specific options from tool params. */
-function buildOpts(params: CipherParams): Record<string, unknown> {
+function textToolResult(text: string): PiToolResult {
+  return { content: [{ type: 'text', text }], details: {} }
+}
+
+function withRequiredDetails(result: {
+  readonly content: ReadonlyArray<{ readonly type: 'text'; readonly text: string }>
+  readonly details?: Readonly<Record<string, unknown>>
+}): PiToolResult {
+  return { content: [...result.content], details: { ...result.details } }
+}
+
+function buildOpts(params: Readonly<CipherParams>): Record<string, unknown> {
   const opts: Record<string, unknown> = {}
-  if (params.shift !== undefined) opts.shift = params.shift
+  const optionNames = [
+    'shift',
+    'rails',
+    'period',
+    'a',
+    'b',
+    'preserveCase',
+    'stripNonAlpha',
+    'positions',
+    'rings',
+    'plugboard',
+  ] as const
+  for (const name of optionNames) {
+    const value = params[name]
+    if (value !== undefined) opts[name] = value
+  }
   if (params.key) opts.key = params.key
-  if (params.rails !== undefined) opts.rails = params.rails
-  if (params.period !== undefined) opts.period = params.period
-  if (params.a !== undefined) opts.a = params.a
-  if (params.b !== undefined) opts.b = params.b
-  if (params.preserveCase !== undefined) opts.preserveCase = params.preserveCase
-  if (params.stripNonAlpha !== undefined) opts.stripNonAlpha = params.stripNonAlpha
-  if (params.positions !== undefined) opts.positions = params.positions
-  if (params.rings !== undefined) opts.rings = params.rings
-  if (params.plugboard !== undefined) opts.plugboard = params.plugboard
   return opts
 }
 
@@ -110,7 +117,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         return new Text(`🔐 encode ${args.cipher}: "${args.text}"`, 0, 0)
       },
       renderResult: resultLine,
-      async execute(_toolCallId, params): Promise<AgentToolResult> {
+      async execute(_toolCallId, params): Promise<PiToolResult> {
         try {
           const lib = await loadLib()
           const cipher = lib.resolveCipher(params.cipher)
@@ -125,7 +132,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e)
-          return { content: [{ type: 'text', text: `Error: ${msg}` }] }
+          return textToolResult(`Error: ${msg}`)
         }
       },
     }),
@@ -147,7 +154,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         return new Text(`🔓 decode ${args.cipher}: "${args.text}"`, 0, 0)
       },
       renderResult: resultLine,
-      async execute(_toolCallId, params): Promise<AgentToolResult> {
+      async execute(_toolCallId, params): Promise<PiToolResult> {
         try {
           const lib = await loadLib()
           const cipher = lib.resolveCipher(params.cipher)
@@ -162,7 +169,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e)
-          return { content: [{ type: 'text', text: `Error: ${msg}` }] }
+          return textToolResult(`Error: ${msg}`)
         }
       },
     }),
@@ -187,7 +194,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         return new Text(`🔍 brute caesar: "${args.text}"`, 0, 0)
       },
       renderResult: resultLine,
-      async execute(_toolCallId, params): Promise<AgentToolResult> {
+      async execute(_toolCallId, params): Promise<PiToolResult> {
         try {
           const lib = await loadLib()
           const cipher = lib.create('caesar')
@@ -196,10 +203,10 @@ export default function ciphersExtension(pi: ExtensionAPI) {
             const result = cipher.decode(params.text, { shift })
             lines.push(`shift=${String(shift).padStart(2)} → ${result.text}`)
           }
-          return { content: [{ type: 'text', text: lines.join('\n') }] }
+          return textToolResult(lines.join('\n'))
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e)
-          return { content: [{ type: 'text', text: `Error: ${msg}` }] }
+          return textToolResult(`Error: ${msg}`)
         }
       },
     }),
@@ -226,12 +233,12 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       renderCall(args, _theme) {
         return new Text(`📊 frequency: "${args.text.slice(0, 40)}..."`, 0, 0)
       },
-      async execute(_toolCallId, params): Promise<AgentToolResult> {
+      async execute(_toolCallId, params): Promise<PiToolResult> {
         const lib = await loadLib()
         const language = params.lang === 'pl' ? 'pl' : 'en'
         const analysis = lib.analyzeFrequency(params.text, language)
         if (analysis === undefined) {
-          return { content: [{ type: 'text', text: 'No letters found in input.' }] }
+          return textToolResult('No letters found in input.')
         }
 
         const maximum = analysis.counts[0]?.[1] ?? 1
@@ -245,14 +252,16 @@ export default function ciphersExtension(pi: ExtensionAPI) {
             `  ${character} ${String(count).padStart(4)} (${percentage.padStart(5)}%) ${bar}`,
           )
         }
-        lines.push(`\nExpected (${analysis.language}): ${analysis.reference.split('').join(' ')}`)
-        lines.push(`Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`)
+        lines.push(
+          `\nExpected (${analysis.language}): ${analysis.reference.split('').join(' ')}`,
+          `Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`,
+        )
         if (analysis.ic !== undefined) {
           lines.push(
             `Index of coincidence: ${analysis.ic.toFixed(4)} (English ~0.067, uniform random ~0.038)`,
           )
         }
-        return { content: [{ type: 'text', text: lines.join('\n') }] }
+        return textToolResult(lines.join('\n'))
       },
     }),
   )
@@ -281,12 +290,12 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       renderCall(args, _theme) {
         return new Text(`ℹ️ cipher info${args.cipher ? `: ${args.cipher}` : ''}`, 0, 0)
       },
-      async execute(_toolCallId, params): Promise<AgentToolResult> {
+      async execute(_toolCallId, params): Promise<PiToolResult> {
         try {
-          return formatCipherInfo(await loadLib(), params.cipher)
+          return withRequiredDetails(formatCipherInfo(await loadLib(), params.cipher))
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e)
-          return { content: [{ type: 'text', text: `Error: ${msg}` }] }
+          return textToolResult(`Error: ${msg}`)
         }
       },
     }),

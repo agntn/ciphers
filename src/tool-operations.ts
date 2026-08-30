@@ -26,7 +26,7 @@ export type CipherToolResult = {
   details?: Record<string, unknown>
 }
 
-function cipherOptions(params: CipherToolParams): Record<string, unknown> {
+function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unknown> {
   const options: Record<string, unknown> = {}
   for (const name of [
     'shift',
@@ -47,9 +47,9 @@ function cipherOptions(params: CipherToolParams): Record<string, unknown> {
 }
 
 export function transformCipher(
-  library: CiphersLibrary,
+  library: Readonly<CiphersLibrary>,
   operation: 'encode' | 'decode',
-  params: CipherToolParams,
+  params: Readonly<CipherToolParams>,
 ): CipherToolResult {
   const result = library.resolveCipher(params.cipher)[operation](params.text, cipherOptions(params))
   return {
@@ -58,19 +58,28 @@ export function transformCipher(
   }
 }
 
-export function formatCipherInfo(library: CiphersLibrary, cipherName?: string): CipherToolResult {
+export function formatCipherInfo(
+  library: Readonly<CiphersLibrary>,
+  cipherName?: string,
+): CipherToolResult {
   if (cipherName === undefined) {
-    const lines = library.ciphers().map((name) => {
-      const info = library.create(name).info()
-      return `${name} [${info.family}] — ${info.description}`
-    })
-    lines.push('', 'Call cipher_info with a cipher name to see its options.')
+    const lines = [
+      ...library.ciphers().map((name) => {
+        const info = library.create(name).info()
+        return `${name} [${info.family}] — ${info.description}`
+      }),
+      '',
+      'Call cipher_info with a cipher name to see its options.',
+    ]
     return { content: [{ type: 'text', text: lines.join('\n') }] }
   }
 
   const info = library.resolveCipher(cipherName).info()
-  const lines = [`${info.label} (${info.name}) — ${info.family}`, info.description]
-  lines.push(`Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)
+  const lines = [
+    `${info.label} (${info.name}) — ${info.family}`,
+    info.description,
+    `Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`,
+  ]
   if (info.keyspace) lines.push(`Keyspace: ${info.keyspace}`)
   if (info.options.length > 0) {
     lines.push('Options:')
@@ -82,7 +91,10 @@ export function formatCipherInfo(library: CiphersLibrary, cipherName?: string): 
   return { content: [{ type: 'text', text: lines.join('\n') }], details: { info } }
 }
 
-export function bruteForceCaesar(library: CiphersLibrary, text: string): CipherToolResult {
+export function bruteForceCaesar(
+  library: Readonly<CiphersLibrary>,
+  text: string,
+): CipherToolResult {
   const cipher = library.create('caesar')
   const lines: string[] = []
   for (let shift = 1; shift <= 25; shift++) {
@@ -93,7 +105,7 @@ export function bruteForceCaesar(library: CiphersLibrary, text: string): CipherT
 }
 
 export function formatFrequencyAnalysis(
-  library: CiphersLibrary,
+  library: Readonly<CiphersLibrary>,
   text: string,
   language?: 'en' | 'pl',
 ): CipherToolResult {
@@ -109,8 +121,11 @@ export function formatFrequencyAnalysis(
     const bar = '#'.repeat(Math.ceil((count / maximum) * 15))
     lines.push(`  ${character} ${String(count).padStart(4)} (${percentage.padStart(5)}%) ${bar}`)
   }
-  lines.push('', `Expected (${analysis.language}): ${analysis.reference.split('').join(' ')}`)
-  lines.push(`Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`)
+  lines.push(
+    '',
+    `Expected (${analysis.language}): ${analysis.reference.split('').join(' ')}`,
+    `Actual:         ${analysis.counts.map(([character]) => character).join(' ')}`,
+  )
   if (analysis.ic !== undefined) {
     lines.push(
       `Index of coincidence: ${analysis.ic.toFixed(4)} (English ~0.067, uniform random ~0.038)`,

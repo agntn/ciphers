@@ -1,10 +1,33 @@
 #!/usr/bin/env node
-import { runMain, defineCommand } from 'citty'
+import { runMain, defineCommand, type ArgsDef, type CommandDef } from 'citty'
 import { normalizeMainArgs } from './cli-args'
+import { CipherError } from './core/errors'
 import { version } from './version'
 
 // Register all ciphers
 import './ciphers/index'
+
+async function loadCommand<T extends ArgsDef>(
+  loader: () => Promise<{ readonly default: CommandDef<T> }>,
+): Promise<CommandDef<T>> {
+  const command = (await loader()).default
+  const run = command.run
+  if (!run) return command
+
+  return {
+    ...command,
+    async run(context) {
+      try {
+        const result: unknown = await run(context)
+        return result
+      } catch (error) {
+        if (!(error instanceof CipherError)) throw error
+        process.stderr.write(`${error.message}\n`)
+        process.exitCode = 1
+      }
+    },
+  }
+}
 
 const main = defineCommand({
   meta: {
@@ -13,13 +36,13 @@ const main = defineCommand({
     description: 'ciphers: educational and puzzle cipher encode/decode/analyze CLI',
   },
   subCommands: {
-    encode: () => import('./commands/encode').then((m) => m.default),
-    decode: () => import('./commands/decode').then((m) => m.default),
-    ciphers: () => import('./commands/ciphers').then((m) => m.default),
-    info: () => import('./commands/info').then((m) => m.default),
-    brute: () => import('./commands/brute').then((m) => m.default),
-    mcp: () => import('./commands/mcp').then((m) => m.default),
-    frequency: () => import('./commands/frequency').then((m) => m.default),
+    encode: () => loadCommand(() => import('./commands/encode')),
+    decode: () => loadCommand(() => import('./commands/decode')),
+    ciphers: () => loadCommand(() => import('./commands/ciphers')),
+    info: () => loadCommand(() => import('./commands/info')),
+    brute: () => loadCommand(() => import('./commands/brute')),
+    mcp: () => loadCommand(() => import('./commands/mcp')),
+    frequency: () => loadCommand(() => import('./commands/frequency')),
   },
 })
 

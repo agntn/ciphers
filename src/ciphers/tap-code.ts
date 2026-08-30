@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
-import { normalizeError } from '../core/errors'
+import { CipherError, normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
 // Tap code uses a 5×5 Polybius square (C/K share)
@@ -50,13 +50,22 @@ function encodeTapCode(text: string): string {
 
 function decodeTapCode(text: string): string {
   // Input: space-separated digit pairs like "2 3 1 5 3 1 3 1 3 4"
-  const nums = text
-    .trim()
-    .split(/\s+/)
-    .map(Number)
-    .filter((n) => n >= 1 && n <= 5)
+  const trimmed = text.trim()
+  if (trimmed === '') return ''
+
+  const tokens = trimmed.split(/\s+/)
+  const nums = tokens.map((token, index) => {
+    if (!/^[1-5]$/.test(token)) {
+      throw new CipherError(`Invalid tap code coordinate at position ${index + 1}`)
+    }
+    return Number(token)
+  })
+  if (nums.length % 2 !== 0) {
+    throw new CipherError('Invalid tap code: coordinate count must be even')
+  }
+
   let result = ''
-  for (let i = 0; i + 1 < nums.length; i += 2) {
+  for (let i = 0; i < nums.length; i += 2) {
     result += tapReverse(nums[i]!, nums[i + 1]!)
   }
   return result

@@ -3,6 +3,7 @@ import '../../src/index'
 import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'
+import { CipherError } from '../../src/core/errors'
 
 describe('registry', () => {
   it('registers all 18 ciphers', () => {
@@ -444,6 +445,25 @@ describe('tap-code', () => {
     const kResult = tap.encode('K')
     const cResult = tap.encode('C')
     expect(kResult.text).toBe(cResult.text)
+  })
+
+  it.each([
+    ['2 3 0 1 5', 3],
+    ['6 3 1 5', 1],
+    ['2 3 X 1', 3],
+    ['2 3 1 1.5', 4],
+  ])('rejects malformed stream %s before pairing', (input, position) => {
+    expect(() => tap.decode(input)).toThrow(CipherError)
+    expect(() => tap.decode(input)).toThrow(`Invalid tap code coordinate at position ${position}`)
+  })
+
+  it('rejects an odd coordinate count', () => {
+    expect(() => tap.decode('2 3 1')).toThrow(CipherError)
+    expect(() => tap.decode('2 3 1')).toThrow('Invalid tap code: coordinate count must be even')
+  })
+
+  it('keeps whitespace-only input empty', () => {
+    expect(tap.decode('   ').text).toBe('')
   })
 })
 

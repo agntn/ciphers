@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.1.5
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.1.4...v0.1.5)
+
+### 🚀 Enhancements
+
+- Add cipher_info and the index of coincidence ([#20](https://github.com/agntn/ciphers/pull/20))
+
+### 🔥 Performance
+
+- Clip collapsed cipher result previews ([#24](https://github.com/agntn/ciphers/pull/24))
+
+### 🩹 Fixes
+
+- Keep the OMP loader imports literal ([#21](https://github.com/agntn/ciphers/pull/21))
+- Ship the CLI with a shebang ([#23](https://github.com/agntn/ciphers/pull/23))
+- **omp:** Restore the extension typecheck ([#28](https://github.com/agntn/ciphers/pull/28))
+- **tap-code:** Prevent malformed pair realignment ([#29](https://github.com/agntn/ciphers/pull/29))
+- **cli:** Stop dumping domain error stacks ([#31](https://github.com/agntn/ciphers/pull/31))
+- **columnar:** Keep whitespace in roundtrips ([#32](https://github.com/agntn/ciphers/pull/32))
+
+### 🏡 Chore
+
+- Use shared ox checks in ciphers ([#30](https://github.com/agntn/ciphers/pull/30))
+
+### ❤️ Contributors
+
+- Ori ([@oritwoen](https://github.com/oritwoen))
+- Aeitwoen <aeitwoen@gmail.com>
+
 ## v0.1.4
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.1.3...v0.1.4)

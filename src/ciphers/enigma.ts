@@ -12,7 +12,11 @@ const ROTORS = [
 ] as const
 const REFLECTOR_B = 'YRUHQSLDPXNGOKMIEBFZCWVJAT'
 
-function stringOption(options: CipherBaseOptions, name: string, fallback: string): string {
+function stringOption(
+  options: Readonly<CipherBaseOptions>,
+  name: string,
+  fallback: string,
+): string {
   const value = getOpt<unknown>(options, name, fallback)
   if (typeof value !== 'string') throw new InvalidOptionError(name, value, 'must be a string')
   return value
@@ -22,7 +26,7 @@ function parseLetters(value: string, name: string): { normalized: string; values
   if (!/^[A-Za-z]{3}$/.test(value))
     throw new InvalidOptionError(name, value, 'must be exactly three letters A-Z')
   const normalized = value.toUpperCase()
-  return { normalized, values: Array.from(normalized, (letter) => letter.charCodeAt(0) - 65) }
+  return { normalized, values: Array.from(normalized, (letter) => letter.codePointAt(0)! - 65) }
 }
 
 function parsePlugboard(value: string): { normalized: string; wiring: number[] } {
@@ -45,24 +49,26 @@ function parsePlugboard(value: string): { normalized: string; wiring: number[] }
     }
     used.add(a!)
     used.add(b!)
-    const ai = a!.charCodeAt(0) - 65
-    const bi = b!.charCodeAt(0) - 65
+    const ai = a!.codePointAt(0)! - 65
+    const bi = b!.codePointAt(0)! - 65
     wiring[ai] = bi
     wiring[bi] = ai
   }
   return { normalized: value.toUpperCase(), wiring }
 }
 
+type RotorPositions = readonly [number, number, number]
+
 interface EnigmaConfig {
-  positions: number[]
-  rings: number[]
-  plugboard: number[]
-  preserveCase: boolean
-  stripNonAlpha: boolean
-  resultOptions: Record<string, unknown>
+  readonly positions: readonly number[]
+  readonly rings: readonly number[]
+  readonly plugboard: readonly number[]
+  readonly preserveCase: boolean
+  readonly stripNonAlpha: boolean
+  readonly resultOptions: Readonly<Record<string, unknown>>
 }
 
-function parseConfig(options: CipherBaseOptions): EnigmaConfig {
+function parseConfig(options: Readonly<CipherBaseOptions>): EnigmaConfig {
   const positions = parseLetters(stringOption(options, 'positions', 'AAA'), 'positions')
   const rings = parseLetters(stringOption(options, 'rings', 'AAA'), 'rings')
   const plugboard = parsePlugboard(stringOption(options, 'plugboard', '').trim())
@@ -93,40 +99,52 @@ function throughRotor(
 ): number {
   const wiring = ROTORS[rotorIndex]!.wiring
   const shifted = mod26(value + position - ring)
-  const wired = reverse ? wiring.indexOf(ALPHABET[shifted]!) : wiring.charCodeAt(shifted) - 65
+  const wired = reverse ? wiring.indexOf(ALPHABET[shifted]!) : wiring.codePointAt(shifted)! - 65
   return mod26(wired - position + ring)
 }
 
+function stepRotors(positions: RotorPositions): RotorPositions {
+  const middleAtNotch = positions[1] === ROTORS[1].notch.codePointAt(0)! - 65
+  const rightAtNotch = positions[2] === ROTORS[2].notch.codePointAt(0)! - 65
+  return [
+    middleAtNotch ? mod26(positions[0] + 1) : positions[0],
+    middleAtNotch || rightAtNotch ? mod26(positions[1] + 1) : positions[1],
+    mod26(positions[2] + 1),
+  ]
+}
+
+function transformLetter(
+  character: string,
+  positions: RotorPositions,
+  config: EnigmaConfig,
+): string {
+  const input = character.toUpperCase().codePointAt(0)! - 65
+  let value = config.plugboard[input]!
+  for (let rotor = 2; rotor >= 0; rotor--)
+    value = throughRotor(value, rotor, positions[rotor]!, config.rings[rotor]!, false)
+  value = REFLECTOR_B.codePointAt(value)! - 65
+  for (let rotor = 0; rotor < 3; rotor++)
+    value = throughRotor(value, rotor, positions[rotor]!, config.rings[rotor]!, true)
+  value = config.plugboard[value]!
+
+  const encoded = ALPHABET[value]!
+  const isLower = character >= 'a' && character <= 'z'
+  return config.preserveCase && isLower ? encoded.toLowerCase() : encoded
+}
+
 function transform(text: string, config: EnigmaConfig): string {
-  const positions = [...config.positions]
-  const { rings, plugboard, stripNonAlpha, preserveCase } = config
+  let positions: RotorPositions = [config.positions[0]!, config.positions[1]!, config.positions[2]!]
   let output = ''
 
   for (const character of text) {
-    const isUpper = character >= 'A' && character <= 'Z'
-    const isLower = character >= 'a' && character <= 'z'
-    if (!isUpper && !isLower) {
-      if (!stripNonAlpha) output += character
+    const isAsciiLetter =
+      (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z')
+    if (!isAsciiLetter) {
+      if (!config.stripNonAlpha) output += character
       continue
     }
-    const input = (isUpper ? character : character.toUpperCase()).charCodeAt(0) - 65
-
-    const middleAtNotch = positions[1] === ROTORS[1].notch.charCodeAt(0) - 65
-    const rightAtNotch = positions[2] === ROTORS[2].notch.charCodeAt(0) - 65
-    if (middleAtNotch) positions[0] = mod26(positions[0]! + 1)
-    if (middleAtNotch || rightAtNotch) positions[1] = mod26(positions[1]! + 1)
-    positions[2] = mod26(positions[2]! + 1)
-
-    let value = plugboard[input]!
-    for (let rotor = 2; rotor >= 0; rotor--)
-      value = throughRotor(value, rotor, positions[rotor]!, rings[rotor]!, false)
-    value = REFLECTOR_B.charCodeAt(value) - 65
-    for (let rotor = 0; rotor < 3; rotor++)
-      value = throughRotor(value, rotor, positions[rotor]!, rings[rotor]!, true)
-    value = plugboard[value]!
-
-    const encoded = ALPHABET[value]!
-    output += preserveCase && isLower ? encoded.toLowerCase() : encoded
+    positions = stepRotors(positions)
+    output += transformLetter(character, positions, config)
   }
 
   return output
@@ -171,7 +189,7 @@ class Enigma extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const config = parseConfig(options ?? {})
       return {
@@ -185,7 +203,7 @@ class Enigma extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const config = parseConfig(options ?? {})
       return {

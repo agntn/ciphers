@@ -3,7 +3,7 @@ import { create } from '../../src'
 import ciphersExtension from '../../packages/pi/extensions/ciphers'
 
 type ToolResult = {
-  content: Array<{ type: string; text: string }>
+  readonly content: ReadonlyArray<{ readonly type: string; readonly text: string }>
 }
 
 type RegisteredTool = {
@@ -11,11 +11,11 @@ type RegisteredTool = {
   parameters: {
     properties?: Record<string, unknown>
   }
-  execute(toolCallId: string, params: Record<string, unknown>): Promise<ToolResult>
+  execute(toolCallId: string, params: Readonly<Record<string, unknown>>): Promise<ToolResult>
   renderResult?: (
-    result: ToolResult,
-    options: { expanded: boolean; isPartial: boolean },
-    theme: Record<string, unknown>,
+    result: Readonly<ToolResult>,
+    options: Readonly<{ expanded: boolean; isPartial: boolean }>,
+    theme: Readonly<Record<string, unknown>>,
   ) => unknown
 }
 

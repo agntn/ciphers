@@ -64,7 +64,7 @@ function decodeColumnar(text: string, key: string): string {
   return result.trimEnd()
 }
 
-function validate(opts: CipherBaseOptions): { key: string } {
+function validate(opts: Readonly<CipherBaseOptions>): { key: string } {
   const key = getOpt<string | undefined>(opts, 'key', undefined)
   if (!key) throw new MissingOptionError('key')
   return { key }
@@ -108,7 +108,7 @@ class Columnar extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key } = validate(options ?? {})
       const ck = cipherCacheKey('encode', text, { key })
@@ -125,7 +125,7 @@ class Columnar extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key } = validate(options ?? {})
       const ck = cipherCacheKey('decode', text, { key })

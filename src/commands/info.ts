@@ -10,7 +10,7 @@ export default defineCommand({
   async run({ args }) {
     const cipher = resolveCipher(args.cipher)
     const info = cipher.info()
-    consola.info(`\x1b[1m${info.label}\x1b[0m (${info.name})`)
+    consola.info(`\x1B[1m${info.label}\x1B[0m (${info.name})`)
     consola.info(`  ${info.description}`)
     consola.info(`  Family: ${info.family}`)
     consola.info(`  Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)

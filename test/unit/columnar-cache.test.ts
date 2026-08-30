@@ -1,7 +1,22 @@
 import { describe, it, expect } from 'vite-plus/test'
 import '../../src/index'
+import type { Cipher } from '../../src/core/cipher'
 import { create } from '../../src/core/registry'
 import { LruCache, RateLimiter, cipherCacheKey } from '../../src/core/utils'
+
+interface ResettableCipher extends Cipher {
+  reset(): void
+}
+
+function isResettableCipher(cipher: Readonly<Cipher>): cipher is ResettableCipher {
+  return 'reset' in cipher && typeof cipher.reset === 'function'
+}
+
+function createColumnar(): ResettableCipher {
+  const cipher = create('columnar')
+  if (!isResettableCipher(cipher)) throw new TypeError('Columnar cipher does not expose reset()')
+  return cipher
+}
 
 // ── LruCache unit tests ─────────────────────────────────────────────────
 
@@ -122,7 +137,7 @@ describe('cipherCacheKey', () => {
 // ── Columnar cipher: cache behavior ─────────────────────────────────────
 
 describe('columnar — cache', () => {
-  const col = create('columnar')
+  const col = createColumnar()
 
   it('caches encode results (same input = same object reference)', () => {
     col.reset()
@@ -171,7 +186,7 @@ describe('columnar — cache', () => {
 
 describe('columnar — rate limit', () => {
   it('allows normal-rate calls', () => {
-    const col = create('columnar')
+    const col = createColumnar()
     col.reset()
     // A few calls should be fine (100/sec default)
     for (let i = 0; i < 10; i++) {
@@ -181,19 +196,22 @@ describe('columnar — rate limit', () => {
   })
 
   it('throws RateLimitError when limit exceeded', () => {
-    const col = create('columnar')
+    const col = createColumnar()
     col.reset()
     // Burn through the 100/sec budget with rapid-fire calls (cache bypass: different texts)
     let throttled = false
     for (let i = 0; i < 200; i++) {
       try {
         col.encode(`TEXT-${i}-${Math.random()}`, { key: 'BURST' })
-      } catch (e: any) {
-        if (e.name === 'RateLimitError' || e.message.includes('Rate limit')) {
+      } catch (error: unknown) {
+        if (
+          error instanceof Error &&
+          (error.name === 'RateLimitError' || error.message.includes('Rate limit'))
+        ) {
           throttled = true
           break
         }
-        throw e
+        throw error
       }
     }
     col.reset() // restore budget for other tests
@@ -201,7 +219,7 @@ describe('columnar — rate limit', () => {
   })
 
   it('RateLimitError is wrapped as CipherError', () => {
-    const col = create('columnar')
+    const col = createColumnar()
     col.reset()
     // Force rate limit
     for (let i = 0; i < 200; i++) {
@@ -212,8 +230,8 @@ describe('columnar — rate limit', () => {
     let gotCipherError = false
     try {
       col.encode(`OVERFLOW-${Date.now()}`, { key: 'K' })
-    } catch (e: any) {
-      if (e.name === 'CipherError') gotCipherError = true
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'CipherError') gotCipherError = true
     }
     col.reset() // restore budget for other tests
     expect(gotCipherError).toBe(true)
@@ -224,7 +242,7 @@ describe('columnar — rate limit', () => {
 
 describe('columnar — backwards compatibility', () => {
   it('encodes with key', () => {
-    const col = create('columnar')
+    const col = createColumnar()
     col.reset()
     expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe(
       'N W ETSLD ALEE  DEA FHT',
@@ -232,7 +250,7 @@ describe('columnar — backwards compatibility', () => {
   })
 
   it('roundtrips', () => {
-    const col = create('columnar')
+    const col = createColumnar()
     col.reset()
     const encoded = col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' })
     const decoded = col.decode(encoded.text, { key: 'GERMAN' })
@@ -240,13 +258,13 @@ describe('columnar — backwards compatibility', () => {
   })
 
   it('requires key', () => {
-    const col = create('columnar')
+    const col = createColumnar()
     col.reset()
     expect(() => col.encode('TEST')).toThrow()
   })
 
   it('info() returns correct metadata', () => {
-    const col = create('columnar')
+    const col = createColumnar()
     const info = col.info()
     expect(info.name).toBe('columnar')
     expect(info.family).toBe('transposition')
@@ -256,7 +274,7 @@ describe('columnar — backwards compatibility', () => {
   })
 
   it('encode/decode results have correct shape', () => {
-    const col = create('columnar')
+    const col = createColumnar()
     col.reset()
     const r = col.encode('HELLO', { key: 'AB' })
     expect(r).toHaveProperty('text')

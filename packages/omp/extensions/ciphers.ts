@@ -26,7 +26,6 @@ const sourcePath = fileURLToPath(new URL('../../../src/index.ts', import.meta.ur
 const checkoutMarker = new URL('../../../.git', import.meta.url)
 let libraryPromise: Promise<CiphersLibrary> | undefined
 
-/** Load source in a Git checkout, or the built package export after installation. */
 function loadLibrary(): Promise<CiphersLibrary> {
   const isCheckout = existsSync(fileURLToPath(checkoutMarker))
   libraryPromise ??=
@@ -36,21 +35,22 @@ function loadLibrary(): Promise<CiphersLibrary> {
   return libraryPromise
 }
 
-/** Register local educational and puzzle-cipher tools in OMP. */
+/**
+ * Register local educational and puzzle-cipher tools in OMP.
+ *
+ * @param omp - OMP extension API supplied by the host.
+ */
 export default function ciphersExtension(omp: ExtensionAPI): void {
   const { Type } = omp.typebox
   // The host injects its own TUI exports, so the wrapper renders with the
   // running Text component instead of pulling in a second copy of it.
   const { Text } = omp.pi
 
-  /**
-   * Render a finished call for the tools whose output has no width of its own:
-   * a transformed text runs as long as the input allows, and brute force
-   * returns 25 such lines. Frequency and info keep the generic fallback, since
-   * their lines are short and their count is bounded.
-   */
-  const resultLine = (result: RenderedToolResult, options: RenderOptions, theme: OutputTheme) =>
-    new Text(renderToolResult(result, options, theme), 0, 0)
+  const resultLine = (
+    result: Readonly<RenderedToolResult>,
+    options: Readonly<RenderOptions>,
+    theme: Readonly<OutputTheme>,
+  ) => new Text(renderToolResult(result, options, theme), 0, 0)
 
   const cipherParams = Type.Object({
     cipher: Type.String({ maxLength: 32, description: 'Exact built-in cipher name' }),

@@ -5,33 +5,17 @@ import { normalizeError } from '../core/errors'
 import { register } from '../core/registry'
 
 const ADFGVX_LETTERS = 'ADFGVX'
+const GRID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 // 6×6 grid: 26 letters + 10 digits, keyed
 function buildAdfgvxGrid(key?: string): { grid: string[][]; pos: Map<string, [number, number]> } {
   const seen = new Set<string>()
   const chars: string[] = []
-  const src = (key ?? '').toUpperCase()
-  for (const c of src) {
-    if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
-      if (!seen.has(c)) {
-        seen.add(c)
-        chars.push(c)
-      }
-    }
-  }
-  for (let i = 65; i <= 90; i++) {
-    const c = String.fromCharCode(i)
-    if (!seen.has(c)) {
-      seen.add(c)
-      chars.push(c)
-    }
-  }
-  for (let i = 48; i <= 57; i++) {
-    const c = String.fromCharCode(i)
-    if (!seen.has(c)) {
-      seen.add(c)
-      chars.push(c)
-    }
+  const candidates = `${(key ?? '').toUpperCase()}${GRID_ALPHABET}`
+  for (const character of candidates) {
+    if (!GRID_ALPHABET.includes(character) || seen.has(character)) continue
+    seen.add(character)
+    chars.push(character)
   }
   const grid: string[][] = []
   const pos = new Map<string, [number, number]>()
@@ -48,7 +32,7 @@ function buildAdfgvxGrid(key?: string): { grid: string[][]; pos: Map<string, [nu
 
 function encodeAdfgvx(text: string, key?: string): string {
   const { pos } = buildAdfgvxGrid(key)
-  const normalized = text.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const normalized = text.toUpperCase().replaceAll(/[^A-Z0-9]/g, '')
   let result = ''
   for (const c of normalized) {
     const p = pos.get(c)
@@ -61,7 +45,7 @@ function encodeAdfgvx(text: string, key?: string): string {
 
 function decodeAdfgvx(text: string, key?: string): string {
   const { grid } = buildAdfgvxGrid(key)
-  const clean = text.toUpperCase().replace(/[^ADFGVX]/g, '')
+  const clean = text.toUpperCase().replaceAll(/[^ADFGVX]/g, '')
   let result = ''
   for (let i = 0; i + 1 < clean.length; i += 2) {
     const r = ADFGVX_LETTERS.indexOf(clean[i]!)
@@ -97,7 +81,7 @@ class Adfgvx extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const key = getOpt<string>(options ?? {}, 'key', '')
       return {
@@ -111,7 +95,7 @@ class Adfgvx extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const key = getOpt<string>(options ?? {}, 'key', '')
       return {

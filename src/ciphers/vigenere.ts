@@ -12,8 +12,8 @@ function vigenereProcess(
   stripNonAlpha: boolean,
 ): string {
   let input = text
-  if (stripNonAlpha) input = input.replace(/[^A-Za-z]/g, '')
-  const keyUpper = key.toUpperCase().replace(/[^A-Z]/g, '')
+  if (stripNonAlpha) input = input.replaceAll(/[^A-Za-z]/g, '')
+  const keyUpper = key.toUpperCase().replaceAll(/[^A-Z]/g, '')
   if (keyUpper.length === 0)
     throw new InvalidOptionError('key', key, 'must contain at least one letter')
   let ki = 0
@@ -22,17 +22,17 @@ function vigenereProcess(
     const isLower = c >= 'a' && c <= 'z'
     if (!isUpper && !isLower) return c
     const upper = isUpper ? c : c.toUpperCase()
-    const x = upper.charCodeAt(0) - 65
-    const shift = keyUpper.charCodeAt(ki % keyUpper.length) - 65
+    const x = upper.codePointAt(0)! - 65
+    const shift = keyUpper.codePointAt(ki % keyUpper.length)! - 65
     const effective = decrypt ? (26 - shift) % 26 : shift
     const code = (((x + effective) % 26) + 26) % 26
     ki++
-    const result = String.fromCharCode(code + 65)
+    const result = String.fromCodePoint(code + 65)
     return preserveCase && isLower ? result.toLowerCase() : result
   }).join('')
 }
 
-function validate(opts: CipherBaseOptions): {
+function validate(opts: Readonly<CipherBaseOptions>): {
   key: string
   preserveCase: boolean
   stripNonAlpha: boolean
@@ -67,7 +67,7 @@ class Vigenere extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key, preserveCase, stripNonAlpha } = validate(options ?? {})
       return {
@@ -81,7 +81,7 @@ class Vigenere extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key, preserveCase, stripNonAlpha } = validate(options ?? {})
       return {

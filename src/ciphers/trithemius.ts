@@ -10,7 +10,7 @@ function transform(
   preserveCase: boolean,
   stripNonAlpha: boolean,
 ): string {
-  const input = stripNonAlpha ? text.replace(/[^A-Za-z]/g, '') : text
+  const input = stripNonAlpha ? text.replaceAll(/[^A-Za-z]/g, '') : text
   let position = 0
 
   return Array.from(input, (character) => {
@@ -18,9 +18,9 @@ function transform(
     const isLower = character >= 'a' && character <= 'z'
     if (!isUpper && !isLower) return character
 
-    const code = character.toUpperCase().charCodeAt(0) - 65
+    const code = character.toUpperCase().codePointAt(0)! - 65
     const shift = decrypt ? -position : position
-    const transformed = String.fromCharCode(((((code + shift) % 26) + 26) % 26) + 65)
+    const transformed = String.fromCodePoint(((((code + shift) % 26) + 26) % 26) + 65)
     position++
     return preserveCase && isLower ? transformed.toLowerCase() : transformed
   }).join('')
@@ -43,7 +43,7 @@ class Trithemius extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { preserveCase, stripNonAlpha } = processBaseOptions(options ?? {})
       return {
@@ -57,7 +57,7 @@ class Trithemius extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { preserveCase, stripNonAlpha } = processBaseOptions(options ?? {})
       return {

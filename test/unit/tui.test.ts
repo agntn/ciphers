@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vite-plus/test'
 import { renderToolResult } from '../../packages/shared/tui'
 
-const ESC = String.fromCharCode(27)
-const NUL = String.fromCharCode(0)
-const BEL = String.fromCharCode(7)
+const ESC = String.fromCodePoint(27)
+const NUL = String.fromCodePoint(0)
+const BEL = String.fromCodePoint(7)
 
 /** `fg` is optional on the theme, so a bare object has to render too. */
 const plain = {}
@@ -11,11 +11,10 @@ const plain = {}
 /** Mark the colour a line was painted with, so the tests can read it back. */
 const tagged = { fg: (color: string, text: string) => `<${color}>${text}` }
 
-function textResult(...lines: string[]) {
+function textResult(...lines: readonly string[]) {
   return { content: [{ type: 'text', text: lines.join('\n') }] }
 }
 
-/** What Caesar brute force returns: 25 lines, each as wide as the input. */
 function bruteResult(width: number) {
   const lines = []
   for (let shift = 1; shift <= 25; shift++) {

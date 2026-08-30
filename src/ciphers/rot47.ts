@@ -4,8 +4,8 @@ import { register } from '../core/registry'
 
 function rot47(text: string): string {
   return Array.from(text, (c) => {
-    const code = c.charCodeAt(0)
-    if (code >= 33 && code <= 126) return String.fromCharCode(33 + ((code - 33 + 47) % 94))
+    const code = c.codePointAt(0)!
+    if (code >= 33 && code <= 126) return String.fromCodePoint(33 + ((code - 33 + 47) % 94))
     return c
   }).join('')
 }
@@ -27,11 +27,11 @@ class Rot47 extends Cipher {
     }
   }
 
-  encode(text: string, _options?: CipherBaseOptions): CipherResult {
+  encode(text: string, _options?: Readonly<CipherBaseOptions>): CipherResult {
     return { text: rot47(text), cipher: 'rot47', operation: 'encode', options: {} }
   }
 
-  decode(text: string, _options?: CipherBaseOptions): CipherResult {
+  decode(text: string, _options?: Readonly<CipherBaseOptions>): CipherResult {
     return { text: rot47(text), cipher: 'rot47', operation: 'decode', options: {} }
   }
 }

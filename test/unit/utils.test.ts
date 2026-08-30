@@ -77,7 +77,7 @@ describe('buildPolybiusSquare', () => {
   it('returns a 5x5 grid for empty key', () => {
     const { square, pos } = buildPolybiusSquare()
     expect(square.length).toBe(5)
-    expect(square[0].length).toBe(5)
+    expect(square[0]).toHaveLength(5)
     expect(pos.size).toBeGreaterThan(0)
   })
 

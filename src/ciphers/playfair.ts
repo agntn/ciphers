@@ -9,8 +9,8 @@ import { register } from '../core/registry'
 function prepareText(text: string): string[] {
   const clean = text
     .toUpperCase()
-    .replace(/[^A-Z]/g, '')
-    .replace(/J/g, 'I')
+    .replaceAll(/[^A-Z]/g, '')
+    .replaceAll('J', 'I')
   const bigrams: string[] = []
   let i = 0
   while (i < clean.length) {
@@ -24,8 +24,9 @@ function prepareText(text: string): string[] {
       i += 2
     }
   }
-  if (bigrams.length > 0 && bigrams[bigrams.length - 1]!.length === 1) {
-    bigrams[bigrams.length - 1]! += 'X'
+  const lastBigram = bigrams.at(-1)
+  if (lastBigram?.length === 1) {
+    bigrams[bigrams.length - 1] = `${lastBigram}X`
   }
   return bigrams
 }
@@ -33,8 +34,8 @@ function prepareText(text: string): string[] {
 function pairCiphertext(text: string): string[] {
   const clean = text
     .toUpperCase()
-    .replace(/[^A-Z]/g, '')
-    .replace(/J/g, 'I')
+    .replaceAll(/[^A-Z]/g, '')
+    .replaceAll('J', 'I')
   const bigrams: string[] = []
   for (let i = 0; i < clean.length; i += 2) {
     bigrams.push(clean[i]! + (clean[i + 1] ?? 'X'))
@@ -66,7 +67,7 @@ function processPlayfair(text: string, key: string, decrypt: boolean): string {
   return result.join('')
 }
 
-function validate(opts: CipherBaseOptions): { key: string } {
+function validate(opts: Readonly<CipherBaseOptions>): { key: string } {
   const key = getOpt<string | undefined>(opts, 'key', undefined)
   if (!key) throw new MissingOptionError('key')
   return { key }
@@ -97,7 +98,7 @@ class Playfair extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key } = validate(options ?? {})
       return {
@@ -111,7 +112,7 @@ class Playfair extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key } = validate(options ?? {})
       return {

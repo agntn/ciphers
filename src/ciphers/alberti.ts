@@ -6,7 +6,12 @@ import { getOpt, processBaseOptions } from '../core/utils'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-function parseOptions(options: CipherBaseOptions): {
+function isAsciiLetter(character: string): boolean {
+  const point = character.codePointAt(0)!
+  return (point >= 65 && point <= 90) || (point >= 97 && point <= 122)
+}
+
+function parseOptions(options: Readonly<CipherBaseOptions>): {
   key: string
   period: number
   preserveCase: boolean
@@ -38,23 +43,33 @@ function transform(
 ): string {
   const innerDisk =
     key + Array.from(ALPHABET, (letter) => (key.includes(letter) ? '' : letter)).join('')
-  const input = stripNonAlpha ? text.replace(/[^A-Za-z]/g, '') : text
+  const input = stripNonAlpha ? text.replaceAll(/[^A-Za-z]/g, '') : text
+  let sourceDisk = ALPHABET
+  let targetDisk = innerDisk
+  let direction = 1
+  if (decrypt) {
+    sourceDisk = innerDisk
+    targetDisk = ALPHABET
+    direction = -1
+  }
+
+  let output = ''
   let position = 0
+  for (const character of input) {
+    if (!isAsciiLetter(character)) {
+      output += character
+      continue
+    }
 
-  return Array.from(input, (character) => {
-    const isUpper = character >= 'A' && character <= 'Z'
-    const isLower = character >= 'a' && character <= 'z'
-    if (!isUpper && !isLower) return character
-
+    const isLower = character >= 'a'
+    const upper = isLower ? character.toUpperCase() : character
     const rotation = Math.floor(position / period) % 26
-    const upper = isUpper ? character : character.toUpperCase()
-    const index = decrypt
-      ? (innerDisk.indexOf(upper) - rotation + 26) % 26
-      : (ALPHABET.indexOf(upper) + rotation) % 26
-    const transformed = decrypt ? ALPHABET[index]! : innerDisk[index]!
+    const index = (sourceDisk.indexOf(upper) + direction * rotation + 26) % 26
+    const transformed = targetDisk[index]!
+    output += preserveCase && isLower ? transformed.toLowerCase() : transformed
     position++
-    return preserveCase && isLower ? transformed.toLowerCase() : transformed
-  }).join('')
+  }
+  return output
 }
 
 class Alberti extends Cipher {
@@ -87,7 +102,7 @@ class Alberti extends Cipher {
     }
   }
 
-  encode(text: string, options?: CipherBaseOptions): CipherResult {
+  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key, period, preserveCase, stripNonAlpha } = parseOptions(options ?? {})
       return {
@@ -101,7 +116,7 @@ class Alberti extends Cipher {
     }
   }
 
-  decode(text: string, options?: CipherBaseOptions): CipherResult {
+  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const { key, period, preserveCase, stripNonAlpha } = parseOptions(options ?? {})
       return {

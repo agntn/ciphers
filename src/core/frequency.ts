@@ -16,12 +16,18 @@ const frequencyReferences: Record<FrequencyLanguage, string> = {
   pl: 'AIOEZNSWRCYTKLDPMJUBGFHV',
 }
 
-/** Analyze A-Z letter counts, returning undefined when the input has no Latin letters. */
+/**
+ * Analyze A-Z letter counts.
+ *
+ * @param text - Text to analyze.
+ * @param language - Reference frequency table.
+ * @returns {FrequencyAnalysis | undefined} The analysis, or `undefined` when no A-Z letters occur.
+ */
 export function analyzeFrequency(
   text: string,
   language: FrequencyLanguage = 'en',
 ): FrequencyAnalysis | undefined {
-  const letters = text.toUpperCase().replace(/[^A-Z]/g, '')
+  const letters = text.toUpperCase().replaceAll(/[^A-Z]/g, '')
   if (letters.length === 0) return undefined
 
   const frequencies = new Map<string, number>()

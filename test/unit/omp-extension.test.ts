@@ -3,8 +3,8 @@ import { Type } from '@oh-my-pi/omptype/typebox'
 import ciphersExtension from '../../packages/omp/extensions/ciphers'
 
 type ToolResult = {
-  content: Array<{ type: string; text: string }>
-  isError?: boolean
+  readonly content: ReadonlyArray<{ readonly type: string; readonly text: string }>
+  readonly isError?: boolean
 }
 
 type RegisteredTool = {
@@ -15,11 +15,11 @@ type RegisteredTool = {
   parameters: {
     safeParse(input: unknown): { success: boolean }
   }
-  execute(toolCallId: string, params: Record<string, unknown>): Promise<ToolResult>
+  execute(toolCallId: string, params: Readonly<Record<string, unknown>>): Promise<ToolResult>
   renderResult?: (
-    result: ToolResult,
-    options: { expanded?: boolean },
-    theme: Record<string, unknown>,
+    result: Readonly<ToolResult>,
+    options: Readonly<{ expanded?: boolean }>,
+    theme: Readonly<Record<string, unknown>>,
   ) => RenderedText
 }
 
@@ -45,6 +45,16 @@ function getTool(name: string): RegisteredTool {
   const tool = tools.get(name)
   if (tool === undefined) throw new Error(`Tool not registered: ${name}`)
   return tool
+}
+
+function renderText(
+  toolName: string,
+  result: Readonly<ToolResult>,
+  options: Readonly<{ expanded?: boolean }> = {},
+): string {
+  const renderer = getTool(toolName).renderResult
+  if (renderer === undefined) throw new Error(`Tool has no result renderer: ${toolName}`)
+  return renderer(result, options, {}).text
 }
 
 beforeAll(() => {
@@ -175,13 +185,12 @@ describe('OMP extension', () => {
     const tool = getTool('cipher_brute_caesar')
     const result = await tool.execute('brute', { text: 'K'.repeat(2_000) })
 
-    const collapsed = tool.renderResult?.(result, {}, {})?.text.split('\n')
+    const collapsed = renderText(tool.name, result).split('\n')
     expect(collapsed).toHaveLength(11)
-    for (const line of collapsed?.slice(0, 10) ?? []) expect(line).toHaveLength(200)
-    expect(collapsed?.[10]).toBe('… 15 more lines')
+    for (const line of collapsed.slice(0, 10)) expect(line).toHaveLength(200)
+    expect(collapsed[10]).toBe('… 15 more lines')
 
-    const expanded = tool.renderResult?.(result, { expanded: true }, {})?.text
-    expect(expanded).toBe(result.content[0]?.text)
+    expect(renderText(tool.name, result, { expanded: true })).toBe(result.content[0]?.text)
   })
 
   it('renders encode and decode results through the same preview', async () => {
@@ -196,16 +205,14 @@ describe('OMP extension', () => {
       shift: 3,
     })
 
-    for (const [tool, result] of [
-      [getTool('cipher_encode'), encoded],
-      [getTool('cipher_decode'), decoded],
+    for (const [toolName, result] of [
+      ['cipher_encode', encoded],
+      ['cipher_decode', decoded],
     ] as const) {
-      const preview = tool.renderResult?.(result, {}, {})?.text
+      const preview = renderText(toolName, result)
       expect(preview).toHaveLength(200)
-      expect(preview?.endsWith('…')).toBe(true)
-      expect(tool.renderResult?.(result, { expanded: true }, {})?.text).toBe(
-        result.content[0]?.text,
-      )
+      expect(preview.endsWith('…')).toBe(true)
+      expect(renderText(toolName, result, { expanded: true })).toBe(result.content[0]?.text)
     }
 
     expect(getTool('cipher_info').renderResult).toBeUndefined()

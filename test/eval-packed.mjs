@@ -24,13 +24,19 @@ if (process.platform === 'win32') {
 
 const root = path.resolve(import.meta.dirname, '..')
 
-function run(command, args, options) {
+/**
+ * Run a command from the repository root.
+ *
+ * @param {string} command - Executable path or name.
+ * @param {readonly string[]} args - Command arguments.
+ * @returns {string} Captured standard output.
+ */
+function run(command, args) {
   return execFileSync(command, args, {
     cwd: root,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 60_000,
-    ...options,
   })
 }
 
@@ -44,9 +50,26 @@ try {
   run('tar', ['-xzf', tarball, '-C', temporaryRoot])
 
   const packageRoot = path.join(temporaryRoot, 'package')
+  /** @type {unknown} */
   const manifest = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'))
-  const binEntry = manifest.bin?.ciphers
-  assert.ok(binEntry, 'packed package.json declares no ciphers bin')
+  assert.ok(
+    typeof manifest === 'object' && manifest !== null,
+    'packed package.json is not an object',
+  )
+  assert.ok(
+    'name' in manifest && typeof manifest.name === 'string',
+    'packed package.json has no name',
+  )
+  assert.ok(
+    'version' in manifest && typeof manifest.version === 'string',
+    'packed package.json has no version',
+  )
+  assert.ok('bin' in manifest && typeof manifest.bin === 'object' && manifest.bin !== null)
+  assert.ok(
+    'ciphers' in manifest.bin && typeof manifest.bin.ciphers === 'string',
+    'packed package.json declares no ciphers bin',
+  )
+  const binEntry = manifest.bin.ciphers
   const binPath = path.join(packageRoot, binEntry)
 
   // Both checks run before the CLI does. On a regression the executable would be

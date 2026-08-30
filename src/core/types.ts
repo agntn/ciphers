@@ -78,8 +78,15 @@ export interface PolybiusOptions extends CipherBaseOptions {
   key?: string
 }
 
-/** Get a cipher-specific option with type safety. */
-export function getOpt<T>(opts: CipherBaseOptions, key: string, fallback: T): T {
+/**
+ * Get a cipher-specific option with type safety.
+ *
+ * @param opts - Cipher options to read.
+ * @param key - Option name.
+ * @param fallback - Value returned when the option is absent.
+ * @returns {T} The configured value or `fallback`.
+ */
+export function getOpt<T>(opts: Readonly<CipherBaseOptions>, key: string, fallback: T): T {
   const val = opts[key]
   return val !== undefined ? (val as T) : fallback
 }

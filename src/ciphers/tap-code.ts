@@ -88,7 +88,7 @@ class TapCode extends Cipher {
     }
   }
 
-  encode(text: string, _options?: CipherBaseOptions): CipherResult {
+  encode(text: string, _options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       return { text: encodeTapCode(text), cipher: 'tap-code', operation: 'encode', options: {} }
     } catch (e) {
@@ -96,7 +96,7 @@ class TapCode extends Cipher {
     }
   }
 
-  decode(text: string, _options?: CipherBaseOptions): CipherResult {
+  decode(text: string, _options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       return { text: decodeTapCode(text), cipher: 'tap-code', operation: 'decode', options: {} }
     } catch (e) {

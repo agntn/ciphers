@@ -1,4 +1,4 @@
-import { stripVTControlCharacters } from 'node:util'
+import { stripVTControlCharacters, toUSVString } from 'node:util'
 
 /**
  * Collapsed result previews shared by the Pi and OMP wrappers.
@@ -26,7 +26,7 @@ export interface OutputTheme {
 
 /** View state of the result row, as both harnesses report it. */
 export interface RenderOptions {
-  expanded?: boolean
+  readonly expanded?: boolean
 }
 
 /**
@@ -36,7 +36,7 @@ export interface RenderOptions {
  * image parts, and an image part shares no field with a text one.
  */
 export interface RenderedToolResult {
-  content?: ReadonlyArray<unknown>
+  readonly content?: ReadonlyArray<unknown>
 }
 
 /** Lines the collapsed preview shows before it counts the rest. */
@@ -57,44 +57,43 @@ const COLLAPSED_SCAN_WIDTH = 2048
 const CONTROL_BYTES = /[\u0000-\u001F\u007F-\u009F]/g
 
 /**
- * Cut `text` to `end` code units without splitting a surrogate pair.
+ * Cut a string at a UTF-16 boundary without leaving half a surrogate pair.
  *
- * Half a pair is not a character the terminal can measure or print, so a cut
- * landing inside one gives back the code unit before it.
+ * @param text - String to cut.
+ * @param end - Exclusive code-unit boundary.
+ * @returns {string} The safe prefix.
  */
 function cutAt(text: string, end: number): string {
-  const last = text.charCodeAt(end - 1)
-  return text.slice(0, last >= 0xd800 && last <= 0xdbff ? end - 1 : end)
+  const last = text.codePointAt(end - 1)!
+  const crossesSurrogatePair = last > 0xffff || (last >= 0xd800 && last <= 0xdbff)
+  return text.slice(0, crossesSurrogatePair ? end - 1 : end)
 }
 
 /**
- * Strip everything that would drive the terminal instead of describing the
- * result. Cipher text crosses a trust boundary twice: the model chooses the
- * input, and a cipher that preserves non-letters carries whatever it was given
- * straight into the output. Both harness fallbacks sanitize before printing,
- * and a renderer replacing one has to do the same.
+ * Remove terminal controls and malformed UTF-16 from untrusted cipher output.
+ *
+ * @param text - Text crossing into the terminal renderer.
+ * @returns {string} Safe printable text.
  */
 function sanitize(text: string): string {
-  return stripVTControlCharacters(text.toWellFormed()).replace(CONTROL_BYTES, ' ')
+  return stripVTControlCharacters(toUSVString(text)).replace(CONTROL_BYTES, ' ')
 }
 
-/** Cut one preview line to `max`, marking that the rest is still there. */
 function clip(text: string, max: number): string {
   return text.length <= max ? text : `${cutAt(text, max - 1)}…`
 }
 
-/** Sanitize one line of a collapsed preview and fit it to the preview width. */
 function previewLine(line: string): string {
   const lead = line.length > COLLAPSED_SCAN_WIDTH ? cutAt(line, COLLAPSED_SCAN_WIDTH) : line
   return clip(sanitize(lead), PREVIEW_LINE_WIDTH)
 }
 
 /**
- * Walk `body` line by line, materializing at most `max` of them.
+ * Materialize a bounded line prefix and count the rest.
  *
- * Brute force returns 25 lines where the collapsed view shows ten, and a
- * renderer reruns on every streamed delta, so the hidden lines are counted
- * rather than allocated.
+ * @param body - Multiline result text.
+ * @param max - Maximum lines to retain.
+ * @returns {object} Retained lines and the hidden count.
  */
 function takeLines(body: string, max: number): { lines: string[]; hidden: number } {
   const lines: string[] = []
@@ -114,18 +113,16 @@ function takeLines(body: string, max: number): { lines: string[]; hidden: number
 }
 
 /**
- * Join the text the tool returned, skipping parts that carry no text.
+ * Join text blocks without trimming cipher output.
  *
- * Trailing whitespace is part of the result, not noise around it. A cipher that
- * preserves non-letters carries the spaces at the end of its input straight
- * through, so the renderer hands the text on exactly as the cipher produced it.
+ * @param result - Mixed tool content.
+ * @returns {string} Joined text blocks.
  */
-function resultText(result: RenderedToolResult): string {
+function resultText(result: Readonly<RenderedToolResult>): string {
   const parts: string[] = []
   for (const part of result.content ?? []) {
-    if (typeof part !== 'object' || part === null) continue
-    const text = Reflect.get(part, 'text')
-    if (typeof text === 'string') parts.push(text)
+    if (typeof part !== 'object' || part === null || !('text' in part)) continue
+    if (typeof part.text === 'string') parts.push(part.text)
   }
   return parts.join('\n')
 }
@@ -133,11 +130,16 @@ function resultText(result: RenderedToolResult): string {
 /**
  * Render a finished cipher result: a bounded preview while the row is
  * collapsed, the complete text once it is expanded.
+ *
+ * @param result - Tool result containing text or non-text content blocks.
+ * @param options - Current expansion state.
+ * @param theme - Optional harness color adapter.
+ * @returns {string} Sanitized full output or a bounded preview.
  */
 export function renderToolResult(
-  result: RenderedToolResult,
-  options: RenderOptions,
-  theme: OutputTheme,
+  result: Readonly<RenderedToolResult>,
+  options: Readonly<RenderOptions>,
+  theme: Readonly<OutputTheme>,
 ): string {
   const body = resultText(result)
   if (body.length === 0) return ''

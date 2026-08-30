@@ -9,10 +9,10 @@ export abstract class Cipher {
   abstract info(): CipherInfo
 
   /** Encode plaintext with this cipher. */
-  abstract encode(text: string, options?: CipherBaseOptions): CipherResult
+  abstract encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult
 
   /** Decode ciphertext with this cipher. */
-  abstract decode(text: string, options?: CipherBaseOptions): CipherResult
+  abstract decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult
 }
 
 /** Constructor accepted by the cipher registry. */

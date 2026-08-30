@@ -34,7 +34,13 @@ export class MissingOptionError extends CipherError {
   }
 }
 
-/** Normalizes any thrown value into a CipherError. */
+/**
+ * Normalize any thrown value into a CipherError.
+ *
+ * @param error - Thrown value.
+ * @param cipher - Optional cipher name to include in the message.
+ * @returns {CipherError} The existing or newly wrapped cipher error.
+ */
 export function normalizeError(error: unknown, cipher?: string): CipherError {
   if (error instanceof CipherError) return error
   const msg = error instanceof Error ? error.message : String(error)

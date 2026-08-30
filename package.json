@@ -19,11 +19,11 @@
   "scripts": {
     "build": "obuild",
     "dev": "obuild --stub",
-    "check": "vp check",
-    "lint": "vp lint",
+    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck",
+    "lint": "vp lint --tsconfig ./tsconfig.lint.json",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.omp.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.omp.json && tsc --noEmit -p tsconfig.lint.json",
     "test": "vp test",
     "test:packed": "node test/eval-packed.mjs",
     "prepack": "pnpm run build",
@@ -35,6 +35,7 @@
     "consola": "^3.4.2"
   },
   "devDependencies": {
+    "@agntn/ox": "^0.1.0",
     "@earendil-works/pi-coding-agent": "latest",
     "@earendil-works/pi-tui": "latest",
     "@oh-my-pi/omptype": "17.2.12",
@@ -42,10 +43,13 @@
     "@types/node": "latest",
     "changelogen": "^0.6.2",
     "obuild": "^0.4.36",
+    "oxfmt": "0.64.0",
+    "oxlint": "1.79.0",
+    "oxlint-tsgolint": "7.0.2001",
     "tsx": "^4.22.4",
     "typebox": "^1.1.39",
     "typescript": "^6.0.3",
-    "vite-plus": "0.2.9"
+    "vite-plus": "0.3.0"
   },
   "engines": {
     "node": ">=25"

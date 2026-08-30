@@ -100,7 +100,7 @@ class Morse extends Cipher {
     }
   }
 
-  encode(text: string, _options?: CipherBaseOptions): CipherResult {
+  encode(text: string, _options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       return { text: encodeMorse(text), cipher: 'morse', operation: 'encode', options: {} }
     } catch (e) {
@@ -108,7 +108,7 @@ class Morse extends Cipher {
     }
   }
 
-  decode(text: string, _options?: CipherBaseOptions): CipherResult {
+  decode(text: string, _options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       return { text: decodeMorse(text), cipher: 'morse', operation: 'decode', options: {} }
     } catch (e) {

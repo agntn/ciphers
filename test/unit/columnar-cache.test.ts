@@ -150,8 +150,8 @@ describe('columnar — cache', () => {
 
   it('caches decode results', () => {
     col.reset()
-    const r1 = col.decode('N W ETSLD ALEE  DEA FHT', { key: 'GERMAN' })
-    const r2 = col.decode('N W ETSLD ALEE  DEA FHT', { key: 'GERMAN' })
+    const r1 = col.decode('EVLNACDTESEAROFODEECWIREE', { key: 'ZEBRAS' })
+    const r2 = col.decode('EVLNACDTESEAROFODEECWIREE', { key: 'ZEBRAS' })
     expect(r1.text).toBe(r2.text)
   })
 
@@ -241,12 +241,10 @@ describe('columnar — rate limit', () => {
 // ── Columnar cipher: backwards compatibility ────────────────────────────
 
 describe('columnar — backwards compatibility', () => {
-  it('encodes with key', () => {
+  it('keeps complete-grid encoding stable', () => {
     const col = createColumnar()
     col.reset()
-    expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe(
-      'N W ETSLD ALEE  DEA FHT',
-    )
+    expect(col.encode('ATTACK', { key: 'KEY' }).text).toBe('TCAATK')
   })
 
   it('roundtrips', () => {

@@ -476,16 +476,34 @@ describe('tap-code', () => {
 describe('columnar', () => {
   const col = create('columnar')
 
-  it('encodes with key', () => {
-    expect(col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' }).text).toBe(
-      'N W ETSLD ALEE  DEA FHT',
+  it('matches the irregular ZEBRAS vector', () => {
+    expect(col.encode('WEAREDISCOVEREDFLEEATONCE', { key: 'ZEBRAS' }).text).toBe(
+      'EVLNACDTESEAROFODEECWIREE',
     )
+    expect(col.decode('EVLNACDTESEAROFODEECWIREE', { key: 'ZEBRAS' }).text).toBe(
+      'WEAREDISCOVEREDFLEEATONCE',
+    )
+  })
+
+  it('orders duplicate key letters left to right', () => {
+    expect(col.encode('ABCDEFGHIJK', { key: 'LETTER' }).text).toBe('BHEKAGFCIDJ')
+    expect(col.decode('BHEKAGFCIDJ', { key: 'LETTER' }).text).toBe('ABCDEFGHIJK')
   })
 
   it('roundtrips', () => {
     const encoded = col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' })
     const decoded = col.decode(encoded.text, { key: 'GERMAN' })
     expect(decoded.text).toBe('DEFEND THE EAST WALL')
+  })
+
+  it.each([
+    ['space', 'A '],
+    ['two spaces', 'A  '],
+    ['newline', 'A\n'],
+  ])('roundtrips a trailing %s', (_label, plaintext) => {
+    const encoded = col.encode(plaintext, { key: 'KEY' })
+    expect(Array.from(encoded.text).sort()).toEqual(Array.from(plaintext).sort())
+    expect(col.decode(encoded.text, { key: 'KEY' }).text).toBe(plaintext)
   })
 
   it('roundtrips non-BMP characters', () => {

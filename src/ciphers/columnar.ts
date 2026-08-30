@@ -19,49 +19,38 @@ function encodeColumnar(text: string, key: string): string {
   const order = buildColumnOrder(key)
   const cols = order.length
   const chars = Array.from(text)
-  const rows = Math.ceil(chars.length / cols)
-  while (chars.length < rows * cols) chars.push(' ')
-  const grid: string[][] = []
-  for (let r = 0; r < rows; r++) {
-    grid[r] = chars.slice(r * cols, (r + 1) * cols)
-  }
   const colOrder = order.map((_, i) => order.indexOf(i))
   let result = ''
   for (const col of colOrder) {
-    for (let r = 0; r < rows; r++) {
-      result += grid[r]![col]
+    for (let i = col; i < chars.length; i += cols) {
+      result += chars[i]
     }
   }
-  return result.trimEnd()
+  return result
 }
 
 function decodeColumnar(text: string, key: string): string {
   const order = buildColumnOrder(key)
   const cols = order.length
   const chars = Array.from(text)
-  const rows = Math.ceil(chars.length / cols)
-  const fullLen = rows * cols
-  const padCount = fullLen - chars.length
+  const fullRows = Math.floor(chars.length / cols)
+  const longColumns = chars.length % cols
   const colOrder = order.map((_, i) => order.indexOf(i))
-  const colLens = Array.from({ length: cols }, () => rows)
-  for (let i = cols - padCount; i < cols; i++) {
-    colLens[colOrder[i]!]!--
-  }
   const columns: string[][] = Array.from({ length: cols }, () => [])
-  let idx = 0
+  let offset = 0
   for (const col of colOrder) {
-    const len = colLens[col]!
-    for (let i = 0; i < len; i++) {
-      columns[col]!.push(chars[idx++]!)
-    }
+    const length = fullRows + (col < longColumns ? 1 : 0)
+    columns[col] = chars.slice(offset, offset + length)
+    offset += length
   }
   let result = ''
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (columns[c]![r] !== undefined) result += columns[c]![r]
+  for (let row = 0; row < fullRows + (longColumns > 0 ? 1 : 0); row++) {
+    for (let col = 0; col < cols; col++) {
+      const char = columns[col]?.[row]
+      if (char !== undefined) result += char
     }
   }
-  return result.trimEnd()
+  return result
 }
 
 function validate(opts: Readonly<CipherBaseOptions>): { key: string } {

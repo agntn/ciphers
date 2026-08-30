@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.6
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.1.5...v0.1.6)
+
+### 🩹 Fixes
+
+- **cli:** Print transform results without logger prefixes ([2d41dcb](https://github.com/agntn/ciphers/commit/2d41dcb))
+
+### ❤️ Contributors
+
+- Ori ([@oritwoen](https://github.com/oritwoen))
+
 ## v0.1.5
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.1.4...v0.1.5)

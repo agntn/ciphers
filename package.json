@@ -1,6 +1,6 @@
 {
   "name": "@agntn/ciphers",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Unified educational and puzzle cipher library for agents",
   "repository": {
     "type": "git",

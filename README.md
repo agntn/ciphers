@@ -2,6 +2,8 @@
 
 18 classical ciphers behind one small local API and CLI. Everything runs locally. No HTTP, no API keys, just text transformations for learning and puzzles.
 
+Docs and a playground that runs the library in your browser: [ciphers.agntn.dev](https://ciphers.agntn.dev). The source lives in [`docs/`](./docs), run `pnpm docs` after `pnpm build` for a local copy.
+
 ## Ciphers
 
 | Cipher         | Family                      | Self-inverse | Options                                    |

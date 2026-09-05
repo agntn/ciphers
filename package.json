@@ -19,6 +19,7 @@
   "scripts": {
     "build": "obuild",
     "dev": "obuild --stub",
+    "docs": "pnpm --dir docs dev",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck",
     "lint": "vp lint --tsconfig ./tsconfig.lint.json",
     "format": "vp fmt",

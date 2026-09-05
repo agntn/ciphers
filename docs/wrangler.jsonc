@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agntn-ciphers",
+  "account_id": "6ef8d3cbe19975e93d994f25228488e7",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "NUXT_SITE_URL": "https://ciphers.agntn.dev"
+  },
+  "workers_dev": true,
+  "preview_urls": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agntn-ciphers",
+      "database_id": "b6dd5e3c-dfe8-4d6e-90a3-e6313a0a16ec"
+    }
+  ],
+  "routes": [{ "pattern": "ciphers.agntn.dev", "custom_domain": true }],
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
+}

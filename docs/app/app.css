@@ -1,0 +1,746 @@
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SFMono-Regular", menlo, monospace;
+  --color-fuchsia-50: #fdf4ff;
+  --color-fuchsia-100: #fae8ff;
+  --color-fuchsia-200: #f5d0fe;
+  --color-fuchsia-300: #f0abfc;
+  --color-fuchsia-400: #e879f9;
+  --color-fuchsia-500: #d946ef;
+  --color-fuchsia-600: #c026d3;
+  --color-fuchsia-700: #a21caf;
+  --color-fuchsia-800: #86198f;
+  --color-fuchsia-900: #701a75;
+  --color-fuchsia-950: #4a044e;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  background-color: #eef1f4;
+  background-image: radial-gradient(
+    ellipse 70% 36% at 50% -10%,
+    rgb(192 38 211 / 0.06),
+    transparent 60%
+  );
+  background-repeat: no-repeat;
+}
+
+::selection {
+  background-color: color-mix(in oklch, var(--ui-primary) 28%, transparent);
+}
+
+h1,
+h2,
+h3,
+[data-slot="title"] {
+  letter-spacing: -0.03em;
+  font-weight: 500;
+}
+
+.font-mono,
+code,
+kbd,
+pre,
+samp {
+  font-variant-ligatures: none;
+  font-variant-numeric: tabular-nums;
+}
+
+:root {
+  --ui-bg: #eef1f4;
+  --ui-bg-muted: #e3e8ed;
+  --ui-bg-elevated: #ffffff;
+  --ui-bg-accented: #d5dce3;
+  --ui-border: #c3ccd5;
+  --ui-border-muted: #dde3e9;
+  --ui-border-accented: #a9b4c0;
+  --ui-text-dimmed: #6b7580;
+  --ui-primary: var(--color-fuchsia-700);
+  --ciphers-fill: var(--color-fuchsia-600);
+  --ciphers-fill-hover: var(--color-fuchsia-700);
+  --ciphers-fill-text: #ffffff;
+  --ciphers-line: var(--ui-border);
+  --ciphers-glow: rgb(192 38 211 / 0.1);
+  --ciphers-cell-active: rgb(217 70 239 / 0.08);
+  --ciphers-dots: rgb(15 23 42 / 0.06);
+  --ciphers-frame: 0 0 0 1px var(--ui-border), 0 1px 2px rgb(15 23 42 / 0.06);
+  --shiki-foreground: #1a2430;
+  --shiki-color-text: #1a2430;
+  --shiki-background: transparent;
+  --shiki-token-comment: #6d757e;
+  --shiki-token-keyword: #a21caf;
+  --shiki-token-function: #c026d3;
+  --shiki-token-string: #0369a1;
+  --shiki-token-string-expression: #0369a1;
+  --shiki-token-constant: #9a6b00;
+  --shiki-token-parameter: #334155;
+  --shiki-token-punctuation: #5c6672;
+  --shiki-token-link: #a21caf;
+}
+
+.dark {
+  --ui-bg: #0b0d10;
+  --ui-bg-muted: #11141a;
+  --ui-bg-elevated: #161a20;
+  --ui-bg-accented: #1f242c;
+  --ui-border: #262c35;
+  --ui-border-muted: #1c2128;
+  --ui-border-accented: #333b46;
+  --ui-text-dimmed: #7d8590;
+  --ui-primary: var(--color-fuchsia-300);
+  --ciphers-fill: var(--color-fuchsia-300);
+  --ciphers-fill-hover: var(--color-fuchsia-200);
+  --ciphers-fill-text: #4a044e;
+  --ciphers-line: var(--ui-border-muted);
+  --ciphers-glow: rgb(240 171 252 / 0.09);
+  --ciphers-cell-active: rgb(240 171 252 / 0.11);
+  --ciphers-dots: rgb(255 255 255 / 0.05);
+  --ciphers-frame: 0 0 0 1px var(--ui-border), inset 0 1px 0 rgb(255 255 255 / 0.035);
+  --shiki-foreground: #d5e4ee;
+  --shiki-color-text: #d5e4ee;
+  --shiki-background: transparent;
+  --shiki-token-comment: #6d7884;
+  --shiki-token-keyword: #e879f9;
+  --shiki-token-function: #f0abfc;
+  --shiki-token-string: #7dd3fc;
+  --shiki-token-string-expression: #7dd3fc;
+  --shiki-token-constant: #e3b341;
+  --shiki-token-parameter: #c5d0da;
+  --shiki-token-punctuation: #8a929c;
+  --shiki-token-link: #f0abfc;
+}
+
+html.dark {
+  background-color: #0b0d10;
+  background-image: none;
+}
+
+html.dark body {
+  background-color: #0b0d10;
+  background-image: radial-gradient(
+    ellipse 60% 32% at 50% -6%,
+    rgb(240 171 252 / 0.09),
+    transparent 60%
+  );
+  background-repeat: no-repeat;
+}
+
+@media (width >= 64rem) {
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 0;
+    width: max(0px, calc((100vw - var(--ui-container, 80rem)) / 2));
+    pointer-events: none;
+    background-image: radial-gradient(circle, var(--ciphers-dots) 1px, transparent 1.2px);
+    background-size: 18px 18px;
+  }
+
+  body::before {
+    left: 0;
+    border-right: 1px solid var(--ui-border-muted);
+  }
+
+  body::after {
+    right: 0;
+    border-left: 1px solid var(--ui-border-muted);
+  }
+}
+
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+.ciphers-field {
+  height: 2.25rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--ui-bg);
+  padding: 0 0.75rem;
+  color: inherit;
+  font-size: 0.875rem;
+  box-shadow: var(--ciphers-frame);
+}
+
+.ciphers-field:focus {
+  outline: 2px solid color-mix(in oklch, var(--ui-primary) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.ciphers-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--ui-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.ciphers-copy:hover {
+  background: var(--ui-bg-muted);
+  color: var(--ui-text-highlighted);
+}
+
+.ciphers-copy[data-copied="true"] {
+  color: var(--ui-primary);
+}
+
+.ciphers-copy:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--ui-primary) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.ciphers-frame {
+  box-shadow: var(--ciphers-frame);
+}
+
+@keyframes ciphers-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ciphers-enter {
+  animation: ciphers-enter 0.55s ease both;
+}
+
+.ciphers-enter-2 {
+  animation-delay: 0.08s;
+}
+
+.ciphers-enter-3 {
+  animation-delay: 0.16s;
+}
+
+.ciphers-enter-4 {
+  animation-delay: 0.22s;
+}
+
+.ciphers-primary-fill,
+:is(a, button).bg-primary {
+  background-color: var(--ciphers-fill);
+  background-image: none;
+  color: var(--ciphers-fill-text);
+  box-shadow: none;
+}
+
+.ciphers-primary-fill:hover,
+:is(a, button).bg-primary:hover {
+  background-color: var(--ciphers-fill-hover);
+}
+
+.ciphers-primary-fill:focus-visible,
+.ciphers-neutral-outline:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--ui-primary) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.ciphers-neutral-outline {
+  background-color: var(--ui-bg-elevated);
+  color: var(--ui-text-highlighted);
+  box-shadow: inset 0 0 0 1px var(--ui-border);
+}
+
+.ciphers-neutral-outline:hover {
+  background-color: var(--ui-bg-accented);
+  box-shadow: inset 0 0 0 1px var(--ui-border-accented);
+}
+
+@keyframes ciphers-derive {
+  from {
+    opacity: 0.35;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.ciphers-derive {
+  animation: ciphers-derive 0.35s ease;
+}
+
+.ciphers-landing {
+  overflow-anchor: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ciphers-enter,
+  .ciphers-derive {
+    animation: none;
+  }
+}
+
+.ciphers-section {
+  border-top: 1px solid var(--ui-border-muted);
+}
+
+.ciphers-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+}
+
+.ciphers-eyebrow::before {
+  content: "";
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--ui-primary);
+}
+
+.ciphers-install {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--ui-bg-muted);
+  color: var(--ui-text);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  box-shadow: var(--ciphers-frame);
+}
+
+.ciphers-install:hover {
+  color: var(--ui-text-highlighted);
+}
+
+.ciphers-hero {
+  position: relative;
+}
+
+.ciphers-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse 50% 60% at 50% 30%, var(--ciphers-glow), transparent 70%);
+  pointer-events: none;
+}
+
+/* Hero flow diagram */
+
+.ciphers-flow {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--font-sans);
+}
+
+.ciphers-flow-wires path {
+  fill: none;
+  stroke: var(--ciphers-line);
+  stroke-width: 1.25;
+}
+
+.ciphers-flow-pulse {
+  fill: none;
+  stroke: var(--ui-primary);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 46 1400;
+  stroke-dashoffset: 46;
+  opacity: 0;
+  animation: ciphers-flow-pulse 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.ciphers-flow-pulse-late {
+  animation-delay: 0.45s;
+}
+
+@keyframes ciphers-flow-pulse {
+  0% {
+    stroke-dashoffset: 46;
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: -560;
+    opacity: 0;
+  }
+}
+
+.ciphers-flow-node rect {
+  fill: color-mix(in oklch, var(--ui-bg) 88%, transparent);
+  stroke: var(--ciphers-line);
+  stroke-width: 1;
+}
+
+.ciphers-flow-node text {
+  fill: var(--ui-text-highlighted);
+}
+
+.ciphers-flow-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--ui-text-dimmed) !important;
+  letter-spacing: 0.04em;
+}
+
+.ciphers-flow-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: var(--ui-text-muted) !important;
+}
+
+.ciphers-flow-accent {
+  fill: var(--ui-primary) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ciphers-flow-pulse {
+    animation: none;
+  }
+}
+
+/* Section animations */
+
+.ciphers-roll-enter-active,
+.ciphers-roll-leave-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+.ciphers-roll-enter-from {
+  opacity: 0;
+  transform: translateY(0.45em);
+}
+
+.ciphers-roll-leave-to {
+  opacity: 0;
+  transform: translateY(-0.45em);
+}
+
+.ciphers-roll-slot {
+  display: inline-block;
+}
+
+.ciphers-rotating,
+.ciphers-tool {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+  background: var(--ui-bg-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--ui-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ciphers-nowrap {
+  white-space: pre;
+}
+
+.ciphers-tool {
+  padding: 0;
+  background: transparent !important;
+  font-size: 0.75rem;
+}
+
+.tok-kw {
+  color: var(--shiki-token-keyword);
+}
+
+.tok-fn {
+  color: var(--shiki-token-function);
+}
+
+.tok-str {
+  color: var(--shiki-token-string);
+}
+
+.tok-cm {
+  color: var(--shiki-token-comment);
+}
+
+.tok-key {
+  color: var(--ui-text-highlighted);
+}
+
+.ciphers-cell-active {
+  background: var(--ciphers-cell-active);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ciphers-roll-enter-active,
+  .ciphers-roll-leave-active {
+    transition: none;
+  }
+}
+
+/* Explorer and lookup panels */
+
+:root {
+  --ciphers-del: #b42318;
+}
+
+.dark {
+  --ciphers-del: #ff7b72;
+}
+
+.ciphers-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.375rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-muted);
+  box-shadow: inset 0 0 0 1px var(--ui-border-muted);
+  white-space: nowrap;
+}
+
+.ciphers-state-failed {
+  color: var(--ciphers-del);
+}
+
+.ciphers-flow-dim rect {
+  stroke-dasharray: 3 3;
+}
+
+.ciphers-flow-dim text {
+  fill: var(--ui-text-dimmed);
+}
+
+.ciphers-flow-wire-dim {
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.ciphers-flow-rule {
+  stroke: var(--ui-border-muted);
+  stroke-width: 1;
+}
+
+.ciphers-flow-domain {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ciphers-kv {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: 0.375rem 1rem;
+  padding: 1rem;
+  font-size: 0.8125rem;
+}
+
+.ciphers-kv dt {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-dimmed);
+  padding-top: 0.125rem;
+}
+
+.ciphers-kv dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ui-text-highlighted);
+}
+
+/* Provider chips and explorer extras */
+
+.ciphers-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.375rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--ui-text-muted);
+  box-shadow: inset 0 0 0 1px var(--ui-border-muted);
+  white-space: nowrap;
+}
+
+.ciphers-chip-ok {
+  color: var(--ui-text-highlighted);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ui-primary) 45%, transparent);
+}
+
+.ciphers-chip-ok .ciphers-chip-dot {
+  background: var(--ui-primary);
+}
+
+.ciphers-flow-small {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+select.ciphers-field {
+  appearance: none;
+  padding-right: 2rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ui-text-dimmed) 50%),
+    linear-gradient(135deg, var(--ui-text-dimmed) 50%, transparent 50%);
+  background-position:
+    calc(100% - 0.95rem) 55%,
+    calc(100% - 0.7rem) 55%;
+  background-size: 0.25rem 0.25rem;
+  background-repeat: no-repeat;
+}
+
+/* Landing panels specific to ciphers */
+
+.ciphers-brute {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  max-height: 22rem;
+  overflow: auto;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.7;
+}
+
+.ciphers-brute-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1rem minmax(0, 1fr);
+  gap: 0.5rem;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ciphers-brute-hit {
+  margin: 0 -0.5rem;
+  padding: 0 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--ciphers-cell-active);
+}
+
+.ciphers-bar-track {
+  display: block;
+  flex: 1;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--ui-bg-muted);
+  overflow: hidden;
+}
+
+.ciphers-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ciphers-fill);
+  transition: width 0.35s ease;
+}
+
+.ciphers-textarea {
+  min-height: 6rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--ui-bg);
+  padding: 0.625rem 0.75rem;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  box-shadow: var(--ciphers-frame);
+  resize: vertical;
+}
+
+.ciphers-textarea:focus {
+  outline: 2px solid color-mix(in oklch, var(--ui-primary) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.ciphers-output {
+  margin: 0;
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ui-text-highlighted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ciphers-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.25rem;
+  font-size: 0.8125rem;
+  color: var(--ui-text-muted);
+}
+
+.ciphers-check input {
+  accent-color: var(--ciphers-fill);
+}
+
+.ciphers-seg {
+  display: inline-flex;
+  padding: 0.125rem;
+  border-radius: 0.5rem;
+  background: var(--ui-bg-muted);
+  box-shadow: var(--ciphers-frame);
+}
+
+.ciphers-seg button {
+  height: 2rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--ui-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.ciphers-seg button[aria-pressed="true"] {
+  background: var(--ui-bg-elevated);
+  color: var(--ui-text-highlighted);
+  box-shadow: 0 0 0 1px var(--ui-border);
+}

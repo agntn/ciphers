@@ -99,6 +99,23 @@ describe('OMP extension', () => {
     ])
   })
 
+  it('executes Beaufort in both directions', async () => {
+    const encoded = await getTool('cipher_encode').execute('encode', {
+      cipher: 'beaufort',
+      text: 'DCODE',
+      key: 'KEY',
+    })
+    expect(encoded.content[0]?.text).toBe('HCKHA')
+    const decoded = await getTool('cipher_decode').execute('decode', {
+      cipher: 'beaufort',
+      text: 'HCKHA',
+      key: 'KEY',
+    })
+    expect(decoded.content[0]?.text).toBe('DCODE')
+    const info = await getTool('cipher_info').execute('info', { cipher: 'beaufort' })
+    expect(info.content[0]?.text).toContain('key (string, required)')
+  })
+
   it('describes ciphers for discovery', async () => {
     const list = await getTool('cipher_info').execute('info', {})
     expect(list.content[0]?.text).toContain('caesar [substitution-shift]')

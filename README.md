@@ -1,6 +1,6 @@
 # @agntn/ciphers
 
-18 classical ciphers behind one small local API and CLI. Everything runs locally. No HTTP, no API keys, just text transformations for learning and puzzles.
+19 classical ciphers behind one small local API and CLI. Everything runs locally. No HTTP, no API keys, just text transformations for learning and puzzles.
 
 Docs and a playground that runs the library in your browser: [ciphers.agntn.dev](https://ciphers.agntn.dev). The source lives in [`docs/`](./docs), run `pnpm docs` after `pnpm build` for a local copy.
 
@@ -13,6 +13,7 @@ Docs and a playground that runs the library in your browser: [ciphers.agntn.dev]
 | **rot47**      | substitution-shift          |      ✓       | -                                          |
 | **atbash**     | substitution-reflection     |      ✓       | -                                          |
 | **vigenere**   | polyalphabetic              |      ✗       | `--key` (required)                         |
+| **beaufort**   | polyalphabetic              |      ✓       | `--key` (required)                         |
 | **trithemius** | polyalphabetic              |      ✗       | -                                          |
 | **alberti**    | polyalphabetic              |      ✗       | `--key`, `--period` (both required)        |
 | **rail-fence** | transposition               |      ✗       | `--rails` (default 3)                      |

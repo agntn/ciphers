@@ -3,7 +3,7 @@ definePageMeta({ layout: "default" });
 
 const title = "Playground";
 const description =
-  "Encode, decode, brute force and count letters with any of the eighteen ciphers. In the browser, same library the CLI and the agent tools run.";
+  "Encode, decode, brute force and count letters with any of the nineteen ciphers. In the browser, same library the CLI and the agent tools run.";
 
 useSeo({ title, description, type: "article" });
 

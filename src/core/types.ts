@@ -34,6 +34,12 @@ export interface VigenereOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Standard Beaufort cipher options. */
+export interface BeaufortOptions extends CipherBaseOptions {
+  /** Repeating keyword; only ASCII letters are used, ignoring case. */
+  key: string
+}
+
 /** Alberti disk cipher options. */
 export interface AlbertiOptions extends CipherBaseOptions {
   /** Keyword used to construct the movable inner disk. Required. */

@@ -80,6 +80,23 @@ describe('Pi extension', () => {
     expect(detail.content[0]?.text).toContain('key (string, required)')
   })
 
+  it('executes Beaufort in both directions', async () => {
+    const encoded = await getTool('cipher_encode').execute('encode', {
+      cipher: 'beaufort',
+      text: 'DCODE',
+      key: 'KEY',
+    })
+    expect(encoded.content[0]?.text).toBe('HCKHA')
+    const decoded = await getTool('cipher_decode').execute('decode', {
+      cipher: 'beaufort',
+      text: 'HCKHA',
+      key: 'KEY',
+    })
+    expect(decoded.content[0]?.text).toBe('DCODE')
+    const info = await getTool('cipher_info').execute('info', { cipher: 'beaufort' })
+    expect(info.content[0]?.text).toContain('key (string, required)')
+  })
+
   it('exposes and forwards common cipher options for encode and decode', async () => {
     const encode = getTool('cipher_encode')
     const decode = getTool('cipher_decode')

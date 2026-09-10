@@ -20,6 +20,7 @@ const WALK = [
   "trithemius",
   "tap-code",
   "rot13",
+  "beaufort",
   "rot47",
 ] as const;
 

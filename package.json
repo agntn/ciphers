@@ -10,6 +10,9 @@
     "ciphers": "./dist/cli.mjs"
   },
   "type": "module",
+  "sideEffects": [
+    "./dist/cli.mjs"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",

@@ -2,7 +2,6 @@ import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { getOpt, processBaseOptions } from '../core/utils'
 import { InvalidOptionError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 
 function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b)
@@ -60,7 +59,7 @@ function validate(opts: Readonly<CipherBaseOptions>): {
   return { a, b, ...base }
 }
 
-class Affine extends Cipher {
+export class Affine extends Cipher {
   name(): string {
     return 'affine'
   }
@@ -120,5 +119,3 @@ class Affine extends Cipher {
     }
   }
 }
-
-register('affine', Affine)

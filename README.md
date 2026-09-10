@@ -52,7 +52,6 @@ ciphers encode enigma "AAAAA"                          # BDZGO
 ## Library
 
 ```typescript
-import '@agntn/ciphers'
 import { create, resolveCipher, getOpt } from '@agntn/ciphers'
 
 // Cipher names match exactly
@@ -69,7 +68,7 @@ const rot13 = create('rot13')
 rot13.decode(rot13.encode('HELLO').text).text === 'HELLO' // true
 ```
 
-Every built-in cipher is a concrete class extending the exported abstract `Cipher`. Custom ciphers stay boring: extend `Cipher` and register the constructor with `register(name, CipherClass)`. `create()` caches one instance per name.
+Every built-in cipher is a concrete class extending the exported abstract `Cipher`. They join the registry through `builtins` in `src/ciphers/index.ts`, not a `register()` call at the bottom of the file, so `sideEffects` can name the CLI. Custom ciphers still use `register(name, CipherClass)`. `create()` caches one instance per name.
 
 ## OMP and Pi Extensions
 

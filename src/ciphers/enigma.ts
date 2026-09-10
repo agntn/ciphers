@@ -2,7 +2,6 @@ import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { getOpt } from '../core/utils'
 import { InvalidOptionError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const ROTORS = [
@@ -150,7 +149,7 @@ function transform(text: string, config: EnigmaConfig): string {
   return output
 }
 
-class Enigma extends Cipher {
+export class Enigma extends Cipher {
   name(): string {
     return 'enigma'
   }
@@ -217,5 +216,3 @@ class Enigma extends Cipher {
     }
   }
 }
-
-register('enigma', Enigma)

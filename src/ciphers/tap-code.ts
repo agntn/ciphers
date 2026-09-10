@@ -1,7 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { CipherError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 
 // Tap code uses a 5×5 Polybius square (C/K share)
 //   1  2  3  4  5
@@ -71,7 +70,7 @@ function decodeTapCode(text: string): string {
   return result
 }
 
-class TapCode extends Cipher {
+export class TapCode extends Cipher {
   name(): string {
     return 'tap-code'
   }
@@ -104,5 +103,3 @@ class TapCode extends Cipher {
     }
   }
 }
-
-register('tap-code', TapCode)

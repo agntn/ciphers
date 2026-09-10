@@ -2,7 +2,6 @@ import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { getOpt, processBaseOptions } from '../core/utils'
 import { MissingOptionError, InvalidOptionError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 
 function vigenereProcess(
   text: string,
@@ -43,7 +42,7 @@ function validate(opts: Readonly<CipherBaseOptions>): {
   return { key, ...base }
 }
 
-class Vigenere extends Cipher {
+export class Vigenere extends Cipher {
   name(): string {
     return 'vigenere'
   }
@@ -95,5 +94,3 @@ class Vigenere extends Cipher {
     }
   }
 }
-
-register('vigenere', Vigenere)

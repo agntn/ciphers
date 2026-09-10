@@ -1,7 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { InvalidOptionError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 import { buildPolybiusSquare, getOpt } from '../core/utils'
 
 // Bifid cipher: combines Polybius fractionation with transposition
@@ -71,7 +70,7 @@ function validate(opts: Readonly<CipherBaseOptions>): { key: string; period: num
   return { key, period }
 }
 
-class Bifid extends Cipher {
+export class Bifid extends Cipher {
   name(): string {
     return 'bifid'
   }
@@ -131,5 +130,3 @@ class Bifid extends Cipher {
     }
   }
 }
-
-register('bifid', Bifid)

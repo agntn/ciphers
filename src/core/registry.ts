@@ -1,8 +1,21 @@
+import { builtins } from '../ciphers/index'
 import { type CipherConstructor, Cipher } from './cipher'
+import { builtinCiphers } from './ciphers'
 import { UnknownCipherError } from './errors'
 
 const constructors = new Map<string, CipherConstructor>()
 const instances = new Map<string, Cipher>()
+let seeded = false
+
+function seedBuiltins(): void {
+  if (seeded) return
+  seeded = true
+  for (const [index, CipherClass] of builtins.entries()) {
+    const name = builtinCiphers[index]
+    if (name === undefined) continue
+    constructors.set(name, CipherClass)
+  }
+}
 
 /**
  * Register a cipher class.
@@ -11,8 +24,9 @@ const instances = new Map<string, Cipher>()
  * @param CipherClass - Cipher constructor.
  */
 export function register(name: string, CipherClass: CipherConstructor): void {
+  seedBuiltins()
   constructors.set(name, CipherClass)
-  instances.delete(name) // invalidate cached instance on re-register
+  instances.delete(name)
 }
 
 /**
@@ -22,6 +36,7 @@ export function register(name: string, CipherClass: CipherConstructor): void {
  * @returns {Cipher} The cached cipher instance.
  */
 export function create(name: string): Cipher {
+  seedBuiltins()
   const cached = instances.get(name)
   if (cached) return cached
   const CipherClass = constructors.get(name)
@@ -37,6 +52,7 @@ export function create(name: string): Cipher {
  * @returns {string[]} Registered names in insertion order.
  */
 export function ciphers(): string[] {
+  seedBuiltins()
   return [...constructors.keys()]
 }
 
@@ -47,5 +63,6 @@ export function ciphers(): string[] {
  * @returns {boolean} Whether the name is registered.
  */
 export function has(name: string): boolean {
+  seedBuiltins()
   return constructors.has(name)
 }

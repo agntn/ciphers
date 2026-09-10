@@ -1,10 +1,9 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 import { buildPolybiusSquare, getOpt } from '../core/utils'
 
-class Polybius extends Cipher {
+export class Polybius extends Cipher {
   name(): string {
     return 'polybius'
   }
@@ -72,5 +71,3 @@ class Polybius extends Cipher {
     }
   }
 }
-
-register('polybius', Polybius)

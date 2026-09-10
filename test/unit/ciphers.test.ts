@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vite-plus/test'
-import '../../src/index'
 import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'

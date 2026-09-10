@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
-import { register } from '../core/registry'
 
 function atbash(text: string, stripNonAlpha: boolean): string {
   let input = text
@@ -12,7 +11,7 @@ function atbash(text: string, stripNonAlpha: boolean): string {
   }).join('')
 }
 
-class Atbash extends Cipher {
+export class Atbash extends Cipher {
   name(): string {
     return 'atbash'
   }
@@ -47,5 +46,3 @@ class Atbash extends Cipher {
     }
   }
 }
-
-register('atbash', Atbash)

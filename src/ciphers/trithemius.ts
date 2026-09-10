@@ -1,7 +1,6 @@
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 import { processBaseOptions } from '../core/utils'
 
 function transform(
@@ -26,7 +25,7 @@ function transform(
   }).join('')
 }
 
-class Trithemius extends Cipher {
+export class Trithemius extends Cipher {
   name(): string {
     return 'trithemius'
   }
@@ -71,5 +70,3 @@ class Trithemius extends Cipher {
     }
   }
 }
-
-register('trithemius', Trithemius)

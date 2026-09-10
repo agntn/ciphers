@@ -2,7 +2,6 @@ import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 import { getOpt, processBaseOptions } from '../core/utils'
-import { register } from '../core/registry'
 
 function caesarProcess(
   text: string,
@@ -37,7 +36,7 @@ function validate(opts: Readonly<CipherBaseOptions>): {
   return { shift, ...base }
 }
 
-class Caesar extends Cipher {
+export class Caesar extends Cipher {
   name(): string {
     return 'caesar'
   }
@@ -90,5 +89,3 @@ class Caesar extends Cipher {
     }
   }
 }
-
-register('caesar', Caesar)

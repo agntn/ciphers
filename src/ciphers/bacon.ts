@@ -1,7 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 
 const BACON_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' // 26 letters (standard Bacon uses 24 with I/J merged; this variant keeps all 26)
 // Standard: A=AAAAA, B=AAAAB, C=AAABA, D=AAABB, E=AABAA, ...
@@ -39,7 +38,7 @@ function decodeBacon(text: string): string {
   return result
 }
 
-class Bacon extends Cipher {
+export class Bacon extends Cipher {
   name(): string {
     return 'bacon'
   }
@@ -77,5 +76,3 @@ class Bacon extends Cipher {
     }
   }
 }
-
-register('bacon', Bacon)

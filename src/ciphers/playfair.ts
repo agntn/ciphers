@@ -2,7 +2,6 @@ import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { buildPolybiusSquare, getOpt } from '../core/utils'
 import { MissingOptionError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 
 // Uses shared buildPolybiusSquare (1-indexed positions)
 
@@ -73,7 +72,7 @@ function validate(opts: Readonly<CipherBaseOptions>): { key: string } {
   return { key }
 }
 
-class Playfair extends Cipher {
+export class Playfair extends Cipher {
   name(): string {
     return 'playfair'
   }
@@ -126,5 +125,3 @@ class Playfair extends Cipher {
     }
   }
 }
-
-register('playfair', Playfair)

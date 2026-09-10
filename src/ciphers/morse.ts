@@ -1,7 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 
 const CHAR_TO_MORSE: Record<string, string> = {
   A: '.-',
@@ -83,7 +82,7 @@ function decodeMorse(text: string): string {
     .join(' ')
 }
 
-class Morse extends Cipher {
+export class Morse extends Cipher {
   name(): string {
     return 'morse'
   }
@@ -116,5 +115,3 @@ class Morse extends Cipher {
     }
   }
 }
-
-register('morse', Morse)

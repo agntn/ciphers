@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
-import { register } from '../core/registry'
 
 function rot13(text: string, stripNonAlpha: boolean): string {
   let input = text
@@ -12,7 +11,7 @@ function rot13(text: string, stripNonAlpha: boolean): string {
   }).join('')
 }
 
-class Rot13 extends Cipher {
+export class Rot13 extends Cipher {
   name(): string {
     return 'rot13'
   }
@@ -47,5 +46,3 @@ class Rot13 extends Cipher {
     }
   }
 }
-
-register('rot13', Rot13)

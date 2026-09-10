@@ -2,7 +2,6 @@ import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { getOpt } from '../core/utils'
 import { InvalidOptionError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 
 function encodeRailFence(text: string, rails: number): string {
   const chars = Array.from(text)
@@ -51,7 +50,7 @@ function validate(opts: Readonly<CipherBaseOptions>): { rails: number } {
   return { rails }
 }
 
-class RailFence extends Cipher {
+export class RailFence extends Cipher {
   name(): string {
     return 'rail-fence'
   }
@@ -104,5 +103,3 @@ class RailFence extends Cipher {
     }
   }
 }
-
-register('rail-fence', RailFence)

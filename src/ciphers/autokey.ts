@@ -1,7 +1,6 @@
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { InvalidOptionError, MissingOptionError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 import { processBaseOptions } from '../core/utils'
 
 function transform(
@@ -46,7 +45,7 @@ function transform(
   }
 }
 
-class Autokey extends Cipher {
+export class Autokey extends Cipher {
   name(): string {
     return 'autokey'
   }
@@ -78,5 +77,3 @@ class Autokey extends Cipher {
     return transform(text, 'decode', options)
   }
 }
-
-register('autokey', Autokey)

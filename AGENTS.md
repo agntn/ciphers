@@ -8,8 +8,10 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 
 ## Architecture
 
-- Put each cipher in one `src/ciphers/<name>.ts` file. Its concrete class extends `Cipher`, implements `name()`, `info()`, `encode()`, and `decode()`, then registers its constructor at module load.
+- Put each cipher in one `src/ciphers/<name>.ts` file. Its concrete class extends `Cipher`, implements `name()`, `info()`, `encode()`, and `decode()`, and is exported. Do not call `register()` from the file.
+- `src/ciphers/index.ts` holds `builtins`, the ordered list the registry is seeded from. A cipher file that is not in it is not in the registry.
 - Keep `src/core/registry.ts` constructor-based. `create()` returns one cached instance per name, and re-registering a name invalidates that instance.
+- `sideEffects` names `dist/cli.mjs` and nothing else. That holds only while no module registers itself on import: put a `register()` call back at the top of a cipher file and the class reaches the registry through a bare import, which a tree-shaker is free to drop. New ciphers go in `builtins`.
 - Report domain failures through the `CipherError` hierarchy and normalize unknown thrown values with `normalizeError()`.
 - Resolution may normalize case and spaces to hyphens, then it must match a registered name exactly. Do not add fuzzy or prefix matching.
 - Keep the `ciphers` Citty CLI and the Pi/OMP extensions aligned with the library. Both extensions expose encode, decode, Caesar brute force, frequency analysis, and cipher info lookup.
@@ -26,7 +28,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 ## Adding or Changing a Cipher
 
 1. Add or update the cipher class and its option types.
-2. For a new cipher, import its module from `src/ciphers/index.ts` and add its name to `builtinCiphers` in `src/core/ciphers.ts`.
+2. For a new cipher, export the class, add it to `builtins` in `src/ciphers/index.ts`, and add its name to `builtinCiphers` in `src/core/ciphers.ts` in the same position.
 3. Run a roundtrip probe before writing fixtures.
 4. Add an independently known fixed vector plus relevant edge cases to `test/unit/ciphers.test.ts`. Never manufacture the expected value from the implementation under test.
 5. Update the CLI, Pi/OMP tools, exports, and README only where the public contract changed.

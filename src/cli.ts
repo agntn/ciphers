@@ -4,9 +4,6 @@ import { normalizeMainArgs } from './cli-args'
 import { CipherError } from './core/errors'
 import { version } from './version'
 
-// Register all ciphers
-import './ciphers/index'
-
 async function loadCommand<T extends ArgsDef>(
   loader: () => Promise<{ readonly default: CommandDef<T> }>,
 ): Promise<CommandDef<T>> {

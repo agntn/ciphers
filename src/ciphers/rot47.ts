@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
-import { register } from '../core/registry'
 
 function rot47(text: string): string {
   return Array.from(text, (c) => {
@@ -10,7 +9,7 @@ function rot47(text: string): string {
   }).join('')
 }
 
-class Rot47 extends Cipher {
+export class Rot47 extends Cipher {
   name(): string {
     return 'rot47'
   }
@@ -35,5 +34,3 @@ class Rot47 extends Cipher {
     return { text: rot47(text), cipher: 'rot47', operation: 'decode', options: {} }
   }
 }
-
-register('rot47', Rot47)

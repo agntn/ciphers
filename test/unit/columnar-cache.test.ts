@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vite-plus/test'
-import '../../src/index'
 import type { Cipher } from '../../src/core/cipher'
 import { create } from '../../src/core/registry'
 import { LruCache, RateLimiter, cipherCacheKey } from '../../src/core/utils'

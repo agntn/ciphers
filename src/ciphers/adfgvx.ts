@@ -2,7 +2,6 @@ import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { getOpt } from '../core/utils'
 import { normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 
 const ADFGVX_LETTERS = 'ADFGVX'
 const GRID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -55,7 +54,7 @@ function decodeAdfgvx(text: string, key?: string): string {
   return result
 }
 
-class Adfgvx extends Cipher {
+export class Adfgvx extends Cipher {
   name(): string {
     return 'adfgvx'
   }
@@ -109,5 +108,3 @@ class Adfgvx extends Cipher {
     }
   }
 }
-
-register('adfgvx', Adfgvx)

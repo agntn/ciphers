@@ -1,7 +1,6 @@
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { InvalidOptionError, MissingOptionError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 import { getOpt, processBaseOptions } from '../core/utils'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -72,7 +71,7 @@ function transform(
   return output
 }
 
-class Alberti extends Cipher {
+export class Alberti extends Cipher {
   name(): string {
     return 'alberti'
   }
@@ -130,5 +129,3 @@ class Alberti extends Cipher {
     }
   }
 }
-
-register('alberti', Alberti)

@@ -1,7 +1,6 @@
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../core/types'
 import { Cipher } from '../core/cipher'
 import { InvalidOptionError, MissingOptionError, normalizeError } from '../core/errors'
-import { register } from '../core/registry'
 import { processBaseOptions } from '../core/utils'
 
 function transform(
@@ -40,7 +39,7 @@ function transform(
   }
 }
 
-class Beaufort extends Cipher {
+export class Beaufort extends Cipher {
   name(): string {
     return 'beaufort'
   }
@@ -73,5 +72,3 @@ class Beaufort extends Cipher {
     return transform(text, 'decode', options)
   }
 }
-
-register('beaufort', Beaufort)

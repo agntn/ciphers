@@ -3,17 +3,18 @@ import '../../src/index'
 import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'
-import { CipherError } from '../../src/core/errors'
+import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors'
 
 describe('registry', () => {
-  it('registers all 18 ciphers', () => {
-    expect(ciphers()).toHaveLength(18)
+  it('registers all 19 ciphers', () => {
+    expect(ciphers()).toHaveLength(19)
     for (const name of [
       'caesar',
       'rot13',
       'rot47',
       'atbash',
       'vigenere',
+      'beaufort',
       'trithemius',
       'alberti',
       'rail-fence',
@@ -633,6 +634,7 @@ describe('resolveCipher', () => {
 describe('edge cases', () => {
   const keyOpts: Record<string, Record<string, unknown>> = {
     vigenere: { key: 'TEST' },
+    beaufort: { key: 'TEST' },
     alberti: { key: 'TEST', period: 4 },
     playfair: { key: 'TEST' },
     columnar: { key: 'TEST' },
@@ -663,5 +665,72 @@ describe('edge cases', () => {
     // café: é preserved (not in A-Z/a-z), 🎉 preserved
     expect(result.text).toContain('🎉')
     expect(result.text).toContain('é')
+  })
+})
+
+describe('beaufort', () => {
+  const beaufort = create('beaufort')
+
+  it('uses standard Beaufort rather than the variant or Vigenere', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(beaufort[operation]('A', { key: 'B' }).text).toBe('B')
+      expect(beaufort[operation]('B', { key: 'B' }).text).toBe('A')
+      expect(beaufort[operation]('Z', { key: 'A' }).text).toBe('B')
+    }
+  })
+
+  /** Published vector: https://www.dcode.fr/beaufort-cipher */
+  it('matches the published DCODE / KEY vector in both directions', () => {
+    expect(beaufort.encode('DCODE', { key: 'KEY' }).text).toBe('HCKHA')
+    expect(beaufort.decode('HCKHA', { key: 'KEY' }).text).toBe('DCODE')
+    expect(beaufort.encode('HCKHA', { key: 'KEY' }).text).toBe('DCODE')
+  })
+
+  it('advances the key only for ASCII letters and preserves case', () => {
+    const options = { key: 'k-e y!' }
+    const encoded = beaufort.encode('Dc, o🙂de! éſı', options)
+    expect(encoded.text).toBe('Hc, k🙂ha! éſı')
+    expect(encoded.options).toEqual({ ...options, preserveCase: true, stripNonAlpha: false })
+    const decoded = beaufort.decode(encoded.text, options)
+    expect(decoded.text).toBe('Dc, o🙂de! éſı')
+    expect(decoded.operation).toBe('decode')
+    expect(decoded.cipher).toBe('beaufort')
+  })
+
+  it('applies and reports base options in both directions', () => {
+    expect(beaufort.encode('Dc, ode!', { key: 'KEY', preserveCase: false }).text).toBe('HC, KHA!')
+    expect(beaufort.encode('Dc, ode!', { key: 'KEY', stripNonAlpha: true }).text).toBe('Hckha')
+    const options = { key: 'KEY', preserveCase: false, stripNonAlpha: true }
+    const encoded = beaufort.encode('Dc, o🙂de! éſı', options)
+    expect(encoded.text).toBe('HCKHA')
+    expect(encoded.options).toEqual(options)
+    const decoded = beaufort.decode('Hc, k🙂ha! éſı', options)
+    expect(decoded.text).toBe('DCODE')
+    expect(decoded.options).toEqual(options)
+  })
+
+  it('roundtrips the alphabet with a repeating key', () => {
+    const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz'
+    const options = { key: 'ORANGE' }
+    expect(beaufort.decode(beaufort.encode(text, options).text, options).text).toBe(text)
+  })
+
+  it('rejects missing keys, non-string values and keys without ASCII letters', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => beaufort[operation]('A')).toThrow(MissingOptionError)
+      expect(() => beaufort[operation]('A', { key: '' })).toThrow(MissingOptionError)
+      for (const key of [123, null, {}, '123 !', 'éſıK']) {
+        expect(() => beaufort[operation]('A', { key })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('advertises the required key and reciprocal transformation', () => {
+    expect(beaufort.info()).toMatchObject({
+      name: 'beaufort',
+      selfInverse: true,
+      family: 'polyalphabetic',
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
   })
 })

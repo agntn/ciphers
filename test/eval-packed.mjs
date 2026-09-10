@@ -87,6 +87,9 @@ try {
   const decoded = run(binPath, ['decode', 'caesar', 'KHOOR', '--shift', '3'])
   assert.equal(decoded.trim(), 'HELLO')
 
+  assert.equal(run(binPath, ['encode', 'beaufort', 'DCODE', '--key', 'KEY']).trim(), 'HCKHA')
+  assert.equal(run(binPath, ['decode', 'beaufort', 'HCKHA', '--key', 'KEY']).trim(), 'DCODE')
+
   console.log(`Packed ${manifest.name}@${manifest.version} ran ${binEntry} as a command`)
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true })

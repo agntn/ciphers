@@ -88,6 +88,24 @@ describe('Ciphers MCP server', () => {
     expect(decoded.isError).not.toBe(true)
   })
 
+  it('discovers and executes Beaufort through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'beaufort' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('key (string, required)')
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'DCODE', 'HCKHA'],
+      ['cipher_decode', 'HCKHA', 'DCODE'],
+    ] as const) {
+      const result = await client.callTool({
+        name,
+        arguments: { cipher: 'beaufort', text, key: 'KEY' },
+      })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
   it('validates arguments before execution', async () => {
     const client = await connectTestClient()
 
@@ -108,6 +126,8 @@ describe('Ciphers MCP server', () => {
 
     for (const [field, arguments_] of [
       ['key', { cipher: 'vigenere', text: 'abc' }],
+      ['key', { cipher: 'beaufort', text: 'abc' }],
+      ['key', { cipher: 'beaufort', text: 'abc', key: '123' }],
       ['key', { cipher: 'alberti', text: 'abc', period: 5 }],
       ['period', { cipher: 'alberti', text: 'abc', key: 'KEY' }],
       ['key', { cipher: 'alberti', text: 'abc', key: '123', period: 5 }],

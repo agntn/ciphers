@@ -97,6 +97,23 @@ describe('Pi extension', () => {
     expect(info.content[0]?.text).toContain('key (string, required)')
   })
 
+  it('executes Autokey in both directions', async () => {
+    const encoded = await getTool('cipher_encode').execute('encode', {
+      cipher: 'autokey',
+      text: 'ATTACKATDAWN',
+      key: 'QUEENLY',
+    })
+    expect(encoded.content[0]?.text).toBe('QNXEPVYTWTWP')
+    const decoded = await getTool('cipher_decode').execute('decode', {
+      cipher: 'autokey',
+      text: 'QNXEPVYTWTWP',
+      key: 'QUEENLY',
+    })
+    expect(decoded.content[0]?.text).toBe('ATTACKATDAWN')
+    const info = await getTool('cipher_info').execute('info', { cipher: 'autokey' })
+    expect(info.content[0]?.text).toContain('key (string, required)')
+  })
+
   it('exposes and forwards common cipher options for encode and decode', async () => {
     const encode = getTool('cipher_encode')
     const decode = getTool('cipher_decode')

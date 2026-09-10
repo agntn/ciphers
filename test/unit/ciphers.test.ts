@@ -6,8 +6,8 @@ import { Cipher } from '../../src/core/cipher'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors'
 
 describe('registry', () => {
-  it('registers all 19 ciphers', () => {
-    expect(ciphers()).toHaveLength(19)
+  it('registers all 20 ciphers', () => {
+    expect(ciphers()).toHaveLength(20)
     for (const name of [
       'caesar',
       'rot13',
@@ -15,6 +15,7 @@ describe('registry', () => {
       'atbash',
       'vigenere',
       'beaufort',
+      'autokey',
       'trithemius',
       'alberti',
       'rail-fence',
@@ -635,6 +636,7 @@ describe('edge cases', () => {
   const keyOpts: Record<string, Record<string, unknown>> = {
     vigenere: { key: 'TEST' },
     beaufort: { key: 'TEST' },
+    autokey: { key: 'TEST' },
     alberti: { key: 'TEST', period: 4 },
     playfair: { key: 'TEST' },
     columnar: { key: 'TEST' },
@@ -730,6 +732,85 @@ describe('beaufort', () => {
       name: 'beaufort',
       selfInverse: true,
       family: 'polyalphabetic',
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('autokey', () => {
+  const autokey = create('autokey')
+
+  /** Published vector: https://en.wikipedia.org/wiki/Autokey_cipher#Method */
+  it('extends the primer with plaintext in both directions', () => {
+    expect(autokey.encode('ATTACKATDAWN', { key: 'QUEENLY' }).text).toBe('QNXEPVYTWTWP')
+    expect(autokey.decode('QNXEPVYTWTWP', { key: 'QUEENLY' }).text).toBe('ATTACKATDAWN')
+  })
+
+  it('feeds recovered plaintext back after a single-letter primer', () => {
+    expect(autokey.encode('BCDE', { key: 'A' }).text).toBe('BDFH')
+    expect(autokey.decode('BDFH', { key: 'A' }).text).toBe('BCDE')
+    expect(autokey.encode('ZZZZ', { key: 'Z' }).text).toBe('YYYY')
+    expect(autokey.decode('YYYY', { key: 'Z' }).text).toBe('ZZZZ')
+  })
+
+  it('does not consume key positions for punctuation or non-ASCII letters', () => {
+    const options = { key: 'q-U e!eNLY éſı🙂' }
+    const encoded = autokey.encode('Attack at 🙂dawn! éſı', options)
+    expect(encoded.text).toBe('Qnxepv yt 🙂wtwp! éſı')
+    expect(encoded.options).toEqual({ ...options, preserveCase: true, stripNonAlpha: false })
+    const decoded = autokey.decode(encoded.text, options)
+    expect(decoded).toMatchObject({
+      text: 'Attack at 🙂dawn! éſı',
+      cipher: 'autokey',
+      operation: 'decode',
+      options: encoded.options,
+    })
+  })
+
+  it('applies common options without changing the feedback stream', () => {
+    const options = { key: 'QUEENLY', preserveCase: false, stripNonAlpha: true }
+    const encoded = autokey.encode('Attack at 🙂dawn! éſı', options)
+    expect(encoded.text).toBe('QNXEPVYTWTWP')
+    expect(encoded.options).toEqual(options)
+    const decoded = autokey.decode('Qnxepv yt 🙂wtwp! éſı', options)
+    expect(decoded.text).toBe('ATTACKATDAWN')
+    expect(decoded.options).toEqual(options)
+    expect(autokey.encode('Attack at dawn', { key: 'QUEENLY', stripNonAlpha: true }).text).toBe(
+      'Qnxepvytwtwp',
+    )
+    expect(autokey.encode('Attack at dawn', { key: 'QUEENLY', preserveCase: false }).text).toBe(
+      'QNXEPV YT WTWP',
+    )
+  })
+
+  it('keeps feedback local to each call on the cached cipher', () => {
+    for (const key of ['A', 'KEY', 'LONGERTHANTEXT']) {
+      for (const text of ['', '🙂 ! éſı', 'AB', 'MiXeD text '.repeat(40)]) {
+        const options = { key }
+        const encoded = autokey.encode(text, options)
+        expect(autokey.decode(encoded.text, options).text).toBe(text)
+        expect(autokey.encode(text, options)).toEqual(encoded)
+      }
+    }
+  })
+
+  it('rejects missing and unusable primers even for empty input', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => autokey[operation]('')).toThrow(MissingOptionError)
+      expect(() => autokey[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const key of ['123', 'éſı🙂', null, 12, false, {}, []]) {
+        expect(() => autokey[operation]('', { key })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('exposes the primer requirement through exact-name resolution', () => {
+    expect(resolveCipher('AUTOKEY')).toBe(autokey)
+    expect(() => resolveCipher('auto')).toThrow()
+    expect(autokey.info()).toMatchObject({
+      name: 'autokey',
+      family: 'polyalphabetic',
+      selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
     })
   })

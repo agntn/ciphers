@@ -88,6 +88,14 @@ try {
   assert.equal(decoded.trim(), 'HELLO')
 
   assert.equal(run(binPath, ['encode', 'beaufort', 'DCODE', '--key', 'KEY']).trim(), 'HCKHA')
+  assert.equal(
+    run(binPath, ['encode', 'autokey', 'ATTACKATDAWN', '--key', 'QUEENLY']).trim(),
+    'QNXEPVYTWTWP',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'autokey', 'QNXEPVYTWTWP', '--key', 'QUEENLY']).trim(),
+    'ATTACKATDAWN',
+  )
   assert.equal(run(binPath, ['decode', 'beaufort', 'HCKHA', '--key', 'KEY']).trim(), 'DCODE')
 
   console.log(`Packed ${manifest.name}@${manifest.version} ran ${binEntry} as a command`)

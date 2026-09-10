@@ -40,6 +40,12 @@ export interface BeaufortOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Autokey cipher options, using plaintext to extend the primer. */
+export interface AutokeyOptions extends CipherBaseOptions {
+  /** Primer keyword; only ASCII letters are used, ignoring case. */
+  key: string
+}
+
 /** Alberti disk cipher options. */
 export interface AlbertiOptions extends CipherBaseOptions {
   /** Keyword used to construct the movable inner disk. Required. */

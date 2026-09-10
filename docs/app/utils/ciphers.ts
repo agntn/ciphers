@@ -23,6 +23,7 @@ const PRESENTATION: Record<
   atbash: { icon: "i-solar-flip-horizontal-linear", blurb: "Mirror the alphabet, A becomes Z", sample: "ATTACK AT DAWN" },
   vigenere: { icon: "i-solar-key-linear", blurb: "A keyword picks the shift per letter", sample: "ATTACK AT DAWN", options: { key: "LEMON" } },
   beaufort: { icon: "i-solar-key-linear", blurb: "Subtract the text from a repeating key", sample: "DCODE", options: { key: "KEY" } },
+  autokey: { icon: "i-solar-key-linear", blurb: "The plaintext extends the primer key", sample: "ATTACK AT DAWN", options: { key: "QUEENLY" } },
   trithemius: { icon: "i-solar-calculator-linear", blurb: "Shift 0, 1, 2, 3 and on", sample: "HELLO WORLD" },
   alberti: { icon: "i-solar-vinyl-record-linear", blurb: "A keyed disk that turns every few letters", sample: "ATTACK AT DAWN", options: { key: "ALBERTI", period: 4 } },
   "rail-fence": { icon: "i-solar-shuffle-linear", blurb: "Zigzag over rails, read row by row", sample: "WE ARE DISCOVERED", options: { rails: 3 } },

@@ -56,7 +56,7 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
-    ciphers: ['vigenere', 'beaufort'],
+    ciphers: ['vigenere', 'beaufort', 'autokey'],
     required: ['key'],
     key: {
       pattern: /[A-Za-z]/,

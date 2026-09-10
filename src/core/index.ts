@@ -4,6 +4,7 @@ export type {
   CaesarOptions,
   VigenereOptions,
   BeaufortOptions,
+  AutokeyOptions,
   AlbertiOptions,
   EnigmaOptions,
   RailFenceOptions,

@@ -28,7 +28,7 @@ async function loadLib() {
 const cipherParams = Type.Object({
   cipher: Type.String({
     description:
-      'Cipher name: caesar, rot13, rot47, atbash, vigenere, beaufort, trithemius, alberti, rail-fence, affine, playfair, polybius, morse, bacon, tap-code, columnar, adfgvx, bifid, enigma',
+      'Cipher name: caesar, rot13, rot47, atbash, vigenere, beaufort, autokey, trithemius, alberti, rail-fence, affine, playfair, polybius, morse, bacon, tap-code, columnar, adfgvx, bifid, enigma',
   }),
   text: Type.String({ description: 'Plaintext to encode' }),
   shift: Type.Optional(
@@ -110,7 +110,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       promptSnippet: 'Use cipher_encode to encode text with local educational and puzzle ciphers.',
       promptGuidelines: [
         'Specify the cipher name and the text to encode.',
-        'Caesar needs --shift (default 3), Vigenère/Beaufort/Playfair need --key, Alberti needs --key and --period, Rail Fence needs --rails, Affine needs --a and --b.',
+        'Caesar needs --shift (default 3), Vigenère/Beaufort/Autokey/Playfair need --key, Alberti needs --key and --period, Rail Fence needs --rails, Affine needs --a and --b.',
       ],
       parameters: cipherParams,
       renderCall(args, _theme) {

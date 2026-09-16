@@ -8,6 +8,10 @@ import {
 import { type TSchema, Type } from 'typebox'
 import { Value } from 'typebox/value'
 import {
+  MAX_BRUTE_TEXT_LENGTH,
+  MAX_FREQUENCY_TEXT_LENGTH,
+  MAX_KEY_LENGTH,
+  MAX_TRANSFORM_TEXT_LENGTH,
   bruteForceCaesar,
   formatCipherInfo,
   formatFrequencyAnalysis,
@@ -16,11 +20,6 @@ import {
 } from './tool-operations'
 import * as ciphersLibrary from './index'
 import { version } from './version'
-
-const MAX_TRANSFORM_TEXT_LENGTH = 10_000
-const MAX_BRUTE_TEXT_LENGTH = 2_000
-const MAX_FREQUENCY_TEXT_LENGTH = 100_000
-const MAX_KEY_LENGTH = 1_000
 
 type ToolResult = {
   content: Array<{ type: 'text'; text: string }>

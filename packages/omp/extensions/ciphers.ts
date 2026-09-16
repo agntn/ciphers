@@ -4,6 +4,10 @@ import { fileURLToPath } from 'node:url'
 import type { ExtensionAPI } from '@oh-my-pi/pi-coding-agent'
 import type * as CiphersModule from '@agntn/ciphers'
 import {
+  MAX_BRUTE_TEXT_LENGTH,
+  MAX_FREQUENCY_TEXT_LENGTH,
+  MAX_KEY_LENGTH,
+  MAX_TRANSFORM_TEXT_LENGTH,
   bruteForceCaesar,
   formatCipherInfo,
   formatFrequencyAnalysis,
@@ -16,11 +20,6 @@ type CiphersLibrary = Pick<
   typeof CiphersModule,
   'analyzeFrequency' | 'ciphers' | 'create' | 'resolveCipher'
 >
-// Bound model-controlled work and returned context; Caesar brute force expands input 25×.
-const MAX_TRANSFORM_TEXT_LENGTH = 10_000
-const MAX_BRUTE_TEXT_LENGTH = 2_000
-const MAX_FREQUENCY_TEXT_LENGTH = 100_000
-const MAX_KEY_LENGTH = 1_000
 
 const sourcePath = fileURLToPath(new URL('../../../src/index.ts', import.meta.url))
 const checkoutMarker = new URL('../../../.git', import.meta.url)

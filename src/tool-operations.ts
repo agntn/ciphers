@@ -26,6 +26,12 @@ export type CipherToolResult = {
   details?: Record<string, unknown>
 }
 
+/** Bound model-controlled work and returned context; Caesar brute force expands input 25×. */
+export const MAX_TRANSFORM_TEXT_LENGTH = 10_000
+export const MAX_BRUTE_TEXT_LENGTH = 2_000
+export const MAX_FREQUENCY_TEXT_LENGTH = 100_000
+export const MAX_KEY_LENGTH = 1_000
+
 function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unknown> {
   const options: Record<string, unknown> = {}
   for (const name of [

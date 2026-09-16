@@ -1,14 +1,17 @@
 import { beforeAll, describe, expect, it } from 'vite-plus/test'
+import type { TSchema } from 'typebox'
+import { Value } from 'typebox/value'
 import { create } from '../../src'
 import ciphersExtension from '../../packages/pi/extensions/ciphers'
 
 type ToolResult = {
   readonly content: ReadonlyArray<{ readonly type: string; readonly text: string }>
+  readonly details?: Readonly<Record<string, unknown>>
 }
 
 type RegisteredTool = {
   name: string
-  parameters: {
+  parameters: TSchema & {
     properties?: Record<string, unknown>
   }
   execute(toolCallId: string, params: Readonly<Record<string, unknown>>): Promise<ToolResult>
@@ -142,5 +145,54 @@ describe('Pi extension', () => {
     expect(encoded.content[0]?.text).toBe(create('caesar').encode('a-b c', options).text)
     expect(decoded.content[0]?.text).toBe('ABC')
     expect(decoded.content[0]?.text).toBe(create('caesar').decode('b-c d', options).text)
+  })
+
+  it('bounds text, keys, and options the way OMP and MCP do', () => {
+    const transform = getTool('cipher_encode').parameters
+    expect(Value.Check(transform, { cipher: 'caesar', text: 'X'.repeat(10_000) })).toBe(true)
+    expect(Value.Check(transform, { cipher: 'caesar', text: 'X'.repeat(10_001) })).toBe(false)
+    expect(Value.Check(transform, { cipher: 'vigenere', text: 'X', key: 'K'.repeat(1_001) })).toBe(
+      false,
+    )
+    expect(Value.Check(transform, { cipher: 'caesar', text: 'X', shift: 26 })).toBe(false)
+    expect(Value.Check(transform, { cipher: 'rail-fence', text: 'X', rails: 1 })).toBe(false)
+    expect(Value.Check(transform, { cipher: 'bifid', text: 'X', period: 0 })).toBe(false)
+
+    const brute = getTool('cipher_brute_caesar').parameters
+    expect(Value.Check(brute, { text: 'X'.repeat(2_001) })).toBe(false)
+
+    const frequency = getTool('cipher_frequency').parameters
+    expect(Value.Check(frequency, { text: 'X'.repeat(100_001) })).toBe(false)
+    expect(Value.Check(frequency, { text: 'TEST', lang: 'de' })).toBe(false)
+    expect(Value.Check(frequency, { text: 'TEST', lang: 'pl' })).toBe(true)
+  })
+
+  it('answers through the shared executors and lets their errors reach the harness', async () => {
+    const encoded = await getTool('cipher_encode').execute('encode', {
+      cipher: 'caesar',
+      text: 'ATTACK AT DAWN',
+      shift: 3,
+    })
+    expect(encoded.content[0]?.text).toBe('DWWDFN DW GDZQ')
+    expect(encoded.details).toEqual({
+      cipher: 'caesar',
+      operation: 'encode',
+      options: { shift: 3, preserveCase: true, stripNonAlpha: false },
+    })
+
+    const brute = await getTool('cipher_brute_caesar').execute('brute', { text: 'KHOOR' })
+    expect(brute.content[0]?.text.split('\n')).toHaveLength(25)
+    expect(brute.content[0]?.text).toContain('shift= 3 -> HELLO')
+
+    const frequency = await getTool('cipher_frequency').execute('frequency', {
+      text: 'AAABBC',
+      lang: 'en',
+    })
+    expect(frequency.content[0]?.text).toContain('A    3 ( 50.0%)')
+    expect(frequency.content[0]?.text).toContain('Index of coincidence: 0.2667')
+
+    await expect(
+      getTool('cipher_encode').execute('failure', { cipher: 'cae', text: 'TEST' }),
+    ).rejects.toThrow('Unknown cipher')
   })
 })

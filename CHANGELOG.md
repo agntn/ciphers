@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.1.7
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.1.6...v0.1.7)
+
+### 🚀 Enhancements
+
+- Add Beaufort to the cipher registry ([#35](https://github.com/agntn/ciphers/pull/35))
+- Implement plaintext Autokey cipher ([#36](https://github.com/agntn/ciphers/pull/36))
+
+### 🩹 Fixes
+
+- **pi:** Put the cipher tools on the shared executors ([#38](https://github.com/agntn/ciphers/pull/38))
+- **docs:** Resolve @agntn/ciphers from src/ ([#39](https://github.com/agntn/ciphers/pull/39))
+
+### 💅 Refactors
+
+- Stop registering ciphers on import ([#37](https://github.com/agntn/ciphers/pull/37))
+
+### 📖 Documentation
+
+- Ciphers.agntn.dev runs every cipher in the browser ([#33](https://github.com/agntn/ciphers/pull/33))
+- README stops being the manual ([#40](https://github.com/agntn/ciphers/pull/40))
+
+### ❤️ Contributors
+
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+- Ori ([@oritwoen](https://github.com/oritwoen))
+
 ## v0.1.6
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.1.5...v0.1.6)

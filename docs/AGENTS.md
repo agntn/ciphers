@@ -6,7 +6,7 @@ Docus site for `@agntn/ciphers`. Markdown lives in `content/`. The playground is
 
 ```
 docs/
-├── nuxt.config.ts                 # extends: ['docus'], cloudflare_module preset (Workers)
+├── nuxt.config.ts                 # extends: ['docus'], cloudflare_module preset (Workers), @agntn/ciphers aliased to ../src
 ├── app/app.config.ts              # title, github, theme
 ├── app/app.css                    # theme tokens (light + .dark), shared `ciphers-*` classes
 ├── app/components/                # Docus overrides: AppHeaderLogo, AppHeaderCTA (nav), AppFooterLeft, DocsAsideLeftBody; icons are Solar (linear), brands stay simple-icons
@@ -26,21 +26,22 @@ docs/
 ## Commands
 
 ```bash
-pnpm install          # from docs/, after pnpm build in the repo root
+pnpm install          # from docs/, the repo root needs no install or build first
 pnpm dev              # http://localhost:3000
 pnpm build            # Cloudflare Workers output in .output/, content routes prerendered
 pnpm deploy           # build, then wrangler deploy to ciphers.agntn.dev
 pnpm generate         # static output; nothing on this site needs the worker at runtime
 ```
 
-Deployment: Nitro preset `cloudflare_module`. Nuxt Content wants a D1 binding named `DB`. `wrangler.jsonc` carries it plus the `NUXT_SITE_URL` var, and Nitro merges that into the generated `.output/server/wrangler.json`. Create the database once with `wrangler d1 create agntn-ciphers` and put the id in `wrangler.jsonc`. Until then the id is all zeros on purpose - `pnpm deploy` with zeros binds nothing, so don't run it before the id is real. No KV binding. Nothing is fetched, so nothing is cached.
+Deployment: Workers Builds with root directory `docs`. It installs `docs/` and nothing else, and that's enough, because the library comes from `../src` (next paragraph). Nitro preset `cloudflare_module`. Nuxt Content wants a D1 binding named `DB`. `wrangler.jsonc` carries it plus the `NUXT_SITE_URL` var, and Nitro merges that into the generated `.output/server/wrangler.json`. Create the database once with `wrangler d1 create agntn-ciphers` and put the id in `wrangler.jsonc`. Until then the id is all zeros on purpose - `pnpm deploy` with zeros binds nothing, so don't run it before the id is real. No KV binding. Nothing is fetched, so nothing is cached.
 
-The site imports `@agntn/ciphers` from `file:..`. Build the parent package first. `dist/index.mjs` has no imports that need Node, so it bundles for the browser as it is.
+`@agntn/ciphers` is an alias in `nuxt.config.ts` for `../src/index.ts`. Vite bundles the checkout's sources for the browser and Nitro gets the same alias for the prerender, so `dist/` and the root `node_modules` are never touched. That works because the subgraph under `src/index.ts` imports nothing from npm and nothing from `node:`, only `package.json` for the version. An npm import anywhere under `src/core` or `src/ciphers` breaks the deploy; the CLI and MCP entries are where those belong, and they stay out of the alias.
 
 Two resolution traps, both because the repo root is its own pnpm workspace:
 
 - `pnpm-workspace.yaml` sets `shamefullyHoist: true`. Without it `docs/node_modules` holds only direct dependencies, Node walks up to the root `node_modules`, and the server bundle can end up with a second copy of Vue.
 - `nuxt.config.ts` pins `workspaceDir` to `docs/` and disables devtools and telemetry, which would otherwise resolve from the root.
+- `vite.server.fs.allow` in `nuxt.config.ts` adds `../src`. Vite serves only directories on that list, and with `workspaceDir` pinned to `docs/` the library sits outside it, so `pnpm dev` couldn't load it otherwise.
 
 ## Live values
 

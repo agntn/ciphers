@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@agntn/ciphers':
-        specifier: file:..
-        version: file:..(zod@4.5.4)
       better-sqlite3:
         specifier: 12.11.1
         version: 12.11.1
@@ -38,11 +35,6 @@ importers:
         version: 4.128.0
 
 packages:
-
-  '@agntn/ciphers@file:..':
-    resolution: {directory: .., type: directory}
-    engines: {node: '>=25'}
-    hasBin: true
 
   '@ai-sdk/gateway@4.0.74':
     resolution: {integrity: sha512-6hpLUtAD162KLyyj9LN2OuEyze7lzq4wwj7PyQPYdMmA8PBYwyMbmvmu1C7OzfexLSPltZK29pX8R6hrJsqBqA==}
@@ -7291,16 +7283,6 @@ packages:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
-
-  '@agntn/ciphers@file:..(zod@4.5.4)':
-    dependencies:
-      '@modelcontextprotocol/sdk': 1.30.0(zod@4.5.4)
-      citty: 0.2.2
-      consola: 3.4.2
-    transitivePeerDependencies:
-      - '@cfworker/json-schema'
-      - supports-color
-      - zod
 
   '@ai-sdk/gateway@4.0.74(zod@4.5.4)':
     dependencies:

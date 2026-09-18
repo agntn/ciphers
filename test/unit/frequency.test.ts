@@ -23,7 +23,14 @@ describe('analyzeFrequency', () => {
   })
 
   it('uses the Polish reference order', () => {
-    expect(analyzeFrequency('ABC', 'pl')?.reference).toBe('AIOEZNSWRCYTKLDPMJUBGFHV')
+    expect(analyzeFrequency('ABC', 'pl')?.reference).toBe('AIOEZNRWSTCYKDPMUJLBGHFQVX')
+  })
+
+  it('ranks every A-Z letter once in each reference', () => {
+    for (const language of ['en', 'pl'] as const) {
+      const reference = analyzeFrequency('ABC', language)?.reference ?? ''
+      expect(reference.split('').sort().join('')).toBe('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    }
   })
 
   it('returns undefined without A-Z letters', () => {

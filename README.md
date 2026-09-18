@@ -117,7 +117,7 @@ ciphers info bifid
 | `info`      | One cipher's family, options and keyspace     | `ciphers info enigma`                                  |
 | `mcp`       | The MCP server on stdio                       | `ciphers mcp`                                          |
 
-A cipher's options are its flags: `--key`, `--shift`, `--rails`, `--period`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
+A cipher's options are its flags: `--key`, `--shift`, `--rails`, `--period`, `--letters`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
 
 ## 🧠 Library
 

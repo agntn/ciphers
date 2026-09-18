@@ -15,6 +15,7 @@ export default defineCommand({
     key: { type: 'string', description: 'Keyword for keyed ciphers', alias: 'k' },
     rails: { type: 'string', description: 'Number of rails (Rail Fence)', alias: 'r' },
     period: { type: 'string', description: 'Rotation period (Alberti, Bifid)' },
+    letters: { type: 'string', description: 'Alphabet size, 24 or 26 (Bacon; default 26)' },
     a: { type: 'string', description: 'Multiplier (Affine)' },
     b: { type: 'string', description: 'Additive shift (Affine)' },
     positions: { type: 'string', description: 'Initial rotor positions (Enigma; default AAA)' },

@@ -22,7 +22,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - Playfair and Polybius map J to I.
 - Tap code shares C and K.
 - Morse uses dots and dashes, spaces between letters, and `/` between words.
-- Bacon uses this project's 26-letter A-Z variant, not the historical 24-letter alphabet.
+- Bacon defaults to the 26-letter A-Z variant; `letters: 24` selects the historical table with I/J and U/V shared.
 - Enigma models Wehrmacht M3 with rotors I-II-III and reflector B.
 
 ## Adding or Changing a Cipher

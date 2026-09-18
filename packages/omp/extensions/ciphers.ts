@@ -83,6 +83,11 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
         description: 'Rotation or fractionation period for Alberti and Bifid',
       }),
     ),
+    letters: Type.Optional(
+      Type.Union([Type.Literal(24), Type.Literal(26)], {
+        description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
+      }),
+    ),
     preserveCase: Type.Optional(
       Type.Boolean({ description: 'Preserve letter case (default true)' }),
     ),

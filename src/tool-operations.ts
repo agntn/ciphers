@@ -14,6 +14,7 @@ export type CipherToolParams = {
   a?: number
   b?: number
   period?: number
+  letters?: number
   preserveCase?: boolean
   stripNonAlpha?: boolean
   positions?: string
@@ -41,6 +42,7 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'a',
     'b',
     'period',
+    'letters',
     'preserveCase',
     'stripNonAlpha',
     'positions',

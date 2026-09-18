@@ -90,6 +90,12 @@ export interface PolybiusOptions extends CipherBaseOptions {
   key?: string
 }
 
+/** Bacon's cipher options. */
+export interface BaconOptions extends CipherBaseOptions {
+  /** Table size: 26 codes every letter, 24 shares I/J and U/V. Default: 26. */
+  letters?: 24 | 26
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *

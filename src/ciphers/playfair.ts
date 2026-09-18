@@ -49,16 +49,15 @@ function processPlayfair(text: string, key: string, decrypt: boolean): string {
   for (const [k, [r, c]] of pos1) pos.set(k, [r - 1, c - 1])
   const bigrams = decrypt ? pairCiphertext(text) : prepareText(text)
   const at = (r: number, c: number) => table[(r + 5) % 5]![(c + 5) % 5]!
+  const step = decrypt ? -1 : 1
   const result: string[] = []
   for (const bg of bigrams) {
     const [r1, c1] = pos.get(bg[0]!)!
     const [r2, c2] = pos.get(bg[1]!)!
     if (r1 === r2) {
-      const dir = decrypt ? -1 : 1
-      result.push(at(r1, c1 + dir) + at(r2, c2 + dir))
+      result.push(at(r1, c1 + step) + at(r2, c2 + step))
     } else if (c1 === c2) {
-      const dir = decrypt ? 1 : -1
-      result.push(at(r1 + dir, c1) + at(r2 + dir, c2))
+      result.push(at(r1 + step, c1) + at(r2 + step, c2))
     } else {
       result.push(at(r1, c2) + at(r2, c1))
     }

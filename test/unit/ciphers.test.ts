@@ -321,15 +321,19 @@ describe('affine', () => {
 describe('playfair', () => {
   const playfair = create('playfair')
 
-  it('encodes with key', () => {
+  it('encodes the Wikipedia vector', () => {
     const result = playfair.encode('HIDE THE GOLD IN THE TREE STUMP', { key: 'PLAYFAIR EXAMPLE' })
-    expect(result.text).toBe('BMEAZBXDNABEKUDMUIXMMOUVIF')
+    expect(result.text).toBe('BMODZBXDNABEKUDMUIXMMOUVIF')
   })
 
-  it('decodes with key', () => {
-    const encoded = playfair.encode('HIDE THE GOLD IN THE TREE STUMP', { key: 'PLAYFAIR EXAMPLE' })
-    const result = playfair.decode(encoded.text, { key: 'PLAYFAIR EXAMPLE' })
+  it('decodes the Wikipedia vector', () => {
+    const result = playfair.decode('BMODZBXDNABEKUDMUIXMMOUVIF', { key: 'PLAYFAIR EXAMPLE' })
     expect(result.text).toBe('HIDETHEGOLDINTHETREXESTUMP')
+  })
+
+  it('moves same-column pairs down on encode and up on decode', () => {
+    expect(playfair.encode('INSTRUMENTS', { key: 'MONARCHY' }).text).toBe('GATLMZCLRQXA')
+    expect(playfair.decode('GATLMZCLRQXA', { key: 'MONARCHY' }).text).toBe('INSTRUMENTSX')
   })
 
   it('roundtrips (modulo padding)', () => {
@@ -340,7 +344,7 @@ describe('playfair', () => {
 
   it('does not insert filler into repeated ciphertext letters', () => {
     const encoded = playfair.encode('AABX', { key: 'MONARCHY' })
-    expect(encoded.text).toBe('XSXAZZ')
+    expect(encoded.text).toBe('BABIZZ')
     expect(playfair.decode(encoded.text, { key: 'MONARCHY' }).text).toBe('AXABXX')
   })
 

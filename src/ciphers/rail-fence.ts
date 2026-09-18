@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
-import { getOpt } from '../core/utils'
+import { applyBaseOptions, getOpt, processBaseOptions } from '../core/utils'
 import { InvalidOptionError, normalizeError } from '../core/errors'
 
 function encodeRailFence(text: string, rails: number): string {
@@ -43,11 +43,15 @@ function decodeRailFence(cipher: string, rails: number): string {
   return result.join('')
 }
 
-function validate(opts: Readonly<CipherBaseOptions>): { rails: number } {
+function validate(opts: Readonly<CipherBaseOptions>): {
+  rails: number
+  preserveCase: boolean
+  stripNonAlpha: boolean
+} {
   const rails = getOpt<number>(opts, 'rails', 3)
   if (!Number.isInteger(rails) || rails < 2)
     throw new InvalidOptionError('rails', rails, 'must be integer >= 2')
-  return { rails }
+  return { rails, ...processBaseOptions(opts) }
 }
 
 export class RailFence extends Cipher {
@@ -77,12 +81,12 @@ export class RailFence extends Cipher {
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      const { rails } = validate(options ?? {})
+      const { rails, ...base } = validate(options ?? {})
       return {
-        text: encodeRailFence(text, rails),
+        text: encodeRailFence(applyBaseOptions(text, base), rails),
         cipher: 'rail-fence',
         operation: 'encode',
-        options: { rails },
+        options: { rails, ...base },
       }
     } catch (e) {
       throw normalizeError(e, 'rail-fence')
@@ -91,12 +95,12 @@ export class RailFence extends Cipher {
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      const { rails } = validate(options ?? {})
+      const { rails, ...base } = validate(options ?? {})
       return {
-        text: decodeRailFence(text, rails),
+        text: decodeRailFence(applyBaseOptions(text, base), rails),
         cipher: 'rail-fence',
         operation: 'decode',
-        options: { rails },
+        options: { rails, ...base },
       }
     } catch (e) {
       throw normalizeError(e, 'rail-fence')

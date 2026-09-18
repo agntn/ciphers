@@ -54,6 +54,21 @@ export function processBaseOptions(opts: Readonly<CipherBaseOptions>): {
   }
 }
 
+/**
+ * Apply the shared flags to the input of a cipher that keeps every letter's case in place.
+ *
+ * @param text - Input text.
+ * @param base - Resolved `preserveCase` and `stripNonAlpha` values.
+ * @returns {string} The text without non-letters and with a-z uppercased, as the flags ask.
+ */
+export function applyBaseOptions(
+  text: string,
+  base: Readonly<{ preserveCase: boolean; stripNonAlpha: boolean }>,
+): string {
+  const input = base.stripNonAlpha ? text.replaceAll(/[^A-Za-z]/g, '') : text
+  return base.preserveCase ? input : input.replaceAll(/[a-z]+/g, (run) => run.toUpperCase())
+}
+
 export { getOpt } from './types'
 
 // ── LRU Cache ──────────────────────────────────────────────────────────

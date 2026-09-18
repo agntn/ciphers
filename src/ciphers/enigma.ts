@@ -71,16 +71,20 @@ function parseConfig(options: Readonly<CipherBaseOptions>): EnigmaConfig {
   const positions = parseLetters(stringOption(options, 'positions', 'AAA'), 'positions')
   const rings = parseLetters(stringOption(options, 'rings', 'AAA'), 'rings')
   const plugboard = parsePlugboard(stringOption(options, 'plugboard', '').trim())
+  const preserveCase = options.preserveCase ?? true
+  const stripNonAlpha = options.stripNonAlpha ?? false
   return {
     positions: positions.values,
     rings: rings.values,
     plugboard: plugboard.wiring,
-    preserveCase: options.preserveCase ?? true,
-    stripNonAlpha: options.stripNonAlpha ?? false,
+    preserveCase,
+    stripNonAlpha,
     resultOptions: {
       positions: positions.normalized,
       rings: rings.normalized,
       plugboard: plugboard.normalized,
+      preserveCase,
+      stripNonAlpha,
     },
   }
 }

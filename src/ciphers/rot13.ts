@@ -1,10 +1,9 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
+import { applyBaseOptions, processBaseOptions } from '../core/utils'
 
-function rot13(text: string, stripNonAlpha: boolean): string {
-  let input = text
-  if (stripNonAlpha) input = input.replaceAll(/[^A-Za-z]/g, '')
-  return Array.from(input, (c) => {
+function rot13(text: string): string {
+  return Array.from(text, (c) => {
     if (c >= 'A' && c <= 'Z') return String.fromCodePoint(((c.codePointAt(0)! - 65 + 13) % 26) + 65)
     if (c >= 'a' && c <= 'z') return String.fromCodePoint(((c.codePointAt(0)! - 97 + 13) % 26) + 97)
     return c
@@ -29,20 +28,22 @@ export class Rot13 extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
+    const base = processBaseOptions(options ?? {})
     return {
-      text: rot13(text, options?.stripNonAlpha ?? false),
+      text: rot13(applyBaseOptions(text, base)),
       cipher: 'rot13',
       operation: 'encode',
-      options: {},
+      options: base,
     }
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
+    const base = processBaseOptions(options ?? {})
     return {
-      text: rot13(text, options?.stripNonAlpha ?? false),
+      text: rot13(applyBaseOptions(text, base)),
       cipher: 'rot13',
       operation: 'decode',
-      options: {},
+      options: base,
     }
   }
 }

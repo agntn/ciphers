@@ -1,6 +1,14 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
-import { getOpt, LruCache, RateLimiter, RateLimitError, cipherCacheKey } from '../core/utils'
+import {
+  applyBaseOptions,
+  cipherCacheKey,
+  getOpt,
+  LruCache,
+  processBaseOptions,
+  RateLimiter,
+  RateLimitError,
+} from '../core/utils'
 import { MissingOptionError, normalizeError } from '../core/errors'
 
 // ── Columnar transposition internals ────────────────────────────────────
@@ -52,10 +60,14 @@ function decodeColumnar(text: string, key: string): string {
   return result
 }
 
-function validate(opts: Readonly<CipherBaseOptions>): { key: string } {
+function validate(opts: Readonly<CipherBaseOptions>): {
+  key: string
+  preserveCase: boolean
+  stripNonAlpha: boolean
+} {
   const key = getOpt<string | undefined>(opts, 'key', undefined)
   if (!key) throw new MissingOptionError('key')
-  return { key }
+  return { key, ...processBaseOptions(opts) }
 }
 
 // ── Cache + rate limiter (per-instance) ─────────────────────────────────
@@ -98,16 +110,17 @@ export class Columnar extends Cipher {
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      const { key } = validate(options ?? {})
-      const ck = cipherCacheKey('encode', text, { key })
+      const resolved = validate(options ?? {})
+      const input = applyBaseOptions(text, resolved)
+      const ck = cipherCacheKey('encode', input, { key: resolved.key })
       const cached = this.cache.get(ck)
       if (cached !== undefined) {
-        return { text: cached, cipher: 'columnar', operation: 'encode', options: { key } }
+        return { text: cached, cipher: 'columnar', operation: 'encode', options: resolved }
       }
       if (!this.limiter.allow()) throw new RateLimitError('columnar')
-      const result = encodeColumnar(text, key)
+      const result = encodeColumnar(input, resolved.key)
       this.cache.set(ck, result)
-      return { text: result, cipher: 'columnar', operation: 'encode', options: { key } }
+      return { text: result, cipher: 'columnar', operation: 'encode', options: resolved }
     } catch (e) {
       throw normalizeError(e, 'columnar')
     }
@@ -115,16 +128,17 @@ export class Columnar extends Cipher {
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      const { key } = validate(options ?? {})
-      const ck = cipherCacheKey('decode', text, { key })
+      const resolved = validate(options ?? {})
+      const input = applyBaseOptions(text, resolved)
+      const ck = cipherCacheKey('decode', input, { key: resolved.key })
       const cached = this.cache.get(ck)
       if (cached !== undefined) {
-        return { text: cached, cipher: 'columnar', operation: 'decode', options: { key } }
+        return { text: cached, cipher: 'columnar', operation: 'decode', options: resolved }
       }
       if (!this.limiter.allow()) throw new RateLimitError('columnar')
-      const result = decodeColumnar(text, key)
+      const result = decodeColumnar(input, resolved.key)
       this.cache.set(ck, result)
-      return { text: result, cipher: 'columnar', operation: 'decode', options: { key } }
+      return { text: result, cipher: 'columnar', operation: 'decode', options: resolved }
     } catch (e) {
       throw normalizeError(e, 'columnar')
     }

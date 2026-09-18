@@ -98,7 +98,7 @@ export class Affine extends Cipher {
         text: affineProcess(text, a, b, false, preserveCase, stripNonAlpha),
         cipher: 'affine',
         operation: 'encode',
-        options: { a, b },
+        options: { a, b, preserveCase, stripNonAlpha },
       }
     } catch (e) {
       throw normalizeError(e, 'affine')
@@ -112,7 +112,7 @@ export class Affine extends Cipher {
         text: affineProcess(text, a, b, true, preserveCase, stripNonAlpha),
         cipher: 'affine',
         operation: 'decode',
-        options: { a, b },
+        options: { a, b, preserveCase, stripNonAlpha },
       }
     } catch (e) {
       throw normalizeError(e, 'affine')

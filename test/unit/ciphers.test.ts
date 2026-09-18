@@ -266,6 +266,16 @@ describe('rail-fence', () => {
     expect(railFence.decode(encoded.text, { rails: 3 }).text).toBe('WEAREDISCOVEREDRUNATONCE')
   })
 
+  it('strips the punctuation of the Wikipedia message before transposing', () => {
+    const options = { rails: 3, stripNonAlpha: true }
+    const encoded = railFence.encode('WE ARE DISCOVERED. RUN AT ONCE.', options)
+    expect(encoded.text).toBe('WECRUOERDSOEERNTNEAIVDAC')
+    expect(encoded.options).toEqual({ rails: 3, preserveCase: true, stripNonAlpha: true })
+    expect(railFence.decode('WECRUO ERDSOEERNTNE AIVDAC', options).text).toBe(
+      'WEAREDISCOVEREDRUNATONCE',
+    )
+  })
+
   it('roundtrips', () => {
     const encoded = railFence.encode('HELLO WORLD', { rails: 4 })
     const decoded = railFence.decode(encoded.text, { rails: 4 })
@@ -490,6 +500,23 @@ describe('columnar', () => {
     )
   })
 
+  it('strips the punctuation of the Wikipedia message before transposing', () => {
+    const options = { key: 'ZEBRAS', stripNonAlpha: true }
+    const encoded = col.encode('WE ARE DISCOVERED. FLEE AT ONCE', options)
+    expect(encoded.text).toBe('EVLNACDTESEAROFODEECWIREE')
+    expect(encoded.options).toEqual({ key: 'ZEBRAS', preserveCase: true, stripNonAlpha: true })
+    expect(col.decode('EVLNA CDTES EAROF ODEEC WIREE', options).text).toBe(
+      'WEAREDISCOVEREDFLEEATONCE',
+    )
+  })
+
+  it('keeps cached answers apart across the shared flags', () => {
+    expect(col.encode('a b', { key: 'AB' }).text).toBe('ab ')
+    expect(col.encode('a b', { key: 'AB', preserveCase: false, stripNonAlpha: true }).text).toBe(
+      'AB',
+    )
+  })
+
   it('orders duplicate key letters left to right', () => {
     expect(col.encode('ABCDEFGHIJK', { key: 'LETTER' }).text).toBe('BHEKAGFCIDJ')
     expect(col.decode('BHEKAGFCIDJ', { key: 'LETTER' }).text).toBe('ABCDEFGHIJK')
@@ -662,6 +689,36 @@ describe('edge cases', () => {
       const result = cipher.encode('123 !@#', opts)
       expect(typeof result.text).toBe('string')
     }
+  })
+
+  it('every A-Z cipher applies and echoes the shared flags', () => {
+    const latin = [
+      'caesar',
+      'rot13',
+      'atbash',
+      'vigenere',
+      'beaufort',
+      'autokey',
+      'trithemius',
+      'alberti',
+      'rail-fence',
+      'affine',
+      'columnar',
+      'enigma',
+    ]
+    for (const name of latin) {
+      const options = { ...keyOpts[name], preserveCase: false, stripNonAlpha: true }
+      const result = create(name).encode('Ab, c!', options)
+      expect(result.text, name).toMatch(/^[A-Z]+$/)
+      expect(result.options, name).toMatchObject({ preserveCase: false, stripNonAlpha: true })
+    }
+  })
+
+  it('preserveCase=false leaves letters outside a-z alone', () => {
+    expect(create('rail-fence').encode('straße', { rails: 2, preserveCase: false }).text).toBe(
+      'SRßTAE',
+    )
+    expect(create('rot13').encode('café', { preserveCase: false }).text).toBe('PNSé')
   })
 
   it('caesar handles unicode input (non-BMP chars preserved)', () => {

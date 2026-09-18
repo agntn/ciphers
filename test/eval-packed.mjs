@@ -97,6 +97,14 @@ try {
     'ATTACKATDAWN',
   )
   assert.equal(run(binPath, ['decode', 'beaufort', 'HCKHA', '--key', 'KEY']).trim(), 'DCODE')
+  assert.equal(
+    run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
+    'ABAABABBAAABAAAAABBAAABBBBAABA',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'bacon', 'ABAABABBAAABAAAAABBAAABBBBAABA', '--letters', '24']).trim(),
+    'KNIGHT',
+  )
 
   console.log(`Packed ${manifest.name}@${manifest.version} ran ${binEntry} as a command`)
 } finally {

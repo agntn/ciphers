@@ -116,6 +116,23 @@ describe('OMP extension', () => {
     expect(info.content[0]?.text).toContain('key (string, required)')
   })
 
+  it('executes the 24-letter Bacon table in both directions', async () => {
+    const encoded = await getTool('cipher_encode').execute('encode', {
+      cipher: 'bacon',
+      text: 'KNIGHT',
+      letters: 24,
+    })
+    expect(encoded.content[0]?.text).toBe('ABAABABBAAABAAAAABBAAABBBBAABA')
+    const decoded = await getTool('cipher_decode').execute('decode', {
+      cipher: 'bacon',
+      text: 'ABAABABBAAABAAAAABBAAABBBBAABA',
+      letters: 24,
+    })
+    expect(decoded.content[0]?.text).toBe('KNIGHT')
+    const info = await getTool('cipher_info').execute('info', { cipher: 'bacon' })
+    expect(info.content[0]?.text).toContain('letters (number, default=26)')
+  })
+
   it('executes Autokey in both directions', async () => {
     const encoded = await getTool('cipher_encode').execute('encode', {
       cipher: 'autokey',
@@ -180,6 +197,12 @@ describe('OMP extension', () => {
       false,
     )
     expect(transformSchema.safeParse({ cipher: 'bifid', text: 'X', period: 0 }).success).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'bacon', text: 'X', letters: 25 }).success).toBe(
+      false,
+    )
+    expect(transformSchema.safeParse({ cipher: 'bacon', text: 'X', letters: 24 }).success).toBe(
+      true,
+    )
     expect(transformSchema.safeParse({ cipher: 'rail-fence', text: 'X', rails: 1 }).success).toBe(
       false,
     )

@@ -106,6 +106,24 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('discovers and executes the 24-letter Bacon table through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'bacon' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('letters (number, default=26)')
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'KNIGHT', 'ABAABABBAAABAAAAABBAAABBBBAABA'],
+      ['cipher_decode', 'ABAABABBAAABAAAAABBAAABBBBAABA', 'KNIGHT'],
+    ] as const) {
+      const result = await client.callTool({
+        name,
+        arguments: { cipher: 'bacon', text, letters: 24 },
+      })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
   it('discovers and executes Autokey through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'autokey' } })
@@ -132,6 +150,7 @@ describe('Ciphers MCP server', () => {
       ['rails', { cipher: 'rail-fence', text: 'abc', rails: 10_001 }],
       ['a', { cipher: 'affine', text: 'abc', a: 2 }],
       ['period', { cipher: 'bifid', text: 'abc', period: 10_001 }],
+      ['letters', { cipher: 'bacon', text: 'abc', letters: 25 }],
     ] as const) {
       const response = await client.callTool({
         name: 'cipher_encode',

@@ -11,6 +11,7 @@ export type {
   AffineOptions,
   PlayfairOptions,
   PolybiusOptions,
+  BaconOptions,
   CipherInfo,
   CipherOption,
 } from './types'

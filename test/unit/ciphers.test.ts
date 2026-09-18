@@ -447,6 +447,45 @@ describe('bacon', () => {
     const encoded = bacon.encode('ABC')
     expect(encoded.text.length).toBe(15)
   })
+
+  it('reports the 26-letter table as the default', () => {
+    expect(bacon.encode('A').options).toEqual({ letters: 26 })
+    expect(bacon.decode('AAAAA').options).toEqual({ letters: 26 })
+    expect(bacon.encode('A', { letters: 26 }).options).toEqual({ letters: 26 })
+  })
+
+  /** Published vector: https://en.wikipedia.org/wiki/Bacon%27s_cipher#Baconian_cipher_example */
+  it('matches the Wikipedia 24-letter STEGANOGRAPHY example', () => {
+    const groups = 'baaab baaba aabaa aabba aaaaa abbaa abbab aabba baaaa aaaaa abbba aabbb babba'
+    expect(bacon.encode('STEGANOGRAPHY', { letters: 24 }).text).toBe(
+      groups.replaceAll(' ', '').toUpperCase(),
+    )
+    expect(bacon.decode(groups, { letters: 24 }).text).toBe('STEGANOGRAPHY')
+    expect(bacon.decode(`${groups} bbaaa bbaab bbbbb`, { letters: 24 }).text).toBe(
+      'STEGANOGRAPHY???',
+    )
+    expect(bacon.decode(groups, { letters: 24 }).options).toEqual({ letters: 24 })
+  })
+
+  it('shares I with J and U with V in the 24-letter table', () => {
+    expect(bacon.encode('JV', { letters: 24 }).text).toBe('ABAAABAABB')
+    expect(bacon.encode('IU', { letters: 24 }).text).toBe('ABAAABAABB')
+    expect(bacon.decode('ABAAABAABB', { letters: 24 }).text).toBe('IU')
+    expect(bacon.encode('JV').text).toBe('ABAABBABAB')
+  })
+
+  it('codes every letter from K on differently in the two tables', () => {
+    expect(bacon.encode('K', { letters: 24 }).text).toBe('ABAAB')
+    expect(bacon.encode('K', { letters: 26 }).text).toBe('ABABA')
+    expect(bacon.decode('ABAAB', { letters: 24 }).text).toBe('K')
+    expect(bacon.decode('ABAAB', { letters: 26 }).text).toBe('J')
+  })
+
+  it.each([25, 0, '24', 24.5])('rejects letters=%s', (letters) => {
+    expect(() => bacon.encode('A', { letters })).toThrow(CipherError)
+    expect(() => bacon.encode('A', { letters })).toThrow('must be 24 or 26')
+    expect(() => bacon.decode('AAAAA', { letters })).toThrow('must be 24 or 26')
+  })
 })
 
 describe('tap-code', () => {

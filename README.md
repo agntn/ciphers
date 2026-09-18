@@ -117,7 +117,7 @@ ciphers info bifid
 | `info`      | One cipher's family, options and keyspace     | `ciphers info enigma`                                  |
 | `mcp`       | The MCP server on stdio                       | `ciphers mcp`                                          |
 
-A cipher's options are its flags: `--key`, `--shift`, `--rails`, `--period`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
+A cipher's options are its flags: `--key`, `--shift`, `--rails`, `--period`, `--letters`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
 
 ## 🧠 Library
 
@@ -155,14 +155,14 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **playfair**   | digraph                     |      ✗       | `--key` (required)                         |
 | **polybius**   | fractionation               |      ✗       | `--key` (optional)                         |
 | **morse**      | fractionation               |      ✗       | -                                          |
-| **bacon**      | fractionation               |      ✗       | -                                          |
+| **bacon**      | fractionation               |      ✗       | `--letters` (24 or 26, default 26)         |
 | **tap-code**   | fractionation               |      ✗       | -                                          |
 | **columnar**   | transposition               |      ✗       | `--key` (required)                         |
 | **adfgvx**     | fractionation               |      ✗       | `--key` (optional)                         |
 | **bifid**      | fractionation               |      ✗       | `--key` (optional), `--period` (default 5) |
 | **enigma**     | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`    |
 
-Playfair and Polybius fold J into I, tap code shares C and K, Bacon is the 26-letter variant, and Alberti is a keyed disk that turns every `period` letters, not a reenactment of the original. One page per cipher, rules and vectors included: [Ciphers](https://ciphers.agntn.dev/ciphers).
+Playfair and Polybius fold J into I, tap code shares C and K, Bacon is the 26-letter variant unless `letters` says 24, and Alberti is a keyed disk that turns every `period` letters, not a reenactment of the original. One page per cipher, rules and vectors included: [Ciphers](https://ciphers.agntn.dev/ciphers).
 
 ## 🤖 Agents
 

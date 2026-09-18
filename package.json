@@ -39,7 +39,7 @@
     "consola": "3.4.2"
   },
   "devDependencies": {
-    "@agntn/ox": "^0.1.0",
+    "@agntn/ox": "0.1.0",
     "@earendil-works/pi-coding-agent": "latest",
     "@earendil-works/pi-tui": "latest",
     "@oh-my-pi/omptype": "17.2.12",
@@ -47,8 +47,8 @@
     "@types/node": "latest",
     "changelogen": "0.6.2",
     "obuild": "0.4.36",
-    "oxfmt": "0.64.0",
-    "oxlint": "1.79.0",
+    "oxfmt": "0.68.0",
+    "oxlint": "1.83.0",
     "oxlint-tsgolint": "7.0.2001",
     "tsx": "4.22.4",
     "typebox": "1.1.39",

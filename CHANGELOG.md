@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.1.8
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.1.7...v0.1.8)
+
+### 🚀 Enhancements
+
+- **bacon:** Letters=24 for Bacon's own table ([#49](https://github.com/agntn/ciphers/pull/49))
+
+### 🩹 Fixes
+
+- --help and --version are not cipher names ([#44](https://github.com/agntn/ciphers/pull/44))
+- **playfair:** Move same-column pairs down ([#45](https://github.com/agntn/ciphers/pull/45))
+- Apply the shared flags on every A-Z cipher ([#46](https://github.com/agntn/ciphers/pull/46))
+- **frequency:** Polish order from PWN's table ([#52](https://github.com/agntn/ciphers/pull/52))
+
+### 🏡 Chore
+
+- Add `renovate.json` ([ac08fd0](https://github.com/agntn/ciphers/commit/ac08fd0))
+
+### ❤️ Contributors
+
+- Ori ([@oritwoen](https://github.com/oritwoen))
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+
 ## v0.1.7
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.1.6...v0.1.7)

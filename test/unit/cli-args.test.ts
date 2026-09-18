@@ -18,4 +18,25 @@ describe('normalizeMainArgs', () => {
   it('prepends encode for numbers', () => {
     expect(normalizeMainArgs(['3', 'hello'])).toEqual(['encode', '3', 'hello'])
   })
+  it('leaves the help and version flags to the main command', () => {
+    expect(normalizeMainArgs(['--help'])).toEqual(['--help'])
+    expect(normalizeMainArgs(['-h'])).toEqual(['-h'])
+    expect(normalizeMainArgs(['--version'])).toEqual(['--version'])
+    expect(normalizeMainArgs(['-v'])).toEqual(['-v'])
+  })
+  it('keeps the encode shortcut for every other leading flag', () => {
+    expect(normalizeMainArgs(['--shift', '3', 'caesar', 'hello'])).toEqual([
+      'encode',
+      '--shift',
+      '3',
+      'caesar',
+      'hello',
+    ])
+    expect(normalizeMainArgs(['caesar', 'hello', '--help'])).toEqual([
+      'encode',
+      'caesar',
+      'hello',
+      '--help',
+    ])
+  })
 })

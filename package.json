@@ -34,9 +34,9 @@
     "release": "pnpm test && pnpm build && changelogen --release --push"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "citty": "^0.2.2",
-    "consola": "^3.4.2"
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "citty": "0.2.2",
+    "consola": "3.4.2"
   },
   "devDependencies": {
     "@agntn/ox": "^0.1.0",
@@ -45,14 +45,14 @@
     "@oh-my-pi/omptype": "17.2.12",
     "@oh-my-pi/pi-coding-agent": "17.2.12",
     "@types/node": "latest",
-    "changelogen": "^0.6.2",
-    "obuild": "^0.4.36",
+    "changelogen": "0.6.2",
+    "obuild": "0.4.36",
     "oxfmt": "0.64.0",
     "oxlint": "1.79.0",
     "oxlint-tsgolint": "7.0.2001",
-    "tsx": "^4.22.4",
-    "typebox": "^1.1.39",
-    "typescript": "^6.0.3",
+    "tsx": "4.22.4",
+    "typebox": "1.1.39",
+    "typescript": "6.0.3",
     "vite-plus": "0.3.0"
   },
   "engines": {

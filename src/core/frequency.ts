@@ -11,9 +11,10 @@ export interface FrequencyAnalysis {
   readonly ic?: number
 }
 
+/** A-Z by corpus frequency: the ETAOIN ranking for English, PWN's IPI PAN count for Polish. */
 const frequencyReferences: Record<FrequencyLanguage, string> = {
   en: 'ETAOINSHRDLCUMWFGYPBVKJXQZ',
-  pl: 'AIOEZNSWRCYTKLDPMJUBGFHV',
+  pl: 'AIOEZNRWSTCYKDPMUJLBGHFQVX',
 }
 
 /**

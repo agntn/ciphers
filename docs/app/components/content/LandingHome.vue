@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CIPHERS, FAMILIES, TOOLS, familySize } from "../../utils/ciphers";
+import { CIPHERS, FAMILY_COUNT, TOOLS, familySize } from "../../utils/ciphers";
 import { capitalize, counted, spellOut, spellOutCapital } from "../../utils/format";
 
 const { samples, tick, paused, current, caesar, step } = useLandingCipher();
@@ -8,7 +8,7 @@ const { samples, tick, paused, current, caesar, step } = useLandingCipher();
 const cipherCount = spellOutCapital(CIPHERS.length);
 
 /** The cipher family panel, counted from the registry so a new cipher moves the numbers. */
-const familyTitle = `${cipherCount} ciphers, ${spellOut(FAMILIES.length)} families`;
+const familyTitle = `${cipherCount} ciphers, ${spellOut(FAMILY_COUNT)} families`;
 const familyChecks = [
   `Shift, reflection and multiplicative substitutions, ${counted(familySize("polyalphabetic"), "polyalphabetic")}, ${counted(familySize("digraph"), "digraph")}`,
   `${capitalize(counted(familySize("fractionation"), "fractionation"))} from Polybius to ADFGVX, ${counted(familySize("transposition"), "transposition")}, one Enigma M3`,
@@ -17,7 +17,7 @@ const familyChecks = [
 
 const stats = [
   { value: String(CIPHERS.length), label: "ciphers" },
-  { value: String(FAMILIES.length), label: "families" },
+  { value: String(FAMILY_COUNT), label: "families" },
   { value: String(TOOLS.length), label: "agent tools" },
   { value: "0", label: "network calls" },
 ] as const;

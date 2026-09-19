@@ -78,6 +78,9 @@ export function familySize(family: CipherInfo["family"]): number {
   return CIPHERS.filter((cipher) => cipher.info.family === family).length;
 }
 
+/** The families the registry uses, counted from `info().family`, not from the `FAMILIES` labels. */
+export const FAMILY_COUNT = new Set(CIPHERS.map((cipher) => cipher.info.family)).size;
+
 /** The five agent tools. Same names over MCP, Pi and OMP. */
 export const TOOLS = [
   "cipher_encode",

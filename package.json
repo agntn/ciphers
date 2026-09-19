@@ -2,6 +2,7 @@
   "name": "@agntn/ciphers",
   "version": "0.1.8",
   "description": "Unified educational and puzzle cipher library for agents",
+  "homepage": "https://ciphers.agntn.dev",
   "repository": {
     "type": "git",
     "url": "https://github.com/agntn/ciphers"
@@ -67,6 +68,7 @@
   "pi": {
     "extensions": [
       "./packages/pi/extensions/*.ts"
-    ]
+    ],
+    "image": "https://ciphers.agntn.dev/image.png"
   }
 }

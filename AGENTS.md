@@ -12,6 +12,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - `src/ciphers/index.ts` holds `builtins`, the ordered list the registry is seeded from. A cipher file that is not in it is not in the registry.
 - Keep `src/core/registry.ts` constructor-based. `create()` returns one cached instance per name, and re-registering a name invalidates that instance.
 - `sideEffects` names `dist/cli.mjs` and nothing else. That holds only while no module registers itself on import: put a `register()` call back at the top of a cipher file and the class reaches the registry through a bare import, which a tree-shaker is free to drop. New ciphers go in `builtins`.
+- `src/commands/mcp.ts` imports the server and the SDK inside `run()`, because citty resolves every subcommand for `--help` and for an unknown command too. `test/unit/cli-loads.test.ts` runs those usage paths under a load hook.
 - Report domain failures through the `CipherError` hierarchy and normalize unknown thrown values with `normalizeError()`.
 - Resolution may normalize case and spaces to hyphens, then it must match a registered name exactly. Do not add fuzzy or prefix matching.
 - Keep the `ciphers` Citty CLI and the Pi/OMP extensions aligned with the library. Both extensions expose encode, decode, Caesar brute force, frequency analysis, and cipher info lookup.

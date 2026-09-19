@@ -74,7 +74,9 @@ describe('CLI usage paths', () => {
     const result = runCli(['mcp'], `${JSON.stringify(initialize)}\n`)
 
     expect(result.status).toBe(0)
-    const response: unknown = JSON.parse(result.stdout.trim().split('\n')[0] ?? '')
+    const [responseLine = ''] = result.stdout.trim().split('\n')
+    expect(responseLine, `the server answered nothing:\n${result.stderr}`).not.toBe('')
+    const response: unknown = JSON.parse(responseLine)
     expect(response).toMatchObject({ id: 1, result: { serverInfo: { name: 'ciphers' } } })
     expect(loadedFrom(result.loaded, '/node_modules/@modelcontextprotocol/')).not.toEqual([])
   })

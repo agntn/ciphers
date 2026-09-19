@@ -38,3 +38,63 @@ export function optionLiteral(options: Record<string, unknown>): string {
     .map(([name, value]) => `${name}: ${typeof value === "string" ? JSON.stringify(value) : String(value)}`)
     .join(", ")} }`;
 }
+
+const ONES = [
+  "zero",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "thirteen",
+  "fourteen",
+  "fifteen",
+  "sixteen",
+  "seventeen",
+  "eighteen",
+  "nineteen",
+];
+const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+/**
+ * A count in words, `twenty` or `twenty-one`. Past ninety-nine, digits.
+ *
+ * @param count - A whole number.
+ * @returns {string} The English word, lowercase.
+ */
+export function spellOut(count: number): string {
+  if (!Number.isInteger(count) || count < 0 || count > 99) return String(count);
+  if (count < 20) return ONES[count]!;
+  const ones = count % 10;
+  const tens = TENS[(count - ones) / 10]!;
+  return ones === 0 ? tens : `${tens}-${ONES[ones]}`;
+}
+
+/**
+ * `spellOut` for the start of a sentence: `Twenty`.
+ *
+ * @param count - A whole number.
+ * @returns {string} The English word with a capital.
+ */
+export function spellOutCapital(count: number): string {
+  const word = spellOut(count);
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+/**
+ * A count with its noun, `one digraph` or `six fractionations`.
+ *
+ * @param count - A whole number.
+ * @param noun - The singular; the plural adds an `s`.
+ * @returns {string} The count in words, then the noun.
+ */
+export function counted(count: number, noun: string): string {
+  return `${spellOut(count)} ${count === 1 ? noun : `${noun}s`}`;
+}

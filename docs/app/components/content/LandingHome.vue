@@ -1,7 +1,19 @@
 <script setup lang="ts">
-import { CIPHERS, FAMILIES, TOOLS } from "../../utils/ciphers";
+import { CIPHERS, FAMILIES, TOOLS, familySize } from "../../utils/ciphers";
+import { counted, spellOut, spellOutCapital } from "../../utils/format";
 
 const { samples, tick, paused, current, caesar, step } = useLandingCipher();
+
+/** The headline count, spelled out. The stats row below it shows the same number in digits. */
+const cipherCount = spellOutCapital(CIPHERS.length);
+
+/** The cipher family panel, counted from the registry so a new cipher moves the numbers. */
+const familyTitle = `${cipherCount} ciphers, ${spellOut(FAMILIES.length)} families`;
+const familyChecks = [
+  `Shift, reflection and multiplicative substitutions, ${counted(familySize("polyalphabetic"), "polyalphabetic")}, ${counted(familySize("digraph"), "digraph")}`,
+  `${spellOutCapital(familySize("fractionation"))} fractionations from Polybius to ADFGVX, ${counted(familySize("transposition"), "transposition")}, one Enigma M3`,
+  "Each page lists the options, the keyspace and the conventions, like I and J sharing a cell",
+];
 
 const stats = [
   { value: String(CIPHERS.length), label: "ciphers" },
@@ -36,7 +48,7 @@ const activeCipher = computed(() => current.value.entry.slug);
       <h1
         class="ciphers-enter mx-auto max-w-3xl text-4xl leading-[1.08] font-medium tracking-tight text-highlighted sm:text-5xl lg:text-[3.75rem]"
       >
-        Eighteen ciphers. <span class="text-primary">One call.</span>
+        {{ cipherCount }} ciphers. <span class="text-primary">One call.</span>
       </h1>
       <p class="ciphers-enter ciphers-enter-2 mx-auto mt-6 max-w-xl text-base leading-7 text-muted">
         Caesar to Enigma behind one small API. Encode, decode, brute force a Caesar, count letters.
@@ -174,14 +186,10 @@ const activeCipher = computed(() => current.value.entry.slug);
 
     <LandingFeature
       eyebrow="Ciphers"
-      title="Eighteen ciphers, eight families"
+      :title="familyTitle"
       to="/ciphers"
       link="All ciphers"
-      :checks="[
-        'Shift, reflection and multiplicative substitutions, three polyalphabetics, one digraph',
-        'Six fractionations from Polybius to ADFGVX, two transpositions, one Enigma M3',
-        'Each page lists the options, the keyspace and the conventions, like I and J sharing a cell',
-      ]"
+      :checks="familyChecks"
       reverse
     >
       Latin alphabets are A to Z. Playfair and Polybius fold J into I, tap code shares C and K,

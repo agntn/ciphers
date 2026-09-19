@@ -2,7 +2,7 @@ import { create } from "@agntn/ciphers";
 import { CIPHERS, type CipherEntry } from "../utils/ciphers";
 
 /** The order the landing walks the ciphers in. Neighbours are kept different on purpose. */
-const WALK = [
+const ORDER: readonly CipherEntry["slug"][] = [
   "caesar",
   "vigenere",
   "playfair",
@@ -11,6 +11,7 @@ const WALK = [
   "atbash",
   "polybius",
   "columnar",
+  "autokey",
   "affine",
   "bifid",
   "morse",
@@ -22,7 +23,13 @@ const WALK = [
   "rot13",
   "beaufort",
   "rot47",
-] as const;
+];
+
+/** Every cipher in the registry. A newcomer missing from `ORDER` joins at the end. */
+const WALK: readonly CipherEntry[] = [
+  ...ORDER.map((slug) => CIPHERS.find((row) => row.slug === slug)!),
+  ...CIPHERS.filter((row) => !ORDER.includes(row.slug)),
+];
 
 export interface LandingSample {
   entry: CipherEntry;
@@ -47,7 +54,7 @@ export function encodeSample(entry: CipherEntry): LandingSample {
 
 /** One clock for every landing panel. The library computes the samples, at build and live. */
 export function useLandingCipher() {
-  const samples = WALK.map((slug) => encodeSample(CIPHERS.find((row) => row.slug === slug)!));
+  const samples = WALK.map((entry) => encodeSample(entry));
   const tick = ref(0);
   const paused = ref(false);
   const index = computed(() => tick.value % samples.length);

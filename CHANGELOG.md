@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.1.9
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.1.8...v0.1.9)
+
+### 🩹 Fixes
+
+- **cli:** The usage path imports the MCP SDK ([#58](https://github.com/agntn/ciphers/pull/58))
+- **docs:** The site counts the ciphers it ships ([#59](https://github.com/agntn/ciphers/pull/59))
+- **mcp:** Tell the model which cipher needs a key ([#60](https://github.com/agntn/ciphers/pull/60))
+
+### 🏡 Chore
+
+- Add `pi` image ([a7a579b](https://github.com/agntn/ciphers/commit/a7a579b))
+
+### ❤️ Contributors
+
+- Ori ([@oritwoen](https://github.com/oritwoen))
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+
 ## v0.1.8
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.1.7...v0.1.8)

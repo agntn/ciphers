@@ -1,4 +1,5 @@
 import type * as CiphersModule from './index'
+import { builtinCiphers } from './core/ciphers'
 
 type CiphersLibrary = Pick<
   typeof CiphersModule,
@@ -32,6 +33,20 @@ export const MAX_TRANSFORM_TEXT_LENGTH = 10_000
 export const MAX_BRUTE_TEXT_LENGTH = 2_000
 export const MAX_FREQUENCY_TEXT_LENGTH = 100_000
 export const MAX_KEY_LENGTH = 1_000
+
+/** Affine multipliers coprime with 26, the only values the cipher accepts for `a`. */
+export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as const
+
+/**
+ * What the model reads about the arguments only some ciphers take. The extensions never load a
+ * cipher, so the registry cannot write these; the MCP test checks them against it.
+ */
+export const OPTION_DESCRIPTIONS = {
+  cipher: `Exact built-in cipher name: ${builtinCiphers.join(', ')}`,
+  key: 'Keyword. Required by vigenere, beaufort, autokey, alberti, playfair and columnar; optional for polybius, adfgvx and bifid',
+  period:
+    'Block length. Required by alberti (letters before the disk rotates); optional for bifid (default 5)',
+} as const
 
 function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unknown> {
   const options: Record<string, unknown> = {}

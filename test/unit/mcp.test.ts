@@ -1,8 +1,10 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { afterEach, describe, expect, it } from 'vite-plus/test'
-import { Cipher, register, type CipherInfo, type CipherResult } from '../../src'
+import { Cipher, create, register, type CipherInfo, type CipherResult } from '../../src'
+import { builtinCiphers } from '../../src/core/ciphers'
 import { createMcpServer } from '../../src/mcp'
+import { OPTION_DESCRIPTIONS } from '../../src/tool-operations'
 
 const openConnections: Array<{ close(): Promise<void> }> = []
 
@@ -54,16 +56,36 @@ describe('Ciphers MCP server', () => {
     expect(encodeTool?.inputSchema).toMatchObject({
       type: 'object',
       required: ['cipher', 'text'],
+      properties: {
+        cipher: { enum: [...builtinCiphers] },
+        a: { enum: [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] },
+        letters: { enum: [24, 26] },
+        key: { description: OPTION_DESCRIPTIONS.key },
+        period: { description: OPTION_DESCRIPTIONS.period },
+      },
     })
-    const encodedSchema = JSON.stringify(encodeTool?.inputSchema)
-    expect(encodedSchema).toContain('"const":"caesar"')
-    expect(encodedSchema).toContain('"const":"enigma"')
+    expect(JSON.stringify(encodeTool?.inputSchema)).not.toContain('allOf')
     expect(encodeTool?.annotations).toEqual({
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
     })
+  })
+
+  it('names the ciphers that read key and period as the registry declares them', () => {
+    for (const option of ['key', 'period'] as const) {
+      const [requiredClause = '', optionalClause = ''] = OPTION_DESCRIPTIONS[option].split(';')
+      const named = (clause: string) => builtinCiphers.filter((name) => clause.includes(name))
+      const declared = (required: boolean) =>
+        builtinCiphers.filter((name) =>
+          create(name)
+            .info()
+            .options.some((entry) => entry.name === option && entry.required === required),
+        )
+      expect(named(requiredClause)).toEqual(declared(true))
+      expect(named(optionalClause)).toEqual(declared(false))
+    }
   })
 
   it('executes encode and decode through the protocol', async () => {

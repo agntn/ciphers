@@ -10,12 +10,13 @@ import { defineTool } from '@earendil-works/pi-coding-agent'
 import { Text } from '@earendil-works/pi-tui'
 import { Type } from 'typebox'
 import type * as CiphersModule from '@agntn/ciphers'
-import { builtinCiphers } from '../../../src/core/ciphers'
 import {
+  AFFINE_MULTIPLIERS,
   MAX_BRUTE_TEXT_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_LENGTH,
   MAX_TRANSFORM_TEXT_LENGTH,
+  OPTION_DESCRIPTIONS,
   bruteForceCaesar,
   formatCipherInfo,
   formatFrequencyAnalysis,
@@ -71,24 +72,19 @@ function toPiResult(result: {
 
 /** Same schema as the OMP extension, so both harnesses reject the same input. */
 const cipherParams = Type.Object({
-  cipher: Type.String({
-    maxLength: 32,
-    description: `Exact built-in cipher name: ${builtinCiphers.join(', ')}`,
-  }),
+  cipher: Type.String({ maxLength: 32, description: OPTION_DESCRIPTIONS.cipher }),
   text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Text to transform' }),
   shift: Type.Optional(
     Type.Integer({ minimum: 1, maximum: 25, description: 'Caesar shift (1-25; default 3)' }),
   ),
   key: Type.Optional(
-    Type.String({ maxLength: MAX_KEY_LENGTH, description: 'Key for keyed ciphers' }),
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.key }),
   ),
   rails: Type.Optional(
     Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' }),
   ),
   a: Type.Optional(
-    Type.Integer({
-      minimum: 1,
-      maximum: 25,
+    Type.Enum(AFFINE_MULTIPLIERS, {
       description: 'Affine multiplier, coprime with 26 (default 5)',
     }),
   ),
@@ -99,14 +95,9 @@ const cipherParams = Type.Object({
       description: 'Affine additive shift (0-25; default 8)',
     }),
   ),
-  period: Type.Optional(
-    Type.Integer({
-      minimum: 1,
-      description: 'Rotation or fractionation period for Alberti and Bifid',
-    }),
-  ),
+  period: Type.Optional(Type.Integer({ minimum: 1, description: OPTION_DESCRIPTIONS.period })),
   letters: Type.Optional(
-    Type.Union([Type.Literal(24), Type.Literal(26)], {
+    Type.Enum([24, 26], {
       description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
     }),
   ),
@@ -216,9 +207,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       parameters: Type.Object({
         text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
         lang: Type.Optional(
-          Type.Union([Type.Literal('en'), Type.Literal('pl')], {
-            description: 'Reference language (default en)',
-          }),
+          Type.Enum(['en', 'pl'], { description: 'Reference language (default en)' }),
         ),
       }),
       renderCall(args, _theme) {

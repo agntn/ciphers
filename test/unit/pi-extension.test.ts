@@ -173,6 +173,8 @@ describe('Pi extension', () => {
     )
     expect(Value.Check(transform, { cipher: 'caesar', text: 'X', shift: 26 })).toBe(false)
     expect(Value.Check(transform, { cipher: 'rail-fence', text: 'X', rails: 1 })).toBe(false)
+    expect(Value.Check(transform, { cipher: 'affine', text: 'X', a: 2 })).toBe(false)
+    expect(Value.Check(transform, { cipher: 'affine', text: 'X', a: 3 })).toBe(true)
     expect(Value.Check(transform, { cipher: 'bifid', text: 'X', period: 0 })).toBe(false)
     expect(Value.Check(transform, { cipher: 'bacon', text: 'X', letters: 25 })).toBe(false)
     expect(Value.Check(transform, { cipher: 'bacon', text: 'X', letters: 24 })).toBe(true)

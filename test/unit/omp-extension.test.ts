@@ -206,6 +206,8 @@ describe('OMP extension', () => {
     expect(transformSchema.safeParse({ cipher: 'rail-fence', text: 'X', rails: 1 }).success).toBe(
       false,
     )
+    expect(transformSchema.safeParse({ cipher: 'affine', text: 'X', a: 2 }).success).toBe(false)
+    expect(transformSchema.safeParse({ cipher: 'affine', text: 'X', a: 3 }).success).toBe(true)
     expect(
       transformSchema.safeParse({ cipher: 'vigenere', text: 'X', key: 'K'.repeat(1_001) }).success,
     ).toBe(false)

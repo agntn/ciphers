@@ -8,10 +8,12 @@ import {
 import { type TSchema, Type } from 'typebox'
 import { Value } from 'typebox/value'
 import {
+  AFFINE_MULTIPLIERS,
   MAX_BRUTE_TEXT_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_LENGTH,
   MAX_TRANSFORM_TEXT_LENGTH,
+  OPTION_DESCRIPTIONS,
   bruteForceCaesar,
   formatCipherInfo,
   formatFrequencyAnalysis,
@@ -31,6 +33,8 @@ type ToolDefinition = {
   title: string
   description: string
   inputSchema: TSchema
+  /** Rules the schema does not carry, checked once the schema has passed. */
+  validate?(args: Readonly<Record<string, unknown>>): string | undefined
   execute(args: Readonly<Record<string, unknown>>): ToolResult
 }
 
@@ -38,9 +42,8 @@ type CipherOptionRequirement = {
   readonly ciphers: readonly string[]
   readonly required: readonly ('key' | 'period')[]
   readonly key?: {
-    readonly minLength?: number
-    readonly pattern?: RegExp
-    readonly error?: string
+    readonly pattern: RegExp
+    readonly error: string
   }
 }
 
@@ -48,129 +51,85 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
   {
     ciphers: ['alberti'],
     required: ['key', 'period'],
-    key: {
-      minLength: 1,
-      pattern: /^[A-Za-z]+$/,
-      error: 'must contain ASCII letters only',
-    },
+    key: { pattern: /^[A-Za-z]+$/, error: 'must contain ASCII letters only' },
   },
   {
     ciphers: ['vigenere', 'beaufort', 'autokey'],
     required: ['key'],
-    key: {
-      pattern: /[A-Za-z]/,
-      error: 'must contain at least one ASCII letter',
-    },
+    key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
   },
   {
     ciphers: ['playfair', 'columnar'],
     required: ['key'],
-    key: { minLength: 1 },
   },
 ]
 
-const cipherOptionConditionals = cipherOptionRequirements.map((requirement) => {
-  const cipherMatch =
-    requirement.ciphers.length === 1
-      ? { const: requirement.ciphers[0] }
-      : { enum: [...requirement.ciphers] }
-  const keySchema = requirement.key
-    ? {
-        type: 'string',
-        ...(requirement.key.minLength === undefined
-          ? {}
-          : { minLength: requirement.key.minLength }),
-        ...(requirement.key.pattern === undefined
-          ? {}
-          : { pattern: requirement.key.pattern.source }),
-      }
-    : undefined
-
-  return {
-    if: {
-      properties: { cipher: cipherMatch },
-      required: ['cipher'],
-    },
-    // oxlint-disable-next-line unicorn/no-thenable -- JSON Schema conditional keyword.
-    ['then']: {
-      ...(keySchema === undefined ? {} : { properties: { key: keySchema } }),
-      required: [...requirement.required],
-    },
-  }
+/**
+ * Plain keywords only: hosts flatten or drop `allOf` conditionals, so which cipher needs a key is
+ * said in the descriptions and enforced by `cipherInputError`.
+ */
+const cipherInputSchema = Type.Object({
+  cipher: Type.Enum(ciphersLibrary.builtinCiphers, { description: 'Built-in cipher name' }),
+  text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Text to transform' }),
+  shift: Type.Optional(
+    Type.Integer({ minimum: 1, maximum: 25, description: 'Caesar shift (1-25; default 3)' }),
+  ),
+  key: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.key }),
+  ),
+  rails: Type.Optional(
+    Type.Integer({
+      minimum: 2,
+      maximum: MAX_TRANSFORM_TEXT_LENGTH,
+      description: 'Rail Fence rails (at least 2; default 3)',
+    }),
+  ),
+  a: Type.Optional(
+    Type.Enum(AFFINE_MULTIPLIERS, {
+      description: 'Affine multiplier, coprime with 26 (default 5)',
+    }),
+  ),
+  b: Type.Optional(
+    Type.Integer({
+      minimum: 0,
+      maximum: 25,
+      description: 'Affine additive shift (0-25; default 8)',
+    }),
+  ),
+  period: Type.Optional(
+    Type.Integer({
+      minimum: 1,
+      maximum: MAX_TRANSFORM_TEXT_LENGTH,
+      description: OPTION_DESCRIPTIONS.period,
+    }),
+  ),
+  letters: Type.Optional(
+    Type.Enum([24, 26], {
+      description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
+    }),
+  ),
+  preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
+  stripNonAlpha: Type.Optional(
+    Type.Boolean({
+      description: 'Remove non-letter characters before processing (default false)',
+    }),
+  ),
+  positions: Type.Optional(
+    Type.String({
+      pattern: '^[A-Za-z]{3}$',
+      description: 'Enigma initial rotor positions (default AAA)',
+    }),
+  ),
+  rings: Type.Optional(
+    Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma ring settings (default AAA)' }),
+  ),
+  plugboard: Type.Optional(
+    Type.String({
+      maxLength: 38,
+      description: 'Enigma plugboard pairs, for example "AV BS CG"',
+    }),
+  ),
 })
-
-const cipherNameSchema = Type.Union(ciphersLibrary.builtinCiphers.map((name) => Type.Literal(name)))
-
-const cipherInputSchema = Type.Object(
-  {
-    cipher: cipherNameSchema,
-    text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Text to transform' }),
-    shift: Type.Optional(
-      Type.Integer({ minimum: 1, maximum: 25, description: 'Caesar shift (1-25; default 3)' }),
-    ),
-    key: Type.Optional(
-      Type.String({ maxLength: MAX_KEY_LENGTH, description: 'Key for keyed ciphers' }),
-    ),
-    rails: Type.Optional(
-      Type.Integer({
-        minimum: 2,
-        maximum: MAX_TRANSFORM_TEXT_LENGTH,
-        description: 'Rail Fence rails (at least 2; default 3)',
-      }),
-    ),
-    a: Type.Optional(
-      Type.Union(
-        [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25].map((value) => Type.Literal(value)),
-        { description: 'Affine multiplier, coprime with 26 (default 5)' },
-      ),
-    ),
-    b: Type.Optional(
-      Type.Integer({
-        minimum: 0,
-        maximum: 25,
-        description: 'Affine additive shift (0-25; default 8)',
-      }),
-    ),
-    period: Type.Optional(
-      Type.Integer({
-        minimum: 1,
-        maximum: MAX_TRANSFORM_TEXT_LENGTH,
-        description: 'Rotation or fractionation period for Alberti and Bifid',
-      }),
-    ),
-    letters: Type.Optional(
-      Type.Union([Type.Literal(24), Type.Literal(26)], {
-        description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
-      }),
-    ),
-    preserveCase: Type.Optional(
-      Type.Boolean({ description: 'Preserve letter case (default true)' }),
-    ),
-    stripNonAlpha: Type.Optional(
-      Type.Boolean({
-        description: 'Remove non-letter characters before processing (default false)',
-      }),
-    ),
-    positions: Type.Optional(
-      Type.String({
-        pattern: '^[A-Za-z]{3}$',
-        description: 'Enigma initial rotor positions (default AAA)',
-      }),
-    ),
-    rings: Type.Optional(
-      Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma ring settings (default AAA)' }),
-    ),
-    plugboard: Type.Optional(
-      Type.String({
-        maxLength: 38,
-        description: 'Enigma plugboard pairs, for example "AV BS CG"',
-      }),
-    ),
-  },
-  {
-    allOf: cipherOptionConditionals,
-  },
-)
 
 const tools: ToolDefinition[] = [
   {
@@ -178,6 +137,7 @@ const tools: ToolDefinition[] = [
     title: 'Cipher Encode',
     description: 'Encode text with an exact-name built-in cipher. cipher_info lists the options.',
     inputSchema: cipherInputSchema,
+    validate: cipherInputError,
     execute: (args) => transformCipher(ciphersLibrary, 'encode', args as CipherToolParams),
   },
   {
@@ -185,6 +145,7 @@ const tools: ToolDefinition[] = [
     title: 'Cipher Decode',
     description: 'Decode text with an exact-name built-in cipher. cipher_info lists the options.',
     inputSchema: cipherInputSchema,
+    validate: cipherInputError,
     execute: (args) => transformCipher(ciphersLibrary, 'decode', args as CipherToolParams),
   },
   {
@@ -207,9 +168,7 @@ const tools: ToolDefinition[] = [
     inputSchema: Type.Object({
       text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
       lang: Type.Optional(
-        Type.Union([Type.Literal('en'), Type.Literal('pl')], {
-          description: 'Reference language (default en)',
-        }),
+        Type.Enum(['en', 'pl'], { description: 'Reference language (default en)' }),
       ),
     }),
     execute: (args) =>
@@ -235,10 +194,6 @@ const tools: ToolDefinition[] = [
   },
 ]
 
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null
-}
-
 function requiredOptionError(
   args: Readonly<Record<string, unknown>>,
   required: readonly ('key' | 'period')[],
@@ -255,15 +210,15 @@ function requiredOptionError(
 function invalidKeyError(
   key: unknown,
   matches: (value: string) => boolean,
-  message?: string,
+  message: string,
 ): string | undefined {
   if (typeof key !== 'string') return undefined
   if (matches(key)) return undefined
-  return `Invalid arguments at /key: ${message ?? 'invalid key'}`
+  return `Invalid arguments at /key: ${message}`
 }
 
-function cipherInputError(value: unknown): string | undefined {
-  if (!isRecord(value) || typeof value.cipher !== 'string') return undefined
+function cipherInputError(value: Readonly<Record<string, unknown>>): string | undefined {
+  if (typeof value.cipher !== 'string') return undefined
   const cipher = value.cipher
   const requirement = cipherOptionRequirements.find((candidate) =>
     candidate.ciphers.includes(cipher),
@@ -273,16 +228,11 @@ function cipherInputError(value: unknown): string | undefined {
   if (requiredError !== undefined) return requiredError
 
   const keyRule = requirement.key
-  if (keyRule?.pattern === undefined) return undefined
+  if (keyRule === undefined) return undefined
   return invalidKeyError(value.key, keyRule.pattern.test.bind(keyRule.pattern), keyRule.error)
 }
 
 function validationError(schema: TSchema, value: unknown): string {
-  if (schema === cipherInputSchema) {
-    const inputError = cipherInputError(value)
-    if (inputError !== undefined) return inputError
-  }
-
   const first = Value.Errors(schema, value)[0]
   if (!first) return 'Invalid arguments'
   return `Invalid arguments at ${first.instancePath || '/'}: ${first.message}`
@@ -329,11 +279,11 @@ export function createMcpServer(): Server {
     }
 
     const args = request.params.arguments ?? {}
-    if (!Value.Check(tool.inputSchema, args)) {
-      return {
-        content: [{ type: 'text', text: validationError(tool.inputSchema, args) }],
-        isError: true,
-      }
+    const inputError = Value.Check(tool.inputSchema, args)
+      ? tool.validate?.(args)
+      : validationError(tool.inputSchema, args)
+    if (inputError !== undefined) {
+      return { content: [{ type: 'text', text: inputError }], isError: true }
     }
 
     try {

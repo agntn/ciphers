@@ -48,17 +48,21 @@ function spellOut(count: number): string {
 const numberWords = new Set(Array.from({ length: 100 }, (_, count) => spellOut(count)))
 
 /**
- * Every count written as a word in front of a noun: `twenty ciphers`, `Eight families`.
+ * Every count in front of a noun, as a word or in digits: `twenty ciphers`, `20 ciphers`.
  *
  * @param text - Prose to scan.
  * @param noun - The plural noun the count precedes.
- * @returns {string[]} The counts as written, lowercased.
+ * @returns {string[]} The counts, each as the word `spellOut` writes.
  */
 function countsIn(text: string, noun: string): string[] {
   const counts: string[] = []
-  const pattern = new RegExp(String.raw`\b([a-z]+(?:-[a-z]+)?)(?: classical)? ${noun}\b`, 'gi')
+  const pattern = new RegExp(
+    String.raw`\b([a-z]+(?:-[a-z]+)?|\d{1,2})(?: classical)? ${noun}\b`,
+    'gi',
+  )
   for (const match of text.matchAll(pattern)) {
-    const word = match[1]!.toLowerCase()
+    const token = match[1]!
+    const word = /^\d+$/.test(token) ? spellOut(Number(token)) : token.toLowerCase()
     if (numberWords.has(word)) counts.push(word)
   }
   return counts
@@ -81,9 +85,20 @@ describe('the prose counts what the registry ships', () => {
   const expected = { ciphers: spellOut(builtinCiphers.length), families: spellOut(families.size) }
 
   it('finds the counts it checks', () => {
-    const readme = readFileSync(path.join(root, 'README.md'), 'utf8')
-    expect(countsIn(readme, 'ciphers')).not.toHaveLength(0)
-    expect(countsIn('Twenty-five shifts, one line each', 'ciphers')).toHaveLength(0)
+    expect(countsIn('Twenty ciphers in eight families, 20 ciphers, 8 families', 'ciphers')).toEqual(
+      ['twenty', 'twenty'],
+    )
+    expect(
+      countsIn('Twenty ciphers in eight families, 20 ciphers, 8 families', 'families'),
+    ).toEqual(['eight', 'eight'])
+    expect(countsIn('Twenty-five shifts, one line each, 1 to 25', 'ciphers')).toHaveLength(0)
+    const corpus = proseFiles().map((file) => readFileSync(path.join(root, file), 'utf8'))
+    for (const noun of ['ciphers', 'families'] as const) {
+      expect(
+        corpus.flatMap((text) => countsIn(text, noun)),
+        noun,
+      ).not.toHaveLength(0)
+    }
   })
 
   it.each(proseFiles())('%s', (file) => {

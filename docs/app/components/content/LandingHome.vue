@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CIPHERS, FAMILIES, TOOLS, familySize } from "../../utils/ciphers";
-import { counted, spellOut, spellOutCapital } from "../../utils/format";
+import { capitalize, counted, spellOut, spellOutCapital } from "../../utils/format";
 
 const { samples, tick, paused, current, caesar, step } = useLandingCipher();
 
@@ -11,7 +11,7 @@ const cipherCount = spellOutCapital(CIPHERS.length);
 const familyTitle = `${cipherCount} ciphers, ${spellOut(FAMILIES.length)} families`;
 const familyChecks = [
   `Shift, reflection and multiplicative substitutions, ${counted(familySize("polyalphabetic"), "polyalphabetic")}, ${counted(familySize("digraph"), "digraph")}`,
-  `${spellOutCapital(familySize("fractionation"))} fractionations from Polybius to ADFGVX, ${counted(familySize("transposition"), "transposition")}, one Enigma M3`,
+  `${capitalize(counted(familySize("fractionation"), "fractionation"))} from Polybius to ADFGVX, ${counted(familySize("transposition"), "transposition")}, one Enigma M3`,
   "Each page lists the options, the keyspace and the conventions, like I and J sharing a cell",
 ];
 

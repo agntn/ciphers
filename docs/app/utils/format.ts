@@ -78,14 +78,23 @@ export function spellOut(count: number): string {
 }
 
 /**
+ * The first letter upper case, for the start of a sentence.
+ *
+ * @param text - Any text.
+ * @returns {string} The text with a capital.
+ */
+export function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
  * `spellOut` for the start of a sentence: `Twenty`.
  *
  * @param count - A whole number.
  * @returns {string} The English word with a capital.
  */
 export function spellOutCapital(count: number): string {
-  const word = spellOut(count);
-  return word.charAt(0).toUpperCase() + word.slice(1);
+  return capitalize(spellOut(count));
 }
 
 /**

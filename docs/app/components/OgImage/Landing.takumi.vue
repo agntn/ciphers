@@ -1,9 +1,12 @@
 <script lang="ts" setup>
+import { CIPHERS, TOOLS } from "../../utils/ciphers";
+import { spellOut, spellOutCapital } from "../../utils/format";
+
 /** Overrides the Docus landing template. Takumi has no CSS variables, so tokens are literals. */
 defineProps<{ title?: string; description?: string }>();
 
-const TAGLINE =
-  "Caesar to Enigma behind one local API, a CLI and five agent tools. Encode, decode, brute force, count letters. Offline.";
+const cipherCount = spellOutCapital(CIPHERS.length);
+const TAGLINE = `Caesar to Enigma behind one local API, a CLI and ${spellOut(TOOLS.length)} agent tools. Encode, decode, brute force, count letters. Offline.`;
 
 const { name: siteName } = useSiteConfig();
 
@@ -51,7 +54,7 @@ const PROVIDERS = ["Caesar", "Vigenère", "Playfair", "Bifid", "Enigma"];
           class="m-0 text-[76px] font-medium leading-[1.05] tracking-[-0.03em]"
           style="color: #f0f4f8"
         >
-          Eighteen ciphers.
+          {{ cipherCount }} ciphers.
         </h1>
         <h1
           class="m-0 ml-[22px] text-[76px] font-medium leading-[1.05] tracking-[-0.03em]"

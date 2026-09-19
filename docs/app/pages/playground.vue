@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { CIPHERS } from "../utils/ciphers";
+import { spellOut } from "../utils/format";
+
 definePageMeta({ layout: "default" });
 
 const title = "Playground";
-const description =
-  "Encode, decode, brute force and count letters with any of the nineteen ciphers. In the browser, same library the CLI and the agent tools run.";
+const description = `Encode, decode, brute force and count letters with any of the ${spellOut(CIPHERS.length)} ciphers. In the browser, same library the CLI and the agent tools run.`;
 
 useSeo({ title, description, type: "article" });
 

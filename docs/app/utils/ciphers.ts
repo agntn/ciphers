@@ -68,6 +68,19 @@ export function familyLabel(family: CipherInfo["family"]): string {
   return FAMILIES.find((row) => row.key === family)?.label ?? family;
 }
 
+/**
+ * How many built-in ciphers the library files under one family.
+ *
+ * @param family - A family name as `info().family` reports it.
+ * @returns {number} The count in the registry.
+ */
+export function familySize(family: CipherInfo["family"]): number {
+  return CIPHERS.filter((cipher) => cipher.info.family === family).length;
+}
+
+/** The families the registry uses, counted from `info().family`, not from the `FAMILIES` labels. */
+export const FAMILY_COUNT = new Set(CIPHERS.map((cipher) => cipher.info.family)).size;
+
 /** The five agent tools. Same names over MCP, Pi and OMP. */
 export const TOOLS = [
   "cipher_encode",

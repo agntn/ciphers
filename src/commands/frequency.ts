@@ -1,5 +1,6 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
+import { InvalidOptionError } from '../core/errors'
 import { analyzeFrequency } from '../core/frequency'
 
 export default defineCommand({
@@ -9,8 +10,10 @@ export default defineCommand({
     lang: { type: 'string', description: 'Reference language (pl, en)', alias: 'l', default: 'en' },
   },
   async run({ args }) {
-    const language = args.lang === 'pl' ? 'pl' : 'en'
-    const analysis = analyzeFrequency(args.text, language)
+    if (args.lang !== 'en' && args.lang !== 'pl') {
+      throw new InvalidOptionError('lang', args.lang, 'must be en or pl')
+    }
+    const analysis = analyzeFrequency(args.text, args.lang)
     if (analysis === undefined) {
       consola.warn('No letters found in input')
       return

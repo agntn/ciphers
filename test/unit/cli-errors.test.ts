@@ -5,10 +5,11 @@ import { version } from '../../src/version'
 
 const cliPath = fileURLToPath(new URL('../../src/cli.ts', import.meta.url))
 
-function runCli(args: readonly string[]) {
+function runCli(args: readonly string[], env?: Readonly<NodeJS.ProcessEnv>) {
   return spawnSync(process.execPath, ['--import', 'tsx', cliPath, ...args], {
     encoding: 'utf8',
     timeout: 10_000,
+    env,
   })
 }
 
@@ -19,6 +20,50 @@ describe('CLI domain errors', () => {
     expect(result.status).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('Unknown cipher: unknown\n')
+  })
+})
+
+describe('CLI frequency language', () => {
+  it('rejects a language the other surfaces do not accept', () => {
+    const result = runCli(['frequency', 'HELLO', '--lang', 'de'])
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('Invalid option lang=de: must be en or pl\n')
+  })
+
+  it('rejects a language that only matches after case folding', () => {
+    const result = runCli(['frequency', 'HELLO', '-l', 'PL'])
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('Invalid option lang=PL: must be en or pl\n')
+  })
+
+  it('keeps English as the default reference order', () => {
+    const result = runCli(['frequency', 'HELLO'], {
+      ...process.env,
+      CONSOLA_LEVEL: '3',
+    })
+
+    expect(result.status).toBe(0)
+    expect(`${result.stdout}${result.stderr}`).toContain('lang=en')
+    expect(`${result.stdout}${result.stderr}`).toContain(
+      'E T A O I N S H R D L C U M W F G Y P B V K J X Q Z',
+    )
+  })
+
+  it('prints the Polish reference order for --lang pl', () => {
+    const result = runCli(['frequency', 'HELLO', '--lang', 'pl'], {
+      ...process.env,
+      CONSOLA_LEVEL: '3',
+    })
+
+    expect(result.status).toBe(0)
+    expect(`${result.stdout}${result.stderr}`).toContain('lang=pl')
+    expect(`${result.stdout}${result.stderr}`).toContain(
+      'A I O E Z N R W S T C Y K D P M U J L B G H F Q V X',
+    )
   })
 })
 

@@ -415,6 +415,17 @@ describe('morse', () => {
     expect(morse.decode('... --- ...').text).toBe('SOS')
   })
 
+  it.each(['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__', 'unknown', '🧩'])(
+    'preserves the unknown token %s while decoding surrounding Morse',
+    (token) => {
+      expect(morse.decode(`... ${token} / --- ...`).text).toBe(`S${token} OS`)
+    },
+  )
+
+  it('decodes digits and punctuation with word separators', () => {
+    expect(morse.decode('.---- ..--- ...-- / -..-. ..--..').text).toBe('123 /?')
+  })
+
   it('roundtrips', () => {
     const encoded = morse.encode('HELLO WORLD')
     const decoded = morse.decode(encoded.text)

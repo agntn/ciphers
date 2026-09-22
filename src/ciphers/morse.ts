@@ -59,9 +59,7 @@ const CHAR_TO_MORSE: Record<string, string> = {
   "'": '.----.',
 }
 
-const MORSE_TO_CHAR: Record<string, string> = Object.fromEntries(
-  Object.entries(CHAR_TO_MORSE).map(([k, v]) => [v, k]),
-)
+const MORSE_TO_CHAR = new Map(Object.entries(CHAR_TO_MORSE).map(([k, v]) => [v, k]))
 
 function encodeMorse(text: string): string {
   return Array.from(text.toUpperCase(), (c) => {
@@ -76,7 +74,7 @@ function decodeMorse(text: string): string {
     .map((word) =>
       word
         .split(/\s+/)
-        .map((code) => MORSE_TO_CHAR[code] ?? code)
+        .map((code) => MORSE_TO_CHAR.get(code) ?? code)
         .join(''),
     )
     .join(' ')

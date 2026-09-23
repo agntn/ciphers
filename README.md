@@ -18,7 +18,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 - 🔡 **Twenty ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid and Enigma M3.
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
-- 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English and Polish reference orders.
+- 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
 - 🧭 **Ciphers describe themselves.** `info()` has the family, the options, the keyspace and whether encode and decode are the same thing, and the CLI, the tools and the playground all read it from there.
 - 🖥️ **CLI, library, MCP, Pi and OMP.** Five tools with one set of executors behind them, whichever one you're holding.
 - 🌐 **Runs in the browser too.** The playground imports the package into the page, nothing is posted anywhere.
@@ -103,7 +103,7 @@ ciphers frequency "DWWDFN DW GDZQ" --lang pl
 ciphers info bifid
 ```
 
-`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram.
+`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish, about 0.082 with Japanese romaji), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram.
 
 ### Commands
 

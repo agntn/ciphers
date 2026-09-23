@@ -176,7 +176,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; cipher_decode with that shift returns the whole text.`,
       promptSnippet: 'Use cipher_brute_caesar to brute-force an unknown Caesar shift.',
       promptGuidelines: [
-        `Input is ciphertext. Returns all 25 shifts, the most English-like first, or the most Polish-like with lang pl; only the top line is whole, the rest stop at ${BRUTE_PREVIEW_LENGTH} characters.`,
+        `Input is ciphertext. Returns all 25 shifts, the most English-like first, the most Polish-like with lang pl, the most Japanese-like with lang ja; only the top line is whole, the rest stop at ${BRUTE_PREVIEW_LENGTH} characters.`,
         'Read the top lines first; on a short text the plaintext can rank a few lines down.',
       ],
       parameters: Type.Object({
@@ -185,8 +185,9 @@ export default function ciphersExtension(pi: ExtensionAPI) {
           description: 'Caesar ciphertext to brute-force',
         }),
         lang: Type.Optional(
-          Type.Enum(['en', 'pl'], {
-            description: 'Language the plaintext should read in; ranks the shifts (default en)',
+          Type.Enum(['en', 'pl', 'ja'], {
+            description:
+              'Language the plaintext should read in, ja for Hepburn romaji; ranks the shifts (default en)',
           }),
         ),
       }),
@@ -205,18 +206,20 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       name: 'cipher_frequency',
       label: 'Frequency Analysis',
       description:
-        'Analyze A-Z letter frequencies, compare their order with English or Polish, and report the index of coincidence.',
+        'Analyze A-Z letter frequencies, compare their order with English, Polish or Japanese romaji, and report the index of coincidence.',
       promptSnippet:
         'Use cipher_frequency to analyze letter distribution for cipher identification.',
       promptGuidelines: [
         'Useful for identifying substitution ciphers (frequency distribution preserved).',
         'Compare actual frequency order with expected language order (EN: ETAOIN...).',
-        'An index of coincidence near the plaintext value the result names (about 0.065 English, 0.057 Polish) suggests monoalphabetic; near 0.038 suggests polyalphabetic or random.',
+        'An index of coincidence near the plaintext value the result names (about 0.065 English, 0.057 Polish, 0.08 to 0.09 Japanese romaji) suggests monoalphabetic; near 0.038 suggests polyalphabetic or random.',
       ],
       parameters: Type.Object({
         text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
         lang: Type.Optional(
-          Type.Enum(['en', 'pl'], { description: 'Reference language (default en)' }),
+          Type.Enum(['en', 'pl', 'ja'], {
+            description: 'Reference language, ja for Hepburn romaji (default en)',
+          }),
         ),
       }),
       renderCall(args, _theme) {

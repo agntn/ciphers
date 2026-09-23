@@ -32,7 +32,7 @@ describe('CLI frequency language', () => {
 
     expect(result.status).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('Invalid option lang=de: must be en or pl\n')
+    expect(result.stderr).toBe('Invalid option lang=de: must be en, pl or ja\n')
   })
 
   it('rejects a language that only matches after case folding', () => {
@@ -40,7 +40,7 @@ describe('CLI frequency language', () => {
 
     expect(result.status).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('Invalid option lang=PL: must be en or pl\n')
+    expect(result.stderr).toBe('Invalid option lang=PL: must be en, pl or ja\n')
   })
 
   it('keeps English as the default reference order', () => {
@@ -66,6 +66,19 @@ describe('CLI frequency language', () => {
     expect(`${result.stdout}${result.stderr}`).toContain('lang=pl')
     expect(`${result.stdout}${result.stderr}`).toContain(
       'A I O E Z N R W S T C Y K D P M U J L B G H F Q V X',
+    )
+  })
+
+  it('prints the Hepburn reference order for --lang ja', () => {
+    const result = runCli(['frequency', 'KONNICHIWA', '--lang', 'ja'], {
+      ...process.env,
+      CONSOLA_LEVEL: '3',
+    })
+
+    expect(result.status).toBe(0)
+    expect(`${result.stdout}${result.stderr}`).toContain('lang=ja')
+    expect(`${result.stdout}${result.stderr}`).toContain(
+      'A O N I T E R U H S K D M G Y B W C Z J F P L Q V X',
     )
   })
 })

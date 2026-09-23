@@ -148,8 +148,9 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
         description: 'Caesar ciphertext to brute-force',
       }),
       lang: Type.Optional(
-        Type.Enum(['en', 'pl'], {
-          description: 'Language the plaintext should read in; ranks the shifts (default en)',
+        Type.Enum(['en', 'pl', 'ja'], {
+          description:
+            'Language the plaintext should read in, ja for Hepburn romaji; ranks the shifts (default en)',
         }),
       ),
     }),
@@ -165,11 +166,13 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     name: 'cipher_frequency',
     label: 'Frequency Analysis',
     description:
-      'Analyze A-Z letter frequencies, compare their order with English or Polish, and report the index of coincidence.',
+      'Analyze A-Z letter frequencies, compare their order with English, Polish or Japanese romaji, and report the index of coincidence.',
     parameters: Type.Object({
       text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
       lang: Type.Optional(
-        Type.Enum(['en', 'pl'], { description: 'Reference language (default en)' }),
+        Type.Enum(['en', 'pl', 'ja'], {
+          description: 'Reference language, ja for Hepburn romaji (default en)',
+        }),
       ),
     }),
     approval: 'read',

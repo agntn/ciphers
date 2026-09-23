@@ -235,6 +235,6 @@ describe('Pi extension', () => {
 
     await expect(
       getTool('cipher_encode').execute('failure', { cipher: 'cae', text: 'TEST' }),
-    ).rejects.toThrow('Unknown cipher')
+    ).rejects.toThrow('Unknown cipher: "cae". Registered ciphers: caesar,')
   })
 })

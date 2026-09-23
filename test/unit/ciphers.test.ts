@@ -725,6 +725,17 @@ describe('resolveCipher', () => {
     expect(() => resolveCipher('unknown')).toThrow(/Unknown cipher/)
   })
 
+  it('names the registered ciphers when the name is unknown', () => {
+    expect(() => resolveCipher('rot-13')).toThrow(
+      'Unknown cipher: "rot-13". Registered ciphers: caesar, rot13, rot47, atbash,',
+    )
+    expect(() => create('vigenère')).toThrow('Registered ciphers: caesar,')
+  })
+
+  it('quotes an unknown name so a newline stays inside the message', () => {
+    expect(() => resolveCipher('x\nFAKE: ok')).toThrow('Unknown cipher: "x\\nFAKE: ok".')
+  })
+
   it('throws UnknownCipherError when no name given', () => {
     expect(() => resolveCipher()).toThrow(/Unknown cipher/)
   })

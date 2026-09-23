@@ -40,7 +40,7 @@ export function create(name: string): Cipher {
   const cached = instances.get(name)
   if (cached) return cached
   const CipherClass = constructors.get(name)
-  if (!CipherClass) throw new UnknownCipherError(name)
+  if (!CipherClass) throw new UnknownCipherError(name, ciphers())
   const cipher = new CipherClass()
   instances.set(name, cipher)
   return cipher

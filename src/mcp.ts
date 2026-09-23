@@ -151,14 +151,21 @@ const tools: ToolDefinition[] = [
   {
     name: 'cipher_brute_caesar',
     title: 'Brute Force Caesar',
-    description: 'Decode Caesar ciphertext with every shift from 1 through 25.',
+    description:
+      'Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first.',
     inputSchema: Type.Object({
       text: Type.String({
         maxLength: MAX_BRUTE_TEXT_LENGTH,
         description: 'Caesar ciphertext to brute-force',
       }),
+      lang: Type.Optional(
+        Type.Enum(['en', 'pl'], {
+          description: 'Language the plaintext should read in; ranks the shifts (default en)',
+        }),
+      ),
     }),
-    execute: (args) => bruteForceCaesar(ciphersLibrary, args.text as string),
+    execute: (args) =>
+      bruteForceCaesar(ciphersLibrary, args.text as string, args.lang as 'en' | 'pl' | undefined),
   },
   {
     name: 'cipher_frequency',

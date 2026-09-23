@@ -114,17 +114,32 @@ export function formatCipherInfo(
   return { content: [{ type: 'text', text: lines.join('\n') }], details: { info } }
 }
 
+/**
+ * Decode with every shift, best frequency fit to the language first, so the likely plaintext
+ * leads both the model's reading and the collapsed preview. Shifts that tie, including every
+ * shift of a text without A-Z letters, stay in shift order.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - Caesar ciphertext.
+ * @param language - Language the plaintext should read in; English by default.
+ * @returns {CipherToolResult} One `shift=N -> text` line per shift, best fit first.
+ */
 export function bruteForceCaesar(
   library: Readonly<CiphersLibrary>,
   text: string,
+  language?: 'en' | 'pl',
 ): CipherToolResult {
   const cipher = library.create('caesar')
-  const lines: string[] = []
+  const decodings: Array<{ line: string; fit: number }> = []
   for (let shift = 1; shift <= 25; shift++) {
     const result = cipher.decode(text, { shift })
-    lines.push(`shift=${String(shift).padStart(2)} -> ${result.text}`)
+    decodings.push({
+      line: `shift=${String(shift).padStart(2)} -> ${result.text}`,
+      fit: library.analyzeFrequency(result.text, language)?.fit ?? 0,
+    })
   }
-  return { content: [{ type: 'text', text: lines.join('\n') }] }
+  decodings.sort((left, right) => right.fit - left.fit)
+  return { content: [{ type: 'text', text: decodings.map(({ line }) => line).join('\n') }] }
 }
 
 export function formatFrequencyAnalysis(

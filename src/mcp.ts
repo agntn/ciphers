@@ -77,6 +77,9 @@ const cipherInputSchema = Type.Object({
   key: Type.Optional(
     Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.key }),
   ),
+  transposition: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
+  ),
   rails: Type.Optional(
     Type.Integer({
       minimum: 2,

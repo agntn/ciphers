@@ -110,6 +110,18 @@ try {
     run(binPath, ['decode', 'bacon', 'ABAABABBAAABAAAAABBAAABBBBAABA', '--letters', '24']).trim(),
     'KNIGHT',
   )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'adfgvx',
+      'DXXV GDAD DAAX DVDX VFGV GFAD DVVD',
+      '--key',
+      '147 regiment',
+      '--transposition',
+      'privacy',
+    ]).trim(),
+    'ATTACKAT1200AM',
+  )
 
   // `files` decides what ships. Docs, tests and repo config stay in the checkout.
   assert.deepEqual((await readdir(packageRoot)).sort(), [

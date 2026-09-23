@@ -117,7 +117,7 @@ ciphers info bifid
 | `info`      | One cipher's family, options and keyspace     | `ciphers info enigma`                                  |
 | `mcp`       | The MCP server on stdio                       | `ciphers mcp`                                          |
 
-A cipher's options are its flags: `--key`, `--shift`, `--rails`, `--period`, `--letters`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
+A cipher's options are its flags: `--key`, `--transposition`, `--shift`, `--rails`, `--period`, `--letters`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
 
 ## 🧠 Library
 
@@ -158,7 +158,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **bacon**      | fractionation               |      ✗       | `--letters` (24 or 26, default 26)         |
 | **tap-code**   | fractionation               |      ✗       | -                                          |
 | **columnar**   | transposition               |      ✗       | `--key` (required)                         |
-| **adfgvx**     | fractionation               |      ✗       | `--key` (optional)                         |
+| **adfgvx**     | fractionation               |      ✗       | `--key`, `--transposition` (both optional) |
 | **bifid**      | fractionation               |      ✗       | `--key` (optional), `--period` (default 5) |
 | **enigma**     | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`    |
 

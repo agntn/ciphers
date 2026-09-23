@@ -133,6 +133,22 @@ describe('OMP extension', () => {
     expect(info.content[0]?.text).toContain('letters (number, default=26)')
   })
 
+  it('executes ADFGVX with its transposition key in both directions', async () => {
+    const options = { key: 'NA1C3H8TB2OME5WRPD4F6G7I9J0KLQSUVXYZ', transposition: 'PRIVACY' }
+    const encoded = await getTool('cipher_encode').execute('encode', {
+      cipher: 'adfgvx',
+      text: 'attack at 1200am',
+      ...options,
+    })
+    expect(encoded.content[0]?.text).toBe('DGDDDAGDDGAFADDFDADVDVFAADVX')
+    const decoded = await getTool('cipher_decode').execute('decode', {
+      cipher: 'adfgvx',
+      text: 'DGDDDAGDDGAFADDFDADVDVFAADVX',
+      ...options,
+    })
+    expect(decoded.content[0]?.text).toBe('ATTACKAT1200AM')
+  })
+
   it('executes Autokey in both directions', async () => {
     const encoded = await getTool('cipher_encode').execute('encode', {
       cipher: 'autokey',

@@ -38,6 +38,68 @@ export function buildPolybiusSquare(key?: string): {
   return { square, pos }
 }
 
+function buildColumnOrder(key: string): number[] {
+  const upper = key.toUpperCase()
+  const indexed = Array.from(upper, (c, i) => ({ char: c, idx: i }))
+  const sorted = [...indexed].sort((a, b) => a.char.localeCompare(b.char) || a.idx - b.idx)
+  const order = Array.from({ length: sorted.length }, () => 0)
+  for (let i = 0; i < sorted.length; i++) order[sorted[i]!.idx] = i
+  return order
+}
+
+/**
+ * Columnar transposition: write the text in rows under the key, read the columns in the key's
+ * alphabetical order, repeated letters left to right. Used by Columnar and ADFGVX.
+ *
+ * @param text - Text to transpose.
+ * @param key - Keyword whose letters order the columns.
+ * @returns {string} The columns read one after another.
+ */
+export function encodeColumnar(text: string, key: string): string {
+  const order = buildColumnOrder(key)
+  const cols = order.length
+  const chars = Array.from(text)
+  const colOrder = order.map((_, i) => order.indexOf(i))
+  let result = ''
+  for (const col of colOrder) {
+    for (let i = col; i < chars.length; i += cols) {
+      result += chars[i]
+    }
+  }
+  return result
+}
+
+/**
+ * Undo {@link encodeColumnar}. A short last row leaves the rightmost columns one letter shorter.
+ *
+ * @param text - Transposed text.
+ * @param key - The keyword it was transposed with.
+ * @returns {string} The text in its original order.
+ */
+export function decodeColumnar(text: string, key: string): string {
+  const order = buildColumnOrder(key)
+  const cols = order.length
+  const chars = Array.from(text)
+  const fullRows = Math.floor(chars.length / cols)
+  const longColumns = chars.length % cols
+  const colOrder = order.map((_, i) => order.indexOf(i))
+  const columns: string[][] = Array.from({ length: cols }, () => [])
+  let offset = 0
+  for (const col of colOrder) {
+    const length = fullRows + (col < longColumns ? 1 : 0)
+    columns[col] = chars.slice(offset, offset + length)
+    offset += length
+  }
+  let result = ''
+  for (let row = 0; row < fullRows + (longColumns > 0 ? 1 : 0); row++) {
+    for (let col = 0; col < cols; col++) {
+      const char = columns[col]?.[row]
+      if (char !== undefined) result += char
+    }
+  }
+  return result
+}
+
 /**
  * Extract common base options with defaults.
  *

@@ -61,6 +61,7 @@ describe('Ciphers MCP server', () => {
         a: { enum: [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] },
         letters: { enum: [24, 26] },
         key: { description: OPTION_DESCRIPTIONS.key },
+        transposition: { description: OPTION_DESCRIPTIONS.transposition },
         period: { description: OPTION_DESCRIPTIONS.period },
       },
     })
@@ -122,6 +123,24 @@ describe('Ciphers MCP server', () => {
       const result = await client.callTool({
         name,
         arguments: { cipher: 'beaufort', text, key: 'KEY' },
+      })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
+  it('discovers and executes the ADFGVX transposition through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'adfgvx' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('transposition (string, default=')
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'attack at 1200am', 'DXXVGDADDAAXDVDXVFGVGFADDVVD'],
+      ['cipher_decode', 'DXXVGDADDAAXDVDXVFGVGFADDVVD', 'ATTACKAT1200AM'],
+    ] as const) {
+      const result = await client.callTool({
+        name,
+        arguments: { cipher: 'adfgvx', text, key: '147 regiment', transposition: 'privacy' },
       })
       expect(result.isError).not.toBe(true)
       expect(onlyText(result.content)).toBe(expected)

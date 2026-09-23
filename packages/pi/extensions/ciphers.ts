@@ -80,6 +80,9 @@ const cipherParams = Type.Object({
   key: Type.Optional(
     Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.key }),
   ),
+  transposition: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
+  ),
   rails: Type.Optional(
     Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' }),
   ),

@@ -3,60 +3,13 @@ import { Cipher } from '../core/cipher'
 import {
   applyBaseOptions,
   cipherCacheKey,
+  decodeColumnar,
+  encodeColumnar,
   getOpt,
   LruCache,
   processBaseOptions,
 } from '../core/utils'
 import { MissingOptionError, normalizeError } from '../core/errors'
-
-// ── Columnar transposition internals ────────────────────────────────────
-
-function buildColumnOrder(key: string): number[] {
-  const upper = key.toUpperCase()
-  const indexed = Array.from(upper, (c, i) => ({ char: c, idx: i }))
-  const sorted = [...indexed].sort((a, b) => a.char.localeCompare(b.char) || a.idx - b.idx)
-  const order = Array.from({ length: sorted.length }, () => 0)
-  for (let i = 0; i < sorted.length; i++) order[sorted[i]!.idx] = i
-  return order
-}
-
-function encodeColumnar(text: string, key: string): string {
-  const order = buildColumnOrder(key)
-  const cols = order.length
-  const chars = Array.from(text)
-  const colOrder = order.map((_, i) => order.indexOf(i))
-  let result = ''
-  for (const col of colOrder) {
-    for (let i = col; i < chars.length; i += cols) {
-      result += chars[i]
-    }
-  }
-  return result
-}
-
-function decodeColumnar(text: string, key: string): string {
-  const order = buildColumnOrder(key)
-  const cols = order.length
-  const chars = Array.from(text)
-  const fullRows = Math.floor(chars.length / cols)
-  const longColumns = chars.length % cols
-  const colOrder = order.map((_, i) => order.indexOf(i))
-  const columns: string[][] = Array.from({ length: cols }, () => [])
-  let offset = 0
-  for (const col of colOrder) {
-    const length = fullRows + (col < longColumns ? 1 : 0)
-    columns[col] = chars.slice(offset, offset + length)
-    offset += length
-  }
-  let result = ''
-  for (let row = 0; row < fullRows + (longColumns > 0 ? 1 : 0); row++) {
-    for (let col = 0; col < cols; col++) {
-      const char = columns[col]?.[row]
-      if (char !== undefined) result += char
-    }
-  }
-  return result
-}
 
 function validate(opts: Readonly<CipherBaseOptions>): {
   key: string

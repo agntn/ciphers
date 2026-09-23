@@ -187,7 +187,7 @@ export function formatFrequencyAnalysis(
   )
   if (analysis.ic !== undefined) {
     lines.push(
-      `Index of coincidence: ${analysis.ic.toFixed(4)} (English ~0.067, uniform random ~0.038)`,
+      `Index of coincidence: ${analysis.ic.toFixed(4)} (${analysis.language} plaintext ~${analysis.referenceIc.toFixed(3)}, uniform random ~0.038)`,
     )
   }
   return { content: [{ type: 'text', text: lines.join('\n') }] }

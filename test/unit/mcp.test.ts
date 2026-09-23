@@ -310,7 +310,14 @@ describe('Ciphers MCP server', () => {
     })
     expect(frequency.isError).not.toBe(true)
     const [entry] = frequency.content as [{ type: string; text: string }]
-    expect(entry.text).toContain('Index of coincidence: 1.0000')
+    expect(entry.text).toContain('Index of coincidence: 1.0000 (en plaintext ~0.065')
+
+    const polish = await client.callTool({
+      name: 'cipher_frequency',
+      arguments: { text: 'AAAA', lang: 'pl' },
+    })
+    const [polishEntry] = polish.content as [{ type: string; text: string }]
+    expect(polishEntry.text).toContain('(pl plaintext ~0.057, uniform random ~0.038)')
   })
 
   it('puts the best-fitting Caesar shift first', async () => {

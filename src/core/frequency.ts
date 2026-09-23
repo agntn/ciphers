@@ -11,6 +11,8 @@ export interface FrequencyAnalysis {
   readonly reference: string
   /** Index of coincidence; absent when the input has fewer than two letters. */
   readonly ic?: number
+  /** Index of coincidence of plaintext in `language`, from the same table as `reference`. */
+  readonly referenceIc: number
   /**
    * Mean natural-log probability of one letter under the language's frequencies. The closer to
    * zero, the more the letters read like that language; compare it only between texts scored
@@ -107,9 +109,26 @@ function logProbabilities(percentages: Readonly<Record<string, number>>): Map<st
   )
 }
 
+/**
+ * Chance that two letters drawn from plaintext match: the sum of squared letter probabilities.
+ *
+ * @param percentages - Percent of running text per letter.
+ * @returns {number} The expected index of coincidence.
+ */
+function expectedCoincidence(percentages: Readonly<Record<string, number>>): number {
+  const values = Object.values(percentages)
+  const total = values.reduce((sum, percent) => sum + percent, 0)
+  return values.reduce((sum, percent) => sum + (percent / total) ** 2, 0)
+}
+
 const frequencyReferences: Record<FrequencyLanguage, string> = {
   en: frequencyOrder(letterPercentages.en),
   pl: frequencyOrder(letterPercentages.pl),
+}
+
+const referenceCoincidences: Record<FrequencyLanguage, number> = {
+  en: expectedCoincidence(letterPercentages.en),
+  pl: expectedCoincidence(letterPercentages.pl),
 }
 
 const letterLogProbabilities: Record<FrequencyLanguage, ReadonlyMap<string, number>> = {
@@ -155,6 +174,7 @@ export function analyzeFrequency(
     counts: [...frequencies.entries()].sort((left, right) => right[1] - left[1]),
     reference: frequencyReferences[language],
     ...(total < 2 ? {} : { ic: coincidences / (total * (total - 1)) }),
+    referenceIc: referenceCoincidences[language],
     fit: logProbability / total,
   }
 }

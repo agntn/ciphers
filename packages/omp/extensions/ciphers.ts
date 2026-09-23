@@ -5,6 +5,7 @@ import type { ExtensionAPI } from '@oh-my-pi/pi-coding-agent'
 import type * as CiphersModule from '@agntn/ciphers'
 import {
   AFFINE_MULTIPLIERS,
+  BRUTE_PREVIEW_LENGTH,
   MAX_BRUTE_TEXT_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_LENGTH,
@@ -140,8 +141,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
   omp.registerTool({
     name: 'cipher_brute_caesar',
     label: 'Brute Force Caesar',
-    description:
-      'Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first.',
+    description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; cipher_decode with that shift returns the whole text.`,
     parameters: Type.Object({
       text: Type.String({
         maxLength: MAX_BRUTE_TEXT_LENGTH,

@@ -9,6 +9,7 @@ import { type TSchema, Type } from 'typebox'
 import { Value } from 'typebox/value'
 import {
   AFFINE_MULTIPLIERS,
+  BRUTE_PREVIEW_LENGTH,
   MAX_BRUTE_TEXT_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_LENGTH,
@@ -154,8 +155,7 @@ const tools: ToolDefinition[] = [
   {
     name: 'cipher_brute_caesar',
     title: 'Brute Force Caesar',
-    description:
-      'Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first.',
+    description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; cipher_decode with that shift returns the whole text.`,
     inputSchema: Type.Object({
       text: Type.String({
         maxLength: MAX_BRUTE_TEXT_LENGTH,

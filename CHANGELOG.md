@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.2.0
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.1.9...v0.2.0)
+
+### 🚀 Enhancements
+
+- **brute:** Rank Caesar shifts by letter fit ([#67](https://github.com/agntn/ciphers/pull/67))
+- **adfgvx:** Transpose with a second key ([#69](https://github.com/agntn/ciphers/pull/69))
+- **frequency:** Japanese romaji as ja ([#73](https://github.com/agntn/ciphers/pull/73))
+
+### 🔥 Performance
+
+- **brute:** Only the top shift comes back whole ([#70](https://github.com/agntn/ciphers/pull/70))
+
+### 🩹 Fixes
+
+- **frequency:** Unknown --lang is an error ([#64](https://github.com/agntn/ciphers/pull/64))
+- **morse:** Leave unknown tokens alone ([#65](https://github.com/agntn/ciphers/pull/65))
+- **package:** Keep docs and tests out of npm ([#66](https://github.com/agntn/ciphers/pull/66))
+- **columnar:** ⚠️  Drop the rate limiter ([#68](https://github.com/agntn/ciphers/pull/68))
+- **frequency:** Polish gets its own IC ([#71](https://github.com/agntn/ciphers/pull/71))
+- **resolve:** An unknown name lists the real ones ([#72](https://github.com/agntn/ciphers/pull/72))
+
+### 🤖 CI
+
+- Test every pull request ([#74](https://github.com/agntn/ciphers/pull/74))
+
+#### ⚠️ Breaking Changes
+
+- **columnar:** ⚠️  Drop the rate limiter ([#68](https://github.com/agntn/ciphers/pull/68))
+
+### ❤️ Contributors
+
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+- Ori ([@oritwoen](https://github.com/oritwoen))
+
 ## v0.1.9
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.1.8...v0.1.9)

@@ -115,7 +115,7 @@ const toolCall = computed(() => {
     operation.value === "brute"
       ? { text: text.value }
       : operation.value === "frequency"
-        ? { text: text.value, language: language.value }
+        ? { text: text.value, lang: language.value }
         : { cipher: entry.value.slug, text: text.value, ...options.value };
   return JSON.stringify({ name: current.value.tool, arguments: args }, null, 2);
 });
@@ -401,7 +401,9 @@ const shareLink = computed(() => {
           <p class="mb-3 font-mono text-[11px] text-dimmed">
             {{ answer.total }} letters
             <template v-if="answer.ic !== undefined">
-              · index of coincidence {{ answer.ic.toFixed(4) }} (English ~0.067, uniform ~0.038)
+              · index of coincidence {{ answer.ic.toFixed(4) }} ({{ language }} plaintext ~{{
+                answer.referenceIc.toFixed(3)
+              }}, uniform ~0.038)
             </template>
           </p>
           <ol class="space-y-1.5">

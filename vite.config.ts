@@ -6,11 +6,11 @@ export default defineConfig({
   lint: {
     ...oxlint,
     rules: { ...oxlint.rules },
-    ignorePatterns: ['dist', 'coverage'],
+    ignorePatterns: ['dist', 'coverage', 'docs'],
   },
   fmt: {
     ...oxfmt,
-    ignorePatterns: ['dist', 'coverage'],
+    ignorePatterns: ['dist', 'coverage', 'docs'],
     semi: false,
     singleQuote: true,
   },

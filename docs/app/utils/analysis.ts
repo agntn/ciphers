@@ -24,6 +24,8 @@ export interface FrequencyBar {
 export interface FrequencyView {
   total: number;
   ic?: number;
+  /** Index of coincidence of plaintext in the chosen language. */
+  referenceIc: number;
   bars: FrequencyBar[];
   expected: string;
   actual: string;
@@ -44,6 +46,7 @@ export function frequencyView(
   return {
     total: analysis.total,
     ic: analysis.ic,
+    referenceIc: analysis.referenceIc,
     bars: rows.map(([letter, count]) => ({ letter, count, width: Math.round((count / max) * 100) })),
     expected: analysis.reference.slice(0, limit),
     actual: rows.map(([letter]) => letter).join(""),

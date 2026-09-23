@@ -202,6 +202,8 @@ describe('Pi extension', () => {
     expect(Value.Check(frequency, { text: 'X'.repeat(100_001) })).toBe(false)
     expect(Value.Check(frequency, { text: 'TEST', lang: 'de' })).toBe(false)
     expect(Value.Check(frequency, { text: 'TEST', lang: 'pl' })).toBe(true)
+    expect(Value.Check(frequency, { text: 'TEST', lang: 'ja' })).toBe(true)
+    expect(Value.Check(brute, { text: 'TEST', lang: 'ja' })).toBe(true)
   })
 
   it('answers through the shared executors and lets their errors reach the harness', async () => {

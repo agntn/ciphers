@@ -37,8 +37,8 @@ export const MAX_KEY_LENGTH = 1_000
 
 /**
  * Characters a brute-force line keeps below the top one. From this length on, scored against the
- * right language, the letter fit put the right shift first in every sampled English and Polish
- * text, and a line this long is still enough to see whether a lower shift reads.
+ * right language, the letter fit put the right shift first in every sampled English, Polish
+ * and Japanese text, and a line this long is still enough to see whether a lower shift reads.
  */
 export const BRUTE_PREVIEW_LENGTH = 80
 
@@ -139,7 +139,7 @@ export function formatCipherInfo(
 export function bruteForceCaesar(
   library: Readonly<CiphersLibrary>,
   text: string,
-  language?: 'en' | 'pl',
+  language?: 'en' | 'pl' | 'ja',
 ): CipherToolResult {
   const cipher = library.create('caesar')
   const decodings: Array<{ shift: number; text: string; fit: number }> = []
@@ -166,7 +166,7 @@ export function bruteForceCaesar(
 export function formatFrequencyAnalysis(
   library: Readonly<CiphersLibrary>,
   text: string,
-  language?: 'en' | 'pl',
+  language?: 'en' | 'pl' | 'ja',
 ): CipherToolResult {
   const analysis = library.analyzeFrequency(text, language)
   if (analysis === undefined) {

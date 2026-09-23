@@ -162,30 +162,37 @@ const tools: ToolDefinition[] = [
         description: 'Caesar ciphertext to brute-force',
       }),
       lang: Type.Optional(
-        Type.Enum(['en', 'pl'], {
-          description: 'Language the plaintext should read in; ranks the shifts (default en)',
+        Type.Enum(['en', 'pl', 'ja'], {
+          description:
+            'Language the plaintext should read in, ja for Hepburn romaji; ranks the shifts (default en)',
         }),
       ),
     }),
     execute: (args) =>
-      bruteForceCaesar(ciphersLibrary, args.text as string, args.lang as 'en' | 'pl' | undefined),
+      bruteForceCaesar(
+        ciphersLibrary,
+        args.text as string,
+        args.lang as 'en' | 'pl' | 'ja' | undefined,
+      ),
   },
   {
     name: 'cipher_frequency',
     title: 'Frequency Analysis',
     description:
-      'Analyze A-Z letter frequencies, compare their order with English or Polish, and report the index of coincidence.',
+      'Analyze A-Z letter frequencies, compare their order with English, Polish or Japanese romaji, and report the index of coincidence.',
     inputSchema: Type.Object({
       text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
       lang: Type.Optional(
-        Type.Enum(['en', 'pl'], { description: 'Reference language (default en)' }),
+        Type.Enum(['en', 'pl', 'ja'], {
+          description: 'Reference language, ja for Hepburn romaji (default en)',
+        }),
       ),
     }),
     execute: (args) =>
       formatFrequencyAnalysis(
         ciphersLibrary,
         args.text as string,
-        args.lang as 'en' | 'pl' | undefined,
+        args.lang as 'en' | 'pl' | 'ja' | undefined,
       ),
   },
   {

@@ -7,11 +7,16 @@ export default defineCommand({
   meta: { name: 'frequency', description: 'Frequency analysis of text' },
   args: {
     text: { type: 'positional', description: 'Text to analyze', required: true },
-    lang: { type: 'string', description: 'Reference language (pl, en)', alias: 'l', default: 'en' },
+    lang: {
+      type: 'string',
+      description: 'Reference language (en, pl, ja for Hepburn romaji)',
+      alias: 'l',
+      default: 'en',
+    },
   },
   async run({ args }) {
-    if (args.lang !== 'en' && args.lang !== 'pl') {
-      throw new InvalidOptionError('lang', args.lang, 'must be en or pl')
+    if (args.lang !== 'en' && args.lang !== 'pl' && args.lang !== 'ja') {
+      throw new InvalidOptionError('lang', args.lang, 'must be en, pl or ja')
     }
     const analysis = analyzeFrequency(args.text, args.lang)
     if (analysis === undefined) {

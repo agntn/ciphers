@@ -167,7 +167,7 @@ const activeCipher = computed(() => current.value.entry.slug);
       to="/guide/analysis"
       link="analyzeFrequency"
       :checks="[
-        'Counts sorted by frequency, expected order for English or Polish next to them',
+        'Counts sorted by frequency, expected order for English, Polish or Japanese romaji next to them',
         'Index of coincidence near 0.067 is a substitution, near 0.038 polyalphabetic or random',
         'No letters in, undefined out. Not an empty histogram',
       ]"

@@ -1,7 +1,7 @@
 import { InvalidOptionError } from './errors'
 
 /** Supported reference languages for letter-frequency analysis. */
-export type FrequencyLanguage = 'en' | 'pl'
+export type FrequencyLanguage = 'en' | 'pl' | 'ja'
 
 /** Letter counts and expected ordering for one normalized input. */
 export interface FrequencyAnalysis {
@@ -23,7 +23,13 @@ export interface FrequencyAnalysis {
 
 /**
  * Percent of A-Z letters in running text: Wikipedia's letter frequency table for English, PWN's
- * count of the IPI PAN corpus for Polish, base letters only.
+ * count of the IPI PAN corpus for Polish, base letters only. Japanese is Hepburn romaji spelled
+ * out from the hiragana counts of Chikamatsu et al. (2000, p. 499), a year of a newspaper: each
+ * kana as the Foreign Ministry's passport table writes it, small ya/yu/yo joined to the i-row
+ * kana before them, っ doubling a following k, s, t or p in proportion to how often those kana
+ * occur. Kanji readings are not in it, and particles stay as their kana spell them (ha, he).
+ * Hepburn never writes L, Q, V or X; each gets one occurrence out of the 39 million letters, so
+ * a stray loanword lowers the fit instead of sinking it to minus infinity.
  */
 const letterPercentages: Record<FrequencyLanguage, Readonly<Record<string, number>>> = {
   en: {
@@ -82,6 +88,34 @@ const letterPercentages: Record<FrequencyLanguage, Readonly<Record<string, numbe
     Y: 3.76,
     Z: 5.64,
   },
+  ja: {
+    A: 15.2,
+    B: 0.503,
+    C: 0.254,
+    D: 3.18,
+    E: 7.24,
+    F: 0.0297,
+    G: 2.51,
+    H: 5.12,
+    I: 9.92,
+    J: 0.146,
+    K: 4.14,
+    L: 0.00000256,
+    M: 2.61,
+    N: 10.2,
+    O: 13.4,
+    P: 0.0241,
+    Q: 0.00000256,
+    R: 5.63,
+    S: 4.98,
+    T: 8.03,
+    U: 5.53,
+    V: 0.00000256,
+    W: 0.315,
+    X: 0.00000256,
+    Y: 0.839,
+    Z: 0.244,
+  },
 }
 
 /**
@@ -124,16 +158,19 @@ function expectedCoincidence(percentages: Readonly<Record<string, number>>): num
 const frequencyReferences: Record<FrequencyLanguage, string> = {
   en: frequencyOrder(letterPercentages.en),
   pl: frequencyOrder(letterPercentages.pl),
+  ja: frequencyOrder(letterPercentages.ja),
 }
 
 const referenceCoincidences: Record<FrequencyLanguage, number> = {
   en: expectedCoincidence(letterPercentages.en),
   pl: expectedCoincidence(letterPercentages.pl),
+  ja: expectedCoincidence(letterPercentages.ja),
 }
 
 const letterLogProbabilities: Record<FrequencyLanguage, ReadonlyMap<string, number>> = {
   en: logProbabilities(letterPercentages.en),
   pl: logProbabilities(letterPercentages.pl),
+  ja: logProbabilities(letterPercentages.ja),
 }
 
 /**
@@ -149,7 +186,7 @@ export function analyzeFrequency(
   language: FrequencyLanguage = 'en',
 ): FrequencyAnalysis | undefined {
   if (!Object.hasOwn(letterPercentages, language)) {
-    throw new InvalidOptionError('language', language, 'must be en or pl')
+    throw new InvalidOptionError('language', language, 'must be en, pl or ja')
   }
   const letters = text.toUpperCase().replaceAll(/[^A-Z]/g, '')
   if (letters.length === 0) return undefined

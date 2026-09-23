@@ -202,6 +202,7 @@ describe('OMP extension', () => {
   it('enforces language, option, and resource boundaries in OMP schemas', () => {
     const frequencySchema = getTool('cipher_frequency').parameters
     expect(frequencySchema.safeParse({ text: 'TEST', lang: 'pl' }).success).toBe(true)
+    expect(frequencySchema.safeParse({ text: 'TEST', lang: 'ja' }).success).toBe(true)
     expect(frequencySchema.safeParse({ text: 'TEST', lang: 'de' }).success).toBe(false)
     expect(frequencySchema.safeParse({ text: 'X'.repeat(100_001) }).success).toBe(false)
 

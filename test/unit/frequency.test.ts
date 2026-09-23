@@ -25,6 +25,14 @@ describe('analyzeFrequency', () => {
     expect(analyzeFrequency('eee')?.fit).toBeCloseTo(Math.log(12.7 / 100.154), 12)
     // PWN's Polish base letters sum to 93.09 percent, A takes 8.91 of it.
     expect(analyzeFrequency('a', 'pl')?.fit).toBeCloseTo(Math.log(8.91 / 93.09), 12)
+    // The Hepburn table sums to 100.04481024 percent, A takes 15.2 of it.
+    expect(analyzeFrequency('a', 'ja')?.fit).toBeCloseTo(Math.log(15.2 / 100.04481024), 12)
+  })
+
+  it('keeps letters Hepburn never writes finite', () => {
+    const fit = analyzeFrequency('LQVX', 'ja')!.fit
+    expect(Number.isFinite(fit)).toBe(true)
+    expect(fit).toBeLessThan(analyzeFrequency('ZJFP', 'ja')!.fit)
   })
 
   it('fits a sentence closer to its own language', () => {
@@ -38,6 +46,14 @@ describe('analyzeFrequency', () => {
     )
     expect(analyzeFrequency(english, 'en')!.fit).toBeGreaterThan(
       analyzeFrequency(polish, 'en')!.fit,
+    )
+    const japanese =
+      'KIMIGAYO WA CHIYO NI YACHIYO NI SAZAREISHI NO IWAO TO NARITE KOKE NO MUSU MADE'
+    expect(analyzeFrequency(japanese, 'ja')!.fit).toBeGreaterThan(
+      analyzeFrequency(english, 'ja')!.fit,
+    )
+    expect(analyzeFrequency(japanese, 'ja')!.fit).toBeGreaterThan(
+      analyzeFrequency(polish, 'ja')!.fit,
     )
   })
 
@@ -56,14 +72,23 @@ describe('analyzeFrequency', () => {
     expect(english).toBeLessThan(0.067)
     expect(polish).toBeGreaterThan(0.056)
     expect(polish).toBeLessThan(0.059)
+    // Kana alone give 0.088. Kokoro and Rashomon in Hepburn measure 0.082, their 450-character
+    // windows 0.075 to 0.089: kanji readings bring more u, s and h than the kana table counts.
+    const japanese = analyzeFrequency('ABC', 'ja')!.referenceIc
+    expect(japanese).toBeGreaterThan(0.087)
+    expect(japanese).toBeLessThan(0.09)
   })
 
   it('uses the Polish reference order', () => {
     expect(analyzeFrequency('ABC', 'pl')?.reference).toBe('AIOEZNRWSTCYKDPMUJLBGHFQVX')
   })
 
+  it('uses the Japanese reference order', () => {
+    expect(analyzeFrequency('ABC', 'ja')?.reference).toBe('AONITERUHSKDMGYBWCZJFPLQVX')
+  })
+
   it('ranks every A-Z letter once in each reference', () => {
-    for (const language of ['en', 'pl'] as const) {
+    for (const language of ['en', 'pl', 'ja'] as const) {
       const reference = analyzeFrequency('ABC', language)?.reference ?? ''
       expect(reference.split('').sort().join('')).toBe('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
     }

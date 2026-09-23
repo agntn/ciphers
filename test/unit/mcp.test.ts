@@ -341,6 +341,12 @@ describe('Ciphers MCP server', () => {
     )
     expect((await lines({ text: polish }))[0]).not.toContain('LITWO')
 
+    const japanese = 'NLPLJDBR ZD FKLBR QL BDFKLBR QL'
+    expect((await lines({ text: japanese, lang: 'ja' }))[0]).toBe(
+      'shift= 3 -> KIMIGAYO WA CHIYO NI YACHIYO NI',
+    )
+    expect((await lines({ text: japanese }))[0]).not.toContain('KIMIGAYO')
+
     const noLetters = await lines({ text: '1234' })
     expect(noLetters[0]).toBe('shift= 1 -> 1234')
     expect(noLetters[24]).toBe('shift=25 -> 1234')

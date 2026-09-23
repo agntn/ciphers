@@ -6,8 +6,6 @@ import {
   getOpt,
   LruCache,
   processBaseOptions,
-  RateLimiter,
-  RateLimitError,
 } from '../core/utils'
 import { MissingOptionError, normalizeError } from '../core/errors'
 
@@ -70,19 +68,16 @@ function validate(opts: Readonly<CipherBaseOptions>): {
   return { key, ...processBaseOptions(opts) }
 }
 
-// ── Cache + rate limiter (per-instance) ─────────────────────────────────
+// ── Cache, one per instance ─────────────────────────────────────────────
 
 const DEFAULT_CACHE_SIZE = 128
-const DEFAULT_RATE_LIMIT = 100 // calls per second
 
 export class Columnar extends Cipher {
   private cache: LruCache<string, string>
-  private limiter: RateLimiter
 
   constructor() {
     super()
     this.cache = new LruCache(DEFAULT_CACHE_SIZE)
-    this.limiter = new RateLimiter(DEFAULT_RATE_LIMIT)
   }
 
   name(): string {
@@ -117,7 +112,6 @@ export class Columnar extends Cipher {
       if (cached !== undefined) {
         return { text: cached, cipher: 'columnar', operation: 'encode', options: resolved }
       }
-      if (!this.limiter.allow()) throw new RateLimitError('columnar')
       const result = encodeColumnar(input, resolved.key)
       this.cache.set(ck, result)
       return { text: result, cipher: 'columnar', operation: 'encode', options: resolved }
@@ -135,7 +129,6 @@ export class Columnar extends Cipher {
       if (cached !== undefined) {
         return { text: cached, cipher: 'columnar', operation: 'decode', options: resolved }
       }
-      if (!this.limiter.allow()) throw new RateLimitError('columnar')
       const result = decodeColumnar(input, resolved.key)
       this.cache.set(ck, result)
       return { text: result, cipher: 'columnar', operation: 'decode', options: resolved }
@@ -144,9 +137,8 @@ export class Columnar extends Cipher {
     }
   }
 
-  /** Reset cache and rate limiter. Useful for testing. */
+  /** Clear the cache. Useful for testing. */
   reset(): void {
     this.cache.clear()
-    this.limiter = new RateLimiter(DEFAULT_RATE_LIMIT)
   }
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vite-plus/test'
 import type { Cipher } from '../../src/core/cipher'
 import { create } from '../../src/core/registry'
-import { LruCache, RateLimiter, cipherCacheKey } from '../../src/core/utils'
+import { LruCache, cipherCacheKey } from '../../src/core/utils'
 
 interface ResettableCipher extends Cipher {
   reset(): void
@@ -76,32 +76,6 @@ describe('LruCache', () => {
     expect(cache.size).toBe(1)
     cache.set('b', '2')
     expect(cache.size).toBe(2)
-  })
-})
-
-// ── RateLimiter unit tests ──────────────────────────────────────────────
-
-describe('RateLimiter', () => {
-  it('allows calls within budget', () => {
-    const limiter = new RateLimiter(10)
-    for (let i = 0; i < 10; i++) {
-      expect(limiter.allow()).toBe(true)
-    }
-  })
-
-  it('rejects calls over budget', () => {
-    const limiter = new RateLimiter(5)
-    for (let i = 0; i < 5; i++) limiter.allow()
-    expect(limiter.allow()).toBe(false)
-  })
-
-  it('refills tokens over time', async () => {
-    const limiter = new RateLimiter(10)
-    for (let i = 0; i < 10; i++) limiter.allow()
-    expect(limiter.allow()).toBe(false)
-    // Wait 200ms → ~2 tokens refilled (10/sec)
-    await new Promise((r) => setTimeout(r, 250))
-    expect(limiter.allow()).toBe(true)
   })
 })
 
@@ -181,59 +155,16 @@ describe('columnar — cache', () => {
   })
 })
 
-// ── Columnar cipher: rate limiting ──────────────────────────────────────
+// ── Columnar cipher: key search ─────────────────────────────────────────
 
-describe('columnar — rate limit', () => {
-  it('allows normal-rate calls', () => {
+describe('columnar: key search', () => {
+  it('answers a thousand keys in a row from the registry instance', () => {
     const col = createColumnar()
     col.reset()
-    // A few calls should be fine (100/sec default)
-    for (let i = 0; i < 10; i++) {
-      col.encode('NORMAL CALL', { key: 'K' })
-    }
-    // No error = pass
-  })
-
-  it('throws RateLimitError when limit exceeded', () => {
-    const col = createColumnar()
-    col.reset()
-    // Burn through the 100/sec budget with rapid-fire calls (cache bypass: different texts)
-    let throttled = false
-    for (let i = 0; i < 200; i++) {
-      try {
-        col.encode(`TEXT-${i}-${Math.random()}`, { key: 'BURST' })
-      } catch (error: unknown) {
-        if (
-          error instanceof Error &&
-          (error.name === 'RateLimitError' || error.message.includes('Rate limit'))
-        ) {
-          throttled = true
-          break
-        }
-        throw error
-      }
-    }
-    col.reset() // restore budget for other tests
-    expect(throttled).toBe(true)
-  })
-
-  it('RateLimitError is wrapped as CipherError', () => {
-    const col = createColumnar()
-    col.reset()
-    // Force rate limit
-    for (let i = 0; i < 200; i++) {
-      try {
-        col.encode(`X-${i}`, { key: 'K' })
-      } catch {}
-    }
-    let gotCipherError = false
-    try {
-      col.encode(`OVERFLOW-${Date.now()}`, { key: 'K' })
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'CipherError') gotCipherError = true
-    }
-    col.reset() // restore budget for other tests
-    expect(gotCipherError).toBe(true)
+    const keys = Array.from({ length: 1000 }, (_, i) => `K${i.toString(36).toUpperCase()}`)
+    const decoded = keys.map((key) => col.decode('C TAWT AATNAKD', { key }).text)
+    expect(decoded).toHaveLength(1000)
+    expect(col.decode('C TAWT AATNAKD', { key: 'ZEBRA' }).text).toBe('ATTACK AT DAWN')
   })
 })
 

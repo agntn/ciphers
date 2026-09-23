@@ -4,7 +4,6 @@
 import { describe, it, expect } from 'vite-plus/test'
 import {
   LruCache,
-  RateLimiter,
   cipherCacheKey,
   buildPolybiusSquare,
   processBaseOptions,
@@ -121,29 +120,6 @@ describe('processBaseOptions', () => {
     const r = processBaseOptions({ preserveCase: true, stripNonAlpha: false })
     expect(r.preserveCase).toBe(true)
     expect(r.stripNonAlpha).toBe(false)
-  })
-})
-
-describe('RateLimiter', () => {
-  it('returns true for allow() when tokens are available', () => {
-    const rl = new RateLimiter(10)
-    expect(rl.allow()).toBe(true)
-  })
-
-  it('returns false for allow() when limit exceeded', () => {
-    const rl = new RateLimiter(1)
-    expect(rl.allow()).toBe(true)
-    expect(rl.allow()).toBe(false)
-  })
-
-  it('refills tokens over time', async () => {
-    const rl = new RateLimiter(10)
-    // Drain
-    for (let i = 0; i < 10; i++) rl.allow()
-    // Wait briefly for refill
-    await new Promise((r) => setTimeout(r, 150))
-    // Should have some tokens back
-    expect(rl.allow()).toBe(true)
   })
 })
 

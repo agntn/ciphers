@@ -27,5 +27,5 @@ export {
 export { register, create, ciphers, has } from './registry'
 export { resolveCipher } from './resolve'
 export { builtinCiphers, type BuiltinCipher } from './ciphers'
-export { LruCache, RateLimiter, RateLimitError, cipherCacheKey } from './utils'
+export { LruCache, cipherCacheKey } from './utils'
 export { analyzeFrequency, type FrequencyAnalysis, type FrequencyLanguage } from './frequency'

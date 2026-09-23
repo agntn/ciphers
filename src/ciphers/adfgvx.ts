@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
 import { Cipher } from '../core/cipher'
-import { getOpt } from '../core/utils'
+import { decodeColumnar, encodeColumnar, getOpt } from '../core/utils'
 import { normalizeError } from '../core/errors'
 
 const ADFGVX_LETTERS = 'ADFGVX'
@@ -29,7 +29,7 @@ function buildAdfgvxGrid(key?: string): { grid: string[][]; pos: Map<string, [nu
   return { grid, pos }
 }
 
-function encodeAdfgvx(text: string, key?: string): string {
+function encodeAdfgvx(text: string, key: string, transposition: string): string {
   const { pos } = buildAdfgvxGrid(key)
   const normalized = text.toUpperCase().replaceAll(/[^A-Z0-9]/g, '')
   let result = ''
@@ -39,12 +39,13 @@ function encodeAdfgvx(text: string, key?: string): string {
       result += (ADFGVX_LETTERS[p[0]] ?? '') + (ADFGVX_LETTERS[p[1]] ?? '')
     }
   }
-  return result
+  return transposition ? encodeColumnar(result, transposition) : result
 }
 
-function decodeAdfgvx(text: string, key?: string): string {
+function decodeAdfgvx(text: string, key: string, transposition: string): string {
   const { grid } = buildAdfgvxGrid(key)
-  const clean = text.toUpperCase().replaceAll(/[^ADFGVX]/g, '')
+  const letters = text.toUpperCase().replaceAll(/[^ADFGVX]/g, '')
+  const clean = transposition ? decodeColumnar(letters, transposition) : letters
   let result = ''
   for (let i = 0; i + 1 < clean.length; i += 2) {
     const r = ADFGVX_LETTERS.indexOf(clean[i]!)
@@ -64,7 +65,7 @@ export class Adfgvx extends Cipher {
       name: 'adfgvx',
       label: 'ADFGVX',
       description:
-        'WWI fractionation cipher — 6×6 grid (letters+digits) with ADFGVX coordinate encoding',
+        'WWI fractionation cipher: a 6×6 grid (letters+digits) coded as ADFGVX pairs, then an optional columnar transposition',
       family: 'fractionation',
       selfInverse: false,
       options: [
@@ -75,19 +76,27 @@ export class Adfgvx extends Cipher {
           default: '',
           description: 'Optional keyword for the 6×6 grid',
         },
+        {
+          name: 'transposition',
+          type: 'string',
+          required: false,
+          default: '',
+          description: 'Keyword for the columnar transposition step; empty skips it',
+        },
       ],
-      keyspace: '36! (full grid) or keyed subset',
+      keyspace: '36! grids × n! column orders',
     }
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const key = getOpt<string>(options ?? {}, 'key', '')
+      const transposition = getOpt<string>(options ?? {}, 'transposition', '')
       return {
-        text: encodeAdfgvx(text, key),
+        text: encodeAdfgvx(text, key, transposition),
         cipher: 'adfgvx',
         operation: 'encode',
-        options: { key },
+        options: { key, transposition },
       }
     } catch (e) {
       throw normalizeError(e, 'adfgvx')
@@ -97,11 +106,12 @@ export class Adfgvx extends Cipher {
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
       const key = getOpt<string>(options ?? {}, 'key', '')
+      const transposition = getOpt<string>(options ?? {}, 'transposition', '')
       return {
-        text: decodeAdfgvx(text, key),
+        text: decodeAdfgvx(text, key, transposition),
         cipher: 'adfgvx',
         operation: 'decode',
-        options: { key },
+        options: { key, transposition },
       }
     } catch (e) {
       throw normalizeError(e, 'adfgvx')

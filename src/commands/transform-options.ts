@@ -4,6 +4,7 @@ import type { CipherBaseOptions } from '../core/types'
 export interface TransformOptionArgs {
   readonly shift?: string
   readonly key?: string
+  readonly transposition?: string
   readonly rails?: string
   readonly period?: string
   readonly letters?: string
@@ -54,6 +55,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     if (value !== undefined) options[name] = value
   }
   if (args.key) options.key = args.key
+  if (args.transposition) options.transposition = args.transposition
 
   return options
 }

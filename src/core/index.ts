@@ -11,6 +11,7 @@ export type {
   AffineOptions,
   PlayfairOptions,
   PolybiusOptions,
+  AdfgvxOptions,
   BaconOptions,
   CipherInfo,
   CipherOption,

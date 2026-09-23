@@ -616,6 +616,28 @@ describe('adfgvx', () => {
     const encoded = adf.encode('TESTING 123')
     expect(encoded.text).toMatch(/^[ADFGVX]+$/)
   })
+
+  it('matches the Wikipedia PRIVACY vector with its printed grid', () => {
+    const options = { key: 'NA1C3H8TB2OME5WRPD4F6G7I9J0KLQSUVXYZ', transposition: 'PRIVACY' }
+    const encoded = adf.encode('attack at 1200am', options)
+    expect(encoded.text).toBe('DGDDDAGDDGAFADDFDADVDVFAADVX')
+    expect(encoded.options).toEqual(options)
+    expect(adf.decode('DGDD DAGD DGAF ADDF DADV DVFA ADVX', options).text).toBe('ATTACKAT1200AM')
+  })
+
+  it('matches the Crypto Corner vector with a keyword grid', () => {
+    const options = { key: '147 regiment', transposition: 'privacy' }
+    expect(adf.encode('attack at 1200am', options).text).toBe('DXXVGDADDAAXDVDXVFGVGFADDVVD')
+    expect(adf.decode('DXXV GDAD DAAX DVDX VFGV GFAD DVVD', options).text).toBe('ATTACKAT1200AM')
+  })
+
+  it('roundtrips when the last row of the transposition is short', () => {
+    for (const transposition of ['GERMAN', 'AAB', 'X', 'LONGERTHANTHEPAIRS']) {
+      const options = { key: 'K3Y', transposition }
+      const encoded = adf.encode('THE QUICK BROWN FOX 42', options)
+      expect(adf.decode(encoded.text, options).text).toBe('THEQUICKBROWNFOX42')
+    }
+  })
 })
 
 describe('bifid', () => {

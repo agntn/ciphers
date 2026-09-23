@@ -3,6 +3,7 @@
   "version": "0.1.9",
   "description": "Unified educational and puzzle cipher library for agents",
   "homepage": "https://ciphers.agntn.dev",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/agntn/ciphers"
@@ -10,6 +11,14 @@
   "bin": {
     "ciphers": "./dist/cli.mjs"
   },
+  "files": [
+    "dist",
+    "packages/omp/extensions",
+    "packages/pi/extensions",
+    "packages/shared",
+    "src/core/ciphers.ts",
+    "src/tool-operations.ts"
+  ],
   "type": "module",
   "sideEffects": [
     "./dist/cli.mjs"

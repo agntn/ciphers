@@ -121,47 +121,6 @@ export function cipherCacheKey(
   return `${operation}|${text}|${JSON.stringify(options ?? {})}`
 }
 
-// ── Rate Limiter ───────────────────────────────────────────────────────
-
-/** Token-bucket rate limiter. Allows `maxPerSec` calls per second. */
-export class RateLimiter {
-  private tokens: number
-  private lastRefill: number
-  constructor(private readonly maxPerSec: number) {
-    this.tokens = maxPerSec
-    this.lastRefill = Date.now()
-  }
-  /**
-   * Consume one token when available.
-   *
-   * @returns {boolean} Whether the call is allowed.
-   */
-  allow(): boolean {
-    this.refill()
-    if (this.tokens >= 1) {
-      this.tokens--
-      return true
-    }
-    return false
-  }
-  private refill(): void {
-    const now = Date.now()
-    const elapsed = (now - this.lastRefill) / 1000
-    if (elapsed > 0) {
-      this.tokens = Math.min(this.maxPerSec, this.tokens + elapsed * this.maxPerSec)
-      this.lastRefill = now
-    }
-  }
-}
-
-/** Thrown when a rate-limited call is rejected. */
-export class RateLimitError extends Error {
-  constructor(cipher: string) {
-    super(`[${cipher}] Rate limit exceeded — too many calls per second`)
-    this.name = 'RateLimitError'
-  }
-}
-
 // ── Error Handling ─────────────────────────────────────────────────────
 
 /**

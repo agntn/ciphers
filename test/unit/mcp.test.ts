@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vite-plus/test'
 import { Cipher, create, register, type CipherInfo, type CipherResult } from '../../src'
 import { builtinCiphers } from '../../src/core/ciphers'
 import { createMcpServer } from '../../src/mcp'
-import { OPTION_DESCRIPTIONS } from '../../src/tool-operations'
+import { BRUTE_PREVIEW_LENGTH, OPTION_DESCRIPTIONS } from '../../src/tool-operations'
 
 const openConnections: Array<{ close(): Promise<void> }> = []
 
@@ -334,6 +334,37 @@ describe('Ciphers MCP server', () => {
     const noLetters = await lines({ text: '1234' })
     expect(noLetters[0]).toBe('shift= 1 -> 1234')
     expect(noLetters[24]).toBe('shift=25 -> 1234')
+  })
+
+  it('keeps the top Caesar shift whole and cuts the rest to a preview', async () => {
+    const client = await connectTestClient()
+    const brute = async (text: string) => {
+      const result = await client.callTool({ name: 'cipher_brute_caesar', arguments: { text } })
+      expect(result.isError).not.toBe(true)
+      return onlyText(result.content).split('\n')
+    }
+
+    const plaintext = 'THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG '.repeat(3).trim()
+    const ciphertext = 'WKH TXLFN EURZQ IRA MXPSV RYHU WKH ODCB GRJ '.repeat(3).trim()
+    const lines = await brute(ciphertext)
+    expect(lines).toHaveLength(25)
+    expect(lines[0]).toBe(`shift= 3 -> ${plaintext}`)
+
+    for (const line of lines.slice(1)) {
+      const [, shift, preview] = /^shift=([ \d]{2}) -> (.*)…$/.exec(line)!
+      expect(preview).toHaveLength(BRUTE_PREVIEW_LENGTH)
+      const decoded = await client.callTool({
+        name: 'cipher_decode',
+        arguments: { cipher: 'caesar', text: ciphertext, shift: Number(shift) },
+      })
+      expect(onlyText(decoded.content).startsWith(preview!)).toBe(true)
+    }
+
+    const astral = await brute(`${'1'.repeat(BRUTE_PREVIEW_LENGTH - 1)}😀${'B'.repeat(20)}`)
+    for (const line of astral.slice(1)) {
+      expect(line).not.toMatch(/\p{Cs}/u)
+      expect(line.endsWith('1…')).toBe(true)
+    }
   })
 
   it('reports unknown tools and cipher names as tool errors', async () => {

@@ -12,6 +12,7 @@ import { Type } from 'typebox'
 import type * as CiphersModule from '@agntn/ciphers'
 import {
   AFFINE_MULTIPLIERS,
+  BRUTE_PREVIEW_LENGTH,
   MAX_BRUTE_TEXT_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_LENGTH,
@@ -172,11 +173,10 @@ export default function ciphersExtension(pi: ExtensionAPI) {
     defineTool({
       name: 'cipher_brute_caesar',
       label: 'Brute Force Caesar',
-      description:
-        'Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first.',
+      description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; cipher_decode with that shift returns the whole text.`,
       promptSnippet: 'Use cipher_brute_caesar to brute-force an unknown Caesar shift.',
       promptGuidelines: [
-        'Input is ciphertext. Returns all 25 decodings, the most English-like first, or the most Polish-like with lang pl.',
+        `Input is ciphertext. Returns all 25 shifts, the most English-like first, or the most Polish-like with lang pl; only the top line is whole, the rest stop at ${BRUTE_PREVIEW_LENGTH} characters.`,
         'Read the top lines first; on a short text the plaintext can rank a few lines down.',
       ],
       parameters: Type.Object({

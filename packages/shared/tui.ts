@@ -6,8 +6,9 @@ import { stripVTControlCharacters, toUSVString } from 'node:util'
  * Without a result renderer both harnesses hand the whole tool output to one
  * Text component, which wraps every line in full. Cipher output is the shape
  * that hurts: encode and decode return a single line as long as the input
- * allows, and Caesar brute force returns 25 of them. The collapsed view then
- * wraps thousands of characters nobody reads before the user expands anything.
+ * allows, and Caesar brute force puts 24 more lines under one of them. The
+ * collapsed view then wraps thousands of characters nobody reads before the
+ * user expands anything.
  *
  * These renderers cut the preview to a fixed depth and width, count what they
  * left out, and hand back the full text once the row is expanded. Each wrapper

@@ -262,7 +262,8 @@ describe('OMP extension', () => {
 
     const collapsed = renderText(tool.name, result).split('\n')
     expect(collapsed).toHaveLength(11)
-    for (const line of collapsed.slice(0, 10)) expect(line).toHaveLength(200)
+    expect(collapsed[0]).toHaveLength(200)
+    for (const line of collapsed.slice(1, 10)) expect(line.endsWith('…')).toBe(true)
     expect(collapsed[10]).toBe('… 15 more lines')
 
     expect(renderText(tool.name, result, { expanded: true })).toBe(result.content[0]?.text)

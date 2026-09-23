@@ -35,6 +35,13 @@ export const MAX_BRUTE_TEXT_LENGTH = 2_000
 export const MAX_FREQUENCY_TEXT_LENGTH = 100_000
 export const MAX_KEY_LENGTH = 1_000
 
+/**
+ * Characters a brute-force line keeps below the top one. From this length on, scored against the
+ * right language, the letter fit put the right shift first in every sampled English and Polish
+ * text, and a line this long is still enough to see whether a lower shift reads.
+ */
+export const BRUTE_PREVIEW_LENGTH = 80
+
 /** Affine multipliers coprime with 26, the only values the cipher accepts for `a`. */
 export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as const
 
@@ -120,7 +127,9 @@ export function formatCipherInfo(
 /**
  * Decode with every shift, best frequency fit to the language first, so the likely plaintext
  * leads both the model's reading and the collapsed preview. Shifts that tie, including every
- * shift of a text without A-Z letters, stay in shift order.
+ * shift of a text without A-Z letters, stay in shift order. Only the top line carries the whole
+ * decoding; the others stop at `BRUTE_PREVIEW_LENGTH` characters and end in `…`, so a long
+ * ciphertext costs one decoding plus 24 previews instead of 25 decodings.
  *
  * @param library - The loaded cipher library.
  * @param text - Caesar ciphertext.
@@ -133,16 +142,25 @@ export function bruteForceCaesar(
   language?: 'en' | 'pl',
 ): CipherToolResult {
   const cipher = library.create('caesar')
-  const decodings: Array<{ line: string; fit: number }> = []
+  const decodings: Array<{ shift: number; text: string; fit: number }> = []
   for (let shift = 1; shift <= 25; shift++) {
     const result = cipher.decode(text, { shift })
     decodings.push({
-      line: `shift=${String(shift).padStart(2)} -> ${result.text}`,
+      shift,
+      text: result.text,
       fit: library.analyzeFrequency(result.text, language)?.fit ?? 0,
     })
   }
   decodings.sort((left, right) => right.fit - left.fit)
-  return { content: [{ type: 'text', text: decodings.map(({ line }) => line).join('\n') }] }
+  const lines = decodings.map(({ shift, text: decoded }, rank) => {
+    let shown = decoded
+    if (rank > 0 && decoded.length > BRUTE_PREVIEW_LENGTH) {
+      const splitsPair = /[\uD800-\uDBFF]/.test(decoded[BRUTE_PREVIEW_LENGTH - 1]!)
+      shown = `${decoded.slice(0, BRUTE_PREVIEW_LENGTH - (splitsPair ? 1 : 0))}…`
+    }
+    return `shift=${String(shift).padStart(2)} -> ${shown}`
+  })
+  return { content: [{ type: 'text', text: lines.join('\n') }] }
 }
 
 export function formatFrequencyAnalysis(

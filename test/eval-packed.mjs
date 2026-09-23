@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// Packed-package smoke test for the published CLI.
+// Packed-package smoke test for the published CLI and the Pi and OMP extensions.
 //
 // Unit tests import the library from src/, so none of them touch the tarball npm
 // installs. `bin` points at dist/cli.mjs, and that file only works as a command
 // when the build keeps its shebang and its executable bit. Drop either one and
 // the kernel refuses the file, the shell fallback reads a JavaScript bundle as a
-// shell script, and `ciphers --help` never reaches Node.
+// shell script, and `ciphers --help` never reaches Node. The extensions ship as
+// TypeScript source that the host loads from the install, so a file they import
+// that `files` leaves out breaks them while every other check stays green.
 //
 // POSIX only. Windows installs the bin as a generated .cmd shim, so neither the
 // shebang nor the execute bit decides anything there.
@@ -14,8 +16,11 @@
 
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { Type as OmpType } from '@oh-my-pi/omptype/typebox'
+import { register } from 'tsx/esm/api'
 
 if (process.platform === 'win32') {
   console.log('Skipped on Windows, where npm installs the bin as a .cmd shim')
@@ -106,7 +111,55 @@ try {
     'KNIGHT',
   )
 
-  console.log(`Packed ${manifest.name}@${manifest.version} ran ${binEntry} as a command`)
+  // `files` decides what ships. Docs, tests and repo config stay in the checkout.
+  assert.deepEqual((await readdir(packageRoot)).sort(), [
+    'LICENSE',
+    'README.md',
+    'dist',
+    'package.json',
+    'packages',
+    'src',
+  ])
+
+  // tsx stands in for the host's loader. Its namespaced tsImport() fails on
+  // node: builtins under Node 26, so the loader is registered for the two
+  // imports and removed again. The tool call then resolves `@agntn/ciphers` to
+  // this package's own dist.
+  const unregister = register()
+  /**
+   * @param {string} host - Extension directory under packages/.
+   * @returns {Promise<{ default: (api: object) => void }>} The extension module.
+   */
+  const extension = (host) =>
+    import(pathToFileURL(path.join(packageRoot, `packages/${host}/extensions/ciphers.ts`)).href)
+  const omp = await extension('omp')
+  const pi = await extension('pi')
+  await unregister()
+  /** @type {[string, (api: object) => void, object][]} */
+  const hosts = [
+    ['omp', omp.default, { typebox: { Type: OmpType }, pi: { Text: class {} } }],
+    ['pi', pi.default, {}],
+  ]
+  for (const [host, extensionEntry, api] of hosts) {
+    /** @typedef {{ name: string, execute(id: string, params: object): Promise<{ content: { text: string }[] }> }} PackedTool */
+    /** @type {Map<string, Readonly<PackedTool>>} */
+    const tools = new Map()
+    extensionEntry({
+      ...api,
+      /** @param {Readonly<PackedTool>} tool - Tool the extension registers. */
+      registerTool: (tool) => {
+        tools.set(tool.name, tool)
+      },
+    })
+    const encode = tools.get('cipher_encode')
+    assert.ok(encode, `${host} extension registered no cipher_encode`)
+    const result = await encode.execute('packed', { cipher: 'caesar', text: 'HELLO', shift: 3 })
+    assert.equal(result.content[0]?.text, 'KHOOR', `${host} extension`)
+  }
+
+  console.log(
+    `Packed ${manifest.name}@${manifest.version} ran ${binEntry} as a command and loaded both extensions`,
+  )
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true })
 }

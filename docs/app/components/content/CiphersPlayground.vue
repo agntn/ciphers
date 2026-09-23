@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CipherError, create, type CipherOption } from "@agntn/ciphers";
+import { CipherError, create, type CipherOption, type FrequencyLanguage } from "@agntn/ciphers";
 import { bruteRows, frequencyView, type BruteRow, type FrequencyView } from "../../utils/analysis";
 import { CIPHERS, cipherEntry, familyLabel } from "../../utils/ciphers";
 import { optionFlags, optionLiteral, shellArg } from "../../utils/format";
@@ -23,7 +23,7 @@ const text = ref("ATTACK AT DAWN");
 const values = reactive<Record<string, string>>({ key: "LEMON" });
 const preserveCase = ref(true);
 const stripNonAlpha = ref(false);
-const language = ref<"en" | "pl">("en");
+const language = ref<FrequencyLanguage>("en");
 
 const entry = computed(() => cipherEntry(cipherName.value) ?? CIPHERS[0]!);
 const optionFields = computed<CipherOption[]>(() => entry.value.info.options);
@@ -159,6 +159,16 @@ async function copy(key: string, value: string) {
   }, 1200);
 }
 
+/**
+ * Whether a query value names a reference language the library has a table for.
+ *
+ * @param value - Raw `lang` query value.
+ * @returns {boolean} True for `en`, `pl` or `ja`.
+ */
+function isFrequencyLanguage(value: unknown): value is FrequencyLanguage {
+  return value === "en" || value === "pl" || value === "ja";
+}
+
 /** Query in, state out. Only values the form knows are read, the rest of the query is ignored. */
 function readQuery(query: Record<string, unknown>) {
   const op = String(query.op ?? "");
@@ -185,8 +195,8 @@ function readQuery(query: Record<string, unknown>) {
   if (query.stripNonAlpha === "1") {
     stripNonAlpha.value = true;
   }
-  if (query.lang === "pl") {
-    language.value = "pl";
+  if (isFrequencyLanguage(query.lang)) {
+    language.value = query.lang;
   }
 }
 
@@ -323,6 +333,7 @@ const shareLink = computed(() => {
         <select v-model="language" class="ciphers-field">
           <option value="en">English</option>
           <option value="pl">Polish</option>
+          <option value="ja">Japanese romaji</option>
         </select>
       </label>
 

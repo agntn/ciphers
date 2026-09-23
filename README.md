@@ -103,7 +103,7 @@ ciphers frequency "DWWDFN DW GDZQ" --lang pl
 ciphers info bifid
 ```
 
-`frequency` prints the histogram and the index of coincidence. Around 0.067 it's one alphabet with English underneath, down near 0.038 the alphabet keeps changing and you want a key length, not a histogram.
+`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram.
 
 ### Commands
 

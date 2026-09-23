@@ -211,7 +211,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       promptGuidelines: [
         'Useful for identifying substitution ciphers (frequency distribution preserved).',
         'Compare actual frequency order with expected language order (EN: ETAOIN...).',
-        'An index of coincidence near 0.067 suggests monoalphabetic English; near 0.038 suggests polyalphabetic or random.',
+        'An index of coincidence near the plaintext value the result names (about 0.065 English, 0.057 Polish) suggests monoalphabetic; near 0.038 suggests polyalphabetic or random.',
       ],
       parameters: Type.Object({
         text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),

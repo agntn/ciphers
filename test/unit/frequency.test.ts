@@ -4,8 +4,9 @@ import { analyzeFrequency } from '../../src/core/frequency'
 
 describe('analyzeFrequency', () => {
   it('normalizes input and sorts counts descending', () => {
-    const { fit, ...analysis } = analyzeFrequency('AaA, bb! c')!
+    const { fit, referenceIc, ...analysis } = analyzeFrequency('AaA, bb! c')!
     expect(fit).toBeLessThan(0)
+    expect(referenceIc).toBeGreaterThan(0)
     expect(analysis).toEqual({
       total: 6,
       language: 'en',
@@ -44,6 +45,17 @@ describe('analyzeFrequency', () => {
     expect(analyzeFrequency('AAAA')?.ic).toBe(1)
     expect(analyzeFrequency('ABCDEFGHIJKLMNOPQRSTUVWXYZ')?.ic).toBe(0)
     expect(analyzeFrequency('A')?.ic).toBeUndefined()
+  })
+
+  it('expects the index of coincidence each language measures', () => {
+    // Pride and Prejudice and Frankenstein measure 0.0654 and 0.0658 here, Pan Tadeusz and
+    // Lalka 0.0579 and 0.0582: 450-character windows of them spread about 0.004 to either side.
+    const english = analyzeFrequency('ABC', 'en')!.referenceIc
+    const polish = analyzeFrequency('ABC', 'pl')!.referenceIc
+    expect(english).toBeGreaterThan(0.064)
+    expect(english).toBeLessThan(0.067)
+    expect(polish).toBeGreaterThan(0.056)
+    expect(polish).toBeLessThan(0.059)
   })
 
   it('uses the Polish reference order', () => {

@@ -245,7 +245,9 @@ function cipherInputError(value: Readonly<Record<string, unknown>>): string | un
 function validationError(schema: TSchema, value: unknown): string {
   const first = Value.Errors(schema, value)[0]
   if (!first) return 'Invalid arguments'
-  return `Invalid arguments at ${first.instancePath || '/'}: ${first.message}`
+  const allowed = first.keyword === 'enum' ? first.params.allowedValues : undefined
+  const message = Array.isArray(allowed) ? `must be one of ${allowed.join(', ')}` : first.message
+  return `Invalid arguments at ${first.instancePath || '/'}: ${message}`
 }
 
 function toCallToolResult(result: ToolResult): CallToolResult {
@@ -283,7 +285,9 @@ export function createMcpServer(): Server {
     const tool = toolsByName.get(request.params.name)
     if (!tool) {
       return {
-        content: [{ type: 'text', text: `Unknown cipher tool: ${request.params.name}` }],
+        content: [
+          { type: 'text', text: `Unknown cipher tool: ${JSON.stringify(request.params.name)}` },
+        ],
         isError: true,
       }
     }

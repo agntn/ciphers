@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vite-plus/test'
+import { builtinCiphers } from '../../src/core/ciphers'
 import { version } from '../../src/version'
 
 const cliPath = fileURLToPath(new URL('../../src/cli.ts', import.meta.url))
@@ -19,7 +20,9 @@ describe('CLI domain errors', () => {
 
     expect(result.status).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('Unknown cipher: unknown\n')
+    expect(result.stderr).toBe(
+      `Unknown cipher: "unknown". Registered ciphers: ${builtinCiphers.join(', ')}\n`,
+    )
   })
 })
 

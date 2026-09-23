@@ -6,10 +6,17 @@ export class CipherError extends Error {
   }
 }
 
-/** Cipher not found in registry. */
+/**
+ * Cipher not found in registry. The name is quoted, so a newline or an escape sequence in it
+ * stays inside the message, and the message lists the registered names to pick from.
+ */
 export class UnknownCipherError extends CipherError {
-  constructor(public readonly cipher: string) {
-    super(`Unknown cipher: ${cipher}`)
+  constructor(
+    public readonly cipher: string,
+    public readonly registered: readonly string[] = [],
+  ) {
+    const choices = registered.length > 0 ? `. Registered ciphers: ${registered.join(', ')}` : ''
+    super(`Unknown cipher: ${JSON.stringify(cipher)}${choices}`)
     this.name = 'UnknownCipherError'
   }
 }

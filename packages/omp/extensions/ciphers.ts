@@ -137,17 +137,23 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
   omp.registerTool({
     name: 'cipher_brute_caesar',
     label: 'Brute Force Caesar',
-    description: 'Decode Caesar ciphertext with every shift from 1 through 25.',
+    description:
+      'Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first.',
     parameters: Type.Object({
       text: Type.String({
         maxLength: MAX_BRUTE_TEXT_LENGTH,
         description: 'Caesar ciphertext to brute-force',
       }),
+      lang: Type.Optional(
+        Type.Enum(['en', 'pl'], {
+          description: 'Language the plaintext should read in; ranks the shifts (default en)',
+        }),
+      ),
     }),
     approval: 'read',
     loadMode: 'essential',
     async execute(_toolCallId, params) {
-      return bruteForceCaesar(await loadLibrary(), params.text)
+      return bruteForceCaesar(await loadLibrary(), params.text, params.lang)
     },
     renderResult: resultLine,
   })

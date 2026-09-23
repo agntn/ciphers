@@ -294,6 +294,11 @@ describe('OMP extension', () => {
     const brute = await getTool('cipher_brute_caesar').execute('brute', { text: 'KHOOR' })
     expect(brute.content[0]?.text.split('\n')).toHaveLength(25)
     expect(brute.content[0]?.text).toContain('shift= 3 -> HELLO')
+    const polish = await getTool('cipher_brute_caesar').execute('brute', {
+      text: 'OLWZR RMFCBCQR PRMD',
+      lang: 'pl',
+    })
+    expect(polish.content[0]?.text.split('\n')[0]).toBe('shift= 3 -> LITWO OJCZYZNO MOJA')
 
     const frequency = await getTool('cipher_frequency').execute('frequency', {
       text: 'AAABBC',

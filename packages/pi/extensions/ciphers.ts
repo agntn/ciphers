@@ -169,24 +169,30 @@ export default function ciphersExtension(pi: ExtensionAPI) {
     defineTool({
       name: 'cipher_brute_caesar',
       label: 'Brute Force Caesar',
-      description: 'Decode Caesar ciphertext with every shift from 1 through 25.',
+      description:
+        'Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first.',
       promptSnippet: 'Use cipher_brute_caesar to brute-force an unknown Caesar shift.',
       promptGuidelines: [
-        'Input is ciphertext. Shows all 25 possible decodings.',
-        'Look for readable English or Polish plaintext in results.',
+        'Input is ciphertext. Returns all 25 decodings, the most English-like first, or the most Polish-like with lang pl.',
+        'Read the top lines first; on a short text the plaintext can rank a few lines down.',
       ],
       parameters: Type.Object({
         text: Type.String({
           maxLength: MAX_BRUTE_TEXT_LENGTH,
           description: 'Caesar ciphertext to brute-force',
         }),
+        lang: Type.Optional(
+          Type.Enum(['en', 'pl'], {
+            description: 'Language the plaintext should read in; ranks the shifts (default en)',
+          }),
+        ),
       }),
       renderCall(args, _theme) {
         return new Text(`🔍 brute caesar: "${args.text}"`, 0, 0)
       },
       renderResult: resultLine,
       async execute(_toolCallId, params): Promise<PiToolResult> {
-        return toPiResult(bruteForceCaesar(await loadLibrary(), params.text))
+        return toPiResult(bruteForceCaesar(await loadLibrary(), params.text, params.lang))
       },
     }),
   )

@@ -294,6 +294,29 @@ describe('Ciphers MCP server', () => {
     expect(entry.text).toContain('Index of coincidence: 1.0000')
   })
 
+  it('puts the best-fitting Caesar shift first', async () => {
+    const client = await connectTestClient()
+    const lines = async (args: Readonly<Record<string, unknown>>) => {
+      const result = await client.callTool({ name: 'cipher_brute_caesar', arguments: args })
+      expect(result.isError).not.toBe(true)
+      return onlyText(result.content).split('\n')
+    }
+
+    const english = await lines({ text: 'DWWDFN DW GDZQ' })
+    expect(english).toHaveLength(25)
+    expect(english[0]).toBe('shift= 3 -> ATTACK AT DAWN')
+
+    const polish = 'OLWZR RMFCBCQR PRMD WB MHVWHV MDN CGURZLH'
+    expect((await lines({ text: polish, lang: 'pl' }))[0]).toBe(
+      'shift= 3 -> LITWO OJCZYZNO MOJA TY JESTES JAK ZDROWIE',
+    )
+    expect((await lines({ text: polish }))[0]).not.toContain('LITWO')
+
+    const noLetters = await lines({ text: '1234' })
+    expect(noLetters[0]).toBe('shift= 1 -> 1234')
+    expect(noLetters[24]).toBe('shift=25 -> 1234')
+  })
+
   it('reports unknown tools and cipher names as tool errors', async () => {
     const client = await connectTestClient()
 

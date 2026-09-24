@@ -1,12 +1,13 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types'
 import { Cipher } from '../../../core/cipher'
-import { InvalidOptionError, MissingOptionError, normalizeError } from '../../../core/errors'
+import { normalizeError } from '../../../core/errors'
 import {
   type BlockMode,
   type Bytes,
   decodeBlocks,
   encodeBlocks,
   fromHex,
+  readIv,
 } from '../../../core/block-mode'
 import { aesBlock } from './block'
 
@@ -49,17 +50,6 @@ export function aesCbc(
   return output
 }
 
-function readIv(options: Readonly<CipherBaseOptions>): Record<string, string> {
-  const iv = options.iv
-  if (iv === undefined || iv === '') throw new MissingOptionError('iv')
-  if (typeof iv !== 'string') throw new InvalidOptionError('iv', iv, 'must be a string')
-  const hex = iv.replaceAll(/\s/g, '').toLowerCase()
-  if (!/^[0-9a-f]{32}$/.test(hex)) {
-    throw new InvalidOptionError('iv', iv, 'must be 32 hex digits (one 16-byte block)')
-  }
-  return { iv: hex }
-}
-
 const AES_CBC: BlockMode = {
   name: 'aes-cbc',
   label: 'AES-CBC',
@@ -67,7 +57,7 @@ const AES_CBC: BlockMode = {
   blockSize: BLOCK_SIZE,
   keyDigits: [32, 48, 64],
   keyError: 'must be 32, 48 or 64 hex digits (a 128, 192 or 256-bit AES key)',
-  settings: readIv,
+  settings: (options) => ({ iv: readIv(options, BLOCK_SIZE) }),
   run: (data, key, operation, settings) => aesCbc(data, key, operation, fromHex(settings.iv!)),
 }
 

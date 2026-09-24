@@ -158,6 +158,18 @@ export interface AesCcmOptions extends CipherBaseOptions {
   tagLength?: 32 | 48 | 64 | 80 | 96 | 112 | 128
 }
 
+/** AES-OCB options. */
+export interface AesOcbOptions extends CipherBaseOptions {
+  /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
+  key: string
+  /** 2 to 30 hex digits, a 1 to 15-byte nonce; case and spaces are ignored. */
+  nonce: string
+  /** Associated data in hex, covered by the tag and not encrypted. Default: none. */
+  aad?: string
+  /** Tag length in bits: 64, 96 or 128. Default: 128. */
+  tagLength?: 64 | 96 | 128
+}
+
 /** AES-LRW options. */
 export interface AesLrwOptions extends CipherBaseOptions {
   /** 64, 80 or 96 hex digits: the AES key, then 32 for the tweak key; case and spaces are ignored. */

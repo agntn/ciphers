@@ -80,7 +80,7 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
-    ciphers: ['aes-ccm'],
+    ciphers: ['aes-ccm', 'aes-ocb'],
     required: ['key', 'nonce'],
     key: {
       pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,

@@ -10,11 +10,12 @@ import { aesCfb } from '../../src/ciphers/block/aes/cfb'
 import { aesOfb } from '../../src/ciphers/block/aes/ofb'
 import { aesCtr } from '../../src/ciphers/block/aes/ctr'
 import { aesCcm } from '../../src/ciphers/block/aes/ccm'
+import { aesOcb } from '../../src/ciphers/block/aes/ocb'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des'
 
 describe('registry', () => {
-  it('registers all 28 ciphers', () => {
-    expect(ciphers()).toHaveLength(28)
+  it('registers all 29 ciphers', () => {
+    expect(ciphers()).toHaveLength(29)
     for (const name of [
       'caesar',
       'rot13',
@@ -36,6 +37,7 @@ describe('registry', () => {
       'aes-ofb',
       'aes-ctr',
       'aes-ccm',
+      'aes-ocb',
       'aes-lrw',
       'triple-des',
     ]) {
@@ -776,6 +778,7 @@ describe('edge cases', () => {
     'aes-ofb': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-ctr': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-ccm': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
+    'aes-ocb': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
   }
@@ -1771,6 +1774,202 @@ describe('aes-ccm', () => {
     expect(resolveCipher('AES CCM')).toBe(ccm)
     expect(ccm.info()).toMatchObject({
       name: 'aes-ccm',
+      category: 'block',
+      family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'nonce', type: 'string', required: true },
+        { name: 'aad', type: 'string', required: false, default: '' },
+        { name: 'tagLength', type: 'number', required: false, default: 128 },
+      ],
+    })
+  })
+})
+
+describe('aes-ocb', () => {
+  const ocb = create('aes-ocb')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const bytes = (length: number) => Array.from({ length }, (_, i) => i)
+  const key = '2b7e151628aed2a6abf7158809cf4f3c'
+  const nonce = '000102030405060708090a0b'
+  const dawn = 'd5ae8f2ca0693c898f8e7466703ca89edcaab00caca2cf36bfcac3794412'
+
+  /** RFC 7253 Appendix A: the 128-bit tag examples, P and A as 0x00, 0x01, ... bytes. */
+  it('matches the RFC 7253 sample results', () => {
+    const vectorKey = bytes(16)
+    for (const [vectorNonce, aad, plaintext, ciphertext] of [
+      ['bbaa99887766554433221100', 0, 0, '785407bfffc8ad9edcc5520ac9111ee6'],
+      ['bbaa99887766554433221101', 8, 8, '6820b3657b6f615a5725bda0d3b4eb3a257c9af1f8f03009'],
+      ['bbaa99887766554433221102', 8, 0, '81017f8203f081277152fade694a0a00'],
+      ['bbaa99887766554433221103', 0, 8, '45dd69f8f5aae72414054cd1f35d82760b2cd00d2f99bfa9'],
+      [
+        'bbaa99887766554433221104',
+        16,
+        16,
+        '571d535b60b277188be5147170a9a22c3ad7a4ff3835b8c5701c1ccec8fc3358',
+      ],
+      [
+        'bbaa9988776655443322110a',
+        32,
+        32,
+        'bd6f6c496201c69296c11efd138a467abd3c707924b964deaffc40319af5a48540fbba186c5553c68ad9f592a79a4240',
+      ],
+      [
+        'bbaa9988776655443322110f',
+        0,
+        40,
+        '4412923493c57d5de0d700f753cce0d1d2d95060122e9f15a5ddbfc5787e50b5cc55ee507bcb084e479ad363ac366b95a98ca5f3000b1479',
+      ],
+    ] as const) {
+      const n = hex(vectorNonce)
+      expect(aesOcb(bytes(plaintext), vectorKey, 'encrypt', n, bytes(aad), 128)).toEqual(
+        hex(ciphertext),
+      )
+      expect(aesOcb(hex(ciphertext), vectorKey, 'decrypt', n, bytes(aad), 128)).toEqual(
+        bytes(plaintext),
+      )
+    }
+  })
+
+  /** RFC 7253 Appendix A: the 96-bit tag example under the reversed key. */
+  it('matches the RFC 7253 sample with a 96-bit tag', () => {
+    const vectorKey = hex('0f0e0d0c0b0a09080706050403020100')
+    const n = hex('bbaa9988776655443322110d')
+    const ciphertext = hex(
+      '1792a4e31e0755fb03e31b22116e6c2ddf9efd6e33d536f1a0124b0a55bae884ed93481529c76b6ad0c515f4d1cdd4fdac4f02aa',
+    )
+    expect(aesOcb(bytes(40), vectorKey, 'encrypt', n, bytes(40), 96)).toEqual(ciphertext)
+    expect(aesOcb(ciphertext, vectorKey, 'decrypt', n, bytes(40), 96)).toEqual(bytes(40))
+  })
+
+  /** RFC 7253 Appendix A: 384 encryptions per parameter set, authenticated by one last call. */
+  it('matches the RFC 7253 iterated results for every named parameter set', () => {
+    const counter = (i: number) => [...Array.from({ length: 10 }, () => 0), i >> 8, i & 0xff]
+    for (const [keyBytes, tagLength, output] of [
+      [16, 128, '67e944d23256c5e0b6c61fa22fdf1ea2'],
+      [24, 128, 'f673f2c3e7174aae7bae986ca9f29e17'],
+      [32, 128, 'd90eb8e9c977c88b79dd793d7ffa161c'],
+      [16, 96, '77a3d8e73589158d25d01209'],
+      [24, 96, '05d56ead2752c86be6932c5e'],
+      [32, 96, '5458359ac23b0cba9e6330dd'],
+      [16, 64, '192c9b7bd90ba06a'],
+      [24, 64, '0066bc6e0ef34e24'],
+      [32, 64, '7d4ea5d445501cbe'],
+    ] as const) {
+      const vectorKey = [...Array.from({ length: keyBytes - 1 }, () => 0), tagLength]
+      const run = (data: readonly number[], i: number, aad: readonly number[]) =>
+        aesOcb(data, vectorKey, 'encrypt', counter(i), aad, tagLength)
+      const c: number[] = []
+      for (let i = 0; i < 128; i++) {
+        const s = Array.from({ length: i }, () => 0)
+        c.push(...run(s, 3 * i + 1, s), ...run(s, 3 * i + 2, []), ...run([], 3 * i + 3, s))
+      }
+      expect(run([], 385, c)).toEqual(hex(output))
+    }
+  })
+
+  /** Expected values from Node's `createCipheriv('aes-128-ocb')`, OpenSSL underneath. */
+  it('encodes UTF-8 text to hex with the tag at the end, as OpenSSL does', () => {
+    for (const [text, options, ciphertext] of [
+      ['', {}, 'efa17098beab7f49f020ef13d2b74c2c'],
+      ['ATTACK AT DAWN', {}, dawn],
+      [
+        'zażółć gęślą jaźń 🙂',
+        {},
+        '013f9e0c494417d92dae71db1d971cdd5fe71675faa770fbfa8f6d0a29be1b1c8d54e85c8ff3d7f15479eb46b472c8',
+      ],
+      [
+        'ATTACK AT DAWN',
+        { aad: '46524f4d3a2048512e' },
+        'd5ae8f2ca0693c898f8e7466703c3540bc18319e6bafb89838f7fa34b4d6',
+      ],
+      // The tag length goes into the nonce block, so the text bytes change with it too.
+      ['ATTACK AT DAWN', { tagLength: 64 }, '006442d918150ca6a4daf6903e6b6141a3b9b9a68fe8'],
+      ['ATTACK AT DAWN', { tagLength: 96 }, 'bfa036a60110fb4529e581189fc64de75b0e0d6e4b46ebe50fbf'],
+      [
+        'ATTACK AT DAWN',
+        { nonce: '42' },
+        '5262cf33605a458d6bed7f2954a15148a0e4259f947959140a64648d45d5',
+      ],
+      [
+        'ATTACK AT DAWN',
+        { nonce: '000102030405060708090a0b0c0d0e' },
+        '8bfb1e5a72b4667d79086c9c98ab214f6ee3a5a466677e86473793f2031d',
+      ],
+    ] as const) {
+      const all = { key, nonce, ...options }
+      expect(ocb.encode(text, all).text).toBe(ciphertext)
+      expect(ocb.decode(ciphertext, all).text).toBe(text)
+    }
+    expect(ocb.encode('ATTACK AT DAWN', { key, nonce }).options).toEqual({
+      key,
+      mode: 'ocb',
+      nonce,
+      tagLength: 128,
+      aad: '',
+    })
+  })
+
+  it('refuses a ciphertext whose tag does not match', () => {
+    // DAWN to DUSK, the XOR that CTR lets through.
+    const flipped = hex(dawn)
+      .map((byte, i) => byte ^ ([0x14, 0x04, 0x05][i - 11] ?? 0))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('')
+    for (const [text, options] of [
+      [flipped, { key, nonce }],
+      [dawn.slice(0, -2) + '13', { key, nonce }],
+      [dawn, { key: '00'.repeat(16), nonce }],
+      [dawn, { key, nonce: '00'.repeat(12) }],
+      [dawn, { key, nonce, aad: '00' }],
+      [dawn, { key, nonce, tagLength: 64 }],
+    ] as const) {
+      expect(() => ocb.decode(text, options)).toThrow(CipherError)
+      expect(() => ocb.decode(text, options)).toThrow(/Tag does not match/)
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => ocb.decode('d5ae8', { key, nonce })).toThrow(/whole bytes/)
+    expect(() => ocb.decode('d5zz', { key, nonce })).toThrow(/hex digits/)
+    expect(() => ocb.decode('d5ae8f2c', { key, nonce })).toThrow(/16-byte tag, got 4 bytes/)
+  })
+
+  it('reads key, nonce and aad in any case and spacing', () => {
+    const result = ocb.encode('ATTACK AT DAWN', {
+      key: '2B7E1516 28AED2A6 ABF71588 09CF4F3C',
+      nonce: '00010203 04050607 08090A0B',
+      aad: '46 52 4F 4D',
+    })
+    expect(result.options).toEqual({ key, mode: 'ocb', nonce, tagLength: 128, aad: '46524f4d' })
+  })
+
+  it('rejects keys, nonces, aad and tag lengths it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => ocb[operation]('', { nonce })).toThrow(MissingOptionError)
+      expect(() => ocb[operation]('', { key })).toThrow(MissingOptionError)
+      expect(() => ocb[operation]('', { key, nonce: '' })).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(20), 'g'.repeat(32), 12]) {
+        expect(() => ocb[operation]('', { key: bad, nonce })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['00'.repeat(16), '0', '0'.repeat(15), 'g'.repeat(14), 1]) {
+        expect(() => ocb[operation]('', { key, nonce: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['0', 'zz', 7]) {
+        expect(() => ocb[operation]('', { key, nonce, aad: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of [0, 32, 48, 80, 112, 136, '128']) {
+        expect(() => ocb[operation]('', { key, nonce, tagLength: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('reports the block category and its options', () => {
+    expect(resolveCipher('AES OCB')).toBe(ocb)
+    expect(ocb.info()).toMatchObject({
+      name: 'aes-ocb',
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,

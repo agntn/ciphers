@@ -257,6 +257,32 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const rijndaelKey = '2b7e151628aed2a6abf7158809cf4f3c762e7160f38b4da56a784d9045190cfe'
+  const rijndaelText = '4e0085db1697ce5f34911401d53bc05637a158856ca148bb212050ebfd20d208'
+  assert.equal(
+    run(binPath, [
+      'encode',
+      'rijndael',
+      'ATTACK AT DAWN',
+      '--key',
+      rijndaelKey,
+      '--block-size',
+      '256',
+    ]).trim(),
+    rijndaelText,
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'rijndael',
+      rijndaelText,
+      '--key',
+      rijndaelKey,
+      '--block-size',
+      '256',
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   const tripleDesIv = '0001020304050607'
   assert.equal(
     run(binPath, [

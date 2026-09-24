@@ -178,6 +178,14 @@ export interface AesLrwOptions extends CipherBaseOptions {
   tweak?: string
 }
 
+/** Rijndael options. */
+export interface RijndaelOptions extends CipherBaseOptions {
+  /** 32, 40, 48, 56 or 64 hex digits for a 128 to 256-bit key; case and spaces are ignored. */
+  key: string
+  /** Block length in bits: 128, 160, 192, 224 or 256. Default: 128, which is AES. */
+  blockSize?: 128 | 160 | 192 | 224 | 256
+}
+
 /** Triple DES ECB options. */
 export interface TripleDesOptions extends CipherBaseOptions {
   /** 32 hex digits for two keys (K3 = K1) or 48 for three; case and spaces are ignored. */

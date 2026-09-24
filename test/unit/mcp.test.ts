@@ -222,6 +222,32 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(aesSizedIv.content)).toContain('16 hex digits')
   })
 
+  it('discovers and executes Rijndael with a wider block through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'rijndael' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(rijndael) — block, substitution-permutation')
+    expect(onlyText(info.content)).toContain('blockSize (number, default=128)')
+    const key = '2b7e151628aed2a6abf7158809cf4f3c762e7160f38b4da56a784d9045190cfe'
+    const ciphertext = '4e0085db1697ce5f34911401d53bc05637a158856ca148bb212050ebfd20d208'
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', ciphertext],
+      ['cipher_decode', ciphertext, 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({
+        name,
+        arguments: { cipher: 'rijndael', text, key, blockSize: 256 },
+      })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+    const oddBlock = await client.callTool({
+      name: 'cipher_encode',
+      arguments: { cipher: 'rijndael', text: 'abc', key, blockSize: 512 },
+    })
+    expect(oddBlock.isError).toBe(true)
+  })
+
   it('discovers and executes AES-CBC with an IV through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'aes-cbc' } })
@@ -495,6 +521,8 @@ describe('Ciphers MCP server', () => {
       ['nonce', { cipher: 'aes-ocb', text: 'abc', key: '00'.repeat(16), nonce: '' }],
       ['key', { cipher: 'aes-lrw', text: 'abc' }],
       ['key', { cipher: 'aes-lrw', text: 'abc', key: '00'.repeat(16) }],
+      ['key', { cipher: 'rijndael', text: 'abc' }],
+      ['key', { cipher: 'rijndael', text: 'abc', key: '00'.repeat(18) }],
       ['key', { cipher: 'triple-des', text: 'abc' }],
       ['key', { cipher: 'triple-des', text: 'abc', key: '00'.repeat(32) }],
       ['key', { cipher: 'triple-des-cbc', text: 'abc', iv: '00'.repeat(8) }],
@@ -541,7 +569,7 @@ describe('Ciphers MCP server', () => {
     const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
     expect(onlyText(block.content)).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\]/,
     )
 
     const unknownCategory = await client.callTool({

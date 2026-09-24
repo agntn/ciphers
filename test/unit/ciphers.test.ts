@@ -7,11 +7,12 @@ import { aesEcb } from '../../src/ciphers/block/aes/ecb'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw'
 import { aesCbc } from '../../src/ciphers/block/aes/cbc'
 import { aesCfb } from '../../src/ciphers/block/aes/cfb'
+import { aesCtr } from '../../src/ciphers/block/aes/ctr'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des'
 
 describe('registry', () => {
-  it('registers all 25 ciphers', () => {
-    expect(ciphers()).toHaveLength(25)
+  it('registers all 26 ciphers', () => {
+    expect(ciphers()).toHaveLength(26)
     for (const name of [
       'caesar',
       'rot13',
@@ -30,6 +31,7 @@ describe('registry', () => {
       'aes',
       'aes-cbc',
       'aes-cfb',
+      'aes-ctr',
       'aes-lrw',
       'triple-des',
     ]) {
@@ -767,6 +769,7 @@ describe('edge cases', () => {
     aes: { key: '000102030405060708090a0b0c0d0e0f' },
     'aes-cbc': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-cfb': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
+    'aes-ctr': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
   }
@@ -1349,6 +1352,124 @@ describe('aes-cfb', () => {
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
         { name: 'segment', type: 'number', required: false, default: 128 },
+      ],
+    })
+  })
+})
+
+describe('aes-ctr', () => {
+  const ctr = create('aes-ctr')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '2b7e151628aed2a6abf7158809cf4f3c'
+  const iv = '000102030405060708090a0b0c0d0e0f'
+
+  /** NIST SP 800-38A F.5.1, F.5.3 and F.5.5: CTR-AES128, CTR-AES192 and CTR-AES256 encryption. */
+  it('matches the NIST SP 800-38A CTR-AES vectors', () => {
+    const counter = hex('f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff')
+    const plaintext = hex(
+      '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710',
+    )
+    for (const [vectorKey, ciphertext] of [
+      [
+        key,
+        '874d6191b620e3261bef6864990db6ce9806f66b7970fdff8617187bb9fffdff5ae4df3edbd5d35e5b4f09020db03eab1e031dda2fbe03d1792170a0f3009cee',
+      ],
+      [
+        '8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b',
+        '1abc932417521ca24f2b0459fe7e6e0b090339ec0aa6faefd5ccc2c6f4ce8e941e36b26bd1ebc670d1bd1d665620abf74f78a7f6d29809585a97daec58c6b050',
+      ],
+      [
+        '603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4',
+        '601ec313775789a5b7a7f504bbf3d228f443e3ca4d62b59aca84e990cacaf5c52b0930daa23de94ce87017ba2d84988ddfc9c58db67aada613c2dd08457941a6',
+      ],
+    ] as const) {
+      expect(aesCtr(plaintext, hex(vectorKey), counter)).toEqual(hex(ciphertext))
+      expect(aesCtr(hex(ciphertext), hex(vectorKey), counter)).toEqual(plaintext)
+    }
+  })
+
+  /** Expected values from `openssl enc -aes-128-ctr`, which does not pad. */
+  it('encodes UTF-8 text to hex of the same length, as openssl enc does', () => {
+    for (const [text, ciphertext] of [
+      ['', ''],
+      ['ATTACK AT DAWN', '11aa338dda2612f78e2973a8cce1'],
+      ['zażółć gęślą jaźń 🙂', '2a9fa2705adef7341e8e178e5f3629fbc3e50b6eed8256101fb56b14e46e21'],
+    ] as const) {
+      expect(ctr.encode(text, { key, iv })).toEqual({
+        text: ciphertext,
+        cipher: 'aes-ctr',
+        operation: 'encode',
+        options: { key, mode: 'ctr', iv },
+      })
+      expect(ctr.decode(ciphertext, { key, iv }).text).toBe(text)
+    }
+  })
+
+  /** Expected value from `openssl enc -aes-128-ctr` over thirty-two `A`s. */
+  it('gives different ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = ctr.encode('A'.repeat(32), { key, iv })
+    expect(text).toBe('11bf268dd82c73f79b4876a8daeead21ee60cf0fc6a2d2eb9b700aa53ab6e21e')
+    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
+  })
+
+  /** Expected value from `openssl enc -aes-128-ctr`, which carries across all 128 bits. */
+  it('wraps the counter from all ones to all zeros', () => {
+    const { text } = ctr.encode('A'.repeat(32), { key, iv: 'f'.repeat(32) })
+    expect(text).toBe('cbb3c74003b6c7b548713d5b7e3febed3cb62a4d5bf9d8f27f03b106f85a152e')
+    expect(text.slice(32)).toBe(ctr.encode('A'.repeat(16), { key, iv: '0'.repeat(32) }).text)
+  })
+
+  it('leaks the XOR of two texts sent under the same key and IV', () => {
+    const xor = (a: string, b: string) =>
+      hex(a)
+        .map((byte, i) => (byte ^ hex(b)[i]!).toString(16).padStart(2, '0'))
+        .join('')
+    const dawn = ctr.encode('ATTACK AT DAWN', { key, iv }).text
+    const dusk = ctr.encode('ATTACK AT DUSK', { key, iv }).text
+    expect(xor(dawn, dusk)).toBe('0000000000000000000000140405')
+  })
+
+  it('reads the IV in any case and spacing, and a different IV gives different ciphertext', () => {
+    const result = ctr.encode('ATTACK AT DAWN', { key, iv: '00010203 04050607 08090A0B 0C0D0E0F' })
+    expect(result.options).toEqual({ key, mode: 'ctr', iv })
+    const other = ctr.encode('ATTACK AT DAWN', { key, iv: 'f'.repeat(32) })
+    expect(other.text).not.toBe(result.text)
+    expect(ctr.decode(other.text, { key, iv: 'f'.repeat(32) }).text).toBe('ATTACK AT DAWN')
+  })
+
+  it('rejects keys and IVs it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => ctr[operation]('', { iv })).toThrow(MissingOptionError)
+      expect(() => ctr[operation]('', { key })).toThrow(MissingOptionError)
+      expect(() => ctr[operation]('', { key, iv: '' })).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(20), 'g'.repeat(32), 12]) {
+        expect(() => ctr[operation]('', { key: bad, iv })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['00'.repeat(15), '00'.repeat(17), 'g'.repeat(32), 1]) {
+        expect(() => ctr[operation]('', { key, iv: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => ctr.decode('11aa3', { key, iv })).toThrow(/whole bytes/)
+    expect(() => ctr.decode('11zz', { key, iv })).toThrow(/hex digits/)
+    expect(() => ctr.decode('11aa338dda2612f78e2973a8cce1', { key: '00'.repeat(16), iv })).toThrow(
+      /not UTF-8/,
+    )
+  })
+
+  it('reports the block category and the IV option', () => {
+    expect(resolveCipher('AES CTR')).toBe(ctr)
+    expect(ctr.info()).toMatchObject({
+      name: 'aes-ctr',
+      category: 'block',
+      family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'iv', type: 'string', required: true },
       ],
     })
   })

@@ -156,6 +156,30 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  assert.equal(
+    run(binPath, [
+      'encode',
+      'aes-ctr',
+      'ATTACK AT DAWN',
+      '--key',
+      aesKey,
+      '--iv',
+      'f'.repeat(32),
+    ]).trim(),
+    'cba6d24001bca6b55d10385b6830',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'aes-ctr',
+      'cba6d24001bca6b55d10385b6830',
+      '--key',
+      aesKey,
+      '--iv',
+      'f'.repeat(32),
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   const lrwKey = '4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87'
   assert.equal(
     run(binPath, [

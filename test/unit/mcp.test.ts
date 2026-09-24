@@ -244,6 +244,26 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(badSegment.content)).toContain('segment')
   })
 
+  it('discovers and executes AES-CTR through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'aes-ctr' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('Initial counter block')
+    const key = '2b7e151628aed2a6abf7158809cf4f3c'
+    const iv = 'f'.repeat(32)
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', 'cba6d24001bca6b55d10385b6830'],
+      ['cipher_decode', 'cba6d24001bca6b55d10385b6830', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({
+        name,
+        arguments: { cipher: 'aes-ctr', text, key, iv },
+      })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
   it('discovers and executes AES-LRW with a tweak through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'aes-lrw' } })
@@ -342,6 +362,8 @@ describe('Ciphers MCP server', () => {
       ['iv', { cipher: 'aes-cbc', text: 'abc', key: '00'.repeat(16), iv: '' }],
       ['key', { cipher: 'aes-cfb', text: 'abc', iv: '00'.repeat(16) }],
       ['iv', { cipher: 'aes-cfb', text: 'abc', key: '00'.repeat(16) }],
+      ['key', { cipher: 'aes-ctr', text: 'abc', iv: '00'.repeat(16) }],
+      ['iv', { cipher: 'aes-ctr', text: 'abc', key: '00'.repeat(16) }],
       ['key', { cipher: 'aes-lrw', text: 'abc' }],
       ['key', { cipher: 'aes-lrw', text: 'abc', key: '00'.repeat(16) }],
       ['key', { cipher: 'triple-des', text: 'abc' }],
@@ -386,7 +408,7 @@ describe('Ciphers MCP server', () => {
     const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
     expect(onlyText(block.content)).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
     )
 
     const unknownCategory = await client.callTool({

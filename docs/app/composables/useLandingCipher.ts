@@ -28,6 +28,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "rot47",
   "aes-cbc",
   "aes-cfb",
+  "aes-ctr",
 ];
 
 /** Every cipher in the registry. A newcomer missing from `ORDER` joins at the end. */

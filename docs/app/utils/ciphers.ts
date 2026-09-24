@@ -42,6 +42,7 @@ const PRESENTATION: Record<
   aes: { icon: "i-solar-lock-password-linear", blurb: "AES, every 16-byte block on its own", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c" } },
   "aes-cbc": { icon: "i-solar-lock-password-linear", blurb: "AES with every block chained to the one before", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c", iv: "000102030405060708090a0b0c0d0e0f" } },
   "aes-cfb": { icon: "i-solar-lock-password-linear", blurb: "AES as a keystream, the ciphertext fed back in", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c", iv: "000102030405060708090a0b0c0d0e0f" } },
+  "aes-ctr": { icon: "i-solar-lock-password-linear", blurb: "AES over a counter, a keystream with no feedback", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c", iv: "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff" } },
   "aes-lrw": { icon: "i-solar-lock-password-linear", blurb: "AES with every block masked by its position", sample: "ATTACK AT DAWN", options: { key: "4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87" } },
   "triple-des": { icon: "i-solar-lock-password-linear", blurb: "DES three times, every 8-byte block on its own", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef23456789abcdef01456789abcdef0123" } },
 };

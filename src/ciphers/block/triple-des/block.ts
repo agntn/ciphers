@@ -1,4 +1,4 @@
-import type { Bytes } from '../../../core/block-mode'
+import type { Bytes } from '../../../core/block-mode.ts'
 
 /** Bits as 0 and 1, most significant first, numbered from 1 in the FIPS 46-3 tables. */
 type Bits = readonly number[]

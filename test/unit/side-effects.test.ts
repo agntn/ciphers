@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vite-plus/test'
-import { builtins } from '../../src/ciphers/index'
-import { builtinCiphers } from '../../src/core/ciphers'
-import { ciphers, create } from '../../src/core/registry'
+import { builtins } from '../../src/ciphers/index.ts'
+import { builtinCiphers } from '../../src/core/ciphers.ts'
+import { ciphers, create } from '../../src/core/registry.ts'
 
 const cipherDirectory = fileURLToPath(new URL('../../src/ciphers/', import.meta.url))
 

@@ -23,9 +23,9 @@ import {
   formatCipherInfo,
   formatFrequencyAnalysis,
   transformCipher,
-} from '../../../src/tool-operations'
-import type { OutputTheme, RenderedToolResult } from '../../shared/tui'
-import { renderToolResult } from '../../shared/tui'
+} from '../../../src/tool-operations.ts'
+import type { OutputTheme, RenderedToolResult } from '../../shared/tui.ts'
+import { renderToolResult } from '../../shared/tui.ts'
 
 type CiphersLibrary = Pick<
   typeof CiphersModule,

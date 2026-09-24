@@ -1,4 +1,4 @@
-import type { CipherCategory } from './ciphers'
+import type { CipherCategory } from './ciphers.ts'
 
 /** Result of a cipher operation. */
 export interface CipherResult {

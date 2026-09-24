@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { renderToolResult } from '../../packages/shared/tui'
+import { renderToolResult } from '../../packages/shared/tui.ts'
 
 const ESC = String.fromCodePoint(27)
 const NUL = String.fromCodePoint(0)

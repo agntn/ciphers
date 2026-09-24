@@ -1,6 +1,6 @@
 import { defineCommand } from 'citty'
-import { resolveCipher } from '../core/resolve'
-import { parseTransformOptions } from './transform-options'
+import { resolveCipher } from '../core/resolve.ts'
+import { parseTransformOptions } from './transform-options.ts'
 
 export default defineCommand({
   meta: { name: 'encode', description: 'Encode plaintext with a cipher' },

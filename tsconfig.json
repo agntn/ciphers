@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
     "strict": true,
     "types": ["node"],
     "noUnusedLocals": true,
@@ -15,6 +18,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
+    "noEmit": true,
     "rootDir": "./src"
   },
   "include": ["src/**/*.ts"]

@@ -1,6 +1,6 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { resolveCipher } from '../core/resolve'
+import { resolveCipher } from '../core/resolve.ts'
 
 export default defineCommand({
   meta: { name: 'info', description: 'Show info about a specific cipher' },

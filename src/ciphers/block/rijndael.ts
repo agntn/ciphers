@@ -1,9 +1,9 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { getOpt } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { InvalidOptionError, normalizeError } from '../../core/errors'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode'
-import { rijndaelBlock } from './aes/block'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { getOpt } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
+import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
+import { rijndaelBlock } from './aes/block.ts'
 
 /** Block lengths in bits the Rijndael proposal defines: 128 is AES, the rest never made the standard. */
 export const RIJNDAEL_BLOCK_SIZES = [128, 160, 192, 224, 256] as const

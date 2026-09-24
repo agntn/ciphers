@@ -8,23 +8,20 @@ const hookPath = fileURLToPath(new URL('../record-loads.ts', import.meta.url))
 type CliRun = SpawnSyncReturns<string> & { readonly loaded: readonly string[] }
 
 /**
- * Run `src/cli.ts` under the load hook, not the built bin: Publish tests before it builds. tsx goes
- * first because the sources import each other without extensions, and citty exits the process itself.
+ * Run `src/cli.ts` under the load hook, not the built bin: Publish tests before it builds. Plain Node
+ * strips the types, since the sources name every relative import with its `.ts` extension, and citty
+ * exits the process itself.
  *
  * @param args - CLI arguments.
  * @param input - Text handed to the child's stdin; empty stdin ends `mcp` on EOF.
  * @returns {CliRun} The spawn result plus every module URL the child loaded.
  */
 function runCli(args: readonly string[], input = ''): CliRun {
-  const result = spawnSync(
-    process.execPath,
-    ['--import', 'tsx', '--import', hookPath, cliPath, ...args],
-    {
-      encoding: 'utf8',
-      input,
-      timeout: 20_000,
-    },
-  )
+  const result = spawnSync(process.execPath, ['--import', hookPath, cliPath, ...args], {
+    encoding: 'utf8',
+    input,
+    timeout: 20_000,
+  })
   const report = /^@loaded (\[.*\])$/mu.exec(result.stderr)?.[1]
   expect(report, `the load hook reported nothing:\n${result.stderr}`).toBeDefined()
   const loaded: unknown = JSON.parse(report ?? '[]')

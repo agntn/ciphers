@@ -1,7 +1,7 @@
-import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { InvalidOptionError, MissingOptionError, normalizeError } from '../../core/errors'
-import { getOpt, processBaseOptions } from '../../core/utils'
+import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { InvalidOptionError, MissingOptionError, normalizeError } from '../../core/errors.ts'
+import { getOpt, processBaseOptions } from '../../core/utils.ts'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 

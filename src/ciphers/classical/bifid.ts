@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { InvalidOptionError, normalizeError } from '../../core/errors'
-import { buildPolybiusSquare, getOpt } from '../../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
+import { buildPolybiusSquare, getOpt } from '../../core/utils.ts'
 
 // Bifid cipher: combines Polybius fractionation with transposition
 // Encode: get row/col for each letter, concatenate all rows then all cols

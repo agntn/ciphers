@@ -1,12 +1,12 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types'
-import { getOpt } from '../../../core/types'
-import { Cipher } from '../../../core/cipher'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
+import { getOpt } from '../../../core/types.ts'
+import { Cipher } from '../../../core/cipher.ts'
 import {
   CipherError,
   InvalidOptionError,
   MissingOptionError,
   normalizeError,
-} from '../../../core/errors'
+} from '../../../core/errors.ts'
 import {
   type BlockMode,
   type Bytes,
@@ -14,8 +14,8 @@ import {
   encodeBlocks,
   fromHex,
   readHex,
-} from '../../../core/block-mode'
-import { aesBlock } from './block'
+} from '../../../core/block-mode.ts'
+import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
 

@@ -1,6 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { applyBaseOptions, processBaseOptions } from '../../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { applyBaseOptions, processBaseOptions } from '../../core/utils.ts'
 
 function rot13(text: string): string {
   return Array.from(text, (c) => {

@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { getOpt, processBaseOptions } from '../../core/utils'
-import { MissingOptionError, InvalidOptionError, normalizeError } from '../../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { getOpt, processBaseOptions } from '../../core/utils.ts'
+import { MissingOptionError, InvalidOptionError, normalizeError } from '../../core/errors.ts'
 
 function vigenereProcess(
   text: string,

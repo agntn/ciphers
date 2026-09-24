@@ -1,4 +1,4 @@
-import type { Bytes } from '../../../core/block-mode'
+import type { Bytes } from '../../../core/block-mode.ts'
 
 interface AesTables {
   sbox: Bytes

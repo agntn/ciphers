@@ -1,5 +1,5 @@
 import consola from 'consola'
-import type { CipherBaseOptions } from '../core/types'
+import type { CipherBaseOptions } from '../core/types.ts'
 
 export interface TransformOptionArgs {
   readonly shift?: string

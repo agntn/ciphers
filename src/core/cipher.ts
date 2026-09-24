@@ -1,4 +1,4 @@
-import type { CipherBaseOptions, CipherInfo, CipherResult } from './types'
+import type { CipherBaseOptions, CipherInfo, CipherResult } from './types.ts'
 
 /** Base class for all ciphers. */
 export abstract class Cipher {

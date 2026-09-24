@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vite-plus/test'
 import { Type } from '@oh-my-pi/omptype/typebox'
-import ciphersExtension from '../../packages/omp/extensions/ciphers'
+import ciphersExtension from '../../packages/omp/extensions/ciphers.ts'
 
 type ToolResult = {
   readonly content: ReadonlyArray<{ readonly type: string; readonly text: string }>
@@ -25,7 +25,11 @@ type RegisteredTool = {
 
 /** Stand-in for the host Text component, which records what it was given. */
 class RenderedText {
-  constructor(readonly text: string) {}
+  readonly text: string
+
+  constructor(text: string) {
+    this.text = text
+  }
 }
 
 const tools = new Map<string, RegisteredTool>()

@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { decodeColumnar, encodeColumnar, getOpt } from '../../core/utils'
-import { normalizeError } from '../../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { decodeColumnar, encodeColumnar, getOpt } from '../../core/utils.ts'
+import { normalizeError } from '../../core/errors.ts'
 
 const ADFGVX_LETTERS = 'ADFGVX'
 const GRID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'

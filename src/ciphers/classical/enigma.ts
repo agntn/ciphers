@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { getOpt } from '../../core/utils'
-import { InvalidOptionError, normalizeError } from '../../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { getOpt } from '../../core/utils.ts'
+import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const ROTORS = [

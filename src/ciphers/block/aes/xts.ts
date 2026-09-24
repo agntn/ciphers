@@ -1,8 +1,8 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types'
-import { Cipher } from '../../../core/cipher'
-import { CipherError, InvalidOptionError, normalizeError } from '../../../core/errors'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode'
-import { aesBlock } from './block'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
+import { Cipher } from '../../../core/cipher.ts'
+import { CipherError, InvalidOptionError, normalizeError } from '../../../core/errors.ts'
+import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode.ts'
+import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
 /** NIST SP 800-38E caps one data unit at 2^20 AES blocks, 16 MiB. */

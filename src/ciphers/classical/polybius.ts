@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { normalizeError } from '../../core/errors'
-import { buildPolybiusSquare, getOpt } from '../../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { normalizeError } from '../../core/errors.ts'
+import { buildPolybiusSquare, getOpt } from '../../core/utils.ts'
 
 export class Polybius extends Cipher {
   name(): string {

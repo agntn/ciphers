@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vite-plus/test'
-import { normalizeMainArgs } from '../../src/cli-args'
+import { normalizeMainArgs } from '../../src/cli-args.ts'
 
 describe('normalizeMainArgs', () => {
   it('returns ciphers for empty argv', () => {

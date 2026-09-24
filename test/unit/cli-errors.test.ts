@@ -1,13 +1,24 @@
-import { spawnSync } from 'node:child_process'
+import { spawnSync, type SpawnSyncReturns } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vite-plus/test'
-import { builtinCiphers } from '../../src/core/ciphers'
-import { version } from '../../src/version'
+import { builtinCiphers } from '../../src/core/ciphers.ts'
+import { version } from '../../src/version.ts'
 
 const cliPath = fileURLToPath(new URL('../../src/cli.ts', import.meta.url))
 
-function runCli(args: readonly string[], env?: Readonly<NodeJS.ProcessEnv>) {
-  return spawnSync(process.execPath, ['--import', 'tsx', cliPath, ...args], {
+/**
+ * Run `src/cli.ts` with plain Node, no loader: the sources name every relative import with its `.ts`
+ * extension.
+ *
+ * @param args - CLI arguments.
+ * @param env - Environment for the child, the parent's when left out.
+ * @returns {SpawnSyncReturns<string>} The spawn result.
+ */
+function runCli(
+  args: readonly string[],
+  env?: Readonly<NodeJS.ProcessEnv>,
+): SpawnSyncReturns<string> {
+  return spawnSync(process.execPath, [cliPath, ...args], {
     encoding: 'utf8',
     timeout: 10_000,
     env,

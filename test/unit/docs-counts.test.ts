@@ -2,8 +2,8 @@ import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vite-plus/test'
-import { builtinCiphers } from '../../src/core/ciphers'
-import { create } from '../../src/core/registry'
+import { builtinCiphers } from '../../src/core/ciphers.ts'
+import { create } from '../../src/core/registry.ts'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 

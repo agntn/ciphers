@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { InvalidOptionError, normalizeError } from '../../core/errors'
-import { getOpt } from '../../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
+import { getOpt } from '../../core/utils.ts'
 
 /** The two Bacon tables: his own 24-letter one shares I/J and U/V, the 26-letter one codes every letter. */
 const BACON_ALPHABETS = {

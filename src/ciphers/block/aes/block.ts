@@ -50,18 +50,21 @@ function aesTables(): AesTables {
 }
 
 /**
- * FIPS-197 §5.2: the key schedule, one 16-byte round key per round plus the initial one.
+ * FIPS-197 §5.2, widened to Rijndael: the key schedule, one round key of `columns` words per round
+ * plus the initial one. Rijndael runs `max(Nk, Nb) + 6` rounds, which for the AES block of four
+ * columns gives 10, 12 and 14.
  *
- * @param key - 16, 24 or 32 key bytes.
+ * @param key - 16 to 32 key bytes, a multiple of 4.
+ * @param columns - Block length in 4-byte columns, 4 to 8.
  * @returns {Bytes[]} The round keys, `rounds + 1` of them.
  */
-function expandKey(key: Bytes): Bytes[] {
+function expandKey(key: Bytes, columns: number): Bytes[] {
   const { sbox } = aesTables()
   const length = key.length / 4
-  const rounds = length + 6
+  const rounds = Math.max(length, columns) + 6
   const words: Bytes[] = Array.from({ length }, (_, i) => key.slice(4 * i, 4 * i + 4))
   let rcon = 1
-  for (let i = length; i < 4 * (rounds + 1); i++) {
+  for (let i = length; i < columns * (rounds + 1); i++) {
     let temp = words[i - 1]!
     if (i % length === 0) {
       temp = [sbox[temp[1]!]! ^ rcon, sbox[temp[2]!]!, sbox[temp[3]!]!, sbox[temp[0]!]!]
@@ -73,7 +76,7 @@ function expandKey(key: Bytes): Bytes[] {
     words.push(temp.map((byte, j) => byte ^ previous[j]!))
   }
   return Array.from({ length: rounds + 1 }, (_, round) =>
-    words.slice(4 * round, 4 * round + 4).flat(),
+    words.slice(columns * round, columns * (round + 1)).flat(),
   )
 }
 
@@ -86,12 +89,27 @@ function substitute(state: Bytes, box: Bytes): Bytes {
   return state.map((byte) => box[byte]!)
 }
 
+/**
+ * How far each row shifts left: Table 2 of the Rijndael proposal for 4, 6 and 8 columns, Table 8
+ * for 5 and 7.
+ *
+ * @param columns - Block length in 4-byte columns, 4 to 8.
+ * @returns {readonly number[]} The shift of rows 0 to 3; row 0 never moves.
+ */
+function rowShifts(columns: number): readonly number[] {
+  if (columns === 8) return [0, 1, 3, 4]
+  if (columns === 7) return [0, 1, 2, 4]
+  return [0, 1, 2, 3]
+}
+
 function shiftRows(state: Bytes, inverse: boolean): Bytes {
+  const columns = state.length / 4
+  const shifts = rowShifts(columns)
   return state.map((_, i) => {
     const row = i % 4
     const column = Math.floor(i / 4)
-    const source = (column + (inverse ? 4 - row : row)) % 4
-    return state[row + 4 * source]!
+    const shift = inverse ? columns - shifts[row]! : shifts[row]!
+    return state[row + 4 * ((column + shift) % columns)]!
   })
 }
 
@@ -132,15 +150,31 @@ function decryptBlock(block: Bytes, roundKeys: readonly Bytes[]): Bytes {
 }
 
 /**
+ * Expand the key once and return Rijndael on a single block of any of its five lengths.
+ *
+ * @param key - 16, 20, 24, 28 or 32 key bytes.
+ * @param blockSize - 16, 20, 24, 28 or 32 bytes per block.
+ * @param operation - Encrypt or decrypt.
+ * @returns {(block: Bytes) => Bytes} One block in, one out.
+ */
+export function rijndaelBlock(
+  key: Bytes,
+  blockSize: number,
+  operation: 'encrypt' | 'decrypt',
+): (block: Bytes) => Bytes {
+  const roundKeys = expandKey(key, blockSize / 4)
+  const transform = operation === 'encrypt' ? encryptBlock : decryptBlock
+  return (block) => transform(block, roundKeys)
+}
+
+/**
  * Expand the key once and return AES on a single block, for the modes that chain one block into
- * the next.
+ * the next. AES is Rijndael with the block fixed at 16 bytes.
  *
  * @param key - 16, 24 or 32 key bytes.
  * @param operation - Encrypt or decrypt.
  * @returns {(block: Bytes) => Bytes} One 16-byte block in, one out.
  */
 export function aesBlock(key: Bytes, operation: 'encrypt' | 'decrypt'): (block: Bytes) => Bytes {
-  const roundKeys = expandKey(key)
-  const transform = operation === 'encrypt' ? encryptBlock : decryptBlock
-  return (block) => transform(block, roundKeys)
+  return rijndaelBlock(key, 16, operation)
 }

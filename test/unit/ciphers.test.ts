@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { describe, it, expect } from 'vite-plus/test'
 import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
@@ -11,12 +12,13 @@ import { aesOfb } from '../../src/ciphers/block/aes/ofb'
 import { aesCtr } from '../../src/ciphers/block/aes/ctr'
 import { aesCcm } from '../../src/ciphers/block/aes/ccm'
 import { aesOcb } from '../../src/ciphers/block/aes/ocb'
+import { rijndaelEcb } from '../../src/ciphers/block/rijndael'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des/ecb'
 import { tripleDesCbc } from '../../src/ciphers/block/triple-des/cbc'
 
 describe('registry', () => {
-  it('registers all 30 ciphers', () => {
-    expect(ciphers()).toHaveLength(30)
+  it('registers all 31 ciphers', () => {
+    expect(ciphers()).toHaveLength(31)
     for (const name of [
       'caesar',
       'rot13',
@@ -40,6 +42,7 @@ describe('registry', () => {
       'aes-ccm',
       'aes-ocb',
       'aes-lrw',
+      'rijndael',
       'triple-des',
       'triple-des-cbc',
     ]) {
@@ -782,6 +785,7 @@ describe('edge cases', () => {
     'aes-ccm': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
     'aes-ocb': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
+    rijndael: { key: '000102030405060708090a0b0c0d0e0f', blockSize: 256 },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
     'triple-des-cbc': { key: '0123456789abcdef23456789abcdef01', iv: '00'.repeat(8) },
   }
@@ -2130,6 +2134,193 @@ describe('aes-lrw', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'tweak', type: 'string', required: false, default: '1' },
+      ],
+    })
+  })
+})
+
+describe('rijndael', () => {
+  const rijndael = create('rijndael')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key256 = '2b7e151628aed2a6abf7158809cf4f3c762e7160f38b4da56a784d9045190cfe'
+
+  /**
+   * Brian Gladman's Extended Rijndael known answer tests, ecbnt<Nb><Nk>.txt, TEST 1: an all-zero
+   * key and a block ending in 01, for every block and key length the proposal allows.
+   */
+  it('matches the Gladman known answer tests for all 25 block and key lengths', () => {
+    const vectors: Record<string, string> = {
+      '128/128': '58e2fccefa7e3061367f1d57a4e7455a',
+      '128/160': '7e70ea4218b4a01f942bd4ef8526963c',
+      '128/192': 'cd33b28ac773f74ba00ed1f312572435',
+      '128/224': 'f2af1071e081b9b0223635ee414dae96',
+      '128/256': '530f8afbc74536b9a963b4f1c4cb738b',
+      '160/128': '3f18561d87c58889e433b767ad8005e918a4c29e',
+      '160/160': 'a439be7e482523b0d4845d9d12f8a2fafff5d2e7',
+      '160/192': '0fee554de142cf4f78ca110ba9bf13ca1712df09',
+      '160/224': '55fccb6fcf409bfde5220a9161eba715ef199616',
+      '160/256': '6d53742b457d6b302f540e471573bd7c5d102b91',
+      '192/128': '697383c2e7b9854c70ce4744aedbbb0f92ba054533b3bd48',
+      '192/160': 'aa9f723116f3f07f7b197ef573f877a8fc75bfd341cbc2a6',
+      '192/192': 'cdaee1ce3361ed5b6ed38043105868613ad03eccde1c44a2',
+      '192/224': 'f92a72a779e116910b00be8fa305e1736748c4f10c172ebe',
+      '192/256': 'ebef350a100c2652694e7bdc4e39d27c4ac7774363f855af',
+      '224/128': '30dd6cf97a55ada69b8c8c3e4cac0573b5a6f7d103c132e6e81be5a9',
+      '224/160': 'a5827d81acfb5944f8d87b4439511f663ad3fc17fa9636b0e86d3326',
+      '224/192': '32f511f2b4fc86d94d807984dca7448d657336d7ffc4b5aee1b30df1',
+      '224/224': '29cedc5011e7ae1facfd046ff645b35e885023a6e23eea0674af5b68',
+      '224/256': '0365ee70f0e93e81e77fd067b2eb988d7190b642ae7c2e40538b226d',
+      '256/128': '937667c4fb56ed574479ed1b27010930bd9651146223019bb827c74e28a024d6',
+      '256/160': 'c0485f2ba0930e0d90e53bd1be636f035d817ae29349114964834ce7bcf2bff4',
+      '256/192': '084f30731a376a3a75478dc30e080862e353dc29dc381326706e59dc1e03512a',
+      '256/224': '6b364e9c76068337e61114f65673b2f8db61d3f102c3d54d4f7fa5f03d82c9dc',
+      '256/256': '4e76ca69967125a9636f3554229556f6e2b2351cb4fd10b4e052afd85bebdfa8',
+    }
+    for (const [sizes, ciphertext] of Object.entries(vectors)) {
+      const [block, key] = sizes.split('/').map(Number) as [number, number]
+      const plaintext = hex(`${'00'.repeat(block / 8 - 1)}01`)
+      const zeroKey = hex('00'.repeat(key / 8))
+      expect(rijndaelEcb(plaintext, zeroKey, 'encrypt', block / 8)).toEqual(hex(ciphertext))
+      expect(rijndaelEcb(hex(ciphertext), zeroKey, 'decrypt', block / 8)).toEqual(plaintext)
+    }
+  })
+
+  /**
+   * The same files in full, 2 × Nb × 32 plaintexts each, 9,600 in all. Every file keeps the key
+   * at zero and walks the plaintext from 0 through 1, 3, 7 to all ones, then shifts the ones left
+   * until only the top bit is set. The digests cover each file's ciphertexts, one per line:
+   * `tr -d '\r' < ecbnt44.txt | awk '/^CT=/ { print $2 }' | sha256sum`.
+   */
+  it('runs every Gladman known answer test', () => {
+    const digests: Record<string, string> = {
+      '128/128': '899ae63083ba781443709bb54dd2f67f71812a4d9bc3c1eda18454f3e921183e',
+      '128/160': '4b5257df759e1fd35641e01ee36cae8d7891d59bf1b7630b9ca14c8a11125c5a',
+      '128/192': 'aa11a2856b9a13e489aba45ee814d70563fadd2000d3582d1217e2e2bf263c63',
+      '128/224': 'bb29c49412213e3cc3fb8b6022b7820a1916d36e72634ccf48757cc649937de0',
+      '128/256': 'abb4e3a62a1625736544a4e9fbe92d013271b0ff72513dbc17c5f1e9dd3f9ca6',
+      '160/128': '2ecd2690fb3b10e074404a679dea17e34cdd0b3aa7dd35040f24d7ce0d2bc7e6',
+      '160/160': 'e775f60a96848bfabc39d2ef34aaafc9d5132bbc0a6287cc9e71466db2e9184a',
+      '160/192': '079670777b3e2a490d8f5d3dd61044e1a6da0b9f4cfe66603e67059f7a0b536b',
+      '160/224': 'fe145b727ceabfb725fc056592fc95dcab0c82d45f774adc700280404df19673',
+      '160/256': '2bea79c09053f42c702c47c90e01f2d60700bb83d4f3d408f8d0d1af36e62c4e',
+      '192/128': '1dd8765c4cc175526d902d7c6902d1f84e54898e1133696f2e98c5f1d450985d',
+      '192/160': 'c725c7cc23db464b1675c062ee931cd106b3f48f6c93d6bc12d014440350573e',
+      '192/192': '8f3d90857a16e26e60d9a0faf6697df798f7ca9a7ef65c680fb48cca9152fa89',
+      '192/224': '74b7d3165999e79fa6457cd474c92f2182d9797c82bd0995f39d8fc575199e71',
+      '192/256': '794a57400184a60a39b5031c1da6d7cf32498c08d0bdadb1bd41826f6c5648ac',
+      '224/128': '10be258ca3e4b387888744137435ba18bec927763f722348fefeb40a8344c33f',
+      '224/160': 'f4cf13aea8274e294d732356b16875468d0cde5fd350c1cc681c778aea8f541d',
+      '224/192': '034d32cca52e0d6cccc754f67f323696bed6b9867bad306c688379bf4ee4fbbf',
+      '224/224': 'bf8861ed3f6d78d00ff8e70496bbf9518827c0d525afb83e8571e8a2ba6c18bf',
+      '224/256': 'fecd94619a8d958ed6e2206f8e24388859d65d8f923c7571b90b958f55089d22',
+      '256/128': '735d322583b352f1ded9a47da1ccfb8e4e2e4cf55e9edf01823f0e8203b40323',
+      '256/160': '0d550cc24a2e971dbdf2f254c16eca867341232f0f57cd0a1d23f09f80c4cd93',
+      '256/192': '6460da1f9455e8ea525e64c858fb8629a915525a4ccd54f076fe9e6b2726aef8',
+      '256/224': '6aa5f34d6fded63dcab2d3b428c652366c09c52866def001c79694e565d688fd',
+      '256/256': '6fa162f7605b8d0392fcc5f9176f6509a4672cdf50e62e9416bc905bb339030f',
+    }
+    const toHex = (bytes: readonly number[]) =>
+      bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
+    for (const [sizes, digest] of Object.entries(digests)) {
+      const [block, key] = sizes.split('/').map(Number) as [number, number]
+      const bits = BigInt(block)
+      const ones = (1n << bits) - 1n
+      const plaintexts: bigint[] = []
+      for (let i = 0n; i <= bits; i++) plaintexts.push((1n << i) - 1n)
+      for (let i = 1n; i < bits; i++) plaintexts.push((ones << i) & ones)
+      const zeroKey = hex('00'.repeat(key / 8))
+      let lines = ''
+      for (const value of plaintexts) {
+        const plaintext = hex(value.toString(16).padStart(block / 4, '0'))
+        const ciphertext = rijndaelEcb(plaintext, zeroKey, 'encrypt', block / 8)
+        expect(rijndaelEcb(ciphertext, zeroKey, 'decrypt', block / 8)).toEqual(plaintext)
+        lines += `${toHex(ciphertext)}\n`
+      }
+      expect(plaintexts).toHaveLength(2 * block)
+      expect(createHash('sha256').update(lines).digest('hex'), sizes).toBe(digest)
+    }
+  })
+
+  /** Expected values from py3rijndael 0.3.3, a separate implementation, with PKCS#7 padding. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, one block length at a time', () => {
+    for (const [blockSize, ciphertext] of [
+      [192, 'ca38790223e9fd5114dd228094ec81d090ef4fd0ede137b1'],
+      [256, '4e0085db1697ce5f34911401d53bc05637a158856ca148bb212050ebfd20d208'],
+    ] as const) {
+      expect(rijndael.encode('ATTACK AT DAWN', { key: key256, blockSize })).toEqual({
+        text: ciphertext,
+        cipher: 'rijndael',
+        operation: 'encode',
+        options: { key: key256, mode: 'ecb', blockSize },
+      })
+      expect(rijndael.decode(ciphertext, { key: key256, blockSize }).text).toBe('ATTACK AT DAWN')
+    }
+    const long =
+      'b1fe271d7ba91e7b6979af8fee0e68a5a6998c3f3c272fdf858e6a89055cfdbd0fd042e7caa48ec3f94772fa51b884bc6949239dc99d56bf4be6b0b000c1e8b0'
+    const text = 'Rijndael had wider blocks than AES'
+    expect(rijndael.encode(text, { key: key256, blockSize: 256 }).text).toBe(long)
+    expect(rijndael.decode(long, { key: key256, blockSize: 256 }).text).toBe(text)
+  })
+
+  it('is AES when the block is 128 bits, which is the default', () => {
+    for (const key of [key256.slice(0, 32), key256.slice(0, 48), key256]) {
+      const { text } = create('aes').encode('ATTACK AT DAWN', { key })
+      expect(rijndael.encode('ATTACK AT DAWN', { key }).text).toBe(text)
+      expect(rijndael.encode('ATTACK AT DAWN', { key }).options).toEqual({
+        key,
+        mode: 'ecb',
+        blockSize: 128,
+      })
+    }
+  })
+
+  it('takes the 160 and 224-bit keys AES left out', () => {
+    for (const key of ['00'.repeat(20), '00'.repeat(28)]) {
+      const { text } = rijndael.encode('ATTACK AT DAWN', { key, blockSize: 160 })
+      expect(text).toHaveLength(40)
+      expect(rijndael.decode(text, { key, blockSize: 160 }).text).toBe('ATTACK AT DAWN')
+    }
+    expect(() => create('aes').encode('', { key: '00'.repeat(20) })).toThrow(InvalidOptionError)
+  })
+
+  it('rejects keys and block lengths Rijndael does not have', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => rijndael[operation]('')).toThrow(MissingOptionError)
+      for (const key of ['00'.repeat(15), '00'.repeat(18), '00'.repeat(36), 'g'.repeat(32), 12]) {
+        expect(() => rijndael[operation]('', { key })).toThrow(InvalidOptionError)
+      }
+      for (const blockSize of [64, 129, 512, '256', 32]) {
+        expect(() => rijndael[operation]('', { key: key256, blockSize })).toThrow(
+          /blockSize.*128, 160, 192, 224 or 256/,
+        )
+      }
+    }
+  })
+
+  it('wants ciphertext in whole blocks of the length it was asked for', () => {
+    const aesBlock = create('aes').encode('ATTACK AT DAWN', { key: key256 }).text
+    expect(() => rijndael.decode(aesBlock, { key: key256, blockSize: 256 })).toThrow(
+      /whole 32-byte blocks .* got 32 hex digits/,
+    )
+    expect(() =>
+      rijndael.decode('ca38790223e9fd5114dd228094ec81d090ef4fd0ede137b1', {
+        key: key256,
+        blockSize: 256,
+      }),
+    ).toThrow(/whole 32-byte blocks/)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('Rijndael')).toBe(rijndael)
+    expect(rijndael.info()).toMatchObject({
+      name: 'rijndael',
+      category: 'block',
+      family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'blockSize', type: 'number', required: false, default: 128 },
       ],
     })
   })

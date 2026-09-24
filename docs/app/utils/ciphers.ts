@@ -47,6 +47,7 @@ const PRESENTATION: Record<
   "aes-ccm": { icon: "i-solar-lock-password-linear", blurb: "AES over a counter, with a tag that catches any change", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c", nonce: "000102030405060708090a0b" } },
   "aes-ocb": { icon: "i-solar-lock-password-linear", blurb: "AES once per block, encrypting and signing in the same pass", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c", nonce: "000102030405060708090a0b" } },
   "aes-lrw": { icon: "i-solar-lock-password-linear", blurb: "AES with every block masked by its position", sample: "ATTACK AT DAWN", options: { key: "4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87" } },
+  rijndael: { icon: "i-solar-lock-password-linear", blurb: "AES before NIST cut it down, blocks up to 256 bits", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c762e7160f38b4da56a784d9045190cfe", blockSize: 256 } },
   "triple-des": { icon: "i-solar-lock-password-linear", blurb: "DES three times, every 8-byte block on its own", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef23456789abcdef01456789abcdef0123" } },
   "triple-des-cbc": { icon: "i-solar-lock-password-linear", blurb: "Triple DES with every block chained to the one before", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef23456789abcdef01456789abcdef0123", iv: "0001020304050607" } },
 };

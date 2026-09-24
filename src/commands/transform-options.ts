@@ -13,6 +13,7 @@ export interface TransformOptionArgs {
   readonly period?: string
   readonly letters?: string
   readonly segment?: string
+  readonly blockSize?: string
   readonly tagLength?: string
   readonly a?: string
   readonly b?: string
@@ -45,6 +46,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['period', args.period],
     ['letters', args.letters],
     ['segment', args.segment],
+    ['blockSize', args.blockSize],
     ['tagLength', args.tagLength],
     ['a', args.a],
     ['b', args.b],

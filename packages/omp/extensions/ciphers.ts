@@ -101,6 +101,9 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
       }),
     ),
     segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
+    blockSize: Type.Optional(
+      Type.Enum([128, 160, 192, 224, 256], { description: OPTION_DESCRIPTIONS.blockSize }),
+    ),
     tagLength: Type.Optional(
       Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
     ),

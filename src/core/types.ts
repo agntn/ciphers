@@ -130,6 +130,14 @@ export interface AesCfbOptions extends CipherBaseOptions {
   segment?: 1 | 8 | 128
 }
 
+/** AES-OFB options. */
+export interface AesOfbOptions extends CipherBaseOptions {
+  /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
+  key: string
+  /** Initialization vector, 32 hex digits; case and spaces are ignored. */
+  iv: string
+}
+
 /** AES-CTR options. */
 export interface AesCtrOptions extends CipherBaseOptions {
   /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */

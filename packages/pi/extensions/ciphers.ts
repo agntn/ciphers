@@ -157,6 +157,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'AES needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
         'AES-CBC (aes-cbc) takes the same key plus iv, 32 hex digits.',
         'AES-CFB (aes-cfb) takes the key and iv too, plus segment in bits (1, 8 or 128, default 128); nothing is padded, so the ciphertext has as many bytes as the text.',
+        'AES-OFB (aes-ofb) takes the key and iv; like CFB it pads nothing.',
         'AES-CTR (aes-ctr) takes the key and iv, the initial counter block; like CFB it pads nothing.',
         'AES-CCM (aes-ccm) takes the key and nonce (14 to 26 hex digits), optional aad in hex and tagLength in bits (default 128); the hex out is the text bytes plus the tag, and decoding fails unless key, nonce, aad and tagLength all match.',
         'AES-LRW (aes-lrw) takes the AES key and a 32-digit tweak key in one key, and tweak as the first block index.',

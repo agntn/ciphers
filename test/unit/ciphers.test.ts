@@ -7,13 +7,14 @@ import { aesEcb } from '../../src/ciphers/block/aes/ecb'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw'
 import { aesCbc } from '../../src/ciphers/block/aes/cbc'
 import { aesCfb } from '../../src/ciphers/block/aes/cfb'
+import { aesOfb } from '../../src/ciphers/block/aes/ofb'
 import { aesCtr } from '../../src/ciphers/block/aes/ctr'
 import { aesCcm } from '../../src/ciphers/block/aes/ccm'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des'
 
 describe('registry', () => {
-  it('registers all 27 ciphers', () => {
-    expect(ciphers()).toHaveLength(27)
+  it('registers all 28 ciphers', () => {
+    expect(ciphers()).toHaveLength(28)
     for (const name of [
       'caesar',
       'rot13',
@@ -32,6 +33,7 @@ describe('registry', () => {
       'aes',
       'aes-cbc',
       'aes-cfb',
+      'aes-ofb',
       'aes-ctr',
       'aes-ccm',
       'aes-lrw',
@@ -771,6 +773,7 @@ describe('edge cases', () => {
     aes: { key: '000102030405060708090a0b0c0d0e0f' },
     'aes-cbc': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-cfb': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
+    'aes-ofb': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-ctr': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-ccm': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
@@ -1355,6 +1358,139 @@ describe('aes-cfb', () => {
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
         { name: 'segment', type: 'number', required: false, default: 128 },
+      ],
+    })
+  })
+})
+
+describe('aes-ofb', () => {
+  const ofb = create('aes-ofb')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '2b7e151628aed2a6abf7158809cf4f3c'
+  const iv = '000102030405060708090a0b0c0d0e0f'
+
+  /** NIST SP 800-38A F.4.1, F.4.3 and F.4.5: OFB-AES128, OFB-AES192 and OFB-AES256 encryption. */
+  it('matches the NIST SP 800-38A OFB-AES vectors', () => {
+    const plaintext = hex(
+      '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710',
+    )
+    for (const [vectorKey, ciphertext] of [
+      [
+        key,
+        '3b3fd92eb72dad20333449f8e83cfb4a7789508d16918f03f53c52dac54ed8259740051e9c5fecf64344f7a82260edcc304c6528f659c77866a510d9c1d6ae5e',
+      ],
+      [
+        '8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b',
+        'cdc80d6fddf18cab34c25909c99a4174fcc28b8d4c63837c09e81700c11004018d9a9aeac0f6596f559c6d4daf59a5f26d9f200857ca6c3e9cac524bd9acc92a',
+      ],
+      [
+        '603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4',
+        'dc7e84bfda79164b7ecd8486985d38604febdc6740d20b3ac88f6ad82a4fb08d71ab47a086e86eedf39d1c5bba97c4080126141d67f37be8538f5a8be740e484',
+      ],
+    ] as const) {
+      expect(aesOfb(plaintext, hex(vectorKey), hex(iv))).toEqual(hex(ciphertext))
+      expect(aesOfb(hex(ciphertext), hex(vectorKey), hex(iv))).toEqual(plaintext)
+    }
+  })
+
+  /** Expected values from `openssl enc -aes-128-ofb`, which does not pad. */
+  it('encodes UTF-8 text to hex of the same length, as openssl enc does', () => {
+    for (const [text, ciphertext] of [
+      ['', ''],
+      ['ATTACK AT DAWN', '11aa338dda2612f78e2973a8cce1'],
+      ['zażółć gęślą jaźń 🙂', '2a9fa2705adef7341e8e178e5f3629fbb5605ffa62f3e625ae0f1d861f78d4'],
+    ] as const) {
+      expect(ofb.encode(text, { key, iv })).toEqual({
+        text: ciphertext,
+        cipher: 'aes-ofb',
+        operation: 'encode',
+        options: { key, mode: 'ofb', iv },
+      })
+      expect(ofb.decode(ciphertext, { key, iv }).text).toBe(text)
+    }
+  })
+
+  /**
+   * Expected value from `openssl enc -aes-128-ofb` over thirty-two `A`s. The second keystream
+   * block is AES over the first, the output block NIST SP 800-38A F.4.1 lists for block 1.
+   */
+  it('feeds each keystream block back as the next input', () => {
+    const { text } = ofb.encode('A'.repeat(32), { key, iv })
+    expect(text).toBe('11bf268dd82c73f79b4876a8daeead2198e59b9b49d362de2aca7c37c1a01735')
+    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
+    const next = ofb.encode('A'.repeat(16), { key, iv: '50fe67cc996d32b6da0937e99bafec60' })
+    expect(next.text).toBe(text.slice(32))
+  })
+
+  /** Expected values from `openssl enc -aes-128-ofb`. */
+  it('flips the same plaintext bit a ciphertext bit flips, in any block', () => {
+    const text = 'ATTACK AT DAWN, RETREAT AT DUSK.'
+    const ciphertext = '11aa338dda2612f78e2973a8cce1c0408be18e884dd377bf2adf1d32d5b21d5a'
+    expect(ofb.encode(text, { key, iv }).text).toBe(ciphertext)
+    const flipped = hex(ciphertext)
+      .map((byte, i) => byte ^ ([0x14, 0x04, 0x05][i - 11] ?? 0))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('')
+    expect(ofb.decode(flipped, { key, iv }).text).toBe('ATTACK AT DUSK, RETREAT AT DUSK.')
+  })
+
+  it('leaks the XOR of two texts sent under the same key and IV', () => {
+    const xor = (a: string, b: string) =>
+      hex(a)
+        .map((byte, i) => (byte ^ hex(b)[i]!).toString(16).padStart(2, '0'))
+        .join('')
+    const dawn = ofb.encode('ATTACK AT DAWN', { key, iv }).text
+    const dusk = ofb.encode('ATTACK AT DUSK', { key, iv }).text
+    expect(dusk).toBe('11aa338dda2612f78e2973bcc8e4')
+    expect(xor(dawn, dusk)).toBe('0000000000000000000000140405')
+  })
+
+  /** Expected value from `openssl enc -aes-128-ofb` with the other IV. */
+  it('reads the IV in any case and spacing, and a different IV gives different ciphertext', () => {
+    const result = ofb.encode('ATTACK AT DAWN', { key, iv: '00010203 04050607 08090A0B 0C0D0E0F' })
+    expect(result.options).toEqual({ key, mode: 'ofb', iv })
+    const other = 'f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff'
+    expect(ofb.encode('ATTACK AT DAWN', { key, iv: other }).text).toBe(
+      'add88b32db2b5cf1a6f25234bdd0',
+    )
+    expect(ofb.decode('add88b32db2b5cf1a6f25234bdd0', { key, iv: other }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('rejects keys and IVs it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => ofb[operation]('', { iv })).toThrow(MissingOptionError)
+      expect(() => ofb[operation]('', { key })).toThrow(MissingOptionError)
+      expect(() => ofb[operation]('', { key, iv: '' })).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(20), 'g'.repeat(32), 12]) {
+        expect(() => ofb[operation]('', { key: bad, iv })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['00'.repeat(15), '00'.repeat(17), 'g'.repeat(32), 1]) {
+        expect(() => ofb[operation]('', { key, iv: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => ofb.decode('11aa3', { key, iv })).toThrow(/whole bytes/)
+    expect(() => ofb.decode('11zz', { key, iv })).toThrow(/hex digits/)
+    expect(() => ofb.decode('11aa338dda2612f78e2973a8cce1', { key: '00'.repeat(16), iv })).toThrow(
+      /not UTF-8/,
+    )
+  })
+
+  it('reports the block category and the IV option', () => {
+    expect(resolveCipher('AES OFB')).toBe(ofb)
+    expect(ofb.info()).toMatchObject({
+      name: 'aes-ofb',
+      category: 'block',
+      family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'iv', type: 'string', required: true },
       ],
     })
   })

@@ -41,7 +41,7 @@ type ToolDefinition = {
 
 type CipherOptionRequirement = {
   readonly ciphers: readonly string[]
-  readonly required: readonly ('key' | 'iv' | 'period')[]
+  readonly required: readonly ('key' | 'iv' | 'nonce' | 'period')[]
   readonly key?: {
     readonly pattern: RegExp
     readonly error: string
@@ -74,6 +74,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
   {
     ciphers: ['aes-cbc', 'aes-cfb', 'aes-ctr'],
     required: ['key', 'iv'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,
+      error: 'must be 32, 48 or 64 hex digits (AES-128, AES-192 or AES-256)',
+    },
+  },
+  {
+    ciphers: ['aes-ccm'],
+    required: ['key', 'nonce'],
     key: {
       pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,
       error: 'must be 32, 48 or 64 hex digits (AES-128, AES-192 or AES-256)',
@@ -120,6 +128,12 @@ const cipherInputSchema = Type.Object({
   tweak: Type.Optional(
     Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.tweak }),
   ),
+  nonce: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.nonce }),
+  ),
+  aad: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.aad }),
+  ),
   rails: Type.Optional(
     Type.Integer({
       minimum: 2,
@@ -152,6 +166,9 @@ const cipherInputSchema = Type.Object({
     }),
   ),
   segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
+  tagLength: Type.Optional(
+    Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
+  ),
   preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
   stripNonAlpha: Type.Optional(
     Type.Boolean({
@@ -262,12 +279,12 @@ const tools: ToolDefinition[] = [
 
 function requiredOptionError(
   args: Readonly<Record<string, unknown>>,
-  required: readonly ('key' | 'iv' | 'period')[],
+  required: readonly ('key' | 'iv' | 'nonce' | 'period')[],
   cipher: string,
 ): string | undefined {
   for (const field of required) {
     const missing = args[field] === undefined
-    const empty = (field === 'key' || field === 'iv') && args[field] === ''
+    const empty = field !== 'period' && args[field] === ''
     if (missing || empty) return `Invalid arguments at /${field}: required for ${cipher}`
   }
   return undefined

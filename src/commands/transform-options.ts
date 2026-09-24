@@ -7,10 +7,13 @@ export interface TransformOptionArgs {
   readonly transposition?: string
   readonly iv?: string
   readonly tweak?: string
+  readonly nonce?: string
+  readonly aad?: string
   readonly rails?: string
   readonly period?: string
   readonly letters?: string
   readonly segment?: string
+  readonly tagLength?: string
   readonly a?: string
   readonly b?: string
   readonly positions?: string
@@ -42,6 +45,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['period', args.period],
     ['letters', args.letters],
     ['segment', args.segment],
+    ['tagLength', args.tagLength],
     ['a', args.a],
     ['b', args.b],
   ] as const
@@ -56,6 +60,8 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['plugboard', args.plugboard],
     ['iv', args.iv],
     ['tweak', args.tweak],
+    ['nonce', args.nonce],
+    ['aad', args.aad],
   ] as const
   for (const [name, value] of strings) {
     if (value !== undefined) options[name] = value

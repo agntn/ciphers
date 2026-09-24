@@ -8,11 +8,12 @@ import { aesLrw } from '../../src/ciphers/block/aes/lrw'
 import { aesCbc } from '../../src/ciphers/block/aes/cbc'
 import { aesCfb } from '../../src/ciphers/block/aes/cfb'
 import { aesCtr } from '../../src/ciphers/block/aes/ctr'
+import { aesCcm } from '../../src/ciphers/block/aes/ccm'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des'
 
 describe('registry', () => {
-  it('registers all 26 ciphers', () => {
-    expect(ciphers()).toHaveLength(26)
+  it('registers all 27 ciphers', () => {
+    expect(ciphers()).toHaveLength(27)
     for (const name of [
       'caesar',
       'rot13',
@@ -32,6 +33,7 @@ describe('registry', () => {
       'aes-cbc',
       'aes-cfb',
       'aes-ctr',
+      'aes-ccm',
       'aes-lrw',
       'triple-des',
     ]) {
@@ -770,6 +772,7 @@ describe('edge cases', () => {
     'aes-cbc': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-cfb': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-ctr': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
+    'aes-ccm': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
   }
@@ -1470,6 +1473,176 @@ describe('aes-ctr', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
+      ],
+    })
+  })
+})
+
+describe('aes-ccm', () => {
+  const ccm = create('aes-ccm')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '2b7e151628aed2a6abf7158809cf4f3c'
+  const nonce = '000102030405060708090a0b'
+  const dawn = '9038dc3aa03594330d2d4dca3cb9f3d0bc51521e4e075cf5099b1b92fa10'
+
+  /** NIST SP 800-38C Appendix C, Examples 1 to 3. */
+  it('matches the NIST SP 800-38C examples', () => {
+    const vectorKey = hex('404142434445464748494a4b4c4d4e4f')
+    for (const [vectorNonce, aad, plaintext, tagLength, ciphertext] of [
+      ['10111213141516', '0001020304050607', '20212223', 32, '7162015b4dac255d'],
+      [
+        '1011121314151617',
+        '000102030405060708090a0b0c0d0e0f',
+        '202122232425262728292a2b2c2d2e2f',
+        48,
+        'd2a1f0e051ea5f62081a7792073d593d1fc64fbfaccd',
+      ],
+      [
+        '101112131415161718191a1b',
+        '000102030405060708090a0b0c0d0e0f10111213',
+        '202122232425262728292a2b2c2d2e2f3031323334353637',
+        64,
+        'e3b201a9f5b71a7a9b1ceaeccd97e70b6176aad9a4428aa5484392fbc1b09951',
+      ],
+    ] as const) {
+      const n = hex(vectorNonce)
+      expect(aesCcm(hex(plaintext), vectorKey, 'encrypt', n, hex(aad), tagLength)).toEqual(
+        hex(ciphertext),
+      )
+      expect(aesCcm(hex(ciphertext), vectorKey, 'decrypt', n, hex(aad), tagLength)).toEqual(
+        hex(plaintext),
+      )
+    }
+  })
+
+  /** RFC 3610 §8, Packet Vector #1: 13-byte nonce, 8-byte header, 8-byte tag. */
+  it('matches RFC 3610 packet vector 1 through the text API', () => {
+    const options = {
+      key: 'c0c1c2c3c4c5c6c7c8c9cacbcccdcecf',
+      nonce: '00000003020100a0a1a2a3a4a5',
+      aad: '0001020304050607',
+      tagLength: 64,
+    }
+    const plaintext = String.fromCodePoint(...hex('08090a0b0c0d0e0f101112131415161718191a1b1c1d1e'))
+    const ciphertext = '588c979a61c663d2f066d0c2c0f989806d5f6b61dac38417e8d12cfdf926e0'
+    expect(ccm.encode(plaintext, options)).toEqual({
+      text: ciphertext,
+      cipher: 'aes-ccm',
+      operation: 'encode',
+      options: { ...options, mode: 'ccm' },
+    })
+    expect(ccm.decode(ciphertext, options).text).toBe(plaintext)
+  })
+
+  /** Expected values from Node's `createCipheriv('aes-128-ccm')`, OpenSSL underneath. */
+  it('encodes UTF-8 text to hex with the tag at the end, as OpenSSL does', () => {
+    for (const [text, options, ciphertext] of [
+      ['', {}, 'd9422430b6276d5de19e38239777fc30'],
+      ['ATTACK AT DAWN', {}, dawn],
+      [
+        'zażółć gęślą jaźń 🙂',
+        {},
+        'ab0d4dc720cd71f09d8a29ecaf6e25fb2a41b9259a36d5651beac84b46f81c9fac8aa2be38c188f47bbcc978c1aae9',
+      ],
+      [
+        'ATTACK AT DAWN',
+        { aad: '46524f4d3a2048512e' },
+        '9038dc3aa03594330d2d4dca3cb9a5038633d04da4a01f58149f30e75d5b',
+      ],
+      ['ATTACK AT DAWN', { tagLength: 64 }, '9038dc3aa03594330d2d4dca3cb98449c5e413b366ac'],
+      [
+        'ATTACK AT DAWN',
+        { nonce: '10111213141516' },
+        '7d7146055a86c0d1f5b38fd296d46f2b2060a1c8345eec713cb0f0d8c9e3',
+      ],
+    ] as const) {
+      const all = { key, nonce, ...options }
+      expect(ccm.encode(text, all).text).toBe(ciphertext)
+      expect(ccm.decode(ciphertext, all).text).toBe(text)
+    }
+    expect(ccm.encode('ATTACK AT DAWN', { key, nonce }).options).toEqual({
+      key,
+      mode: 'ccm',
+      nonce,
+      tagLength: 128,
+      aad: '',
+    })
+  })
+
+  it('refuses a ciphertext whose tag does not match', () => {
+    // DAWN to DUSK: the same XOR that goes through unnoticed in CTR.
+    const flipped = hex(dawn)
+      .map((byte, i) => byte ^ ([0x14, 0x04, 0x05][i - 11] ?? 0))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('')
+    expect(flipped.slice(0, 28)).toBe('9038dc3aa03594330d2d4dde38bc')
+    for (const [text, options] of [
+      [flipped, { key, nonce }],
+      [dawn.slice(0, -2) + '11', { key, nonce }],
+      [dawn, { key: '00'.repeat(16), nonce }],
+      [dawn, { key, nonce: '00'.repeat(12) }],
+      [dawn, { key, nonce, aad: '00' }],
+      [dawn, { key, nonce, tagLength: 64 }],
+    ] as const) {
+      expect(() => ccm.decode(text, options)).toThrow(CipherError)
+      expect(() => ccm.decode(text, options)).toThrow(/Tag does not match/)
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => ccm.decode('9038d', { key, nonce })).toThrow(/whole bytes/)
+    expect(() => ccm.decode('90zz', { key, nonce })).toThrow(/hex digits/)
+    expect(() => ccm.decode('9038dc3a', { key, nonce })).toThrow(/16-byte tag, got 4 bytes/)
+  })
+
+  it('refuses text too long for the length field a 13-byte nonce leaves', () => {
+    const long = { key, nonce: '00'.repeat(13), tagLength: 32 as const }
+    expect(() => ccm.encode('A'.repeat(65_536), long)).toThrow(/at most 65535 bytes/)
+    expect(ccm.encode('A'.repeat(65_535), long).text).toHaveLength(2 * (65_535 + 4))
+  })
+
+  it('reads key, nonce and aad in any case and spacing', () => {
+    const result = ccm.encode('ATTACK AT DAWN', {
+      key: '2B7E1516 28AED2A6 ABF71588 09CF4F3C',
+      nonce: '00010203 04050607 08090A0B',
+      aad: '46 52 4F 4D',
+    })
+    expect(result.options).toEqual({ key, mode: 'ccm', nonce, tagLength: 128, aad: '46524f4d' })
+  })
+
+  it('rejects keys, nonces, aad and tag lengths it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => ccm[operation]('', { nonce })).toThrow(MissingOptionError)
+      expect(() => ccm[operation]('', { key })).toThrow(MissingOptionError)
+      expect(() => ccm[operation]('', { key, nonce: '' })).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(20), 'g'.repeat(32), 12]) {
+        expect(() => ccm[operation]('', { key: bad, nonce })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['00'.repeat(6), '00'.repeat(14), '0'.repeat(15), 'g'.repeat(14), 1]) {
+        expect(() => ccm[operation]('', { key, nonce: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['0', 'zz', 7]) {
+        expect(() => ccm[operation]('', { key, nonce, aad: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of [0, 16, 40, 136, '128']) {
+        expect(() => ccm[operation]('', { key, nonce, tagLength: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('reports the block category and its options', () => {
+    expect(resolveCipher('AES CCM')).toBe(ccm)
+    expect(ccm.info()).toMatchObject({
+      name: 'aes-ccm',
+      category: 'block',
+      family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'nonce', type: 'string', required: true },
+        { name: 'aad', type: 'string', required: false, default: '' },
+        { name: 'tagLength', type: 'number', required: false, default: 128 },
       ],
     })
   })

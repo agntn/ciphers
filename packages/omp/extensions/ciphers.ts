@@ -73,6 +73,12 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     tweak: Type.Optional(
       Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.tweak }),
     ),
+    nonce: Type.Optional(
+      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.nonce }),
+    ),
+    aad: Type.Optional(
+      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.aad }),
+    ),
     rails: Type.Optional(
       Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' }),
     ),
@@ -95,6 +101,9 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
       }),
     ),
     segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
+    tagLength: Type.Optional(
+      Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
+    ),
     preserveCase: Type.Optional(
       Type.Boolean({ description: 'Preserve letter case (default true)' }),
     ),

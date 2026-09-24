@@ -91,6 +91,12 @@ const cipherParams = Type.Object({
   tweak: Type.Optional(
     Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.tweak }),
   ),
+  nonce: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.nonce }),
+  ),
+  aad: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.aad }),
+  ),
   rails: Type.Optional(
     Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' }),
   ),
@@ -113,6 +119,9 @@ const cipherParams = Type.Object({
     }),
   ),
   segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
+  tagLength: Type.Optional(
+    Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
+  ),
   preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
   stripNonAlpha: Type.Optional(
     Type.Boolean({
@@ -149,6 +158,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'AES-CBC (aes-cbc) takes the same key plus iv, 32 hex digits.',
         'AES-CFB (aes-cfb) takes the key and iv too, plus segment in bits (1, 8 or 128, default 128); nothing is padded, so the ciphertext has as many bytes as the text.',
         'AES-CTR (aes-ctr) takes the key and iv, the initial counter block; like CFB it pads nothing.',
+        'AES-CCM (aes-ccm) takes the key and nonce (14 to 26 hex digits), optional aad in hex and tagLength in bits (default 128); the hex out is the text bytes plus the tag, and decoding fails unless key, nonce, aad and tagLength all match.',
         'AES-LRW (aes-lrw) takes the AES key and a 32-digit tweak key in one key, and tweak as the first block index.',
         'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
         'cipher_info lists every option with its default.',

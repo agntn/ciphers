@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { describe, it, expect } from 'vite-plus/test'
 import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
@@ -2182,6 +2183,62 @@ describe('rijndael', () => {
       const zeroKey = hex('00'.repeat(key / 8))
       expect(rijndaelEcb(plaintext, zeroKey, 'encrypt', block / 8)).toEqual(hex(ciphertext))
       expect(rijndaelEcb(hex(ciphertext), zeroKey, 'decrypt', block / 8)).toEqual(plaintext)
+    }
+  })
+
+  /**
+   * The same files in full, 2 × Nb × 32 plaintexts each, 9,600 in all. Every file keeps the key
+   * at zero and walks the plaintext from 0 through 1, 3, 7 to all ones, then shifts the ones left
+   * until only the top bit is set. The digests cover each file's ciphertexts, one per line:
+   * `tr -d '\r' < ecbnt44.txt | awk '/^CT=/ { print $2 }' | sha256sum`.
+   */
+  it('runs every Gladman known answer test', () => {
+    const digests: Record<string, string> = {
+      '128/128': '899ae63083ba781443709bb54dd2f67f71812a4d9bc3c1eda18454f3e921183e',
+      '128/160': '4b5257df759e1fd35641e01ee36cae8d7891d59bf1b7630b9ca14c8a11125c5a',
+      '128/192': 'aa11a2856b9a13e489aba45ee814d70563fadd2000d3582d1217e2e2bf263c63',
+      '128/224': 'bb29c49412213e3cc3fb8b6022b7820a1916d36e72634ccf48757cc649937de0',
+      '128/256': 'abb4e3a62a1625736544a4e9fbe92d013271b0ff72513dbc17c5f1e9dd3f9ca6',
+      '160/128': '2ecd2690fb3b10e074404a679dea17e34cdd0b3aa7dd35040f24d7ce0d2bc7e6',
+      '160/160': 'e775f60a96848bfabc39d2ef34aaafc9d5132bbc0a6287cc9e71466db2e9184a',
+      '160/192': '079670777b3e2a490d8f5d3dd61044e1a6da0b9f4cfe66603e67059f7a0b536b',
+      '160/224': 'fe145b727ceabfb725fc056592fc95dcab0c82d45f774adc700280404df19673',
+      '160/256': '2bea79c09053f42c702c47c90e01f2d60700bb83d4f3d408f8d0d1af36e62c4e',
+      '192/128': '1dd8765c4cc175526d902d7c6902d1f84e54898e1133696f2e98c5f1d450985d',
+      '192/160': 'c725c7cc23db464b1675c062ee931cd106b3f48f6c93d6bc12d014440350573e',
+      '192/192': '8f3d90857a16e26e60d9a0faf6697df798f7ca9a7ef65c680fb48cca9152fa89',
+      '192/224': '74b7d3165999e79fa6457cd474c92f2182d9797c82bd0995f39d8fc575199e71',
+      '192/256': '794a57400184a60a39b5031c1da6d7cf32498c08d0bdadb1bd41826f6c5648ac',
+      '224/128': '10be258ca3e4b387888744137435ba18bec927763f722348fefeb40a8344c33f',
+      '224/160': 'f4cf13aea8274e294d732356b16875468d0cde5fd350c1cc681c778aea8f541d',
+      '224/192': '034d32cca52e0d6cccc754f67f323696bed6b9867bad306c688379bf4ee4fbbf',
+      '224/224': 'bf8861ed3f6d78d00ff8e70496bbf9518827c0d525afb83e8571e8a2ba6c18bf',
+      '224/256': 'fecd94619a8d958ed6e2206f8e24388859d65d8f923c7571b90b958f55089d22',
+      '256/128': '735d322583b352f1ded9a47da1ccfb8e4e2e4cf55e9edf01823f0e8203b40323',
+      '256/160': '0d550cc24a2e971dbdf2f254c16eca867341232f0f57cd0a1d23f09f80c4cd93',
+      '256/192': '6460da1f9455e8ea525e64c858fb8629a915525a4ccd54f076fe9e6b2726aef8',
+      '256/224': '6aa5f34d6fded63dcab2d3b428c652366c09c52866def001c79694e565d688fd',
+      '256/256': '6fa162f7605b8d0392fcc5f9176f6509a4672cdf50e62e9416bc905bb339030f',
+    }
+    const toHex = (bytes: readonly number[]) =>
+      bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
+    for (const [sizes, digest] of Object.entries(digests)) {
+      const [block, key] = sizes.split('/').map(Number) as [number, number]
+      const bits = BigInt(block)
+      const ones = (1n << bits) - 1n
+      const plaintexts: bigint[] = []
+      for (let i = 0n; i <= bits; i++) plaintexts.push((1n << i) - 1n)
+      for (let i = 1n; i < bits; i++) plaintexts.push((ones << i) & ones)
+      const zeroKey = hex('00'.repeat(key / 8))
+      let lines = ''
+      for (const value of plaintexts) {
+        const plaintext = hex(value.toString(16).padStart(block / 4, '0'))
+        const ciphertext = rijndaelEcb(plaintext, zeroKey, 'encrypt', block / 8)
+        expect(rijndaelEcb(ciphertext, zeroKey, 'decrypt', block / 8)).toEqual(plaintext)
+        lines += `${toHex(ciphertext)}\n`
+      }
+      expect(plaintexts).toHaveLength(2 * block)
+      expect(createHash('sha256').update(lines).digest('hex'), sizes).toBe(digest)
     }
   })
 

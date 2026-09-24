@@ -110,3 +110,32 @@ describe('the prose counts what the registry ships', () => {
     }
   })
 })
+
+/**
+ * The cipher each table row names, from its page link or its bold name.
+ *
+ * @param text - Prose to scan.
+ * @returns {string[]} Cipher names, in row order.
+ */
+function tableRows(text: string): string[] {
+  const pattern = /^\| (?:\[[^\]]+\]\(\/ciphers\/([a-z0-9-]+)\)|\*\*([a-z0-9-]+)\*\*)/gm
+  return [...text.matchAll(pattern)].map((match) => (match[1] ?? match[2])!)
+}
+
+describe('every cipher table lists what the registry ships', () => {
+  it('finds the rows it checks', () => {
+    expect(tableRows('| [AES (ECB)](/ciphers/aes) | x |\n| **aes-cbc** | x |\n| `key` |')).toEqual([
+      'aes',
+      'aes-cbc',
+    ])
+    expect(
+      proseFiles().filter((file) => tableRows(readFileSync(path.join(root, file), 'utf8')).length),
+    ).not.toHaveLength(0)
+  })
+
+  it.each(proseFiles())('%s', (file) => {
+    const rows = tableRows(readFileSync(path.join(root, file), 'utf8'))
+    if (rows.length === 0) return
+    expect([...rows].sort(), file).toEqual([...builtinCiphers].sort())
+  })
+})

@@ -22,15 +22,19 @@ function moduleFiles(): string[] {
 }
 
 /**
- * The modules that define a cipher class, keyed by the name the class reports.
+ * The modules that define a cipher class, each with the name the class reports. A list, not a
+ * map, so two modules claiming one name both show up.
  *
- * @returns {Map<string, string>} Registry name to absolute path.
+ * @returns {Array<{ name: string; file: string }>} One entry per cipher module.
  */
-function cipherFiles(): Map<string, string> {
-  const files = new Map<string, string>()
+function cipherFiles(): Array<{ name: string; file: string }> {
+  const files: Array<{ name: string; file: string }> = []
   for (const file of moduleFiles()) {
-    const name = /\bname\(\): string \{\s*return '([^']+)'/.exec(readFileSync(file, 'utf8'))?.[1]
-    if (name !== undefined) files.set(name, file)
+    const source = readFileSync(file, 'utf8')
+    if (!/\bextends Cipher\b/.test(source)) continue
+    const name = /\bname\(\): string \{\s*return '([^']+)'/.exec(source)?.[1]
+    if (name === undefined) throw new Error(`${file} extends Cipher but its name() was not found`)
+    files.push({ name, file })
   }
   return files
 }
@@ -52,14 +56,19 @@ describe('registry without import side effects', () => {
   })
 
   it('lists every cipher file in the registry', () => {
-    expect([...cipherFiles().keys()].sort()).toEqual([...ciphers()].sort())
+    expect(
+      cipherFiles()
+        .map(({ name }) => name)
+        .sort(),
+    ).toEqual([...ciphers()].sort())
   })
 
   it('keeps each cipher in the folder named after its category', () => {
     const files = cipherFiles()
     for (const name of ciphers()) {
       const { category } = create(name).info()
-      expect(path.relative(cipherDirectory, files.get(name) ?? ''), name).toMatch(
+      const file = files.find((entry) => entry.name === name)?.file ?? ''
+      expect(path.relative(cipherDirectory, file), name).toMatch(
         new RegExp(`^${category}/(?:${name}|[a-z0-9-]+/[a-z0-9-]+)\\.ts$`),
       )
     }

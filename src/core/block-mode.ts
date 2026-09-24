@@ -86,6 +86,29 @@ export function readIv(options: Readonly<CipherBaseOptions>, blockSize: number):
   return hex
 }
 
+/**
+ * Read an optional hex option such as a nonce: whole bytes, case and whitespace ignored.
+ *
+ * @param value - The option as passed.
+ * @param name - Option name for the error.
+ * @param fits - Whether a length in hex digits is accepted.
+ * @param rule - Why another length is refused.
+ * @returns {string} The value as lowercase hex.
+ */
+export function readHex(
+  value: unknown,
+  name: string,
+  fits: (digits: number) => boolean,
+  rule: string,
+): string {
+  if (typeof value !== 'string') throw new InvalidOptionError(name, value, 'must be a string')
+  const hex = value.replaceAll(/\s/g, '').toLowerCase()
+  if (!/^[0-9a-f]*$/.test(hex) || hex.length % 2 !== 0 || !fits(hex.length)) {
+    throw new InvalidOptionError(name, value, rule)
+  }
+  return hex
+}
+
 function readKey(
   cipher: BlockShape,
   options: Readonly<CipherBaseOptions>,

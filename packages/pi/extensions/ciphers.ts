@@ -160,6 +160,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'AES-OFB (aes-ofb) takes the key and iv; like CFB it pads nothing.',
         'AES-CTR (aes-ctr) takes the key and iv, the initial counter block; like CFB it pads nothing.',
         'AES-CCM (aes-ccm) takes the key and nonce (14 to 26 hex digits), optional aad in hex and tagLength in bits (default 128); the hex out is the text bytes plus the tag, and decoding fails unless key, nonce, aad and tagLength all match.',
+        'AES-OCB (aes-ocb) takes the same options as AES-CCM, with a nonce of 2 to 30 hex digits and tagLength 64, 96 or 128.',
         'AES-LRW (aes-lrw) takes the AES key and a 32-digit tweak key in one key, and tweak as the first block index.',
         'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
         'cipher_info lists every option with its default.',

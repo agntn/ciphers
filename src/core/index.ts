@@ -19,6 +19,7 @@ export type {
   AesOfbOptions,
   AesCtrOptions,
   AesCcmOptions,
+  AesOcbOptions,
   AesLrwOptions,
   TripleDesOptions,
   CipherInfo,

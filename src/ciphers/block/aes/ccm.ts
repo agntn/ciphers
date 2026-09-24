@@ -13,6 +13,7 @@ import {
   decodeBlocks,
   encodeBlocks,
   fromHex,
+  readHex,
 } from '../../../core/block-mode'
 import { aesBlock } from './block'
 import { aesCtr } from './ctr'
@@ -141,15 +142,6 @@ export function aesCcm(
     )
   }
   return plaintext
-}
-
-function readHex(value: unknown, name: string, fits: (digits: number) => boolean, rule: string) {
-  if (typeof value !== 'string') throw new InvalidOptionError(name, value, 'must be a string')
-  const hex = value.replaceAll(/\s/g, '').toLowerCase()
-  if (!/^[0-9a-f]*$/.test(hex) || hex.length % 2 !== 0 || !fits(hex.length)) {
-    throw new InvalidOptionError(name, value, rule)
-  }
-  return hex
 }
 
 type CcmSettings = { nonce: string; tagLength: CcmTagLength; aad: string }

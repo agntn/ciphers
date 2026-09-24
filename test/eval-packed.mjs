@@ -211,6 +211,20 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const ocbArgs = ['--key', aesKey, '--nonce', '000102030405060708090a0b', '--tag-length', '64']
+  assert.equal(
+    run(binPath, ['encode', 'aes-ocb', 'ATTACK AT DAWN', ...ocbArgs]).trim(),
+    '006442d918150ca6a4daf6903e6b6141a3b9b9a68fe8',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'aes-ocb',
+      '006442d918150ca6a4daf6903e6b6141a3b9b9a68fe8',
+      ...ocbArgs,
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   const lrwKey = '4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87'
   assert.equal(
     run(binPath, [

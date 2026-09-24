@@ -15,7 +15,7 @@ export default defineCommand({
     key: {
       type: 'string',
       description:
-        'Keyword for keyed ciphers, hex digits for AES, AES-CBC, AES-CFB, AES-OFB, AES-CTR, AES-CCM, AES-LRW and Triple DES',
+        'Keyword for keyed ciphers, hex digits for AES, AES-CBC, AES-CFB, AES-OFB, AES-CTR, AES-CCM, AES-OCB, AES-LRW and Triple DES',
       alias: 'k',
     },
     transposition: { type: 'string', description: 'Transposition keyword (ADFGVX)' },
@@ -28,11 +28,18 @@ export default defineCommand({
       description: 'Bits fed back per step, 1, 8 or 128 (AES-CFB; default 128)',
     },
     tweak: { type: 'string', description: 'Index of the first block in hex (AES-LRW; default 1)' },
-    nonce: { type: 'string', description: 'Nonce, 14 to 26 hex digits (AES-CCM)' },
-    aad: { type: 'string', description: 'Associated data in hex, not encrypted (AES-CCM)' },
+    nonce: {
+      type: 'string',
+      description: 'Nonce in hex, 14 to 26 digits for AES-CCM, 2 to 30 for AES-OCB',
+    },
+    aad: {
+      type: 'string',
+      description: 'Associated data in hex, not encrypted (AES-CCM, AES-OCB)',
+    },
     tagLength: {
       type: 'string',
-      description: 'Tag length in bits, 32 to 128 in steps of 16 (AES-CCM; default 128)',
+      description:
+        'Tag length in bits, 32 to 128 in steps of 16 for AES-CCM, 64, 96 or 128 for AES-OCB (default 128)',
     },
     rails: { type: 'string', description: 'Number of rails (Rail Fence)', alias: 'r' },
     period: { type: 'string', description: 'Rotation period (Alberti, Bifid)' },

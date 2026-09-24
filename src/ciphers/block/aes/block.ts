@@ -1,9 +1,4 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { normalizeError } from '../../core/errors'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode'
-
-const BLOCK_SIZE = 16
+import type { Bytes } from '../../../core/block-mode'
 
 interface AesTables {
   sbox: Bytes
@@ -137,73 +132,15 @@ function decryptBlock(block: Bytes, roundKeys: readonly Bytes[]): Bytes {
 }
 
 /**
- * Run each 16-byte block through AES on its own, the way ECB does. Equal plaintext blocks
- * come out as equal ciphertext blocks, which is the leak the mode is known for.
+ * Expand the key once and return AES on a single block, for the modes that chain one block into
+ * the next.
  *
- * @param data - Whole blocks to transform.
  * @param key - 16, 24 or 32 key bytes.
  * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
+ * @returns {(block: Bytes) => Bytes} One 16-byte block in, one out.
  */
-export function aesEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
+export function aesBlock(key: Bytes, operation: 'encrypt' | 'decrypt'): (block: Bytes) => Bytes {
   const roundKeys = expandKey(key)
   const transform = operation === 'encrypt' ? encryptBlock : decryptBlock
-  const output: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    output.push(...transform(data.slice(offset, offset + BLOCK_SIZE), roundKeys))
-  }
-  return output
-}
-
-const AES: BlockMode = {
-  name: 'aes',
-  label: 'AES-ECB',
-  mode: 'ecb',
-  blockSize: BLOCK_SIZE,
-  keyDigits: [32, 48, 64],
-  keyError: 'must be 32, 48 or 64 hex digits (a 128, 192 or 256-bit AES key)',
-  run: aesEcb,
-}
-
-export class Aes extends Cipher {
-  name(): string {
-    return 'aes'
-  }
-
-  info(): CipherInfo {
-    return {
-      name: 'aes',
-      label: 'AES (ECB)',
-      description:
-        'AES-128/192/256 in ECB mode: each 16-byte block is encrypted on its own, so equal plaintext blocks give equal ciphertext blocks. UTF-8 text with PKCS#7 padding in, hex out',
-      category: 'block',
-      family: 'substitution-permutation',
-      selfInverse: false,
-      options: [
-        {
-          name: 'key',
-          type: 'string',
-          required: true,
-          description: '32, 48 or 64 hex digits for AES-128, AES-192 or AES-256',
-        },
-      ],
-      keyspace: '2^128, 2^192 or 2^256 keys',
-    }
-  }
-
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes')
-    }
-  }
+  return (block) => transform(block, roundKeys)
 }

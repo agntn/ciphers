@@ -1,7 +1,7 @@
 ---
 seo:
-  title: "Twenty-three ciphers, one call"
-  description: Twenty-three ciphers from Caesar to AES behind one local API, a CLI and five agent tools, with encode, decode, brute force and letter frequencies and no network
+  title: "Twenty-four ciphers, one call"
+  description: Twenty-four ciphers from Caesar to AES behind one local API, a CLI and five agent tools, with encode, decode, brute force and letter frequencies and no network
 ---
 
 ::landing-home

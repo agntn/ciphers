@@ -8,16 +8,35 @@ import { builtins } from '../../src/ciphers/index'
 import { builtinCiphers } from '../../src/core/ciphers'
 import { ciphers, create } from '../../src/core/registry'
 
+const cipherDirectory = fileURLToPath(new URL('../../src/ciphers/', import.meta.url))
+
 /**
- * Cipher files across the category folders, without their `index.ts` lists.
+ * Modules across the category folders and their subfolders, without the `index.ts` lists.
  *
- * @returns {string[]} Absolute paths of the cipher modules.
+ * @returns {string[]} Absolute paths, cipher files and shared primitives such as `aes/block.ts`.
  */
-function cipherFiles(): string[] {
-  const directory = fileURLToPath(new URL('../../src/ciphers/', import.meta.url))
-  return readdirSync(directory, { recursive: true, encoding: 'utf8' })
+function moduleFiles(): string[] {
+  return readdirSync(cipherDirectory, { recursive: true, encoding: 'utf8' })
     .filter((name) => name.endsWith('.ts') && path.basename(name) !== 'index.ts')
-    .map((name) => path.join(directory, name))
+    .map((name) => path.join(cipherDirectory, name))
+}
+
+/**
+ * The modules that define a cipher class, each with the name the class reports. A list, not a
+ * map, so two modules claiming one name both show up.
+ *
+ * @returns {Array<{ name: string; file: string }>} One entry per cipher module.
+ */
+function cipherFiles(): Array<{ name: string; file: string }> {
+  const files: Array<{ name: string; file: string }> = []
+  for (const file of moduleFiles()) {
+    const source = readFileSync(file, 'utf8')
+    if (!/\bextends Cipher\b/.test(source)) continue
+    const name = /\bname\(\): string \{\s*return '([^']+)'/.exec(source)?.[1]
+    if (name === undefined) throw new Error(`${file} extends Cipher but its name() was not found`)
+    files.push({ name, file })
+  }
+  return files
 }
 
 function rolldownEntry(): string {
@@ -37,15 +56,20 @@ describe('registry without import side effects', () => {
   })
 
   it('lists every cipher file in the registry', () => {
-    expect(ciphers()).toHaveLength(cipherFiles().length)
+    expect(
+      cipherFiles()
+        .map(({ name }) => name)
+        .sort(),
+    ).toEqual([...ciphers()].sort())
   })
 
   it('keeps each cipher in the folder named after its category', () => {
     const files = cipherFiles()
     for (const name of ciphers()) {
       const { category } = create(name).info()
-      expect(files, name).toContainEqual(
-        fileURLToPath(new URL(`../../src/ciphers/${category}/${name}.ts`, import.meta.url)),
+      const file = files.find((entry) => entry.name === name)?.file ?? ''
+      expect(path.relative(cipherDirectory, file), name).toMatch(
+        new RegExp(`^${category}/(?:${name}|[a-z0-9-]+/[a-z0-9-]+)\\.ts$`),
       )
     }
   })
@@ -58,7 +82,7 @@ describe('registry without import side effects', () => {
   })
 
   it('does not register a cipher from its own module', () => {
-    for (const file of cipherFiles()) {
+    for (const file of moduleFiles()) {
       expect(readFileSync(file, 'utf8'), file).not.toMatch(/\bregister\s*\(/)
     }
   })

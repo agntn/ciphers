@@ -7,6 +7,7 @@ import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/c
 import { aesEcb } from '../../src/ciphers/block/aes/ecb'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw'
 import { aesXts } from '../../src/ciphers/block/aes/xts'
+import { aesCbcMac } from '../../src/ciphers/block/aes/cbc-mac'
 import { aesCbc } from '../../src/ciphers/block/aes/cbc'
 import { aesCfb } from '../../src/ciphers/block/aes/cfb'
 import { aesOfb } from '../../src/ciphers/block/aes/ofb'
@@ -18,8 +19,8 @@ import { tripleDesEcb } from '../../src/ciphers/block/triple-des/ecb'
 import { tripleDesCbc } from '../../src/ciphers/block/triple-des/cbc'
 
 describe('registry', () => {
-  it('registers all 32 ciphers', () => {
-    expect(ciphers()).toHaveLength(32)
+  it('registers all 33 ciphers', () => {
+    expect(ciphers()).toHaveLength(33)
     for (const name of [
       'caesar',
       'rot13',
@@ -44,6 +45,7 @@ describe('registry', () => {
       'aes-ocb',
       'aes-lrw',
       'aes-xts',
+      'aes-cbc-mac',
       'rijndael',
       'triple-des',
       'triple-des-cbc',
@@ -788,6 +790,7 @@ describe('edge cases', () => {
     'aes-ocb': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'aes-xts': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
+    'aes-cbc-mac': { key: '000102030405060708090a0b0c0d0e0f' },
     rijndael: { key: '000102030405060708090a0b0c0d0e0f', blockSize: 256 },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
     'triple-des-cbc': { key: '0123456789abcdef23456789abcdef01', iv: '00'.repeat(8) },
@@ -2356,6 +2359,112 @@ describe('aes-xts', () => {
         { name: 'tweak', type: 'string', required: false, default: '0' },
       ],
     })
+  })
+})
+
+describe('aes-cbc-mac', () => {
+  const mac = create('aes-cbc-mac')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '2b7e151628aed2a6abf7158809cf4f3c'
+  const dawn = '41545441434b204154204441574e' + '1efa905609cc69e415825c40f80501e8'
+
+  /**
+   * NIST SP 800-38A §F.2.1, CBC-AES128.Encrypt: with the IV XORed into the first plaintext block,
+   * a zero IV chains to the same blocks, so the last ciphertext block is the CBC-MAC.
+   */
+  it('matches the last block of the NIST SP 800-38A CBC example', () => {
+    const iv = hex('000102030405060708090a0b0c0d0e0f')
+    const plaintext = hex(
+      '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e51' +
+        '30c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710',
+    ).map((byte, i) => byte ^ (iv[i] ?? 0))
+    expect(aesCbcMac(plaintext, hex(key))).toEqual(hex('3ff1caa1681fac09120eca307586e1a7'))
+  })
+
+  /** RFC 4493 §4: L = AES-128(K, 0^128), which is the tag of empty data padded to one zero block. */
+  it('tags empty text with the key encrypting one zero block', () => {
+    expect(aesCbcMac([], hex(key))).toEqual(hex('7df76b0c1ab899b33e42f047b91b546f'))
+    expect(mac.encode('', { key }).text).toBe('7df76b0c1ab899b33e42f047b91b546f')
+    expect(mac.decode('7df76b0c1ab899b33e42f047b91b546f', { key }).text).toBe('')
+  })
+
+  /**
+   * Expected tags from Node's `createCipheriv('aes-*-cbc')` with a zero IV and padding off over
+   * the zero-padded text, OpenSSL underneath.
+   */
+  it('puts the text bytes before the tag, with tags as OpenSSL computes them', () => {
+    for (const [text, options, tag] of [
+      ['ATTACK AT DAWN', { key }, '1efa905609cc69e415825c40f80501e8'],
+      ['ATTACK AT DAWN!!', { key }, '541ff0c92b9251ae06c624c4a8ab2a85'],
+      ['zażółć gęślą jaźń 🙂', { key }, '62182857e3c41e2bc1869ad47e0423f8'],
+      [
+        'ATTACK AT DAWN',
+        { key: '8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b' },
+        'e27f4fec7edfae6f638ce8f60f42538f',
+      ],
+      [
+        'ATTACK AT DAWN',
+        { key: '603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4' },
+        '9ee24c3b3f110bea064f65e21dab4523',
+      ],
+    ] as const) {
+      const signed = Buffer.from(text).toString('hex') + tag
+      expect(mac.encode(text, options).text).toBe(signed)
+      expect(mac.decode(signed, options).text).toBe(text)
+    }
+    expect(mac.encode('ATTACK AT DAWN', { key })).toEqual({
+      text: dawn,
+      cipher: 'aes-cbc-mac',
+      operation: 'encode',
+      options: { key, mode: 'cbc-mac' },
+    })
+  })
+
+  it('refuses text whose tag does not match', () => {
+    const dusk = '41545441434b204154204455534b' + dawn.slice(28)
+    for (const [text, options] of [
+      [dusk, { key }],
+      [dawn.slice(0, -2) + '00', { key }],
+      [dawn, { key: '00'.repeat(16) }],
+      [
+        '41545441434b204154204455534b' + 'e6bcd2536e3c82a0cdc7cc57baa7e647',
+        { key: '00'.repeat(16) },
+      ],
+    ] as const) {
+      expect(() => mac.decode(text, options)).toThrow(CipherError)
+      expect(() => mac.decode(text, options)).toThrow(/Tag does not match/)
+    }
+    expect(
+      mac.decode('41545441434b204154204455534b' + 'e6bcd2536e3c82a0cdc7cc57baa7e647', { key }).text,
+    ).toBe('ATTACK AT DUSK')
+  })
+
+  it('gives zero bytes at the end the same tag, as zero padding does', () => {
+    const padded = '41545441434b204154204441574e0000' + dawn.slice(28)
+    expect(mac.decode(padded, { key }).text).toBe('ATTACK AT DAWN\0\0')
+  })
+
+  it('names what is wrong with input it cannot check', () => {
+    expect(() => mac.decode('4154a', { key })).toThrow(/whole bytes/)
+    expect(() => mac.decode('41zz', { key })).toThrow(/hex digits/)
+    expect(() => mac.decode('41545441', { key })).toThrow(/16-byte tag, got 4 bytes/)
+  })
+
+  it('reads the key in any case and spacing', () => {
+    expect(
+      mac.encode('ATTACK AT DAWN', { key: '2B7E1516 28AED2A6 ABF71588 09CF4F3C' }).options,
+    ).toEqual({ key, mode: 'cbc-mac' })
+  })
+
+  it('rejects keys it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => mac[operation]('', {})).toThrow(MissingOptionError)
+      expect(() => mac[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(20), 'g'.repeat(32), 12]) {
+        expect(() => mac[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
   })
 })
 

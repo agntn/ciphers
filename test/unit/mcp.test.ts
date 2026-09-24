@@ -462,6 +462,35 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(short.content)).toContain('at least one whole block, 16 bytes')
   })
 
+  it('discovers and executes AES-CBC-MAC through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({
+      name: 'cipher_info',
+      arguments: { cipher: 'aes-cbc-mac' },
+    })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('ISO/IEC 9797-1 MAC Algorithm 1')
+    const key = '2b7e151628aed2a6abf7158809cf4f3c'
+    const signed = '41545441434b204154204441574e1efa905609cc69e415825c40f80501e8'
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', signed],
+      ['cipher_decode', signed, 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({
+        name,
+        arguments: { cipher: 'aes-cbc-mac', text, key },
+      })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+    const forged = await client.callTool({
+      name: 'cipher_decode',
+      arguments: { cipher: 'aes-cbc-mac', text: signed.replace('4441574e', '4455534b'), key },
+    })
+    expect(forged.isError).toBe(true)
+    expect(onlyText(forged.content)).toContain('Tag does not match')
+  })
+
   it('discovers and executes the 24-letter Bacon table through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'bacon' } })
@@ -549,6 +578,8 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'aes-lrw', text: 'abc', key: '00'.repeat(16) }],
       ['key', { cipher: 'aes-xts', text: 'abc' }],
       ['key', { cipher: 'aes-xts', text: 'abc', key: '00'.repeat(48) }],
+      ['key', { cipher: 'aes-cbc-mac', text: 'abc' }],
+      ['key', { cipher: 'aes-cbc-mac', text: 'abc', key: '00'.repeat(15) }],
       ['key', { cipher: 'rijndael', text: 'abc' }],
       ['key', { cipher: 'rijndael', text: 'abc', key: '00'.repeat(18) }],
       ['key', { cipher: 'triple-des', text: 'abc' }],
@@ -597,7 +628,7 @@ describe('Ciphers MCP server', () => {
     const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
     expect(onlyText(block.content)).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}aes-cbc-mac \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\]/,
     )
 
     const unknownCategory = await client.callTool({

@@ -64,7 +64,7 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     required: ['key'],
   },
   {
-    ciphers: ['aes'],
+    ciphers: ['aes', 'aes-cbc-mac'],
     required: ['key'],
     key: {
       pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,

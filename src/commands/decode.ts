@@ -14,7 +14,7 @@ export default defineCommand({
     shift: { type: 'string', description: 'Shift value (Caesar)', alias: 's' },
     key: {
       type: 'string',
-      description: 'Keyword for keyed ciphers, hex digits for AES',
+      description: 'Keyword for keyed ciphers, hex digits for AES and Triple DES',
       alias: 'k',
     },
     transposition: { type: 'string', description: 'Transposition keyword (ADFGVX)' },

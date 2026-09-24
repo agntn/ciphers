@@ -112,6 +112,12 @@ export interface AesOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Triple DES ECB options. */
+export interface TripleDesOptions extends CipherBaseOptions {
+  /** 32 hex digits for two keys (K3 = K1) or 48 for three; case and spaces are ignored. */
+  key: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *
@@ -156,6 +162,7 @@ export interface CipherInfo {
     | 'polyalphabetic'
     | 'rotor'
     | 'substitution-permutation'
+    | 'feistel'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
   /** Required/optional options. */

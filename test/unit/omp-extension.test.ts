@@ -175,7 +175,9 @@ describe('OMP extension', () => {
     expect(classical.content[0]?.text).toContain('enigma [rotor]')
     expect(classical.content[0]?.text).not.toMatch(/\baes\b/)
     const block = await getTool('cipher_info').execute('info', { category: 'block' })
-    expect(block.content[0]?.text).toMatch(/^block:\n {2}aes \[substitution-permutation\]/)
+    expect(block.content[0]?.text).toMatch(
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
+    )
 
     const detail = await getTool('cipher_info').execute('info', { cipher: 'playfair' })
     expect(detail.content[0]?.text).toContain('(playfair) — classical, digraph')

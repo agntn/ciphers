@@ -15,7 +15,7 @@ export default defineCommand({
     key: {
       type: 'string',
       description:
-        'Keyword for keyed ciphers, hex digits for AES, AES-CBC, AES-CFB, AES-OFB, AES-CTR, AES-CCM, AES-OCB, AES-LRW, AES-XTS, AES-CBC-MAC, Rijndael, Triple DES, Triple DES CBC and Blowfish',
+        'Keyword for keyed ciphers, hex digits for block ciphers (ciphers ciphers -c block lists them)',
       alias: 'k',
     },
     transposition: { type: 'string', description: 'Transposition keyword (ADFGVX)' },

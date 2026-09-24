@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vite-plus/test'
 import type { TSchema } from 'typebox'
 import { Value } from 'typebox/value'
 import { create } from '../../src'
+import { builtinCiphers } from '../../src/core/ciphers'
 import ciphersExtension from '../../packages/pi/extensions/ciphers'
 
 type ToolResult = {
@@ -11,6 +12,7 @@ type ToolResult = {
 
 type RegisteredTool = {
   name: string
+  promptGuidelines?: readonly string[]
   parameters: TSchema & {
     properties?: Record<string, unknown>
   }
@@ -60,6 +62,14 @@ describe('Pi extension', () => {
       'cipher_frequency',
       'cipher_info',
     ])
+  })
+
+  it('gives every block cipher its own encode guideline', () => {
+    const guidelines = getTool('cipher_encode').promptGuidelines ?? []
+    const block = builtinCiphers.filter((name) => create(name).info().category === 'block')
+    expect(block.filter((name) => !guidelines.some((line) => line.includes(`(${name})`)))).toEqual(
+      [],
+    )
   })
 
   it('renders the results whose width the tool cannot bound', () => {

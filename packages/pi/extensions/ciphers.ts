@@ -157,7 +157,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       promptSnippet: 'Use cipher_encode to encode text with local educational and puzzle ciphers.',
       promptGuidelines: [
         'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
-        'AES needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
+        'AES (aes) needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
         'AES-CBC (aes-cbc) takes the same key plus iv, 32 hex digits.',
         'AES-CFB (aes-cfb) takes the key and iv too, plus segment in bits (1, 8 or 128, default 128); nothing is padded, so the ciphertext has as many bytes as the text.',
         'AES-OFB (aes-ofb) takes the key and iv; like CFB it pads nothing.',

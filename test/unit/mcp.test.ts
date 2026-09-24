@@ -89,6 +89,13 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('gives every block cipher its hex key length', () => {
+    const [lengths = ''] = OPTION_DESCRIPTIONS.key.split('. Required by')
+    const named = (name: string) => new RegExp(String.raw`(?<![\w-])${name}(?![\w-])`).test(lengths)
+    const block = builtinCiphers.filter((name) => create(name).info().category === 'block')
+    expect(block.filter((name) => !named(name))).toEqual([])
+  })
+
   it('executes encode and decode through the protocol', async () => {
     const client = await connectTestClient()
 

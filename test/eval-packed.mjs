@@ -265,6 +265,16 @@ try {
     ]).trim(),
     'ATTACK AT DAWN FROM THE NORTH',
   )
+  const macKey = '2b7e151628aed2a6abf7158809cf4f3c'
+  const signed = '41545441434b204154204441574e1efa905609cc69e415825c40f80501e8'
+  assert.equal(
+    run(binPath, ['encode', 'aes-cbc-mac', 'ATTACK AT DAWN', '--key', macKey]).trim(),
+    signed,
+  )
+  assert.equal(
+    run(binPath, ['decode', 'aes-cbc-mac', signed, '--key', macKey]).trim(),
+    'ATTACK AT DAWN',
+  )
   const tripleDesKey = '0123456789abcdef23456789abcdef01456789abcdef0123'
   assert.equal(
     run(binPath, ['encode', 'triple-des', 'ATTACK AT DAWN', '--key', tripleDesKey]).trim(),

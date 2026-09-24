@@ -8,6 +8,7 @@ import { AesCcm } from './aes/ccm'
 import { AesOcb } from './aes/ocb'
 import { AesLrw } from './aes/lrw'
 import { AesXts } from './aes/xts'
+import { AesCbcMac } from './aes/cbc-mac'
 import { Rijndael } from './rijndael'
 import { TripleDes } from './triple-des/ecb'
 import { TripleDesCbc } from './triple-des/cbc'
@@ -23,6 +24,7 @@ export const block: readonly CipherConstructor[] = [
   AesOcb,
   AesLrw,
   AesXts,
+  AesCbcMac,
   Rijndael,
   TripleDes,
   TripleDesCbc,

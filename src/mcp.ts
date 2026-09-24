@@ -129,6 +129,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
       error: 'must be 32 or 48 hex digits (two-key or three-key Triple DES)',
     },
   },
+  {
+    ciphers: ['blowfish'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:(?:[0-9A-Fa-f]\s*){2}){4,56}$/,
+      error: 'must be an even number of hex digits from 8 to 112 (a 32 to 448-bit Blowfish key)',
+    },
+  },
 ]
 
 /**

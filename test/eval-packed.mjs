@@ -341,6 +341,21 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const blowfishKey = '0123456789abcdeff0e1d2c3b4a59687'
+  assert.equal(
+    run(binPath, ['encode', 'blowfish', 'ATTACK AT DAWN', '--key', blowfishKey]).trim(),
+    '9e16058420b1546315051882f350a136',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'blowfish',
+      '9e16058420b1546315051882f350a136',
+      '--key',
+      blowfishKey,
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',

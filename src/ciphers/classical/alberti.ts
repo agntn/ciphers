@@ -1,7 +1,7 @@
-import type { CipherBaseOptions, CipherInfo, CipherResult } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { InvalidOptionError, MissingOptionError, normalizeError } from '../core/errors'
-import { getOpt, processBaseOptions } from '../core/utils'
+import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { InvalidOptionError, MissingOptionError, normalizeError } from '../../core/errors'
+import { getOpt, processBaseOptions } from '../../core/utils'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -82,6 +82,7 @@ export class Alberti extends Cipher {
       label: 'Alberti',
       description:
         'Simplified Alberti disk cipher with a keyed inner alphabet rotated at a fixed period',
+      category: 'classical',
       family: 'polyalphabetic',
       selfInverse: false,
       options: [

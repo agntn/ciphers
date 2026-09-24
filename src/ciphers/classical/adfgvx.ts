@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { decodeColumnar, encodeColumnar, getOpt } from '../core/utils'
-import { normalizeError } from '../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { decodeColumnar, encodeColumnar, getOpt } from '../../core/utils'
+import { normalizeError } from '../../core/errors'
 
 const ADFGVX_LETTERS = 'ADFGVX'
 const GRID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -66,6 +66,7 @@ export class Adfgvx extends Cipher {
       label: 'ADFGVX',
       description:
         'WWI fractionation cipher: a 6×6 grid (letters+digits) coded as ADFGVX pairs, then an optional columnar transposition',
+      category: 'classical',
       family: 'fractionation',
       selfInverse: false,
       options: [

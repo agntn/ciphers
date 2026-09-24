@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { InvalidOptionError, normalizeError } from '../core/errors'
-import { getOpt } from '../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { InvalidOptionError, normalizeError } from '../../core/errors'
+import { getOpt } from '../../core/utils'
 
 /** The two Bacon tables: his own 24-letter one shares I/J and U/V, the 26-letter one codes every letter. */
 const BACON_ALPHABETS = {
@@ -63,6 +63,7 @@ export class Bacon extends Cipher {
       name: 'bacon',
       label: "Bacon's Cipher",
       description: 'Binary encoding — each letter → 5-bit A/B pattern (steganographic origin)',
+      category: 'classical',
       family: 'fractionation',
       selfInverse: false,
       options: [

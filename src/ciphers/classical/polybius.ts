@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { normalizeError } from '../core/errors'
-import { buildPolybiusSquare, getOpt } from '../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { normalizeError } from '../../core/errors'
+import { buildPolybiusSquare, getOpt } from '../../core/utils'
 
 export class Polybius extends Cipher {
   name(): string {
@@ -13,6 +13,7 @@ export class Polybius extends Cipher {
       name: 'polybius',
       label: 'Polybius Square',
       description: 'Fractionation — each letter → two digits (row,col) in a 5×5 grid (I/J share)',
+      category: 'classical',
       family: 'fractionation',
       selfInverse: false,
       options: [

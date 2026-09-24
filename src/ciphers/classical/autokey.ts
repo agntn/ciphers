@@ -1,7 +1,7 @@
-import type { CipherBaseOptions, CipherInfo, CipherResult } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { InvalidOptionError, MissingOptionError, normalizeError } from '../core/errors'
-import { processBaseOptions } from '../core/utils'
+import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { InvalidOptionError, MissingOptionError, normalizeError } from '../../core/errors'
+import { processBaseOptions } from '../../core/utils'
 
 function transform(
   text: string,
@@ -17,47 +17,53 @@ function transform(
       throw new InvalidOptionError('key', key, 'must contain at least one ASCII letter')
     const { preserveCase, stripNonAlpha } = processBaseOptions(options)
     const input = stripNonAlpha ? text.replaceAll(/[^A-Za-z]/g, '') : text
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const stream = new Uint8Array(Array.from(letters, (letter) => alphabet.indexOf(letter)))
     let position = 0
     const output = Array.from(input, (character) => {
-      const isUpper = character >= 'A' && character <= 'Z'
+      if (!/[A-Za-z]/.test(character)) return character
       const isLower = character >= 'a' && character <= 'z'
-      if (!isUpper && !isLower) return character
-      const value = character.toUpperCase().codePointAt(0)! - 65
-      const keyValue = letters.codePointAt(position % letters.length)! - 65
-      const result = String.fromCodePoint(((keyValue - value + 26) % 26) + 65)
-      position++
+      const value = alphabet.indexOf(character.toUpperCase())
+      const shift = stream.at(position)
+      if (shift === undefined) throw new RangeError('Autokey stream position out of bounds')
+      const plain = operation === 'decode' ? (value - shift + 26) % 26 : value
+      const result = String.fromCodePoint(
+        (operation === 'decode' ? plain : (value + shift) % 26) + 65,
+      )
+      stream[position] = plain
+      position = (position + 1) % stream.length
       return preserveCase && isLower ? result.toLowerCase() : result
     }).join('')
     return {
       text: output,
-      cipher: 'beaufort',
+      cipher: 'autokey',
       operation,
       options: { key, preserveCase, stripNonAlpha },
     }
   } catch (error) {
-    throw normalizeError(error, 'beaufort')
+    throw normalizeError(error, 'autokey')
   }
 }
 
-export class Beaufort extends Cipher {
+export class Autokey extends Cipher {
   name(): string {
-    return 'beaufort'
+    return 'autokey'
   }
 
   info(): CipherInfo {
     return {
-      name: 'beaufort',
-      label: 'Beaufort',
-      description: 'Standard Beaufort: subtract each input letter from the repeating key',
+      name: 'autokey',
+      label: 'Autokey',
+      description: 'Vigenère with a primer key followed by the plaintext, not a repeating keyword',
+      category: 'classical',
       family: 'polyalphabetic',
-      selfInverse: true,
+      selfInverse: false,
       options: [
         {
           name: 'key',
           type: 'string',
           required: true,
-          description:
-            'Repeating keyword, case-insensitive; non-ASCII letters and punctuation ignored',
+          description: 'Primer keyword; only ASCII letters are used, ignoring case',
         },
       ],
       keyspace: '26^keyLength',

@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { getOpt, processBaseOptions } from '../core/utils'
-import { MissingOptionError, InvalidOptionError, normalizeError } from '../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { getOpt, processBaseOptions } from '../../core/utils'
+import { MissingOptionError, InvalidOptionError, normalizeError } from '../../core/errors'
 
 function vigenereProcess(
   text: string,
@@ -52,6 +52,7 @@ export class Vigenere extends Cipher {
       name: 'vigenere',
       label: 'Vigenère',
       description: 'Polyalphabetic substitution — repeating keyword shifts letters',
+      category: 'classical',
       family: 'polyalphabetic',
       selfInverse: false,
       options: [

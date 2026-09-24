@@ -26,6 +26,36 @@ describe('CLI domain errors', () => {
   })
 })
 
+describe('CLI cipher categories', () => {
+  it('lists the built-ins under their category', () => {
+    const result = runCli(['ciphers', '--category', 'classical'], {
+      ...process.env,
+      CONSOLA_LEVEL: '3',
+    })
+
+    expect(result.status).toBe(0)
+    const output = `${result.stdout}${result.stderr}`
+    expect(output).toContain('Available classical ciphers:')
+    expect(output).toContain('caesar')
+    expect(output).toContain('enigma')
+  })
+
+  it('rejects a category the registry does not use', () => {
+    const result = runCli(['ciphers', '--category', 'block'])
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('Invalid option category=block: must be classical\n')
+  })
+
+  it('names the category in cipher info', () => {
+    const result = runCli(['info', 'playfair'], { ...process.env, CONSOLA_LEVEL: '3' })
+
+    expect(result.status).toBe(0)
+    expect(`${result.stdout}${result.stderr}`).toContain('Category: classical')
+  })
+})
+
 describe('CLI frequency language', () => {
   it('rejects a language the other surfaces do not accept', () => {
     const result = runCli(['frequency', 'HELLO', '--lang', 'de'])

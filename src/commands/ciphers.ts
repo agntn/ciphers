@@ -1,11 +1,14 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
+import { cipherCategories } from '../core/ciphers'
+import { InvalidOptionError } from '../core/errors'
 import { ciphers as listCiphers, create } from '../core/registry'
 
 function printVerboseCipher(name: string): void {
   const info = create(name).info()
   consola.info(`\x1B[1m${info.label}\x1B[0m (${info.name})`)
   consola.info(`  ${info.description}`)
+  consola.info(`  Category: ${info.category}`)
   consola.info(`  Family: ${info.family}`)
   consola.info(`  Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)
   if (info.keyspace) consola.info(`  Keyspace: ${info.keyspace}`)
@@ -32,15 +35,29 @@ export default defineCommand({
       alias: 'v',
       default: false,
     },
+    category: {
+      type: 'string',
+      description: `List one category only (${cipherCategories.join(', ')})`,
+      alias: 'c',
+    },
   },
   async run({ args }) {
-    const names = listCiphers()
+    const category = args.category
+    if (category !== undefined && !(cipherCategories as readonly string[]).includes(category)) {
+      throw new InvalidOptionError('category', category, `must be ${cipherCategories.join(', ')}`)
+    }
+    const names = listCiphers().filter(
+      (name) => category === undefined || create(name).info().category === category,
+    )
     if (args.verbose) {
       for (const name of names) printVerboseCipher(name)
       return
     }
 
-    consola.info('Available ciphers:')
-    for (const name of names) printCipherSummary(name)
+    const groups = Map.groupBy(names, (name) => create(name).info().category)
+    for (const [current, members] of groups) {
+      consola.info(`Available ${current} ciphers:`)
+      for (const name of members) printCipherSummary(name)
+    }
   },
 })

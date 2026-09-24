@@ -12,6 +12,7 @@ export default defineCommand({
     const info = cipher.info()
     consola.info(`\x1B[1m${info.label}\x1B[0m (${info.name})`)
     consola.info(`  ${info.description}`)
+    consola.info(`  Category: ${info.category}`)
     consola.info(`  Family: ${info.family}`)
     consola.info(`  Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)
     if (info.keyspace) consola.info(`  Keyspace: ${info.keyspace}`)

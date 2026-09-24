@@ -75,11 +75,12 @@ describe('Pi extension', () => {
     const info = getTool('cipher_info')
 
     const list = await info.execute('info', {})
-    expect(list.content[0]?.text).toContain('caesar [substitution-shift]')
+    expect(list.content[0]?.text).toMatch(/^classical:\n {2}caesar \[substitution-shift\]/)
+    expect((await info.execute('info', { category: 'classical' })).content).toEqual(list.content)
     expect(list.content[0]?.text).toContain('enigma [rotor]')
 
     const detail = await info.execute('info', { cipher: 'vigenere' })
-    expect(detail.content[0]?.text).toContain('(vigenere) — polyalphabetic')
+    expect(detail.content[0]?.text).toContain('(vigenere) — classical, polyalphabetic')
     expect(detail.content[0]?.text).toContain('key (string, required)')
   })
 

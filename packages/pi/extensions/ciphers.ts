@@ -19,6 +19,7 @@ import {
   MAX_TRANSFORM_TEXT_LENGTH,
   OPTION_DESCRIPTIONS,
   bruteForceCaesar,
+  cipherCategories,
   formatCipherInfo,
   formatFrequencyAnalysis,
   transformCipher,
@@ -235,11 +236,12 @@ export default function ciphersExtension(pi: ExtensionAPI) {
     defineTool({
       name: 'cipher_info',
       label: 'Cipher Info',
-      description: "List the built-in ciphers, or show one cipher's options, family, and keyspace.",
+      description:
+        "List the built-in ciphers by category, or show one cipher's options, category, family, and keyspace.",
       promptSnippet:
         'Use cipher_info to check cipher names and required options before encoding or decoding.',
       promptGuidelines: [
-        'Without a cipher name it lists every cipher with its family and description.',
+        'Without a cipher name it lists every cipher under its category, with family and description; category narrows the list.',
         'With a name it shows options, defaults, self-inverse, and keyspace.',
       ],
       parameters: Type.Object({
@@ -249,12 +251,15 @@ export default function ciphersExtension(pi: ExtensionAPI) {
             description: 'Cipher to describe; omit to list every cipher',
           }),
         ),
+        category: Type.Optional(
+          Type.Enum(cipherCategories, { description: OPTION_DESCRIPTIONS.category }),
+        ),
       }),
       renderCall(args, _theme) {
         return new Text(`ℹ️ cipher info${args.cipher ? `: ${args.cipher}` : ''}`, 0, 0)
       },
       async execute(_toolCallId, params): Promise<PiToolResult> {
-        return toPiResult(formatCipherInfo(await loadLibrary(), params.cipher))
+        return toPiResult(formatCipherInfo(await loadLibrary(), params.cipher, params.category))
       },
     }),
   )

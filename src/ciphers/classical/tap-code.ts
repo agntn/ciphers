@@ -1,6 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { CipherError, normalizeError } from '../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { CipherError, normalizeError } from '../../core/errors'
 
 // Tap code uses a 5×5 Polybius square (C/K share)
 //   1  2  3  4  5
@@ -80,6 +80,7 @@ export class TapCode extends Cipher {
       name: 'tap-code',
       label: 'Tap Code',
       description: '5×5 grid pairs (C/K share) — used by Vietnam War POWs, communicated via knocks',
+      category: 'classical',
       family: 'fractionation',
       selfInverse: false,
       options: [],

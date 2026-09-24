@@ -1,6 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { applyBaseOptions, processBaseOptions } from '../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { applyBaseOptions, processBaseOptions } from '../../core/utils'
 
 function atbash(text: string): string {
   return Array.from(text, (c) => {
@@ -20,6 +20,7 @@ export class Atbash extends Cipher {
       name: 'atbash',
       label: 'Atbash',
       description: 'Reflection cipher — A↔Z, B↔Y, etc. Hebrew origin, self-inverse',
+      category: 'classical',
       family: 'substitution-reflection',
       selfInverse: true,
       options: [],

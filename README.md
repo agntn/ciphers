@@ -19,7 +19,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
-- 🧭 **Ciphers describe themselves.** `info()` has the family, the options, the keyspace and whether encode and decode are the same thing, and the CLI, the tools and the playground all read it from there.
+- 🧭 **Ciphers describe themselves.** `info()` has the category, the family, the options, the keyspace and whether encode and decode are the same thing, and the CLI, the tools and the playground all read it from there.
 - 🖥️ **CLI, library, MCP, Pi and OMP.** Five tools with one set of executors behind them, whichever one you're holding.
 - 🌐 **Runs in the browser too.** The playground imports the package into the page, nothing is posted anywhere.
 - 🧱 **Bounded on purpose.** Text and keys have a maximum length in every tool schema, so a model can't hand the process a novel to shift.
@@ -107,15 +107,15 @@ ciphers info bifid
 
 ### Commands
 
-| Command     | What it does                                  | Example                                                |
-| ----------- | --------------------------------------------- | ------------------------------------------------------ |
-| `encode`    | Plaintext in, ciphertext out                  | `ciphers encode vigenere "ATTACK AT DAWN" --key LEMON` |
-| `decode`    | The other way, same flags                     | `ciphers decode vigenere "LXFOPV EF RNHR" --key LEMON` |
-| `brute`     | All 25 Caesar shifts                          | `ciphers brute "DWWDFN DW GDZQ"`                       |
-| `frequency` | Letter histogram and the index of coincidence | `ciphers frequency "DWWDFN DW GDZQ" --lang en`         |
-| `ciphers`   | Every cipher, `-v` adds the options           | `ciphers ciphers -v`                                   |
-| `info`      | One cipher's family, options and keyspace     | `ciphers info enigma`                                  |
-| `mcp`       | The MCP server on stdio                       | `ciphers mcp`                                          |
+| Command     | What it does                                        | Example                                                |
+| ----------- | --------------------------------------------------- | ------------------------------------------------------ |
+| `encode`    | Plaintext in, ciphertext out                        | `ciphers encode vigenere "ATTACK AT DAWN" --key LEMON` |
+| `decode`    | The other way, same flags                           | `ciphers decode vigenere "LXFOPV EF RNHR" --key LEMON` |
+| `brute`     | All 25 Caesar shifts                                | `ciphers brute "DWWDFN DW GDZQ"`                       |
+| `frequency` | Letter histogram and the index of coincidence       | `ciphers frequency "DWWDFN DW GDZQ" --lang en`         |
+| `ciphers`   | Every cipher by category, `-v` adds the options     | `ciphers ciphers -v`                                   |
+| `info`      | One cipher's category, family, options and keyspace | `ciphers info enigma`                                  |
+| `mcp`       | The MCP server on stdio                             | `ciphers mcp`                                          |
 
 A cipher's options are its flags: `--key`, `--transposition`, `--shift`, `--rails`, `--period`, `--letters`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
 

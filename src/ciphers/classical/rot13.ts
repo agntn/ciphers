@@ -1,6 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { applyBaseOptions, processBaseOptions } from '../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { applyBaseOptions, processBaseOptions } from '../../core/utils'
 
 function rot13(text: string): string {
   return Array.from(text, (c) => {
@@ -20,6 +20,7 @@ export class Rot13 extends Cipher {
       name: 'rot13',
       label: 'ROT-13',
       description: 'Fixed shift by 13 — self-inverse (encode = decode)',
+      category: 'classical',
       family: 'substitution-shift',
       selfInverse: true,
       options: [],

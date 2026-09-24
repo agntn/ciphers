@@ -198,7 +198,8 @@ const tools: ToolDefinition[] = [
   {
     name: 'cipher_info',
     title: 'Cipher Info',
-    description: "List the built-in ciphers, or show one cipher's options, family, and keyspace.",
+    description:
+      "List the built-in ciphers by category, or show one cipher's options, category, family, and keyspace.",
     inputSchema: Type.Object({
       cipher: Type.Optional(
         Type.String({
@@ -206,8 +207,16 @@ const tools: ToolDefinition[] = [
           description: 'Registered cipher to describe; omit to list every cipher',
         }),
       ),
+      category: Type.Optional(
+        Type.Enum(ciphersLibrary.cipherCategories, { description: OPTION_DESCRIPTIONS.category }),
+      ),
     }),
-    execute: (args) => formatCipherInfo(ciphersLibrary, args.cipher as string | undefined),
+    execute: (args) =>
+      formatCipherInfo(
+        ciphersLibrary,
+        args.cipher as string | undefined,
+        args.category as string | undefined,
+      ),
   },
 ]
 

@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { getOpt, processBaseOptions } from '../core/utils'
-import { InvalidOptionError, normalizeError } from '../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { getOpt, processBaseOptions } from '../../core/utils'
+import { InvalidOptionError, normalizeError } from '../../core/errors'
 
 function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b)
@@ -69,6 +69,7 @@ export class Affine extends Cipher {
       name: 'affine',
       label: 'Affine Cipher',
       description: 'Monoalphabetic arithmetic — E(x) = (a·x + b) mod 26, requires gcd(a,26)=1',
+      category: 'classical',
       family: 'substitution-multiplicative',
       selfInverse: false,
       options: [

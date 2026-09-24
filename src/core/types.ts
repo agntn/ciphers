@@ -1,3 +1,5 @@
+import type { CipherCategory } from './ciphers'
+
 /** Result of a cipher operation. */
 export interface CipherResult {
   /** Processed text (encoded or decoded). */
@@ -134,7 +136,9 @@ export interface CipherInfo {
   label: string
   /** One-line description. */
   description: string
-  /** Cipher family. */
+  /** Category the cipher belongs to, such as `classical`. */
+  category: CipherCategory
+  /** Cipher family within the category. */
   family:
     | 'substitution-shift'
     | 'substitution-keyed'

@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { getOpt } from '../core/utils'
-import { InvalidOptionError, normalizeError } from '../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { getOpt } from '../../core/utils'
+import { InvalidOptionError, normalizeError } from '../../core/errors'
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const ROTORS = [
@@ -163,6 +163,7 @@ export class Enigma extends Cipher {
       name: 'enigma',
       label: 'Enigma M3',
       description: 'Wehrmacht Enigma M3 with rotors I-II-III and reflector B',
+      category: 'classical',
       family: 'rotor',
       selfInverse: true,
       options: [

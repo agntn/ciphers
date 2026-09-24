@@ -1,5 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
 
 function rot47(text: string): string {
   return Array.from(text, (c) => {
@@ -19,6 +19,7 @@ export class Rot47 extends Cipher {
       name: 'rot47',
       label: 'ROT-47',
       description: 'Shift by 47 over printable ASCII (33-126) — self-inverse',
+      category: 'classical',
       family: 'substitution-shift',
       selfInverse: true,
       options: [],

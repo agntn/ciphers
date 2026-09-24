@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { applyBaseOptions, getOpt, processBaseOptions } from '../core/utils'
-import { InvalidOptionError, normalizeError } from '../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { applyBaseOptions, getOpt, processBaseOptions } from '../../core/utils'
+import { InvalidOptionError, normalizeError } from '../../core/errors'
 
 function encodeRailFence(text: string, rails: number): string {
   const chars = Array.from(text)
@@ -64,6 +64,7 @@ export class RailFence extends Cipher {
       name: 'rail-fence',
       label: 'Rail Fence',
       description: 'Transposition cipher — text written in zigzag pattern across N rails',
+      category: 'classical',
       family: 'transposition',
       selfInverse: false,
       options: [

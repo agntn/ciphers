@@ -168,11 +168,13 @@ describe('OMP extension', () => {
 
   it('describes ciphers for discovery', async () => {
     const list = await getTool('cipher_info').execute('info', {})
-    expect(list.content[0]?.text).toContain('caesar [substitution-shift]')
+    expect(list.content[0]?.text).toMatch(/^classical:\n {2}caesar \[substitution-shift\]/)
+    const filtered = await getTool('cipher_info').execute('info', { category: 'classical' })
+    expect(filtered.content).toEqual(list.content)
     expect(list.content[0]?.text).toContain('enigma [rotor]')
 
     const detail = await getTool('cipher_info').execute('info', { cipher: 'playfair' })
-    expect(detail.content[0]?.text).toContain('(playfair) — digraph')
+    expect(detail.content[0]?.text).toContain('(playfair) — classical, digraph')
     expect(detail.content[0]?.text).toContain('key (string, required)')
   })
 

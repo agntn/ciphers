@@ -12,6 +12,7 @@ import {
   MAX_TRANSFORM_TEXT_LENGTH,
   OPTION_DESCRIPTIONS,
   bruteForceCaesar,
+  cipherCategories,
   formatCipherInfo,
   formatFrequencyAnalysis,
   transformCipher,
@@ -185,7 +186,8 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
   omp.registerTool({
     name: 'cipher_info',
     label: 'Cipher Info',
-    description: "List the built-in ciphers, or show one cipher's options, family, and keyspace.",
+    description:
+      "List the built-in ciphers by category, or show one cipher's options, category, family, and keyspace.",
     parameters: Type.Object({
       cipher: Type.Optional(
         Type.String({
@@ -193,11 +195,14 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
           description: 'Cipher to describe; omit to list every cipher',
         }),
       ),
+      category: Type.Optional(
+        Type.Enum(cipherCategories, { description: OPTION_DESCRIPTIONS.category }),
+      ),
     }),
     approval: 'read',
     loadMode: 'essential',
     async execute(_toolCallId, params) {
-      return formatCipherInfo(await loadLibrary(), params.cipher)
+      return formatCipherInfo(await loadLibrary(), params.cipher, params.category)
     },
   })
 }

@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { InvalidOptionError, normalizeError } from '../core/errors'
-import { getOpt, processBaseOptions } from '../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { InvalidOptionError, normalizeError } from '../../core/errors'
+import { getOpt, processBaseOptions } from '../../core/utils'
 
 function caesarProcess(
   text: string,
@@ -46,6 +46,7 @@ export class Caesar extends Cipher {
       name: 'caesar',
       label: 'Caesar Cipher',
       description: 'Shift cipher — each letter shifted by N positions in the alphabet',
+      category: 'classical',
       family: 'substitution-shift',
       selfInverse: false,
       options: [

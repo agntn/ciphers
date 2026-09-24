@@ -5,6 +5,8 @@ import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../..
 import { aesBlock } from './block'
 
 const BLOCK_SIZE = 16
+/** NIST SP 800-38E caps one data unit at 2^20 AES blocks, 16 MiB. */
+const MAX_BYTES = BLOCK_SIZE * 2 ** 20
 
 /**
  * Multiply a tweak by α, the polynomial x, in GF(2^128) modulo x^128 + x^7 + x^2 + x + 1. XTS
@@ -25,13 +27,35 @@ function xor(a: Bytes, b: Bytes): number[] {
 }
 
 /**
+ * Refuse data XTS cannot take: less than one whole block to steal from, or a data unit over the
+ * 2^20 blocks NIST SP 800-38E allows.
+ *
+ * @param length - Bytes in the data unit.
+ * @param operation - Encrypt or decrypt, which picks how the short case is worded.
+ */
+function checkLength(length: number, operation: 'encrypt' | 'decrypt'): void {
+  if (length < BLOCK_SIZE) {
+    throw new CipherError(
+      operation === 'encrypt'
+        ? `[aes-xts] XTS needs at least one whole block, 16 bytes of UTF-8 text, got ${length} bytes`
+        : `[aes-xts] Ciphertext must be at least 16 bytes (32 hex digits), got ${length} bytes`,
+    )
+  }
+  if (length > MAX_BYTES) {
+    throw new CipherError(
+      `[aes-xts] One data unit is at most 2^20 blocks (16 MiB) under NIST SP 800-38E, got ${length} bytes`,
+    )
+  }
+}
+
+/**
  * XTS-AES as IEEE 1619 and NIST SP 800-38E define it. AES under the second key encrypts the data
  * unit number into the first tweak `T`, and every block is `E(P ⊕ T) ⊕ T` under the first key,
  * with `T` multiplied by α from one block to the next. A last block shorter than 16 bytes steals
  * the tail of the ciphertext before it, so nothing is padded and the output is as long as the
  * input.
  *
- * @param data - At least 16 bytes.
+ * @param data - 16 bytes to 16 MiB.
  * @param key - Two AES keys of the same length, 32 or 64 bytes in all: the data key, then the
  *   tweak key.
  * @param operation - Encrypt or decrypt.
@@ -44,13 +68,7 @@ export function aesXts(
   operation: 'encrypt' | 'decrypt',
   unit: bigint,
 ): number[] {
-  if (data.length < BLOCK_SIZE) {
-    throw new CipherError(
-      operation === 'encrypt'
-        ? `[aes-xts] XTS needs at least one whole block, 16 bytes of UTF-8 text, got ${data.length} bytes`
-        : `[aes-xts] Ciphertext must be at least 16 bytes (32 hex digits), got ${data.length} bytes`,
-    )
-  }
+  checkLength(data.length, operation)
   const half = key.length / 2
   const transform = aesBlock(key.slice(0, half), operation)
   const unitBytes = Array.from({ length: BLOCK_SIZE }, (_, i) =>

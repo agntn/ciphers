@@ -2319,6 +2319,14 @@ describe('aes-xts', () => {
     expect(() => xts.decode('22c74dbe484d5edba8907fa4eefece6', { key })).toThrow(/whole bytes/)
   })
 
+  it('refuses a data unit over the 2^20 blocks NIST SP 800-38E allows', () => {
+    // A sparse array has the length without the memory; the check runs before any byte is read.
+    const oversized: number[] = Object.assign([], { length: 16 * 2 ** 20 + 1 })
+    expect(() => aesXts(oversized, hex(key), 'encrypt', 0n)).toThrow(
+      /at most 2\^20 blocks \(16 MiB\).*got 16777217 bytes/,
+    )
+  })
+
   it('rejects keys and tweaks it cannot read', () => {
     for (const operation of ['encode', 'decode'] as const) {
       expect(() => xts[operation]('')).toThrow(MissingOptionError)

@@ -8,7 +8,7 @@ export default defineAppConfig({
   /** Landing JSON-LD: a free SoftwareApplication published by the agntn Organization, tied to GitHub and npm through sameAs. */
   seo: {
     title: "@agntn/ciphers",
-    description: `${spellOutCapital(CIPHERS.length)} classical ciphers behind one local API, a CLI and ${spellOut(TOOLS.length)} agent tools. Encode, decode, brute force a Caesar, read letter frequencies. All offline.`,
+    description: `${spellOutCapital(CIPHERS.length)} ciphers from Caesar to AES behind one local API, a CLI and ${spellOut(TOOLS.length)} agent tools. Encode, decode, brute force a Caesar, read letter frequencies. All offline.`,
     schema: {
       type: "SoftwareApplication",
       applicationCategory: "DeveloperApplication",

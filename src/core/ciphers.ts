@@ -20,14 +20,16 @@ export const builtinCiphers = [
   'adfgvx',
   'bifid',
   'enigma',
+  'aes',
 ] as const
 
 export type BuiltinCipher = (typeof builtinCiphers)[number]
 
 /**
  * Cipher categories, each with its own folder under `src/ciphers/`. Pen-and-paper and machine
- * ciphers are `classical`; a block or stream cipher gets a new category next to it.
+ * ciphers are `classical`, modern block ciphers are `block`; a stream cipher gets a new category
+ * next to them.
  */
-export const cipherCategories = ['classical'] as const
+export const cipherCategories = ['classical', 'block'] as const
 
 export type CipherCategory = (typeof cipherCategories)[number]

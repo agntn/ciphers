@@ -38,14 +38,15 @@ describe('CLI cipher categories', () => {
     expect(output).toContain('Available classical ciphers:')
     expect(output).toContain('caesar')
     expect(output).toContain('enigma')
+    expect(output).not.toMatch(/\baes\b/)
   })
 
   it('rejects a category the registry does not use', () => {
-    const result = runCli(['ciphers', '--category', 'block'])
+    const result = runCli(['ciphers', '--category', 'stream'])
 
     expect(result.status).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('Invalid option category=block: must be classical\n')
+    expect(result.stderr).toBe('Invalid option category=stream: must be one of classical, block\n')
   })
 
   it('names the category in cipher info', () => {

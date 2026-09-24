@@ -106,6 +106,12 @@ export interface BaconOptions extends CipherBaseOptions {
   letters?: 24 | 26
 }
 
+/** AES-ECB options. */
+export interface AesOptions extends CipherBaseOptions {
+  /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
+  key: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *
@@ -136,7 +142,7 @@ export interface CipherInfo {
   label: string
   /** One-line description. */
   description: string
-  /** Category the cipher belongs to, such as `classical`. */
+  /** Category the cipher belongs to, such as `classical` or `block`. */
   category: CipherCategory
   /** Cipher family within the category. */
   family:
@@ -149,6 +155,7 @@ export interface CipherInfo {
     | 'transposition'
     | 'polyalphabetic'
     | 'rotor'
+    | 'substitution-permutation'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
   /** Required/optional options. */

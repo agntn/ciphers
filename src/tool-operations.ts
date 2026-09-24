@@ -61,13 +61,14 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
 export const OPTION_DESCRIPTIONS = {
   cipher: `Exact built-in cipher name: ${builtinCiphers.join(', ')}`,
   category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
-  key: 'Keyword, or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm and aes-ocb, 64, 80 or 96 for aes-lrw, 32, 40, 48, 56 or 64 for rijndael, 32 or 48 for triple-des and triple-des-cbc. Required by vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, rijndael, triple-des and triple-des-cbc; optional for polybius, adfgvx and bifid',
+  key: 'Keyword, or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm and aes-ocb, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 32 or 48 for triple-des and triple-des-cbc. Required by vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, rijndael, triple-des and triple-des-cbc; optional for polybius, adfgvx and bifid',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
   iv: 'AES-CBC, AES-CFB, AES-OFB, AES-CTR and Triple DES CBC only, and required there: initialization vector, 32 hex digits for AES (the initial counter block for AES-CTR), 16 for triple-des-cbc',
   segment: 'AES-CFB only: bits fed back per step, 1, 8 or 128 (default 128)',
   blockSize:
     'Rijndael only: block length in bits, 128, 160, 192, 224 or 256 (default 128, which is AES)',
-  tweak: 'AES-LRW only: index of the first block, up to 32 hex digits (default 1)',
+  tweak:
+    'Up to 32 hex digits. AES-LRW: index of the first block (default 1). AES-XTS: the data unit number (default 0)',
   nonce:
     'AES-CCM and AES-OCB only, and required there: 14 to 26 hex digits (7 to 13 bytes) for AES-CCM, 2 to 30 (1 to 15 bytes) for AES-OCB, never reused under one key',
   aad: 'AES-CCM and AES-OCB only: associated data in hex, covered by the tag but not encrypted; decoding needs the same value (default none)',

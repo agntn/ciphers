@@ -6,6 +6,7 @@ import { Cipher } from '../../src/core/cipher'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors'
 import { aesEcb } from '../../src/ciphers/block/aes/ecb'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw'
+import { aesXts } from '../../src/ciphers/block/aes/xts'
 import { aesCbc } from '../../src/ciphers/block/aes/cbc'
 import { aesCfb } from '../../src/ciphers/block/aes/cfb'
 import { aesOfb } from '../../src/ciphers/block/aes/ofb'
@@ -17,8 +18,8 @@ import { tripleDesEcb } from '../../src/ciphers/block/triple-des/ecb'
 import { tripleDesCbc } from '../../src/ciphers/block/triple-des/cbc'
 
 describe('registry', () => {
-  it('registers all 31 ciphers', () => {
-    expect(ciphers()).toHaveLength(31)
+  it('registers all 32 ciphers', () => {
+    expect(ciphers()).toHaveLength(32)
     for (const name of [
       'caesar',
       'rot13',
@@ -42,6 +43,7 @@ describe('registry', () => {
       'aes-ccm',
       'aes-ocb',
       'aes-lrw',
+      'aes-xts',
       'rijndael',
       'triple-des',
       'triple-des-cbc',
@@ -785,6 +787,7 @@ describe('edge cases', () => {
     'aes-ccm': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
     'aes-ocb': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
+    'aes-xts': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     rijndael: { key: '000102030405060708090a0b0c0d0e0f', blockSize: 256 },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
     'triple-des-cbc': { key: '0123456789abcdef23456789abcdef01', iv: '00'.repeat(8) },
@@ -794,6 +797,11 @@ describe('edge cases', () => {
     for (const name of ciphers()) {
       const cipher = create(name)
       const opts = keyOpts[name] ?? {}
+      if (name === 'aes-xts') {
+        // XTS has no padding, so it needs a whole block of text.
+        expect(() => cipher.encode('', opts)).toThrow(/at least one whole block/)
+        continue
+      }
       const result = cipher.encode('', opts)
       expect(typeof result.text).toBe('string')
     }
@@ -803,6 +811,11 @@ describe('edge cases', () => {
     for (const name of ciphers()) {
       const cipher = create(name)
       const opts = keyOpts[name] ?? {}
+      if (name === 'aes-xts') {
+        // XTS has no padding, so it needs a whole block of text.
+        expect(() => cipher.encode('123 !@#', opts)).toThrow(/at least one whole block/)
+        continue
+      }
       const result = cipher.encode('123 !@#', opts)
       expect(typeof result.text).toBe('string')
     }
@@ -2134,6 +2147,213 @@ describe('aes-lrw', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'tweak', type: 'string', required: false, default: '1' },
+      ],
+    })
+  })
+})
+
+describe('aes-xts', () => {
+  const xts = create('aes-xts')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '2718281828459045235360287471352631415926535897932384626433832795'
+  const unit = '00000000000000000000000000000000'
+
+  /**
+   * IEEE 1619-2007 Annex B, vectors 1 to 3 and 15 to 18, as OpenSSL's
+   * `evpciph_aes_common.txt` carries them. 15 to 18 end in a partial block of 1 to 4 bytes.
+   */
+  it('matches the IEEE 1619 XTS-AES vectors', () => {
+    const stealing = 'fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0bfbebdbcbbbab9b8b7b6b5b4b3b2b1b0'
+    for (const [vectorKey, index, plaintext, ciphertext] of [
+      [
+        '00'.repeat(32),
+        0n,
+        '00'.repeat(32),
+        '917cf69ebd68b2ec9b9fe9a3eadda692cd43d2f59598ed858c02c2652fbf922e',
+      ],
+      [
+        '11'.repeat(16) + '22'.repeat(16),
+        0x3333333333n,
+        '44'.repeat(32),
+        'c454185e6a16936e39334038acef838bfb186fff7480adc4289382ecd6d394f0',
+      ],
+      [
+        'fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0' + '22'.repeat(16),
+        0x3333333333n,
+        '44'.repeat(32),
+        'af85336b597afc1a900b2eb21ec949d292df4c047e0b21532186a5971a227a89',
+      ],
+      [
+        stealing,
+        0x123456789an,
+        '000102030405060708090a0b0c0d0e0f10',
+        '6c1625db4671522d3d7599601de7ca09ed',
+      ],
+      [
+        stealing,
+        0x123456789an,
+        '000102030405060708090a0b0c0d0e0f1011',
+        'd069444b7a7e0cab09e24447d24deb1fedbf',
+      ],
+      [
+        stealing,
+        0x123456789an,
+        '000102030405060708090a0b0c0d0e0f101112',
+        'e5df1351c0544ba1350b3363cd8ef4beedbf9d',
+      ],
+      [
+        stealing,
+        0x123456789an,
+        '000102030405060708090a0b0c0d0e0f10111213',
+        '9d84c813f719aa2c7be3f66171c7c5c2edbf9dac',
+      ],
+    ] as const) {
+      expect(aesXts(hex(plaintext), hex(vectorKey), 'encrypt', index)).toEqual(hex(ciphertext))
+      expect(aesXts(hex(ciphertext), hex(vectorKey), 'decrypt', index)).toEqual(hex(plaintext))
+    }
+  })
+
+  /**
+   * IEEE 1619-2007 vectors 4 to 6 and 10 to 14: 512-byte data units, 4 to 6 each encrypting the
+   * one before. Digests are SHA-256 of the published ciphertexts in `evpciph_aes_common.txt`.
+   */
+  it('matches the 512-byte IEEE 1619 vectors, up to data unit 2^40 - 1', () => {
+    const counting = Array.from({ length: 512 }, (_, i) => i % 256)
+    let plaintext = counting
+    for (const [index, digest] of [
+      [0n, 'ebee4d64dd2395bb2d6a2d37a0a48ecb2bf4913cfc99d27c2214f2f4144715ea'],
+      [1n, 'bed1b9d9bf8ce83a2ae1981fbd5f2b0c40e21bba5d57df2ea16ecd0975f25215'],
+      [2n, '68f1e84faa401c9914a7fd6fc565eaa7b531cedbc22bd28269aa58b15ceec03f'],
+    ] as const) {
+      const ciphertext = aesXts(plaintext, hex(key), 'encrypt', index)
+      expect(createHash('sha256').update(Uint8Array.from(ciphertext)).digest('hex')).toBe(digest)
+      expect(aesXts(ciphertext, hex(key), 'decrypt', index)).toEqual(plaintext)
+      plaintext = ciphertext
+    }
+    const key256 =
+      '27182818284590452353602874713526624977572470936999595749669676273141592653589793238462643383279502884197169399375105820974944592'
+    for (const [index, digest] of [
+      [0xffn, 'e97e974fa393af794f7a4684395814cf820de60a01eaec677d87b452e316b364'],
+      [0xffffn, 'def4fad29e95dfe1a24b1ad4620f86d7be094cced5b19e0b121aa82d9e6baf98'],
+      [0xffffffn, '8bf44861a081dd660d91ce615b5cdfb4d5df9d72c3025c12e67cc0ae097fa5d5'],
+      [0xffffffffn, 'c706140a11affda7402234f5e6331eacbfeb687d8e80d83962691823bb3636f0'],
+      [0xffffffffffn, 'afba71abc4e95b186d89a63a5437c1bafcfd1a18ca273970c534aba4f8d05282'],
+    ] as const) {
+      const ciphertext = aesXts(counting, hex(key256), 'encrypt', index)
+      expect(createHash('sha256').update(Uint8Array.from(ciphertext)).digest('hex')).toBe(digest)
+      expect(aesXts(ciphertext, hex(key256), 'decrypt', index)).toEqual(counting)
+    }
+  })
+
+  /** Expected values from Node's `createCipheriv('aes-128-xts')`, OpenSSL underneath. */
+  it('encodes UTF-8 text to hex of the same length, as OpenSSL aes-128-xts does', () => {
+    for (const [text, ciphertext] of [
+      [
+        'ATTACK AT DAWN FROM THE NORTH',
+        '22c74dbe484d5edba8907fa4eefece6d92beab33360246d4558612bf56',
+      ],
+      ['0123456789ABCDEF', '3e99a63ea7adcd621d2d9c41d6b40491'],
+      ['zażółć gęślą jaźń 🙂', 'a0185411439f7c720df20c5a01f5f0b80dd8fad5b461aaae0e88299f6f24a5'],
+    ]) {
+      expect(xts.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'aes-xts',
+        operation: 'encode',
+        options: { key, mode: 'xts', tweak: unit },
+      })
+      expect(xts.decode(ciphertext!, { key }).text).toBe(text)
+    }
+    const key256 =
+      '27182818284590452353602874713526624977572470936999595749669676273141592653589793238462643383279502884197169399375105820974944592'
+    expect(xts.encode('ATTACK AT DAWN FROM THE NORTH', { key: key256 }).text).toBe(
+      'dfd89948b1d8484f02a0b23379d0db92423b4da99bec0bb93ffc3b195e',
+    )
+  })
+
+  /** OpenSSL again, with the IV holding the data unit number in little-endian order. */
+  it('takes the data unit number from the tweak', () => {
+    const text = 'ATTACK AT DAWN FROM THE NORTH'
+    for (const [tweak, normalized, ciphertext] of [
+      [
+        '5',
+        '00000000000000000000000000000005',
+        '1595ed5d615365828e75081606ce0e5c05844b6b4656b7594ebd1f24e6',
+      ],
+      [
+        '12 3456 789A',
+        '0000000000000000000000123456789a',
+        'f8601196923a1c1fc7ff96bea0ae5894e3d3a722cd5b05e90e443e16a9',
+      ],
+      [
+        'f'.repeat(32),
+        'f'.repeat(32),
+        'db9b5aa63dd08409806b2e998b7c013f92a080b1ea86332986b663bebe',
+      ],
+    ]) {
+      const result = xts.encode(text, { key, tweak })
+      expect(result.text).toBe(ciphertext)
+      expect(result.options).toEqual({ key, mode: 'xts', tweak: normalized })
+      expect(xts.decode(ciphertext!, { key, tweak }).text).toBe(text)
+    }
+    expect(xts.encode(text, { key, tweak: '0' }).text).toBe(xts.encode(text, { key }).text)
+  })
+
+  it('gives different ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = xts.encode('A'.repeat(32), { key })
+    expect(text).toBe('553b7ea31ee5c66988f4c64b648b916ab6e36231df232d2904af9a73289419fb')
+    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
+  })
+
+  it('refuses text and ciphertext shorter than one block', () => {
+    for (const text of ['', 'ATTACK AT DAWN']) {
+      expect(() => xts.encode(text, { key })).toThrow(
+        new CipherError(
+          `[aes-xts] XTS needs at least one whole block, 16 bytes of UTF-8 text, got ${text.length} bytes`,
+        ),
+      )
+    }
+    expect(() => xts.decode('22c74dbe484d5edba8907fa4eefece', { key })).toThrow(
+      /at least 16 bytes \(32 hex digits\), got 15 bytes/,
+    )
+    expect(() => xts.decode('22c74dbe484d5edba8907fa4eefece6', { key })).toThrow(/whole bytes/)
+  })
+
+  it('refuses a data unit over the 2^20 blocks NIST SP 800-38E allows', () => {
+    // A sparse array has the length without the memory; the check runs before any byte is read.
+    const oversized: number[] = Object.assign([], { length: 16 * 2 ** 20 + 1 })
+    expect(() => aesXts(oversized, hex(key), 'encrypt', 0n)).toThrow(
+      /at most 2\^20 blocks \(16 MiB\).*got 16777217 bytes/,
+    )
+  })
+
+  it('rejects keys and tweaks it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => xts[operation]('')).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(16), '00'.repeat(24), '00'.repeat(48), 'g'.repeat(64), 12]) {
+        expect(() => xts[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['', '0x1', 'g', '1'.repeat(33), 1]) {
+        expect(() => xts[operation]('', { key, tweak: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('reports a wrong key or data unit as text that is not UTF-8', () => {
+    const ciphertext = '22c74dbe484d5edba8907fa4eefece6d92beab33360246d4558612bf56'
+    expect(() => xts.decode(ciphertext, { key, tweak: '1' })).toThrow(/not UTF-8 text/)
+  })
+
+  it('reports the block category and the tweak option', () => {
+    expect(resolveCipher('AES XTS')).toBe(xts)
+    expect(xts.info()).toMatchObject({
+      name: 'aes-xts',
+      category: 'block',
+      family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'tweak', type: 'string', required: false, default: '0' },
       ],
     })
   })

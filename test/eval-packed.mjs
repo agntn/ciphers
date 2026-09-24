@@ -242,6 +242,29 @@ try {
     run(binPath, ['decode', 'aes-lrw', '1b3e1004e52c450fda5b2bca03bca338', '--key', lrwKey]).trim(),
     'ATTACK AT DAWN',
   )
+  const xtsKey = '2718281828459045235360287471352631415926535897932384626433832795'
+  assert.equal(
+    run(binPath, [
+      'encode',
+      'aes-xts',
+      'ATTACK AT DAWN FROM THE NORTH',
+      '--key',
+      xtsKey,
+      '--tweak',
+      '5',
+    ]).trim(),
+    '1595ed5d615365828e75081606ce0e5c05844b6b4656b7594ebd1f24e6',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'aes-xts',
+      '22c74dbe484d5edba8907fa4eefece6d92beab33360246d4558612bf56',
+      '--key',
+      xtsKey,
+    ]).trim(),
+    'ATTACK AT DAWN FROM THE NORTH',
+  )
   const tripleDesKey = '0123456789abcdef23456789abcdef01456789abcdef0123'
   assert.equal(
     run(binPath, ['encode', 'triple-des', 'ATTACK AT DAWN', '--key', tripleDesKey]).trim(),

@@ -83,7 +83,7 @@ describe('Pi extension', () => {
     expect(classical.content[0]?.text).not.toMatch(/\baes\b/)
     const block = await info.execute('info', { category: 'block' })
     expect(block.content[0]?.text).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\]/,
     )
 
     const detail = await info.execute('info', { cipher: 'vigenere' })

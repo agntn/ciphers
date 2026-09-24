@@ -21,6 +21,7 @@ export type {
   AesCcmOptions,
   AesOcbOptions,
   AesLrwOptions,
+  AesXtsOptions,
   RijndaelOptions,
   TripleDesOptions,
   TripleDesCbcOptions,

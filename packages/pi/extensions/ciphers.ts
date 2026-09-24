@@ -112,6 +112,7 @@ const cipherParams = Type.Object({
       description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
     }),
   ),
+  segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
   preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
   stripNonAlpha: Type.Optional(
     Type.Boolean({
@@ -146,6 +147,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
         'AES needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
         'AES-CBC (aes-cbc) takes the same key plus iv, 32 hex digits.',
+        'AES-CFB (aes-cfb) takes the key and iv too, plus segment in bits (1, 8 or 128, default 128); nothing is padded, so the ciphertext has as many bytes as the text.',
         'AES-LRW (aes-lrw) takes the AES key and a 32-digit tweak key in one key, and tweak as the first block index.',
         'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
         'cipher_info lists every option with its default.',

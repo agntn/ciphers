@@ -21,6 +21,7 @@ export type CipherToolParams = {
   b?: number
   period?: number
   letters?: number
+  segment?: number
   preserveCase?: boolean
   stripNonAlpha?: boolean
   positions?: string
@@ -56,9 +57,10 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
 export const OPTION_DESCRIPTIONS = {
   cipher: `Exact built-in cipher name: ${builtinCiphers.join(', ')}`,
   category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
-  key: 'Keyword, or a hex key: 32, 48 or 64 digits for aes and aes-cbc, 64, 80 or 96 for aes-lrw, 32 or 48 for triple-des. Required by vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-lrw and triple-des; optional for polybius, adfgvx and bifid',
+  key: 'Keyword, or a hex key: 32, 48 or 64 digits for aes, aes-cbc and aes-cfb, 64, 80 or 96 for aes-lrw, 32 or 48 for triple-des. Required by vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-cfb, aes-lrw and triple-des; optional for polybius, adfgvx and bifid',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
-  iv: 'AES-CBC only, and required there: initialization vector, 32 hex digits',
+  iv: 'AES-CBC and AES-CFB only, and required there: initialization vector, 32 hex digits',
+  segment: 'AES-CFB only: bits fed back per step, 1, 8 or 128 (default 128)',
   tweak: 'AES-LRW only: index of the first block, up to 32 hex digits (default 1)',
   period:
     'Block length. Required by alberti (letters before the disk rotates); optional for bifid (default 5)',
@@ -77,6 +79,7 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'b',
     'period',
     'letters',
+    'segment',
     'preserveCase',
     'stripNonAlpha',
     'positions',

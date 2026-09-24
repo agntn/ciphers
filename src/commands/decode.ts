@@ -14,11 +14,16 @@ export default defineCommand({
     shift: { type: 'string', description: 'Shift value (Caesar)', alias: 's' },
     key: {
       type: 'string',
-      description: 'Keyword for keyed ciphers, hex digits for AES, AES-CBC, AES-LRW and Triple DES',
+      description:
+        'Keyword for keyed ciphers, hex digits for AES, AES-CBC, AES-CFB, AES-LRW and Triple DES',
       alias: 'k',
     },
     transposition: { type: 'string', description: 'Transposition keyword (ADFGVX)' },
-    iv: { type: 'string', description: 'Initialization vector, 32 hex digits (AES-CBC)' },
+    iv: { type: 'string', description: 'Initialization vector, 32 hex digits (AES-CBC, AES-CFB)' },
+    segment: {
+      type: 'string',
+      description: 'Bits fed back per step, 1, 8 or 128 (AES-CFB; default 128)',
+    },
     tweak: { type: 'string', description: 'Index of the first block in hex (AES-LRW; default 1)' },
     rails: { type: 'string', description: 'Number of rails (Rail Fence)', alias: 'r' },
     period: { type: 'string', description: 'Rotation period (Alberti, Bifid)' },

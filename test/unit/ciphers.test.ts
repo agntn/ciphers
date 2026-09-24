@@ -6,11 +6,12 @@ import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/c
 import { aesEcb } from '../../src/ciphers/block/aes/ecb'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw'
 import { aesCbc } from '../../src/ciphers/block/aes/cbc'
+import { aesCfb } from '../../src/ciphers/block/aes/cfb'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des'
 
 describe('registry', () => {
-  it('registers all 24 ciphers', () => {
-    expect(ciphers()).toHaveLength(24)
+  it('registers all 25 ciphers', () => {
+    expect(ciphers()).toHaveLength(25)
     for (const name of [
       'caesar',
       'rot13',
@@ -28,6 +29,7 @@ describe('registry', () => {
       'enigma',
       'aes',
       'aes-cbc',
+      'aes-cfb',
       'aes-lrw',
       'triple-des',
     ]) {
@@ -764,6 +766,7 @@ describe('edge cases', () => {
     bifid: { key: 'TEST' },
     aes: { key: '000102030405060708090a0b0c0d0e0f' },
     'aes-cbc': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
+    'aes-cfb': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
   }
@@ -1197,6 +1200,155 @@ describe('aes-cbc', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
+      ],
+    })
+  })
+})
+
+describe('aes-cfb', () => {
+  const cfb = create('aes-cfb')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '2b7e151628aed2a6abf7158809cf4f3c'
+  const iv = '000102030405060708090a0b0c0d0e0f'
+
+  /** NIST SP 800-38A F.3.1, F.3.7, F.3.13, F.3.15 and F.3.17: CFB1, CFB8 and CFB128 encryption. */
+  it('matches the NIST SP 800-38A CFB-AES vectors', () => {
+    const plaintext =
+      '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710'
+    for (const [vectorKey, segment, input, ciphertext] of [
+      [key, 1, '6bc1', '68b3'],
+      [key, 8, '6bc1bee22e409f96e93d7e117393172aae2d', '3b79424c9c0dd436bace9e0ed4586a4f32b9'],
+      [
+        key,
+        128,
+        plaintext,
+        '3b3fd92eb72dad20333449f8e83cfb4ac8a64537a0b3a93fcde3cdad9f1ce58b26751f67a3cbb140b1808cf187a4f4dfc04b05357c5d1c0eeac4c66f9ff7f2e6',
+      ],
+      [
+        '8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b',
+        128,
+        plaintext,
+        'cdc80d6fddf18cab34c25909c99a417467ce7f7f81173621961a2b70171d3d7a2e1e8a1dd59b88b1c8e60fed1efac4c9c05f9f9ca9834fa042ae8fba584b09ff',
+      ],
+      [
+        '603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4',
+        128,
+        plaintext,
+        'dc7e84bfda79164b7ecd8486985d386039ffed143b28b1c832113c6331e5407bdf10132415e54b92a13ed0a8267ae2f975a385741ab9cef82031623d55b1e471',
+      ],
+    ] as const) {
+      expect(aesCfb(hex(input), hex(vectorKey), 'encrypt', hex(iv), segment)).toEqual(
+        hex(ciphertext),
+      )
+      expect(aesCfb(hex(ciphertext), hex(vectorKey), 'decrypt', hex(iv), segment)).toEqual(
+        hex(input),
+      )
+    }
+  })
+
+  /** Expected values from `openssl enc -aes-128-cfb1`, `-cfb8` and `-cfb`, which do not pad. */
+  it('encodes UTF-8 text to hex of the same length, as openssl enc does', () => {
+    for (const [segment, text, ciphertext] of [
+      [128, '', ''],
+      [128, 'ATTACK AT DAWN', '11aa338dda2612f78e2973a8cce1'],
+      [
+        128,
+        'zażółć gęślą jaźń 🙂',
+        '2a9fa2705adef7341e8e178e5f3629fbdcf2a5b859f12c11375678084ccfd2',
+      ],
+      [8, 'ATTACK AT DAWN', '11585d087981d10c0863f5b2c8dd'],
+      [8, 'zażółć gęślą jaźń 🙂', '2aeca1a792b564b82cd605e3f57bf1da15980aabcdd850b53c1579584bb519'],
+      [1, 'ATTACK AT DAWN', '5c3f38e582911f3b59ed8c3e4a11'],
+      [1, 'zażółć gęślą jaźń 🙂', '7a8a2ff41b1e8108e2637be4ac1749c065115b970de5bd908df7a510938f4a'],
+    ] as const) {
+      expect(cfb.encode(text, { key, iv, segment })).toEqual({
+        text: ciphertext,
+        cipher: 'aes-cfb',
+        operation: 'encode',
+        options: { key, mode: 'cfb', iv, segment },
+      })
+      expect(cfb.decode(ciphertext, { key, iv, segment }).text).toBe(text)
+    }
+    expect(cfb.encode('ATTACK AT DAWN', { key, iv }).options).toEqual({
+      key,
+      mode: 'cfb',
+      iv,
+      segment: 128,
+    })
+    for (const [aesKey, ciphertext] of [
+      ['8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b', 'e75de7ccb0fa337c89df6359ed47'],
+      [
+        '603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4',
+        'f6eb6e1cb772a99cc3d0bed6bc80',
+      ],
+    ]) {
+      expect(cfb.encode('ATTACK AT DAWN', { key: aesKey, iv }).text).toBe(ciphertext)
+      expect(cfb.decode(ciphertext!, { key: aesKey, iv }).text).toBe('ATTACK AT DAWN')
+    }
+  })
+
+  /** Expected value from `openssl enc -aes-128-cfb` over thirty-two `A`s. */
+  it('gives different ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = cfb.encode('A'.repeat(32), { key, iv })
+    expect(text).toBe('11bf268dd82c73f79b4876a8daeead21975761a0d16d3f5fe3fcc49d988f750a')
+    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
+  })
+
+  /** The key was searched with `openssl enc -aes-128-cfb8`: AES of the zero block starts with 0x00. */
+  it('keeps an all-zero message all zero under a zero IV when the first keystream byte is 0', () => {
+    const zeroKey = '0'.repeat(30) + '5f'
+    const zeroIv = '0'.repeat(32)
+    expect(cfb.encode('\0'.repeat(8), { key: zeroKey, iv: zeroIv, segment: 8 }).text).toBe(
+      '00'.repeat(8),
+    )
+    expect(cfb.encode('\0'.repeat(8), { key: zeroKey, iv: zeroIv }).text).not.toBe('00'.repeat(8))
+  })
+
+  it('reads the IV in any case and spacing, and a different IV gives different ciphertext', () => {
+    const result = cfb.encode('ATTACK AT DAWN', { key, iv: '00010203 04050607 08090A0B 0C0D0E0F' })
+    expect(result.options).toEqual({ key, mode: 'cfb', iv, segment: 128 })
+    const other = cfb.encode('ATTACK AT DAWN', { key, iv: 'f'.repeat(32) })
+    expect(other.text).toBe('cba6d24001bca6b55d10385b6830')
+    expect(cfb.decode(other.text, { key, iv: 'f'.repeat(32) }).text).toBe('ATTACK AT DAWN')
+  })
+
+  it('rejects keys, IVs and segments it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => cfb[operation]('', { iv })).toThrow(MissingOptionError)
+      expect(() => cfb[operation]('', { key })).toThrow(MissingOptionError)
+      expect(() => cfb[operation]('', { key, iv: '' })).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(20), 'g'.repeat(32), 12]) {
+        expect(() => cfb[operation]('', { key: bad, iv })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['00'.repeat(15), '00'.repeat(17), 'g'.repeat(32), 1]) {
+        expect(() => cfb[operation]('', { key, iv: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of [0, 2, 16, 64, 129, '8', 8.5]) {
+        expect(() => cfb[operation]('', { key, iv, segment: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => cfb.decode('11aa3', { key, iv })).toThrow(/whole bytes/)
+    expect(() => cfb.decode('11zz', { key, iv })).toThrow(/hex digits/)
+    expect(() => cfb.decode('11aa338dda2612f78e2973a8cce1', { key: '00'.repeat(16), iv })).toThrow(
+      /not UTF-8/,
+    )
+  })
+
+  it('reports the block category and the IV and segment options', () => {
+    expect(resolveCipher('AES CFB')).toBe(cfb)
+    expect(cfb.info()).toMatchObject({
+      name: 'aes-cfb',
+      category: 'block',
+      family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'iv', type: 'string', required: true },
+        { name: 'segment', type: 'number', required: false, default: 128 },
       ],
     })
   })

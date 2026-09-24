@@ -218,6 +218,32 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(badIv.content)).toContain('iv')
   })
 
+  it('discovers and executes AES-CFB with a segment through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'aes-cfb' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('segment (number, default=128)')
+    const key = '2b7e151628aed2a6abf7158809cf4f3c'
+    const iv = '000102030405060708090a0b0c0d0e0f'
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', '11585d087981d10c0863f5b2c8dd'],
+      ['cipher_decode', '11585d087981d10c0863f5b2c8dd', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({
+        name,
+        arguments: { cipher: 'aes-cfb', text, key, iv, segment: 8 },
+      })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+    const badSegment = await client.callTool({
+      name: 'cipher_encode',
+      arguments: { cipher: 'aes-cfb', text: 'abc', key, iv, segment: 64 },
+    })
+    expect(badSegment.isError).toBe(true)
+    expect(onlyText(badSegment.content)).toContain('segment')
+  })
+
   it('discovers and executes AES-LRW with a tweak through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'aes-lrw' } })
@@ -314,6 +340,8 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'aes-cbc', text: 'abc', iv: '00'.repeat(16) }],
       ['iv', { cipher: 'aes-cbc', text: 'abc', key: '00'.repeat(16) }],
       ['iv', { cipher: 'aes-cbc', text: 'abc', key: '00'.repeat(16), iv: '' }],
+      ['key', { cipher: 'aes-cfb', text: 'abc', iv: '00'.repeat(16) }],
+      ['iv', { cipher: 'aes-cfb', text: 'abc', key: '00'.repeat(16) }],
       ['key', { cipher: 'aes-lrw', text: 'abc' }],
       ['key', { cipher: 'aes-lrw', text: 'abc', key: '00'.repeat(16) }],
       ['key', { cipher: 'triple-des', text: 'abc' }],
@@ -358,7 +386,7 @@ describe('Ciphers MCP server', () => {
     const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
     expect(onlyText(block.content)).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
     )
 
     const unknownCategory = await client.callTool({

@@ -94,6 +94,7 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
         description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
       }),
     ),
+    segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
     preserveCase: Type.Optional(
       Type.Boolean({ description: 'Preserve letter case (default true)' }),
     ),

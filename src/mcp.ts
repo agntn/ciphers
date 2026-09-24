@@ -72,7 +72,7 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
-    ciphers: ['aes-cbc'],
+    ciphers: ['aes-cbc', 'aes-cfb'],
     required: ['key', 'iv'],
     key: {
       pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,
@@ -151,6 +151,7 @@ const cipherInputSchema = Type.Object({
       description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
     }),
   ),
+  segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
   preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
   stripNonAlpha: Type.Optional(
     Type.Boolean({

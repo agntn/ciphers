@@ -120,6 +120,16 @@ export interface AesCbcOptions extends CipherBaseOptions {
   iv: string
 }
 
+/** AES-CFB options. */
+export interface AesCfbOptions extends CipherBaseOptions {
+  /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
+  key: string
+  /** Initialization vector, 32 hex digits; case and spaces are ignored. */
+  iv: string
+  /** Bits fed back per step: 1, 8 or 128. Default: 128. */
+  segment?: 1 | 8 | 128
+}
+
 /** AES-LRW options. */
 export interface AesLrwOptions extends CipherBaseOptions {
   /** 64, 80 or 96 hex digits: the AES key, then 32 for the tweak key; case and spaces are ignored. */

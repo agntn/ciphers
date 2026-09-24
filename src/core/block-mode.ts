@@ -4,8 +4,11 @@ import { CipherError, InvalidOptionError, MissingOptionError } from './errors'
 /** Bytes as plain numbers, so every step can take a readonly block and return a new one. */
 export type Bytes = readonly number[]
 
+/** What a mode reads from the options besides the key. It goes to `run` and back in the result. */
+export type BlockSettings = Readonly<Record<string, string | number>>
+
 /** What the text helpers need to know about one block cipher in one mode. */
-export interface BlockMode {
+export interface BlockMode<Settings extends BlockSettings = Readonly<Record<string, string>>> {
   /** Registry name, used as the `[name]` error prefix and in the result. */
   readonly name: string
   /** How the error for a wrong key names the ciphertext, such as `AES-ECB`. */
@@ -14,6 +17,11 @@ export interface BlockMode {
   readonly mode: string
   /** Block length in bytes. */
   readonly blockSize: number
+  /**
+   * `false` for a mode that runs the block cipher as a keystream, such as CFB: no PKCS#7 padding,
+   * and the ciphertext is exactly as long as the plaintext. Default: padded.
+   */
+  readonly padding?: boolean
   /** Accepted key lengths in hex digits. */
   readonly keyDigits: readonly number[]
   /** Why a key of another shape is refused. */
@@ -22,15 +30,24 @@ export interface BlockMode {
    * Read the options the mode takes besides the key, throwing on a bad one. What it returns goes
    * to `run` and back in the result options.
    */
-  readonly settings?: (options: Readonly<CipherBaseOptions>) => Readonly<Record<string, string>>
-  /** Transform whole blocks under a key of one of the accepted lengths. */
+  readonly settings?: (options: Readonly<CipherBaseOptions>) => Settings
+  /**
+   * Transform the bytes, whole blocks unless `padding` is `false`, under a key of one of the
+   * accepted lengths.
+   */
   readonly run: (
     data: Bytes,
     key: Bytes,
     operation: 'encrypt' | 'decrypt',
-    settings: Readonly<Record<string, string>>,
+    settings: Settings,
   ) => number[]
 }
+
+/** The parts of a mode the checks on key, padding and ciphertext read, whatever its settings. */
+type BlockShape = Pick<
+  BlockMode,
+  'name' | 'label' | 'blockSize' | 'padding' | 'keyDigits' | 'keyError'
+>
 
 function toHex(bytes: Bytes): string {
   return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
@@ -46,8 +63,31 @@ export function fromHex(hex: string): number[] {
   return Array.from(hex.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
 }
 
+/**
+ * Read the required `iv` option: one block of hex digits, case and whitespace ignored.
+ *
+ * @param options - The options passed to the cipher.
+ * @param blockSize - Block length in bytes; the IV takes twice as many hex digits.
+ * @returns {string} The IV as lowercase hex.
+ */
+export function readIv(options: Readonly<CipherBaseOptions>, blockSize: number): string {
+  const iv = options.iv
+  if (iv === undefined || iv === '') throw new MissingOptionError('iv')
+  if (typeof iv !== 'string') throw new InvalidOptionError('iv', iv, 'must be a string')
+  const hex = iv.replaceAll(/\s/g, '').toLowerCase()
+  const digits = 2 * blockSize
+  if (!/^[0-9a-f]*$/.test(hex) || hex.length !== digits) {
+    throw new InvalidOptionError(
+      'iv',
+      iv,
+      `must be ${digits} hex digits (one ${blockSize}-byte block)`,
+    )
+  }
+  return hex
+}
+
 function readKey(
-  cipher: BlockMode,
+  cipher: BlockShape,
   options: Readonly<CipherBaseOptions>,
 ): { hex: string; bytes: Bytes } {
   const key = options.key
@@ -65,7 +105,7 @@ function pad(bytes: Bytes, blockSize: number): Bytes {
   return [...bytes, ...Array.from({ length: fill }, () => fill)]
 }
 
-function unpad(cipher: BlockMode, bytes: Bytes): Bytes {
+function unpad(cipher: BlockShape, bytes: Bytes): Bytes {
   const fill = bytes.at(-1) ?? 0
   const valid =
     fill >= 1 && fill <= cipher.blockSize && bytes.slice(-fill).every((byte) => byte === fill)
@@ -77,10 +117,18 @@ function unpad(cipher: BlockMode, bytes: Bytes): Bytes {
   return bytes.slice(0, -fill)
 }
 
-function readCiphertext(cipher: BlockMode, text: string): Bytes {
+function readCiphertext(cipher: BlockShape, text: string): Bytes {
   const hex = text.replaceAll(/\s/g, '')
   if (!/^[0-9a-f]*$/i.test(hex)) {
     throw new CipherError(`[${cipher.name}] Ciphertext must be hex digits`)
+  }
+  if (cipher.padding === false) {
+    if (hex.length % 2 !== 0) {
+      throw new CipherError(
+        `[${cipher.name}] Ciphertext must be whole bytes (an even number of hex digits), got ${hex.length} hex digits`,
+      )
+    }
+    return fromHex(hex)
   }
   const digits = 2 * cipher.blockSize
   if (hex.length === 0 || hex.length % digits !== 0) {
@@ -92,21 +140,23 @@ function readCiphertext(cipher: BlockMode, text: string): Bytes {
 }
 
 /**
- * Encrypt the UTF-8 bytes of a text: PKCS#7 padding, the blocks through the mode, hex out.
+ * Encrypt the UTF-8 bytes of a text: PKCS#7 padding unless the mode has none, the bytes through
+ * the mode, hex out.
  *
  * @param cipher - The block cipher and mode to run.
  * @param text - Any text.
  * @param options - Carries the hex `key` and whatever else the mode reads.
  * @returns {CipherResult} Lowercase hex, with the key and settings as they were read.
  */
-export function encodeBlocks(
-  cipher: BlockMode,
+export function encodeBlocks<Settings extends BlockSettings>(
+  cipher: BlockMode<Settings>,
   text: string,
   options: Readonly<CipherBaseOptions>,
 ): CipherResult {
   const key = readKey(cipher, options)
-  const settings = cipher.settings?.(options) ?? {}
-  const plaintext = pad([...new TextEncoder().encode(text)], cipher.blockSize)
+  const settings = cipher.settings?.(options) ?? ({} as Settings)
+  const bytes = [...new TextEncoder().encode(text)]
+  const plaintext = cipher.padding === false ? bytes : pad(bytes, cipher.blockSize)
   return {
     text: toHex(cipher.run(plaintext, key.bytes, 'encrypt', settings)),
     cipher: cipher.name,
@@ -117,22 +167,23 @@ export function encodeBlocks(
 
 /**
  * Decrypt hex ciphertext back to text. Fails when the padding or the UTF-8 does not hold, which
- * is how a wrong key shows.
+ * is how a wrong key shows. A mode without padding has only the UTF-8 check.
  *
  * @param cipher - The block cipher and mode to run.
- * @param text - Whole blocks as hex; case and whitespace are ignored.
+ * @param text - Hex, whole blocks unless the mode has no padding; case and whitespace are ignored.
  * @param options - Carries the hex `key` and whatever else the mode reads.
  * @returns {CipherResult} The decoded text.
  */
-export function decodeBlocks(
-  cipher: BlockMode,
+export function decodeBlocks<Settings extends BlockSettings>(
+  cipher: BlockMode<Settings>,
   text: string,
   options: Readonly<CipherBaseOptions>,
 ): CipherResult {
   const key = readKey(cipher, options)
-  const settings = cipher.settings?.(options) ?? {}
+  const settings = cipher.settings?.(options) ?? ({} as Settings)
   const ciphertext = readCiphertext(cipher, text)
-  const plaintext = unpad(cipher, cipher.run(ciphertext, key.bytes, 'decrypt', settings))
+  const decrypted = cipher.run(ciphertext, key.bytes, 'decrypt', settings)
+  const plaintext = cipher.padding === false ? decrypted : unpad(cipher, decrypted)
   let decoded: string
   try {
     decoded = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(plaintext))

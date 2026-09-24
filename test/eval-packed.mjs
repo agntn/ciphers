@@ -128,6 +128,34 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  assert.equal(
+    run(binPath, [
+      'encode',
+      'aes-cfb',
+      'ATTACK AT DAWN',
+      '--key',
+      aesKey,
+      '--iv',
+      cbcIv,
+      '--segment',
+      '8',
+    ]).trim(),
+    '11585d087981d10c0863f5b2c8dd',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'aes-cfb',
+      '11585d087981d10c0863f5b2c8dd',
+      '--key',
+      aesKey,
+      '--iv',
+      cbcIv,
+      '--segment',
+      '8',
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   const lrwKey = '4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87'
   assert.equal(
     run(binPath, [

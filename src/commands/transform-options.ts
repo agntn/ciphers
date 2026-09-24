@@ -10,6 +10,7 @@ export interface TransformOptionArgs {
   readonly rails?: string
   readonly period?: string
   readonly letters?: string
+  readonly segment?: string
   readonly a?: string
   readonly b?: string
   readonly positions?: string
@@ -40,6 +41,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['rails', args.rails],
     ['period', args.period],
     ['letters', args.letters],
+    ['segment', args.segment],
     ['a', args.a],
     ['b', args.b],
   ] as const

@@ -25,6 +25,7 @@ export type {
   RijndaelOptions,
   TripleDesOptions,
   TripleDesCbcOptions,
+  BlowfishOptions,
   CipherInfo,
   CipherOption,
 } from './types'

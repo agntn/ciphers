@@ -42,6 +42,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - `rijndael` runs in ECB only, with `blockSize` in bits (128, 160, 192, 224 or 256, default 128) and a key of 32, 40, 48, 56 or 64 hex digits, as the Rijndael proposal allows. A 128-bit block is AES. Text, padding and hex work as for AES, with blocks of `blockSize`.
 - `triple-des` runs in ECB only, as EDE with a key of 32 hex digits (K3 = K1) or 48 (three keys). Parity bits are ignored. Text, padding and hex work as for AES, with 8-byte blocks.
 - Triple DES CBC takes the Triple DES key and a required 16-digit `iv`, and chains blocks as NIST SP 800-38A §6.2 does. Text, padding and hex work as for Triple DES.
+- `blowfish` runs in ECB only, with a key of 8 to 112 hex digits (4 to 56 bytes, the 32 to 448 bits of Schneier's paper). The P-array and S-boxes start from the fractional hex digits of pi, computed once in `BigInt` rather than stored. Text, padding and hex work as for Triple DES.
 
 ## Adding or Changing a Cipher
 

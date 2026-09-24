@@ -12,6 +12,7 @@ import { AesCbcMac } from './aes/cbc-mac'
 import { Rijndael } from './rijndael'
 import { TripleDes } from './triple-des/ecb'
 import { TripleDesCbc } from './triple-des/cbc'
+import { Blowfish } from './blowfish'
 
 /** The block ciphers, in registry order. */
 export const block: readonly CipherConstructor[] = [
@@ -28,4 +29,5 @@ export const block: readonly CipherConstructor[] = [
   Rijndael,
   TripleDes,
   TripleDesCbc,
+  Blowfish,
 ]

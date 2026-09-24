@@ -211,6 +211,12 @@ export interface TripleDesCbcOptions extends CipherBaseOptions {
   iv: string
 }
 
+/** Blowfish ECB options. */
+export interface BlowfishOptions extends CipherBaseOptions {
+  /** An even number of hex digits from 8 to 112, a 32 to 448-bit key; case and spaces are ignored. */
+  key: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *

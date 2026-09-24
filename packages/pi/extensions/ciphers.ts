@@ -170,6 +170,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'Rijndael (rijndael) takes a key of 32, 40, 48, 56 or 64 hex digits and blockSize in bits (128, 160, 192, 224 or 256, default 128, which is AES).',
         'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
         'Triple DES CBC (triple-des-cbc) takes that key plus iv, 16 hex digits.',
+        'Blowfish (blowfish) works like Triple DES with a key of any even number of hex digits from 8 to 112.',
         'cipher_info lists every option with its default.',
       ],
       parameters: cipherParams,

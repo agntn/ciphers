@@ -17,10 +17,11 @@ import { aesOcb } from '../../src/ciphers/block/aes/ocb'
 import { rijndaelEcb } from '../../src/ciphers/block/rijndael'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des/ecb'
 import { tripleDesCbc } from '../../src/ciphers/block/triple-des/cbc'
+import { blowfishEcb } from '../../src/ciphers/block/blowfish'
 
 describe('registry', () => {
-  it('registers all 33 ciphers', () => {
-    expect(ciphers()).toHaveLength(33)
+  it('registers all 34 ciphers', () => {
+    expect(ciphers()).toHaveLength(34)
     for (const name of [
       'caesar',
       'rot13',
@@ -49,6 +50,7 @@ describe('registry', () => {
       'rijndael',
       'triple-des',
       'triple-des-cbc',
+      'blowfish',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -794,6 +796,7 @@ describe('edge cases', () => {
     rijndael: { key: '000102030405060708090a0b0c0d0e0f', blockSize: 256 },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
     'triple-des-cbc': { key: '0123456789abcdef23456789abcdef01', iv: '00'.repeat(8) },
+    blowfish: { key: '0123456789abcdef' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -2894,6 +2897,177 @@ describe('triple-des-cbc', () => {
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
       ],
+    })
+  })
+})
+
+describe('blowfish', () => {
+  const blowfish = create('blowfish')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '0123456789abcdeff0e1d2c3b4a59687'
+
+  /** Eric Young's ECB vectors, published with Schneier's reference code (vectors.txt). */
+  it('matches the ECB vectors of Eric Young', () => {
+    for (const [vectorKey, plaintext, ciphertext] of [
+      ['0000000000000000', '0000000000000000', '4ef997456198dd78'],
+      ['ffffffffffffffff', 'ffffffffffffffff', '51866fd5b85ecb8a'],
+      ['3000000000000000', '1000000000000001', '7d856f9a613063f2'],
+      ['1111111111111111', '1111111111111111', '2466dd878b963c9d'],
+      ['0123456789abcdef', '1111111111111111', '61f9c3802281b096'],
+      ['1111111111111111', '0123456789abcdef', '7d0cc630afda1ec7'],
+      ['0000000000000000', '0000000000000000', '4ef997456198dd78'],
+      ['fedcba9876543210', '0123456789abcdef', '0aceab0fc6a0a28d'],
+      ['7ca110454a1a6e57', '01a1d6d039776742', '59c68245eb05282b'],
+      ['0131d9619dc1376e', '5cd54ca83def57da', 'b1b8cc0b250f09a0'],
+      ['07a1133e4a0b2686', '0248d43806f67172', '1730e5778bea1da4'],
+      ['3849674c2602319e', '51454b582ddf440a', 'a25e7856cf2651eb'],
+      ['04b915ba43feb5b6', '42fd443059577fa2', '353882b109ce8f1a'],
+      ['0113b970fd34f2ce', '059b5e0851cf143a', '48f4d0884c379918'],
+      ['0170f175468fb5e6', '0756d8e0774761d2', '432193b78951fc98'],
+      ['43297fad38e373fe', '762514b829bf486a', '13f04154d69d1ae5'],
+      ['07a7137045da2a16', '3bdd119049372802', '2eedda93ffd39c79'],
+      ['04689104c2fd3b2f', '26955f6835af609a', 'd887e0393c2da6e3'],
+      ['37d06bb516cb7546', '164d5e404f275232', '5f99d04f5b163969'],
+      ['1f08260d1ac2465e', '6b056e18759f5cca', '4a057a3b24d3977b'],
+      ['584023641aba6176', '004bd6ef09176062', '452031c1e4fada8e'],
+      ['025816164629b007', '480d39006ee762f2', '7555ae39f59b87bd'],
+      ['49793ebc79b3258f', '437540c8698f3cfa', '53c55f9cb49fc019'],
+      ['4fb05e1515ab73a7', '072d43a077075292', '7a8e7bfa937e89a3'],
+      ['49e95d6d4ca229bf', '02fe55778117f12a', 'cf9c5d7a4986adb5'],
+      ['018310dc409b26d6', '1d9d5c5018f728c2', 'd1abb290658bc778'],
+      ['1c587f1c13924fef', '305532286d6f295a', '55cb3774d13ef201'],
+      ['0101010101010101', '0123456789abcdef', 'fa34ec4847b268b2'],
+      ['1f1f1f1f0e0e0e0e', '0123456789abcdef', 'a790795108ea3cae'],
+      ['e0fee0fef1fef1fe', '0123456789abcdef', 'c39e072d9fac631d'],
+      ['0000000000000000', 'ffffffffffffffff', '014933e0cdaff6e4'],
+      ['ffffffffffffffff', '0000000000000000', 'f21e9a77b71c49bc'],
+      ['0123456789abcdef', '0000000000000000', '245946885754369a'],
+      ['fedcba9876543210', 'ffffffffffffffff', '6b5c5a9c5d9e0a5a'],
+    ]) {
+      expect(blowfishEcb(hex(plaintext!), hex(vectorKey!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(blowfishEcb(hex(ciphertext!), hex(vectorKey!), 'decrypt')).toEqual(hex(plaintext!))
+    }
+  })
+
+  /**
+   * The set_key vectors from the same file: FEDCBA9876543210 under longer and longer prefixes of
+   * one key, from the 32-bit minimum up to 192 bits.
+   */
+  it('matches the set_key vectors for every key length they cover', () => {
+    const plaintext = hex('fedcba9876543210')
+    for (const [vectorKey, ciphertext] of [
+      ['f0e1d2c3', 'be1e639408640f05'],
+      ['f0e1d2c3b4', 'b39e44481bdb1e6e'],
+      ['f0e1d2c3b4a5', '9457aa83b1928c0d'],
+      ['f0e1d2c3b4a596', '8bb77032f960629d'],
+      ['f0e1d2c3b4a59687', 'e87a244e2cc85e82'],
+      ['f0e1d2c3b4a5968778', '15750e7a4f4ec577'],
+      ['f0e1d2c3b4a596877869', '122ba70b3ab64ae0'],
+      ['f0e1d2c3b4a5968778695a', '3a833c9affc537f6'],
+      ['f0e1d2c3b4a5968778695a4b', '9409da87a90f6bf2'],
+      ['f0e1d2c3b4a5968778695a4b3c', '884f80625060b8b4'],
+      ['f0e1d2c3b4a5968778695a4b3c2d', '1f85031c19e11968'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e', '79d9373a714ca34f'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e0f', '93142887ee3be15c'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e0f00', '03429e838ce2d14b'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e0f0011', 'a4299e27469ff67b'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e0f001122', 'afd5aed1c1bc96a8'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e0f00112233', '10851c0e3858da9f'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e0f0011223344', 'e6f51ed79b9db21f'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e0f001122334455', '64a6e14afd36b46f'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e0f00112233445566', '80c7d7d45a5479ad'],
+      ['f0e1d2c3b4a5968778695a4b3c2d1e0f0011223344556677', '05044b62fa52d080'],
+    ]) {
+      expect(blowfishEcb(plaintext, hex(vectorKey!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(blowfishEcb(hex(ciphertext!), hex(vectorKey!), 'decrypt')).toEqual(plaintext)
+    }
+  })
+
+  /** Expected values from `openssl enc -bf-ecb` with the legacy provider, PKCS#7 by default. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, ciphertext] of [
+      ['', '10c9d9248e4c6405'],
+      ['ATTACK AT DAWN', '9e16058420b1546315051882f350a136'],
+      ['zażółć gęślą jaźń 🙂', '2279d640c2b13b4812b0749785ce0f45fee97739b9cf08c9a89240e9e5547403'],
+      ['A'.repeat(8), '8e9fdf91ed9fbd7310c9d9248e4c6405'],
+    ]) {
+      expect(blowfish.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'blowfish',
+        operation: 'encode',
+        options: { key, mode: 'ecb' },
+      })
+      expect(blowfish.decode(ciphertext!, { key }).text).toBe(text)
+    }
+  })
+
+  /** OpenSSL's command line cuts `-K` to 16 bytes, so this one is from PyCryptodome. */
+  it('takes the longest key, 448 bits', () => {
+    const longest = Array.from({ length: 56 }, (_, i) => i.toString(16).padStart(2, '0')).join('')
+    expect(blowfish.encode('ATTACK AT DAWN', { key: longest }).text).toBe(
+      'b4728dee1f7262869356a119e626b7b4',
+    )
+    expect(blowfish.decode('b4728dee1f7262869356a119e626b7b4', { key: longest }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('gives equal ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = blowfish.encode('A'.repeat(16), { key })
+    expect(text).toBe('8e9fdf91ed9fbd738e9fdf91ed9fbd7310c9d9248e4c6405')
+    expect(text.slice(0, 16)).toBe(text.slice(16, 32))
+  })
+
+  it('reads hex keys and ciphertext in any case and with spaces', () => {
+    const spaced = '0123 4567 89AB CDEF F0E1 D2C3 B4A5 9687'
+    expect(blowfish.encode('ATTACK AT DAWN', { key: spaced }).options).toEqual({
+      key,
+      mode: 'ecb',
+    })
+    expect(blowfish.decode('9E160584 20B15463\n15051882 F350A136', { key: spaced }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('rejects keys that are not a Blowfish key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => blowfish[operation]('')).toThrow(MissingOptionError)
+      expect(() => blowfish[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of [
+        'YELLOW SUBMARINE',
+        '00'.repeat(3),
+        '0'.repeat(9),
+        '00'.repeat(57),
+        'g'.repeat(8),
+        12,
+      ]) {
+        expect(() => blowfish[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => blowfish.decode('', { key })).toThrow(/whole 8-byte blocks/)
+    expect(() => blowfish.decode('9e160584', { key })).toThrow(/got 8 hex digits/)
+    expect(() => blowfish.decode('zz'.repeat(8), { key })).toThrow(/must be hex digits/)
+    // PyCryptodome: "Padding is incorrect" for this ciphertext under this key.
+    expect(() =>
+      blowfish.decode('9e16058420b1546315051882f350a136', { key: '0123456789abcdef' }),
+    ).toThrow(/PKCS#7/)
+    // ff then seven bytes of 07: valid padding, invalid UTF-8.
+    expect(() => blowfish.decode('1329be77067160c3', { key })).toThrow(/not UTF-8/)
+    expect(() => blowfish.decode('1329be77067160c3', { key })).toThrow(CipherError)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('Blowfish')).toBe(blowfish)
+    expect(blowfish.info()).toMatchObject({
+      name: 'blowfish',
+      category: 'block',
+      family: 'feistel',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
     })
   })
 })

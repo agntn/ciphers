@@ -192,6 +192,22 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('discovers and executes Blowfish through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'blowfish' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(blowfish) — block, feistel')
+    const key = '0123 4567 89AB CDEF F0E1 D2C3 B4A5 9687'
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', '9e16058420b1546315051882f350a136'],
+      ['cipher_decode', '9e16058420b1546315051882f350a136', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({ name, arguments: { cipher: 'blowfish', text, key } })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
   it('discovers and executes Triple DES CBC with an IV through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -588,6 +604,10 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'triple-des-cbc', text: 'abc', key: '00'.repeat(32), iv: '00'.repeat(8) }],
       ['iv', { cipher: 'triple-des-cbc', text: 'abc', key: '00'.repeat(16) }],
       ['iv', { cipher: 'triple-des-cbc', text: 'abc', key: '00'.repeat(16), iv: '' }],
+      ['key', { cipher: 'blowfish', text: 'abc' }],
+      ['key', { cipher: 'blowfish', text: 'abc', key: '00'.repeat(3) }],
+      ['key', { cipher: 'blowfish', text: 'abc', key: '0'.repeat(9) }],
+      ['key', { cipher: 'blowfish', text: 'abc', key: '00'.repeat(57) }],
     ] as const) {
       const response = await client.callTool({
         name: 'cipher_encode',
@@ -628,7 +648,7 @@ describe('Ciphers MCP server', () => {
     const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
     expect(onlyText(block.content)).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}aes-cbc-mac \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}aes-cbc-mac \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\].*\n {2}blowfish \[feistel\]/,
     )
 
     const unknownCategory = await client.callTool({

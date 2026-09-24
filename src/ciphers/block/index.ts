@@ -7,7 +7,8 @@ import { AesCtr } from './aes/ctr'
 import { AesCcm } from './aes/ccm'
 import { AesOcb } from './aes/ocb'
 import { AesLrw } from './aes/lrw'
-import { TripleDes } from './triple-des'
+import { TripleDes } from './triple-des/ecb'
+import { TripleDesCbc } from './triple-des/cbc'
 
 /** The block ciphers, in registry order. */
 export const block: readonly CipherConstructor[] = [
@@ -20,4 +21,5 @@ export const block: readonly CipherConstructor[] = [
   AesOcb,
   AesLrw,
   TripleDes,
+  TripleDesCbc,
 ]

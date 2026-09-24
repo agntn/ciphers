@@ -192,6 +192,36 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('discovers and executes Triple DES CBC with an IV through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({
+      name: 'cipher_info',
+      arguments: { cipher: 'triple-des-cbc' },
+    })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(triple-des-cbc) — block, feistel')
+    expect(onlyText(info.content)).toContain('iv (string, required)')
+    const key = '0123456789abcdef23456789abcdef01456789abcdef0123'
+    const iv = '0001020304050607'
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', '00b5ad5bd633b1c564e7e3a858c7d8fb'],
+      ['cipher_decode', '00b5ad5bd633b1c564e7e3a858c7d8fb', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({
+        name,
+        arguments: { cipher: 'triple-des-cbc', text, key, iv },
+      })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+    const aesSizedIv = await client.callTool({
+      name: 'cipher_encode',
+      arguments: { cipher: 'triple-des-cbc', text: 'abc', key, iv: '00'.repeat(16) },
+    })
+    expect(aesSizedIv.isError).toBe(true)
+    expect(onlyText(aesSizedIv.content)).toContain('16 hex digits')
+  })
+
   it('discovers and executes AES-CBC with an IV through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'aes-cbc' } })
@@ -467,6 +497,10 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'aes-lrw', text: 'abc', key: '00'.repeat(16) }],
       ['key', { cipher: 'triple-des', text: 'abc' }],
       ['key', { cipher: 'triple-des', text: 'abc', key: '00'.repeat(32) }],
+      ['key', { cipher: 'triple-des-cbc', text: 'abc', iv: '00'.repeat(8) }],
+      ['key', { cipher: 'triple-des-cbc', text: 'abc', key: '00'.repeat(32), iv: '00'.repeat(8) }],
+      ['iv', { cipher: 'triple-des-cbc', text: 'abc', key: '00'.repeat(16) }],
+      ['iv', { cipher: 'triple-des-cbc', text: 'abc', key: '00'.repeat(16), iv: '' }],
     ] as const) {
       const response = await client.callTool({
         name: 'cipher_encode',
@@ -507,7 +541,7 @@ describe('Ciphers MCP server', () => {
     const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
     expect(onlyText(block.content)).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\]/,
     )
 
     const unknownCategory = await client.callTool({

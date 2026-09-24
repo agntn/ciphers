@@ -15,13 +15,14 @@ export default defineCommand({
     key: {
       type: 'string',
       description:
-        'Keyword for keyed ciphers, hex digits for AES, AES-CBC, AES-CFB, AES-OFB, AES-CTR, AES-CCM, AES-OCB, AES-LRW and Triple DES',
+        'Keyword for keyed ciphers, hex digits for AES, AES-CBC, AES-CFB, AES-OFB, AES-CTR, AES-CCM, AES-OCB, AES-LRW, Triple DES and Triple DES CBC',
       alias: 'k',
     },
     transposition: { type: 'string', description: 'Transposition keyword (ADFGVX)' },
     iv: {
       type: 'string',
-      description: 'Initialization vector, 32 hex digits (AES-CBC, AES-CFB, AES-OFB, AES-CTR)',
+      description:
+        'Initialization vector, 32 hex digits (AES-CBC, AES-CFB, AES-OFB, AES-CTR) or 16 (Triple DES CBC)',
     },
     segment: {
       type: 'string',

@@ -163,6 +163,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'AES-OCB (aes-ocb) takes the same options as AES-CCM, with a nonce of 2 to 30 hex digits and tagLength 64, 96 or 128.',
         'AES-LRW (aes-lrw) takes the AES key and a 32-digit tweak key in one key, and tweak as the first block index.',
         'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
+        'Triple DES CBC (triple-des-cbc) takes that key plus iv, 16 hex digits.',
         'cipher_info lists every option with its default.',
       ],
       parameters: cipherParams,

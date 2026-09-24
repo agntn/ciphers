@@ -104,6 +104,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
       error: 'must be 32 or 48 hex digits (two-key or three-key Triple DES)',
     },
   },
+  {
+    ciphers: ['triple-des-cbc'],
+    required: ['key', 'iv'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16})?$/,
+      error: 'must be 32 or 48 hex digits (two-key or three-key Triple DES)',
+    },
+  },
 ]
 
 /**

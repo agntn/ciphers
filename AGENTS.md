@@ -9,7 +9,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 ## Architecture
 
 - Put each cipher in one `src/ciphers/<category>/<name>.ts` file. Its concrete class extends `Cipher`, implements `name()`, `info()`, `encode()`, and `decode()`, and is exported. Do not call `register()` from the file.
-- Modes of one block cipher share a folder instead: `src/ciphers/block/aes/` holds the AES primitive in `block.ts` and one file per mode, `ecb.ts` for `aes`, `cbc.ts` for `aes-cbc`, `cfb.ts` for `aes-cfb`, `ofb.ts` for `aes-ofb`, `ctr.ts` for `aes-ctr`, `ccm.ts` for `aes-ccm`, `ocb.ts` for `aes-ocb` and `lrw.ts` for `aes-lrw`.
+- Modes of one block cipher share a folder instead: `src/ciphers/block/aes/` holds the AES primitive in `block.ts` and one file per mode, `ecb.ts` for `aes`, `cbc.ts` for `aes-cbc`, `cfb.ts` for `aes-cfb`, `ofb.ts` for `aes-ofb`, `ctr.ts` for `aes-ctr`, `ccm.ts` for `aes-ccm`, `ocb.ts` for `aes-ocb` and `lrw.ts` for `aes-lrw`. `src/ciphers/block/triple-des/` does the same for Triple DES: `block.ts`, `ecb.ts` for `triple-des` and `cbc.ts` for `triple-des-cbc`.
 - A category is one entry in `cipherCategories` in `src/core/ciphers.ts` and one folder under `src/ciphers/`. Every cipher reports it as `info().category`; `cipher_info` and `ciphers ciphers` list by it and filter on it. Today there are `classical` and `block`; a stream cipher gets its own category rather than a new `family` under either.
 - Each category folder has an `index.ts` with its ordered list, and `src/ciphers/index.ts` concatenates those lists into `builtins`, the list the registry is seeded from. A cipher file that is not in them is not in the registry.
 - Keep `src/core/registry.ts` constructor-based. `create()` returns one cached instance per name, and re-registering a name invalidates that instance.
@@ -36,7 +36,8 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - AES-CCM takes the AES key, a required `nonce` of 14 to 26 hex digits, optional hex `aad` and `tagLength` in bits (32 to 128 in steps of 16, default 128), and runs NIST SP 800-38C: CBC-MAC for the tag, CTR for the text and the tag. The output is the ciphertext followed by the tag in hex, with no padding. Decoding throws `CipherError` and returns no text when the tag does not match.
 - AES-OCB takes the AES key, a required `nonce` of 2 to 30 hex digits, optional hex `aad` and `tagLength` in bits (64, 96 or 128, default 128), and runs RFC 7253. Output, padding and a tag that does not match work as for AES-CCM.
 - AES-LRW takes the AES key followed by a 32-digit tweak key, masks block `i` with `K2 ⊗ i` in GF(2^128) as IEEE P1619 LRW does, and counts `i` up from `tweak` (hex, default 1). Text, padding and hex work as for AES.
-- Triple DES runs in ECB only, as EDE with a key of 32 hex digits (K3 = K1) or 48 (three keys). Parity bits are ignored. Text, padding and hex work as for AES, with 8-byte blocks.
+- `triple-des` runs in ECB only, as EDE with a key of 32 hex digits (K3 = K1) or 48 (three keys). Parity bits are ignored. Text, padding and hex work as for AES, with 8-byte blocks.
+- Triple DES CBC takes the Triple DES key and a required 16-digit `iv`, and chains blocks as NIST SP 800-38A §6.2 does. Text, padding and hex work as for Triple DES.
 
 ## Adding or Changing a Cipher
 

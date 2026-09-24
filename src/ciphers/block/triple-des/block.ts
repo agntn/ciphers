@@ -1,9 +1,4 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { normalizeError } from '../../core/errors'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode'
-
-const BLOCK_SIZE = 8
+import type { Bytes } from '../../../core/block-mode'
 
 /** Bits as 0 and 1, most significant first, numbered from 1 in the FIPS 46-3 tables. */
 type Bits = readonly number[]
@@ -161,16 +156,17 @@ function desBlock(block: Bytes, keys: readonly Bits[]): Bytes {
 }
 
 /**
- * Run each 8-byte block through Triple DES on its own, the way ECB does. Encryption is
- * encrypt-decrypt-encrypt (EDE) under K1, K2 and K3, decryption the reverse; a 16-byte key is
- * K1 and K2 with K3 = K1. Equal plaintext blocks come out as equal ciphertext blocks.
+ * Triple DES on one block, the TDEA of NIST SP 800-67. Encryption is encrypt-decrypt-encrypt
+ * (EDE) under K1, K2 and K3, decryption the reverse; a 16-byte key is K1 and K2 with K3 = K1.
  *
- * @param data - Whole blocks to transform.
  * @param key - 16 or 24 key bytes.
  * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
+ * @returns {(block: Bytes) => Bytes} A transform for one 8-byte block.
  */
-export function tripleDesEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
+export function tripleDesBlock(
+  key: Bytes,
+  operation: 'encrypt' | 'decrypt',
+): (block: Bytes) => Bytes {
   const encrypt = [0, 8, key.length === 24 ? 16 : 0].map((start) =>
     subkeys(key.slice(start, start + 8)),
   )
@@ -179,64 +175,5 @@ export function tripleDesEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'de
     operation === 'encrypt'
       ? [encrypt[0]!, decrypt[1]!, encrypt[2]!]
       : [decrypt[2]!, encrypt[1]!, decrypt[0]!]
-  const output: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    let block: Bytes = data.slice(offset, offset + BLOCK_SIZE)
-    for (const keys of steps) block = desBlock(block, keys)
-    output.push(...block)
-  }
-  return output
-}
-
-const TRIPLE_DES: BlockMode = {
-  name: 'triple-des',
-  label: 'Triple DES ECB',
-  mode: 'ecb',
-  blockSize: BLOCK_SIZE,
-  keyDigits: [32, 48],
-  keyError: 'must be 32 or 48 hex digits (a two-key or three-key Triple DES key)',
-  run: tripleDesEcb,
-}
-
-export class TripleDes extends Cipher {
-  name(): string {
-    return 'triple-des'
-  }
-
-  info(): CipherInfo {
-    return {
-      name: 'triple-des',
-      label: 'Triple DES (ECB)',
-      description:
-        'Triple DES (3DES, TDEA) in ECB mode: DES encrypt-decrypt-encrypt under two or three keys, each 8-byte block on its own, so equal plaintext blocks give equal ciphertext blocks. UTF-8 text with PKCS#7 padding in, hex out',
-      category: 'block',
-      family: 'feistel',
-      selfInverse: false,
-      options: [
-        {
-          name: 'key',
-          type: 'string',
-          required: true,
-          description: '32 hex digits for two keys (K3 = K1) or 48 for three; parity bits ignored',
-        },
-      ],
-      keyspace: '2^112 or 2^168 keys (56 bits of every 64-bit DES key)',
-    }
-  }
-
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(TRIPLE_DES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'triple-des')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(TRIPLE_DES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'triple-des')
-    }
-  }
+  return (block) => steps.reduce((bytes, keys) => desBlock(bytes, keys), block)
 }

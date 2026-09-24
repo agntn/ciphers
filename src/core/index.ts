@@ -22,6 +22,7 @@ export type {
   AesOcbOptions,
   AesLrwOptions,
   TripleDesOptions,
+  TripleDesCbcOptions,
   CipherInfo,
   CipherOption,
 } from './types'

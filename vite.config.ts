@@ -10,7 +10,8 @@ export default defineConfig({
   },
   fmt: {
     ...oxfmt,
-    ignorePatterns: ['dist', 'coverage', 'docs'],
+    // changelogen writes it at release time, after check has run
+    ignorePatterns: ['dist', 'coverage', 'docs', 'CHANGELOG.md'],
     semi: false,
     singleQuote: true,
   },

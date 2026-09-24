@@ -5,7 +5,7 @@
 [![license](https://npmx.dev/api/registry/badge/license/@agntn/ciphers)](https://npmx.dev/package/@agntn/ciphers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agntn/ciphers)
 
-🔐 Twenty-three ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
+🔐 Twenty-four ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
 
 ## Why?
 
@@ -15,7 +15,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Twenty-three ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid and Enigma M3, plus AES and Triple DES in ECB mode and AES in LRW mode.
+- 🔡 **Twenty-four ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid and Enigma M3, plus AES and Triple DES in ECB mode and AES in CBC and LRW mode.
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -162,12 +162,13 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **bifid**      | fractionation               |      ✗       | `--key` (optional), `--period` (default 5) |
 | **enigma**     | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`    |
 | **aes**        | substitution-permutation    |      ✗       | `--key` (hex, required)                    |
+| **aes-cbc**    | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)       |
 | **aes-lrw**    | substitution-permutation    |      ✗       | `--key` (hex, required), `--tweak`         |
 | **triple-des** | feistel                     |      ✗       | `--key` (hex, required)                    |
 
 Playfair and Polybius fold J into I, tap code shares C and K, Bacon is the 26-letter variant unless `letters` says 24, and Alberti is a keyed disk that turns every `period` letters, not a reenactment of the original. One page per cipher, rules and vectors included: [Ciphers](https://ciphers.agntn.dev/ciphers).
 
-AES and Triple DES are the block ciphers. They take UTF-8 text, pad it with PKCS#7 and give hex back. The key is hex too: 32, 48 or 64 digits for AES, 32 or 48 for Triple DES. Every block goes through on its own, that's ECB. So two equal blocks of plaintext come out as two equal blocks of ciphertext. Unless it's `aes-lrw`, the LRW mode from the IEEE P1619 drafts. Its key is the AES key plus 32 more digits for a tweak key, and every block gets masked by its own index, counted from `--tweak` (default 1). Equal blocks at different places stop looking equal.
+AES and Triple DES are the block ciphers. They take UTF-8 text, pad it with PKCS#7 and give hex back. The key is hex too: 32, 48 or 64 digits for AES, 32 or 48 for Triple DES. Every block goes through on its own, that's ECB. So two equal blocks of plaintext come out as two equal blocks of ciphertext. `aes-cbc` chains them instead. Each block gets XORed with the ciphertext block before it, the first one with `--iv`, which is 32 hex digits and required. Or there's `aes-lrw`, the LRW mode from the IEEE P1619 drafts. Its key is the AES key plus 32 more digits for a tweak key, and every block gets masked by its own index, counted from `--tweak` (default 1). Equal blocks at different places stop looking equal.
 
 ## 🤖 Agents
 
@@ -189,11 +190,11 @@ Five tools, `cipher_encode`, `cipher_decode`, `cipher_brute_caesar`, `cipher_fre
 
 ## 🚫 What this does not do
 
-Cryptography you'd trust with anything. The classical ones fall to anyone with a laptop and an afternoon, and that's the point, they're for puzzles, CTFs and teaching. AES and Triple DES are here too, mostly in ECB, the mode that leaks which blocks repeat. LRW hides that, but it's a disk mode with no integrity, and IEEE dropped it for XTS. All of it is plain TypeScript that never tried to be constant time. They're for the CTF that uses them and for seeing that leak, not for your data. No hashing, no wallet keys. Keys and signatures are [@agntn/keys](https://github.com/agntn/keys), and even those want nothing to do with real money.
+Cryptography you'd trust with anything. The classical ones fall to anyone with a laptop and an afternoon, and that's the point, they're for puzzles, CTFs and teaching. AES and Triple DES are here too, mostly in ECB, the mode that leaks which blocks repeat. CBC and LRW hide that, but neither checks integrity, and IEEE dropped LRW for XTS. All of it is plain TypeScript that never tried to be constant time. They're for the CTF that uses them and for seeing that leak, not for your data. No hashing, no wallet keys. Keys and signatures are [@agntn/keys](https://github.com/agntn/keys), and even those want nothing to do with real money.
 
 ## ➕ Adding a cipher
 
-Want a twenty-fourth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+Want a twenty-fifth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
 
 ## 🛠️ Development
 

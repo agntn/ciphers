@@ -41,7 +41,7 @@ type ToolDefinition = {
 
 type CipherOptionRequirement = {
   readonly ciphers: readonly string[]
-  readonly required: readonly ('key' | 'period')[]
+  readonly required: readonly ('key' | 'iv' | 'period')[]
   readonly key?: {
     readonly pattern: RegExp
     readonly error: string
@@ -66,6 +66,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
   {
     ciphers: ['aes'],
     required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,
+      error: 'must be 32, 48 or 64 hex digits (AES-128, AES-192 or AES-256)',
+    },
+  },
+  {
+    ciphers: ['aes-cbc'],
+    required: ['key', 'iv'],
     key: {
       pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,
       error: 'must be 32, 48 or 64 hex digits (AES-128, AES-192 or AES-256)',
@@ -105,6 +113,9 @@ const cipherInputSchema = Type.Object({
   ),
   transposition: Type.Optional(
     Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
+  ),
+  iv: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.iv }),
   ),
   tweak: Type.Optional(
     Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.tweak }),
@@ -250,13 +261,13 @@ const tools: ToolDefinition[] = [
 
 function requiredOptionError(
   args: Readonly<Record<string, unknown>>,
-  required: readonly ('key' | 'period')[],
+  required: readonly ('key' | 'iv' | 'period')[],
   cipher: string,
 ): string | undefined {
   for (const field of required) {
     const missing = args[field] === undefined
-    const emptyKey = field === 'key' && args.key === ''
-    if (missing || emptyKey) return `Invalid arguments at /${field}: required for ${cipher}`
+    const empty = (field === 'key' || field === 'iv') && args[field] === ''
+    if (missing || empty) return `Invalid arguments at /${field}: required for ${cipher}`
   }
   return undefined
 }

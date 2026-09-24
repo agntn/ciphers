@@ -3,13 +3,14 @@ import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors'
-import { aesEcb } from '../../src/ciphers/block/aes'
-import { aesLrw } from '../../src/ciphers/block/aes-lrw'
+import { aesEcb } from '../../src/ciphers/block/aes/ecb'
+import { aesLrw } from '../../src/ciphers/block/aes/lrw'
+import { aesCbc } from '../../src/ciphers/block/aes/cbc'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des'
 
 describe('registry', () => {
-  it('registers all 23 ciphers', () => {
-    expect(ciphers()).toHaveLength(23)
+  it('registers all 24 ciphers', () => {
+    expect(ciphers()).toHaveLength(24)
     for (const name of [
       'caesar',
       'rot13',
@@ -26,6 +27,7 @@ describe('registry', () => {
       'polybius',
       'enigma',
       'aes',
+      'aes-cbc',
       'aes-lrw',
       'triple-des',
     ]) {
@@ -761,6 +763,7 @@ describe('edge cases', () => {
     columnar: { key: 'TEST' },
     bifid: { key: 'TEST' },
     aes: { key: '000102030405060708090a0b0c0d0e0f' },
+    'aes-cbc': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
   }
@@ -1078,6 +1081,123 @@ describe('aes', () => {
       family: 'substitution-permutation',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('aes-cbc', () => {
+  const cbc = create('aes-cbc')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '2b7e151628aed2a6abf7158809cf4f3c'
+  const iv = '000102030405060708090a0b0c0d0e0f'
+
+  /** NIST SP 800-38A F.2.1, F.2.3 and F.2.5: CBC-AES128, 192 and 256 over the same four blocks. */
+  it('matches the NIST SP 800-38A CBC-AES vectors', () => {
+    const plaintext = hex(
+      '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710',
+    )
+    for (const [vectorKey, ciphertext] of [
+      [
+        key,
+        '7649abac8119b246cee98e9b12e9197d5086cb9b507219ee95db113a917678b273bed6b8e3c1743b7116e69e222295163ff1caa1681fac09120eca307586e1a7',
+      ],
+      [
+        '8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b',
+        '4f021db243bc633d7178183a9fa071e8b4d9ada9ad7dedf4e5e738763f69145a571b242012fb7ae07fa9baac3df102e008b0e27988598881d920a9e64f5615cd',
+      ],
+      [
+        '603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4',
+        'f58c4c04d6e5f1ba779eabfb5f7bfbd69cfc4e967edb808d679f777bc6702c7d39f23369a9d9bacfa530e26304231461b2eb05e2c39be9fcda6c19078c6a9d1b',
+      ],
+    ] as const) {
+      expect(aesCbc(plaintext, hex(vectorKey), 'encrypt', hex(iv))).toEqual(hex(ciphertext))
+      expect(aesCbc(hex(ciphertext), hex(vectorKey), 'decrypt', hex(iv))).toEqual(plaintext)
+    }
+  })
+
+  /** Expected values from `openssl enc -aes-*-cbc`, which pads with PKCS#7 by default. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as openssl enc does', () => {
+    for (const [text, ciphertext] of [
+      ['', 'c84af0b613435d5d9182801a9bd9320b'],
+      ['ATTACK AT DAWN', '9bae05a967f1cf1d7d3601f7ef8b4d79'],
+      ['zażółć gęślą jaźń 🙂', 'a341af5c630a9defb56812ea8f241d5a2768aefa9fbcd1dc22bc73d4016076e3'],
+      ['0123456789ABCDEF', '159e1dbe75bfe5c45c3cd075e4cc7831ba3a3a660ec37e5832ed3b1bcfc7572a'],
+    ]) {
+      expect(cbc.encode(text!, { key, iv })).toEqual({
+        text: ciphertext,
+        cipher: 'aes-cbc',
+        operation: 'encode',
+        options: { key, mode: 'cbc', iv },
+      })
+      expect(cbc.decode(ciphertext!, { key, iv }).text).toBe(text)
+    }
+    for (const [aesKey, ciphertext] of [
+      ['8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b', '134d088ca5f4c48fe0bd76fb1ea7da9e'],
+      [
+        '603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4',
+        'ef9af9c6f9719a139bd32fb27b3b86e4',
+      ],
+    ]) {
+      expect(cbc.encode('ATTACK AT DAWN', { key: aesKey, iv }).text).toBe(ciphertext)
+      expect(cbc.decode(ciphertext!, { key: aesKey, iv }).text).toBe('ATTACK AT DAWN')
+    }
+  })
+
+  it('reads the IV in any case and spacing, and a different IV gives different ciphertext', () => {
+    const result = cbc.encode('ATTACK AT DAWN', { key, iv: '00010203 04050607 08090A0B 0C0D0E0F' })
+    expect(result.options).toEqual({ key, mode: 'cbc', iv })
+    const other = cbc.encode('ATTACK AT DAWN', { key, iv: 'f'.repeat(32) })
+    expect(other.text).toBe('8d2fe768b5665d720cb9cc35f5095ee9')
+    expect(cbc.decode(other.text, { key, iv: 'f'.repeat(32) }).text).toBe('ATTACK AT DAWN')
+  })
+
+  it('gives different ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = cbc.encode('A'.repeat(32), { key, iv })
+    expect(text).toBe(
+      'ab74350f2f19b4ea4de050762e12dbc18d2f731d5ae2fa0858814a0e6df219ca25292ca5cf9e35a0afb9452d5c640c6e',
+    )
+    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
+  })
+
+  it('rejects keys and IVs it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => cbc[operation]('', { iv })).toThrow(MissingOptionError)
+      expect(() => cbc[operation]('', { key })).toThrow(MissingOptionError)
+      expect(() => cbc[operation]('', { key, iv: '' })).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(20), 'g'.repeat(32), 12]) {
+        expect(() => cbc[operation]('', { key: bad, iv })).toThrow(InvalidOptionError)
+      }
+      for (const bad of [
+        '00'.repeat(15),
+        '00'.repeat(17),
+        'g'.repeat(32),
+        '0x' + '0'.repeat(30),
+        1,
+      ]) {
+        expect(() => cbc[operation]('', { key, iv: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => cbc.decode('9bae05a9', { key, iv })).toThrow(/whole 16-byte blocks/)
+    expect(() =>
+      cbc.decode('9bae05a967f1cf1d7d3601f7ef8b4d79', { key: '00'.repeat(16), iv }),
+    ).toThrow(/not AES-CBC ciphertext/)
+  })
+
+  it('reports the block category and the IV option', () => {
+    expect(resolveCipher('AES CBC')).toBe(cbc)
+    expect(cbc.info()).toMatchObject({
+      name: 'aes-cbc',
+      category: 'block',
+      family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'iv', type: 'string', required: true },
+      ],
     })
   })
 })

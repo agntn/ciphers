@@ -156,6 +156,23 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const ofbIv = 'f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff'
+  assert.equal(
+    run(binPath, ['encode', 'aes-ofb', 'ATTACK AT DAWN', '--key', aesKey, '--iv', ofbIv]).trim(),
+    'add88b32db2b5cf1a6f25234bdd0',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'aes-ofb',
+      'add88b32db2b5cf1a6f25234bdd0',
+      '--key',
+      aesKey,
+      '--iv',
+      ofbIv,
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   assert.equal(
     run(binPath, [
       'encode',

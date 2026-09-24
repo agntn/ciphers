@@ -5,7 +5,7 @@
 [![license](https://npmx.dev/api/registry/badge/license/@agntn/ciphers)](https://npmx.dev/package/@agntn/ciphers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agntn/ciphers)
 
-🔐 Twenty-seven ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
+🔐 Twenty-eight ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
 
 ## Why?
 
@@ -15,7 +15,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Twenty-seven ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid and Enigma M3, plus AES and Triple DES in ECB mode and AES in CBC, CFB, CTR, CCM and LRW mode.
+- 🔡 **Twenty-eight ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid and Enigma M3, plus AES and Triple DES in ECB mode and AES in CBC, CFB, OFB, CTR, CCM and LRW mode.
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -164,6 +164,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **aes**        | substitution-permutation    |      ✗       | `--key` (hex, required)                           |
 | **aes-cbc**    | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)              |
 | **aes-cfb**    | substitution-permutation    |      ✗       | `--key`, `--iv` (hex), `--segment`                |
+| **aes-ofb**    | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)              |
 | **aes-ctr**    | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)              |
 | **aes-ccm**    | substitution-permutation    |      ✗       | `--key`, `--nonce` (hex), `--aad`, `--tag-length` |
 | **aes-lrw**    | substitution-permutation    |      ✗       | `--key` (hex, required), `--tweak`                |
@@ -171,7 +172,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 
 Playfair and Polybius fold J into I, tap code shares C and K, Bacon is the 26-letter variant unless `letters` says 24, and Alberti is a keyed disk that turns every `period` letters, not a reenactment of the original. One page per cipher, rules and vectors included: [Ciphers](https://ciphers.agntn.dev/ciphers).
 
-AES and Triple DES are the block ciphers. They take UTF-8 text, pad it with PKCS#7 and give hex back. The key is hex too: 32, 48 or 64 digits for AES, 32 or 48 for Triple DES. Every block goes through on its own, that's ECB. So two equal blocks of plaintext come out as two equal blocks of ciphertext. `aes-cbc` chains them instead. Each block gets XORed with the ciphertext block before it, the first one with `--iv`, which is 32 hex digits and required. `aes-cfb` takes the same `--iv` and turns AES into a keystream. `--segment` says how many bits go per step, 1, 8 or 128 (default 128). Nothing gets padded, so the ciphertext has exactly as many bytes as the text. `aes-ctr` is a keystream too, only simpler. `--iv` is the first counter block, AES encrypts it, and the counter goes up by one for every next block. No feedback at all, so encrypt and decrypt are literally the same thing. `aes-ccm` is CTR with a tag on the end. `--nonce` is 14 to 26 hex digits, `--aad` is optional hex that the tag covers but nobody encrypts, and `--tag-length` is in bits (default 128). Decode checks the tag first, so a changed byte, a wrong key or a wrong nonce is an error, not garbage. Or there's `aes-lrw`, the LRW mode from the IEEE P1619 drafts. Its key is the AES key plus 32 more digits for a tweak key, and every block gets masked by its own index, counted from `--tweak` (default 1). Equal blocks at different places stop looking equal.
+AES and Triple DES are the block ciphers. They take UTF-8 text, pad it with PKCS#7 and give hex back. The key is hex too: 32, 48 or 64 digits for AES, 32 or 48 for Triple DES. Every block goes through on its own, that's ECB. So two equal blocks of plaintext come out as two equal blocks of ciphertext. `aes-cbc` chains them instead. Each block gets XORed with the ciphertext block before it, the first one with `--iv`, which is 32 hex digits and required. `aes-cfb` takes the same `--iv` and turns AES into a keystream. `--segment` says how many bits go per step, 1, 8 or 128 (default 128). Nothing gets padded, so the ciphertext has exactly as many bytes as the text. `aes-ofb` takes `--iv` as well and feeds AES its own output, block after block, so the keystream never touches the text and nothing gets padded either. `aes-ctr` is a keystream too, only simpler. `--iv` is the first counter block, AES encrypts it, and the counter goes up by one for every next block. No feedback at all, so encrypt and decrypt are literally the same thing. `aes-ccm` is CTR with a tag on the end. `--nonce` is 14 to 26 hex digits, `--aad` is optional hex that the tag covers but nobody encrypts, and `--tag-length` is in bits (default 128). Decode checks the tag first, so a changed byte, a wrong key or a wrong nonce is an error, not garbage. Or there's `aes-lrw`, the LRW mode from the IEEE P1619 drafts. Its key is the AES key plus 32 more digits for a tweak key, and every block gets masked by its own index, counted from `--tweak` (default 1). Equal blocks at different places stop looking equal.
 
 ## 🤖 Agents
 
@@ -193,11 +194,11 @@ Five tools, `cipher_encode`, `cipher_decode`, `cipher_brute_caesar`, `cipher_fre
 
 ## 🚫 What this does not do
 
-Cryptography you'd trust with anything. The classical ones fall to anyone with a laptop and an afternoon, and that's the point, they're for puzzles, CTFs and teaching. AES and Triple DES are here too, mostly in ECB, the mode that leaks which blocks repeat. CBC, CFB, CTR and LRW hide that, but none of them checks integrity, and IEEE dropped LRW for XTS. CCM does check it, and still falls apart the moment a nonce repeats. All of it is plain TypeScript that never tried to be constant time. They're for the CTF that uses them and for seeing that leak, not for your data. No hashing, no wallet keys. Keys and signatures are [@agntn/keys](https://github.com/agntn/keys), and even those want nothing to do with real money.
+Cryptography you'd trust with anything. The classical ones fall to anyone with a laptop and an afternoon, and that's the point, they're for puzzles, CTFs and teaching. AES and Triple DES are here too, mostly in ECB, the mode that leaks which blocks repeat. CBC, CFB, OFB, CTR and LRW hide that, but none of them checks integrity, and IEEE dropped LRW for XTS. CCM does check it, and still falls apart the moment a nonce repeats. All of it is plain TypeScript that never tried to be constant time. They're for the CTF that uses them and for seeing that leak, not for your data. No hashing, no wallet keys. Keys and signatures are [@agntn/keys](https://github.com/agntn/keys), and even those want nothing to do with real money.
 
 ## ➕ Adding a cipher
 
-Want a twenty-eighth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+Want a twenty-ninth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
 
 ## 🛠️ Development
 

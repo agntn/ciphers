@@ -23,6 +23,7 @@ export const builtinCiphers = [
   'aes',
   'aes-cbc',
   'aes-cfb',
+  'aes-ofb',
   'aes-ctr',
   'aes-ccm',
   'aes-lrw',

@@ -180,6 +180,20 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const ccmArgs = ['--key', aesKey, '--nonce', '000102030405060708090a0b', '--tag-length', '64']
+  assert.equal(
+    run(binPath, ['encode', 'aes-ccm', 'ATTACK AT DAWN', ...ccmArgs]).trim(),
+    '9038dc3aa03594330d2d4dca3cb98449c5e413b366ac',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'aes-ccm',
+      '9038dc3aa03594330d2d4dca3cb98449c5e413b366ac',
+      ...ccmArgs,
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   const lrwKey = '4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87'
   assert.equal(
     run(binPath, [

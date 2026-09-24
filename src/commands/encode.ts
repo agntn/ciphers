@@ -15,7 +15,7 @@ export default defineCommand({
     key: {
       type: 'string',
       description:
-        'Keyword for keyed ciphers, hex digits for AES, AES-CBC, AES-CFB, AES-OFB, AES-CTR, AES-CCM, AES-OCB, AES-LRW, Rijndael, Triple DES and Triple DES CBC',
+        'Keyword for keyed ciphers, hex digits for AES, AES-CBC, AES-CFB, AES-OFB, AES-CTR, AES-CCM, AES-OCB, AES-LRW, AES-XTS, Rijndael, Triple DES and Triple DES CBC',
       alias: 'k',
     },
     transposition: { type: 'string', description: 'Transposition keyword (ADFGVX)' },
@@ -32,7 +32,11 @@ export default defineCommand({
       type: 'string',
       description: 'Block length in bits, 128, 160, 192, 224 or 256 (Rijndael; default 128)',
     },
-    tweak: { type: 'string', description: 'Index of the first block in hex (AES-LRW; default 1)' },
+    tweak: {
+      type: 'string',
+      description:
+        'Index of the first block in hex (AES-LRW; default 1), or the data unit number (AES-XTS; default 0)',
+    },
     nonce: {
       type: 'string',
       description: 'Nonce in hex, 14 to 26 digits for AES-CCM, 2 to 30 for AES-OCB',

@@ -178,6 +178,17 @@ export interface AesLrwOptions extends CipherBaseOptions {
   tweak?: string
 }
 
+/** AES-XTS options. */
+export interface AesXtsOptions extends CipherBaseOptions {
+  /**
+   * 64 or 128 hex digits: the data key, then the tweak key, both AES-128 or both AES-256; case
+   * and spaces are ignored.
+   */
+  key: string
+  /** Data unit (sector) number in hex, up to 32 digits. Default: 0. */
+  tweak?: string
+}
+
 /** Rijndael options. */
 export interface RijndaelOptions extends CipherBaseOptions {
   /** 32, 40, 48, 56 or 64 hex digits for a 128 to 256-bit key; case and spaces are ignored. */

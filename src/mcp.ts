@@ -97,6 +97,15 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
+    ciphers: ['aes-xts'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){64}(?:(?:[0-9A-Fa-f]\s*){64})?$/,
+      error:
+        'must be 64 or 128 hex digits (two AES-128 or two AES-256 keys: data key, then tweak key)',
+    },
+  },
+  {
     ciphers: ['rijndael'],
     required: ['key'],
     key: {

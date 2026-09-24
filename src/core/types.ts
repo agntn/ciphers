@@ -112,6 +112,14 @@ export interface AesOptions extends CipherBaseOptions {
   key: string
 }
 
+/** AES-LRW options. */
+export interface AesLrwOptions extends CipherBaseOptions {
+  /** 64, 80 or 96 hex digits: the AES key, then 32 for the tweak key; case and spaces are ignored. */
+  key: string
+  /** Index of the first block in hex, up to 32 digits. Default: 1. */
+  tweak?: string
+}
+
 /** Triple DES ECB options. */
 export interface TripleDesOptions extends CipherBaseOptions {
   /** 32 hex digits for two keys (K3 = K1) or 48 for three; case and spaces are ignored. */

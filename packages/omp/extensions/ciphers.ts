@@ -67,6 +67,9 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     transposition: Type.Optional(
       Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
     ),
+    tweak: Type.Optional(
+      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.tweak }),
+    ),
     rails: Type.Optional(
       Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' }),
     ),

@@ -72,6 +72,15 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
+    ciphers: ['aes-lrw'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){64}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,
+      error:
+        'must be 64, 80 or 96 hex digits (the AES-128, AES-192 or AES-256 key, then the tweak key)',
+    },
+  },
+  {
     ciphers: ['triple-des'],
     required: ['key'],
     key: {
@@ -96,6 +105,9 @@ const cipherInputSchema = Type.Object({
   ),
   transposition: Type.Optional(
     Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
+  ),
+  tweak: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.tweak }),
   ),
   rails: Type.Optional(
     Type.Integer({

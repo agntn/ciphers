@@ -27,7 +27,8 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - Bacon defaults to the 26-letter A-Z variant; `letters: 24` selects the historical table with I/J and U/V shared.
 - ADFGVX runs its columnar transposition only when `transposition` is set; without it the output is the grid step alone.
 - Enigma models Wehrmacht M3 with rotors I-II-III and reflector B.
-- AES runs in ECB only: UTF-8 text with PKCS#7 padding in, lowercase hex out, and a key of 32, 48 or 64 hex digits. It is a teaching implementation, not constant time.
+- `aes` runs in ECB only: UTF-8 text with PKCS#7 padding in, lowercase hex out, and a key of 32, 48 or 64 hex digits. It is a teaching implementation, not constant time.
+- AES-LRW takes the AES key followed by a 32-digit tweak key, masks block `i` with `K2 ⊗ i` in GF(2^128) as IEEE P1619 LRW does, and counts `i` up from `tweak` (hex, default 1). Text, padding and hex work as for AES.
 - Triple DES runs in ECB only, as EDE with a key of 32 hex digits (K3 = K1) or 48 (three keys). Parity bits are ignored. Text, padding and hex work as for AES, with 8-byte blocks.
 
 ## Adding or Changing a Cipher

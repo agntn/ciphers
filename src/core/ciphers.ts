@@ -21,6 +21,7 @@ export const builtinCiphers = [
   'bifid',
   'enigma',
   'aes',
+  'aes-lrw',
   'triple-des',
 ] as const
 

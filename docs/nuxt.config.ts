@@ -11,6 +11,7 @@ export default defineNuxtConfig({
     "@agntn/ciphers": resolve(librarySource, "index.ts"),
   },
   vite: {
+    build: { target: "es2024" },
     server: {
       /** Dev serves the library from outside the workspace, which Vite refuses without this. */
       fs: { allow: [librarySource] },
@@ -88,6 +89,8 @@ export default defineNuxtConfig({
   nitro: {
     preset: "cloudflare_module",
     compatibilityDate: "2026-09-03",
+    /** Nitro compiles the server bundle for ES2019 unless told otherwise; the library uses BigInt. */
+    esbuild: { options: { target: "es2024" } },
     prerender: {
       crawlLinks: true,
       routes: ["/", "/playground", "/sitemap.xml", "/robots.txt", "/llms.txt", "/llms-full.txt"],

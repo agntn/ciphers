@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
 import { Cipher } from '../../core/cipher'
 import { normalizeError } from '../../core/errors'
-import { type Bytes, type EcbCipher, decodeEcb, encodeEcb } from '../../core/ecb'
+import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode'
 
 const BLOCK_SIZE = 16
 
@@ -155,9 +155,10 @@ export function aesEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'
   return output
 }
 
-const AES: EcbCipher = {
+const AES: BlockMode = {
   name: 'aes',
   label: 'AES-ECB',
+  mode: 'ecb',
   blockSize: BLOCK_SIZE,
   keyDigits: [32, 48, 64],
   keyError: 'must be 32, 48 or 64 hex digits (a 128, 192 or 256-bit AES key)',
@@ -192,7 +193,7 @@ export class Aes extends Cipher {
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      return encodeEcb(AES, text, options ?? {})
+      return encodeBlocks(AES, text, options ?? {})
     } catch (e) {
       throw normalizeError(e, 'aes')
     }
@@ -200,7 +201,7 @@ export class Aes extends Cipher {
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      return decodeEcb(AES, text, options ?? {})
+      return decodeBlocks(AES, text, options ?? {})
     } catch (e) {
       throw normalizeError(e, 'aes')
     }

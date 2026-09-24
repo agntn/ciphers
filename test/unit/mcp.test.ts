@@ -192,6 +192,31 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('discovers and executes AES-LRW with a tweak through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'aes-lrw' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('tweak (string, default=1)')
+    const key = '4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87'
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', 'f319a072c39498a1e0c6c8213de2facc'],
+      ['cipher_decode', 'f319a072c39498a1e0c6c8213de2facc', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({
+        name,
+        arguments: { cipher: 'aes-lrw', text, key, tweak: '200000000' },
+      })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+    const badTweak = await client.callTool({
+      name: 'cipher_encode',
+      arguments: { cipher: 'aes-lrw', text: 'abc', key, tweak: 'xyz' },
+    })
+    expect(badTweak.isError).toBe(true)
+    expect(onlyText(badTweak.content)).toContain('tweak')
+  })
+
   it('discovers and executes the 24-letter Bacon table through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'bacon' } })
@@ -260,6 +285,8 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
       ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],
+      ['key', { cipher: 'aes-lrw', text: 'abc' }],
+      ['key', { cipher: 'aes-lrw', text: 'abc', key: '00'.repeat(16) }],
       ['key', { cipher: 'triple-des', text: 'abc' }],
       ['key', { cipher: 'triple-des', text: 'abc', key: '00'.repeat(32) }],
     ] as const) {
@@ -302,7 +329,7 @@ describe('Ciphers MCP server', () => {
     const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
     expect(onlyText(block.content)).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
     )
 
     const unknownCategory = await client.callTool({

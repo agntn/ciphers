@@ -14,10 +14,11 @@ export default defineCommand({
     shift: { type: 'string', description: 'Shift value (Caesar)', alias: 's' },
     key: {
       type: 'string',
-      description: 'Keyword for keyed ciphers, hex digits for AES and Triple DES',
+      description: 'Keyword for keyed ciphers, hex digits for AES, AES-LRW and Triple DES',
       alias: 'k',
     },
     transposition: { type: 'string', description: 'Transposition keyword (ADFGVX)' },
+    tweak: { type: 'string', description: 'Index of the first block in hex (AES-LRW; default 1)' },
     rails: { type: 'string', description: 'Number of rails (Rail Fence)', alias: 'r' },
     period: { type: 'string', description: 'Rotation period (Alberti, Bifid)' },
     letters: { type: 'string', description: 'Alphabet size, 24 or 26 (Bacon; default 26)' },

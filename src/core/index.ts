@@ -13,6 +13,7 @@ export type {
   PolybiusOptions,
   AdfgvxOptions,
   BaconOptions,
+  AesOptions,
   CipherInfo,
   CipherOption,
 } from './types'

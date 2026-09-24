@@ -106,6 +106,12 @@ export interface BaconOptions extends CipherBaseOptions {
   letters?: 24 | 26
 }
 
+/** AES-ECB options. */
+export interface AesOptions extends CipherBaseOptions {
+  /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
+  key: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *

@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { InvalidOptionError, normalizeError } from '../core/errors'
-import { buildPolybiusSquare, getOpt } from '../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { InvalidOptionError, normalizeError } from '../../core/errors'
+import { buildPolybiusSquare, getOpt } from '../../core/utils'
 
 // Bifid cipher: combines Polybius fractionation with transposition
 // Encode: get row/col for each letter, concatenate all rows then all cols
@@ -80,6 +80,7 @@ export class Bifid extends Cipher {
       name: 'bifid',
       label: 'Bifid Cipher',
       description: 'Fractionation + transposition — Polybius row/col split, interleaved by period',
+      category: 'classical',
       family: 'fractionation',
       selfInverse: false,
       options: [

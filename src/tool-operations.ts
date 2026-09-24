@@ -1,5 +1,7 @@
 import type * as CiphersModule from './index'
-import { builtinCiphers } from './core/ciphers'
+import { builtinCiphers, cipherCategories } from './core/ciphers'
+
+export { cipherCategories }
 
 type CiphersLibrary = Pick<
   typeof CiphersModule,
@@ -51,6 +53,7 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
  */
 export const OPTION_DESCRIPTIONS = {
   cipher: `Exact built-in cipher name: ${builtinCiphers.join(', ')}`,
+  category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
   key: 'Keyword. Required by vigenere, beaufort, autokey, alberti, playfair and columnar; optional for polybius, adfgvx and bifid',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
   period:
@@ -91,25 +94,41 @@ export function transformCipher(
   }
 }
 
+/**
+ * List the registered ciphers under their category, or describe one cipher.
+ *
+ * @param library - The loaded cipher library.
+ * @param cipherName - Cipher to describe; omit to list.
+ * @param category - Category the list keeps; ignored when `cipherName` is given.
+ * @returns {CipherToolResult} The listing or the cipher's options.
+ */
 export function formatCipherInfo(
   library: Readonly<CiphersLibrary>,
   cipherName?: string,
+  category?: string,
 ): CipherToolResult {
   if (cipherName === undefined) {
-    const lines = [
-      ...library.ciphers().map((name) => {
+    const names = library
+      .ciphers()
+      .filter((name) => category === undefined || library.create(name).info().category === category)
+    const groups = Map.groupBy(names, (name) => library.create(name).info().category)
+    if (groups.size === 0) {
+      return { content: [{ type: 'text', text: `No ciphers in category ${category}.` }] }
+    }
+    const lines = [...groups].flatMap(([current, members]) => [
+      `${current}:`,
+      ...members.map((name) => {
         const info = library.create(name).info()
-        return `${name} [${info.family}] — ${info.description}`
+        return `  ${name} [${info.family}] — ${info.description}`
       }),
-      '',
-      'Call cipher_info with a cipher name to see its options.',
-    ]
+    ])
+    lines.push('', 'Call cipher_info with a cipher name to see its options.')
     return { content: [{ type: 'text', text: lines.join('\n') }] }
   }
 
   const info = library.resolveCipher(cipherName).info()
   const lines = [
-    `${info.label} (${info.name}) — ${info.family}`,
+    `${info.label} (${info.name}) — ${info.category}, ${info.family}`,
     info.description,
     `Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`,
   ]

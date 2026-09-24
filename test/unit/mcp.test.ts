@@ -237,13 +237,27 @@ describe('Ciphers MCP server', () => {
     const list = await client.callTool({ name: 'cipher_info', arguments: {} })
     expect(list.isError).not.toBe(true)
     const [listEntry] = list.content as [{ type: string; text: string }]
-    expect(listEntry.text).toContain('caesar [substitution-shift]')
-    expect(listEntry.text).toContain('enigma [rotor]')
+    expect(listEntry.text).toMatch(/^classical:\n {2}caesar \[substitution-shift\]/)
+    expect(listEntry.text).toContain('  enigma [rotor]')
+
+    const filtered = await client.callTool({
+      name: 'cipher_info',
+      arguments: { category: 'classical' },
+    })
+    expect(filtered.isError).not.toBe(true)
+    expect(filtered.content).toEqual(list.content)
+
+    const unknownCategory = await client.callTool({
+      name: 'cipher_info',
+      arguments: { category: 'block' },
+    })
+    expect(unknownCategory.isError).toBe(true)
+    expect(onlyText(unknownCategory.content)).toContain('Invalid arguments at /category')
 
     const detail = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'playfair' } })
     expect(detail.isError).not.toBe(true)
     const [detailEntry] = detail.content as [{ type: string; text: string }]
-    expect(detailEntry.text).toContain('(playfair) — digraph')
+    expect(detailEntry.text).toContain('(playfair) — classical, digraph')
     expect(detailEntry.text).toContain('key (string, required)')
 
     const unknown = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'missing' } })
@@ -274,6 +288,7 @@ describe('Ciphers MCP server', () => {
           name: 'custom-test',
           label: 'Custom Test',
           description: 'Registry round-trip probe',
+          category: 'classical',
           family: 'transposition',
           selfInverse: true,
           options: [],

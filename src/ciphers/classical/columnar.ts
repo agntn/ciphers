@@ -1,5 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
 import {
   applyBaseOptions,
   cipherCacheKey,
@@ -8,8 +8,8 @@ import {
   getOpt,
   LruCache,
   processBaseOptions,
-} from '../core/utils'
-import { MissingOptionError, normalizeError } from '../core/errors'
+} from '../../core/utils'
+import { MissingOptionError, normalizeError } from '../../core/errors'
 
 function validate(opts: Readonly<CipherBaseOptions>): {
   key: string
@@ -42,6 +42,7 @@ export class Columnar extends Cipher {
       name: 'columnar',
       label: 'Columnar Transposition',
       description: 'Plaintext written in rows, columns read in keyword order',
+      category: 'classical',
       family: 'transposition',
       selfInverse: false,
       options: [

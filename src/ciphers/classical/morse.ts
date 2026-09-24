@@ -1,6 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { normalizeError } from '../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { normalizeError } from '../../core/errors'
 
 const CHAR_TO_MORSE: Record<string, string> = {
   A: '.-',
@@ -90,6 +90,7 @@ export class Morse extends Cipher {
       name: 'morse',
       label: 'Morse Code',
       description: 'Telegraph encoding — letters to dot/dash sequences, words separated by /',
+      category: 'classical',
       family: 'fractionation',
       selfInverse: false,
       options: [],

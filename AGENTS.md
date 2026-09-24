@@ -8,8 +8,9 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 
 ## Architecture
 
-- Put each cipher in one `src/ciphers/<name>.ts` file. Its concrete class extends `Cipher`, implements `name()`, `info()`, `encode()`, and `decode()`, and is exported. Do not call `register()` from the file.
-- `src/ciphers/index.ts` holds `builtins`, the ordered list the registry is seeded from. A cipher file that is not in it is not in the registry.
+- Put each cipher in one `src/ciphers/<category>/<name>.ts` file. Its concrete class extends `Cipher`, implements `name()`, `info()`, `encode()`, and `decode()`, and is exported. Do not call `register()` from the file.
+- A category is one entry in `cipherCategories` in `src/core/ciphers.ts` and one folder under `src/ciphers/`. Every cipher reports it as `info().category`; `cipher_info` and `ciphers ciphers` list by it and filter on it. Today there is `classical`; a block or stream cipher gets its own category rather than a new `family` under `classical`.
+- Each category folder has an `index.ts` with its ordered list, and `src/ciphers/index.ts` concatenates those lists into `builtins`, the list the registry is seeded from. A cipher file that is not in them is not in the registry.
 - Keep `src/core/registry.ts` constructor-based. `create()` returns one cached instance per name, and re-registering a name invalidates that instance.
 - `sideEffects` names `dist/cli.mjs` and nothing else. That holds only while no module registers itself on import: put a `register()` call back at the top of a cipher file and the class reaches the registry through a bare import, which a tree-shaker is free to drop. New ciphers go in `builtins`.
 - `src/commands/mcp.ts` imports the server and the SDK inside `run()`, because citty resolves every subcommand for `--help` and for an unknown command too. `test/unit/cli-loads.test.ts` runs those usage paths under a load hook.
@@ -30,7 +31,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 ## Adding or Changing a Cipher
 
 1. Add or update the cipher class and its option types.
-2. For a new cipher, export the class, add it to `builtins` in `src/ciphers/index.ts`, and add its name to `builtinCiphers` in `src/core/ciphers.ts` in the same position.
+2. For a new cipher, export the class, add it to its category list in `src/ciphers/<category>/index.ts`, and add its name to `builtinCiphers` in `src/core/ciphers.ts` in the same position `builtins` gives it. A new category also needs its entry in `cipherCategories` and its list spread into `builtins`.
 3. Run a roundtrip probe before writing fixtures.
 4. Add an independently known fixed vector plus relevant edge cases to `test/unit/ciphers.test.ts`. Never manufacture the expected value from the implementation under test.
 5. Update the CLI, Pi/OMP tools, exports, and README only where the public contract changed.

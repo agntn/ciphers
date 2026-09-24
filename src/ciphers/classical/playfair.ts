@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { buildPolybiusSquare, getOpt } from '../core/utils'
-import { MissingOptionError, normalizeError } from '../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { buildPolybiusSquare, getOpt } from '../../core/utils'
+import { MissingOptionError, normalizeError } from '../../core/errors'
 
 // Uses shared buildPolybiusSquare (1-indexed positions)
 
@@ -82,6 +82,7 @@ export class Playfair extends Cipher {
       label: 'Playfair',
       description:
         'Digraph substitution — encrypts letter pairs using a 5×5 key table (I/J share cell)',
+      category: 'classical',
       family: 'digraph',
       selfInverse: false,
       options: [

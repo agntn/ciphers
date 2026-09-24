@@ -6,7 +6,19 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vite-plus/test'
 import { builtins } from '../../src/ciphers/index'
 import { builtinCiphers } from '../../src/core/ciphers'
-import { ciphers } from '../../src/core/registry'
+import { ciphers, create } from '../../src/core/registry'
+
+/**
+ * Cipher files across the category folders, without their `index.ts` lists.
+ *
+ * @returns {string[]} Absolute paths of the cipher modules.
+ */
+function cipherFiles(): string[] {
+  const directory = fileURLToPath(new URL('../../src/ciphers/', import.meta.url))
+  return readdirSync(directory, { recursive: true, encoding: 'utf8' })
+    .filter((name) => name.endsWith('.ts') && path.basename(name) !== 'index.ts')
+    .map((name) => path.join(directory, name))
+}
 
 function rolldownEntry(): string {
   const pnpm = fileURLToPath(new URL('../../node_modules/.pnpm', import.meta.url))
@@ -25,10 +37,17 @@ describe('registry without import side effects', () => {
   })
 
   it('lists every cipher file in the registry', () => {
-    const files = readdirSync(new URL('../../src/ciphers/', import.meta.url)).filter(
-      (name) => name.endsWith('.ts') && name !== 'index.ts',
-    )
-    expect(ciphers()).toHaveLength(files.length)
+    expect(ciphers()).toHaveLength(cipherFiles().length)
+  })
+
+  it('keeps each cipher in the folder named after its category', () => {
+    const files = cipherFiles()
+    for (const name of ciphers()) {
+      const { category } = create(name).info()
+      expect(files, name).toContainEqual(
+        fileURLToPath(new URL(`../../src/ciphers/${category}/${name}.ts`, import.meta.url)),
+      )
+    }
   })
 
   it('declares only the CLI as a side effect', () => {
@@ -39,11 +58,8 @@ describe('registry without import side effects', () => {
   })
 
   it('does not register a cipher from its own module', () => {
-    const directory = fileURLToPath(new URL('../../src/ciphers/', import.meta.url))
-    for (const name of readdirSync(directory)) {
-      if (!name.endsWith('.ts') || name === 'index.ts') continue
-      const source = readFileSync(path.join(directory, name), 'utf8')
-      expect(source, name).not.toMatch(/\bregister\s*\(/)
+    for (const file of cipherFiles()) {
+      expect(readFileSync(file, 'utf8'), file).not.toMatch(/\bregister\s*\(/)
     }
   })
 

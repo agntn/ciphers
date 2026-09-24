@@ -1,7 +1,7 @@
-import type { CipherBaseOptions, CipherInfo, CipherResult } from '../core/types'
-import { Cipher } from '../core/cipher'
-import { normalizeError } from '../core/errors'
-import { processBaseOptions } from '../core/utils'
+import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types'
+import { Cipher } from '../../core/cipher'
+import { normalizeError } from '../../core/errors'
+import { processBaseOptions } from '../../core/utils'
 
 function transform(
   text: string,
@@ -35,6 +35,7 @@ export class Trithemius extends Cipher {
       name: 'trithemius',
       label: 'Trithemius',
       description: 'Progressive polyalphabetic substitution with shifts 0, 1, 2, ...',
+      category: 'classical',
       family: 'polyalphabetic',
       selfInverse: false,
       options: [],

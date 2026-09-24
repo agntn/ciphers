@@ -257,6 +257,31 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const tripleDesIv = '0001020304050607'
+  assert.equal(
+    run(binPath, [
+      'encode',
+      'triple-des-cbc',
+      'ATTACK AT DAWN',
+      '--key',
+      tripleDesKey,
+      '--iv',
+      tripleDesIv,
+    ]).trim(),
+    '00b5ad5bd633b1c564e7e3a858c7d8fb',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'triple-des-cbc',
+      '00b5ad5bd633b1c564e7e3a858c7d8fb',
+      '--key',
+      tripleDesKey,
+      '--iv',
+      tripleDesIv,
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',

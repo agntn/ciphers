@@ -184,6 +184,14 @@ export interface TripleDesOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Triple DES CBC options. */
+export interface TripleDesCbcOptions extends CipherBaseOptions {
+  /** 32 hex digits for two keys (K3 = K1) or 48 for three; case and spaces are ignored. */
+  key: string
+  /** Initialization vector, 16 hex digits; case and spaces are ignored. */
+  iv: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *

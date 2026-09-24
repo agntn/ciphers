@@ -29,6 +29,7 @@ export const builtinCiphers = [
   'aes-ocb',
   'aes-lrw',
   'triple-des',
+  'triple-des-cbc',
 ] as const
 
 export type BuiltinCipher = (typeof builtinCiphers)[number]

@@ -11,11 +11,12 @@ import { aesOfb } from '../../src/ciphers/block/aes/ofb'
 import { aesCtr } from '../../src/ciphers/block/aes/ctr'
 import { aesCcm } from '../../src/ciphers/block/aes/ccm'
 import { aesOcb } from '../../src/ciphers/block/aes/ocb'
-import { tripleDesEcb } from '../../src/ciphers/block/triple-des'
+import { tripleDesEcb } from '../../src/ciphers/block/triple-des/ecb'
+import { tripleDesCbc } from '../../src/ciphers/block/triple-des/cbc'
 
 describe('registry', () => {
-  it('registers all 29 ciphers', () => {
-    expect(ciphers()).toHaveLength(29)
+  it('registers all 30 ciphers', () => {
+    expect(ciphers()).toHaveLength(30)
     for (const name of [
       'caesar',
       'rot13',
@@ -40,6 +41,7 @@ describe('registry', () => {
       'aes-ocb',
       'aes-lrw',
       'triple-des',
+      'triple-des-cbc',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -781,6 +783,7 @@ describe('edge cases', () => {
     'aes-ocb': { key: '000102030405060708090a0b0c0d0e0f', nonce: '00'.repeat(12) },
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
+    'triple-des-cbc': { key: '0123456789abcdef23456789abcdef01', iv: '00'.repeat(8) },
   }
 
   it('all ciphers handle empty string', () => {
@@ -2250,6 +2253,127 @@ describe('triple-des', () => {
       family: 'feistel',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('triple-des-cbc', () => {
+  const cbc = create('triple-des-cbc')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '0123456789abcdef23456789abcdef01456789abcdef0123'
+  const iv = '0001020304050607'
+
+  /** NIST CAVP TDES Multi-block Message Test, TCBCMMT3.rsp and TCBCMMT2.rsp, COUNT = 3. */
+  it('matches the CAVP multi-block CBC vectors', () => {
+    for (const [keys, vector, plaintext, ciphertext] of [
+      [
+        '202398b6154968c168201329910e612f296189d320670120',
+        '514273c93806fde6',
+        '9a5ec913876299492dda3998f88e1c31a75493b3ade14e9ed7de1f0a303f0299',
+        '9bc02247ff5cefde9a0307f948f9437ef2a298cdd69542236cba47e8c954e819',
+      ],
+      [
+        '160b70ad26e60e8a1adadcc240619ec2160b70ad26e60e8a',
+        '200e89b4097ef967',
+        '5ac6533b1de8edd31224a91f7361dc2b4ab33a5db7acee1cc8bfdf82bb1777c6',
+        '50e5c5bcc3d84c47fed29ce4caccd5fc7724f56615f8ade5e7d26df2148bc2bc',
+      ],
+    ]) {
+      expect(tripleDesCbc(hex(plaintext!), hex(keys!), 'encrypt', hex(vector!))).toEqual(
+        hex(ciphertext!),
+      )
+      expect(tripleDesCbc(hex(ciphertext!), hex(keys!), 'decrypt', hex(vector!))).toEqual(
+        hex(plaintext!),
+      )
+    }
+  })
+
+  /** Expected values from `openssl enc -des-ede3-cbc` and `-des-ede-cbc`, PKCS#7 by default. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, ciphertext] of [
+      ['', '2ea437be9266178c'],
+      ['ATTACK AT DAWN', '00b5ad5bd633b1c564e7e3a858c7d8fb'],
+      ['zażółć gęślą jaźń 🙂', '17c8877a05f7c3e6cf13648a45dd0776ec9c8b03fc9d67dac6f140aaf6350d89'],
+    ]) {
+      expect(cbc.encode(text!, { key, iv })).toEqual({
+        text: ciphertext,
+        cipher: 'triple-des-cbc',
+        operation: 'encode',
+        options: { key, mode: 'cbc', iv },
+      })
+      expect(cbc.decode(ciphertext!, { key, iv }).text).toBe(text)
+    }
+    const twoKey = '0123456789abcdef23456789abcdef01'
+    expect(cbc.encode('ATTACK AT DAWN', { key: twoKey, iv }).text).toBe(
+      'a068567d9209ea48049e0ece569729fe',
+    )
+    expect(cbc.decode('a068567d9209ea48049e0ece569729fe', { key: twoKey, iv }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  /** A zero IV leaves the first block as ECB gives it; the chain changes every block after. */
+  it('chains equal plaintext blocks into different ciphertext blocks', () => {
+    const zero = '00'.repeat(8)
+    const { text } = cbc.encode('A'.repeat(16), { key, iv: zero })
+    expect(text).toBe('9f6ca443ceebf4243f5259d4c574950c18c59ca4e5d5c97b')
+    expect(text.slice(0, 16)).toBe(
+      create('triple-des').encode('A'.repeat(16), { key }).text.slice(0, 16),
+    )
+    expect(text.slice(0, 16)).not.toBe(text.slice(16, 32))
+  })
+
+  it('reads hex keys, IVs and ciphertext in any case and with spaces', () => {
+    const spaced = '0123 4567 89AB CDEF 2345 6789 ABCD EF01 4567 89AB CDEF 0123'
+    expect(
+      cbc.encode('ATTACK AT DAWN', { key: spaced, iv: '0001 0203 0405 0607' }).options,
+    ).toEqual({ key, mode: 'cbc', iv })
+    expect(
+      cbc.decode('00B5AD5B D633B1C5\n64E7E3A8 58C7D8FB', { key: spaced, iv: '00010203 04050607' })
+        .text,
+    ).toBe('ATTACK AT DAWN')
+  })
+
+  it('rejects keys and IVs of the wrong shape', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => cbc[operation]('', { iv })).toThrow(MissingOptionError)
+      expect(() => cbc[operation]('', { key })).toThrow(MissingOptionError)
+      expect(() => cbc[operation]('', { key, iv: '' })).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(8), '00'.repeat(32), 'g'.repeat(48)]) {
+        expect(() => cbc[operation]('', { key: bad, iv })).toThrow(InvalidOptionError)
+      }
+      // An AES-sized IV is the mistake this catches: Triple DES blocks are 8 bytes.
+      for (const bad of ['00'.repeat(16), '00'.repeat(7), 'zz'.repeat(8), 8]) {
+        expect(() => cbc[operation]('', { key, iv: bad })).toThrow(InvalidOptionError)
+      }
+    }
+    expect(() => cbc.encode('', { key, iv: '00'.repeat(16) })).toThrow(/16 hex digits/)
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => cbc.decode('', { key, iv })).toThrow(/whole 8-byte blocks/)
+    expect(() => cbc.decode('00b5ad5b', { key, iv })).toThrow(/got 8 hex digits/)
+    // The right key under the wrong IV only garbles the first block, so the padding still holds.
+    expect(() =>
+      cbc.decode('00b5ad5bd633b1c564e7e3a858c7d8fb', { key: '0123456789abcdef'.repeat(3), iv }),
+    ).toThrow(/PKCS#7/)
+    // ff then seven bytes of 07, from `openssl enc -des-ede3-cbc -nopad`: valid padding, invalid UTF-8.
+    expect(() => cbc.decode('ea0d24ea03dead2e', { key, iv })).toThrow(/not UTF-8/)
+    expect(() => cbc.decode('ea0d24ea03dead2e', { key, iv })).toThrow(CipherError)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('Triple DES CBC')).toBe(cbc)
+    expect(cbc.info()).toMatchObject({
+      name: 'triple-des-cbc',
+      category: 'block',
+      family: 'feistel',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'iv', type: 'string', required: true },
+      ],
     })
   })
 })

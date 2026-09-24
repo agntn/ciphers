@@ -14,6 +14,7 @@ export type {
   AdfgvxOptions,
   BaconOptions,
   AesOptions,
+  TripleDesOptions,
   CipherInfo,
   CipherOption,
 } from './types'

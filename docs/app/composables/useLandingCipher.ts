@@ -23,6 +23,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "tap-code",
   "rot13",
   "beaufort",
+  "triple-des",
   "rot47",
 ];
 

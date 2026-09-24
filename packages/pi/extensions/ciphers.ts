@@ -139,6 +139,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       promptGuidelines: [
         'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
         'AES needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
+        'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
         'cipher_info lists every option with its default.',
       ],
       parameters: cipherParams,

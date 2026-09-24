@@ -71,6 +71,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
       error: 'must be 32, 48 or 64 hex digits (AES-128, AES-192 or AES-256)',
     },
   },
+  {
+    ciphers: ['triple-des'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16})?$/,
+      error: 'must be 32 or 48 hex digits (two-key or three-key Triple DES)',
+    },
+  },
 ]
 
 /**

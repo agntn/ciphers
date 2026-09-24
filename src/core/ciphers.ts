@@ -21,6 +21,7 @@ export const builtinCiphers = [
   'bifid',
   'enigma',
   'aes',
+  'triple-des',
 ] as const
 
 export type BuiltinCipher = (typeof builtinCiphers)[number]

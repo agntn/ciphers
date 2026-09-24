@@ -11,7 +11,7 @@ const cipherCount = spellOutCapital(CIPHERS.length);
 const familyTitle = `${cipherCount} ciphers, ${spellOut(FAMILY_COUNT)} families`;
 const familyChecks = [
   `Shift, reflection and multiplicative substitutions, ${counted(familySize("polyalphabetic"), "polyalphabetic")}, ${counted(familySize("digraph"), "digraph")}`,
-  `${capitalize(counted(familySize("fractionation"), "fractionation"))} from Polybius to ADFGVX, ${counted(familySize("transposition"), "transposition")}, one Enigma M3 and AES in ECB mode`,
+  `${capitalize(counted(familySize("fractionation"), "fractionation"))} from Polybius to ADFGVX, ${counted(familySize("transposition"), "transposition")}, one Enigma M3, AES and Triple DES in ECB mode`,
   "Each page lists the options, the keyspace and the conventions, like I and J sharing a cell",
 ];
 

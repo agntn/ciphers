@@ -173,6 +173,25 @@ describe('Ciphers MCP server', () => {
     )
   })
 
+  it('discovers and executes Triple DES through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({
+      name: 'cipher_info',
+      arguments: { cipher: 'triple-des' },
+    })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(triple-des) — block, feistel')
+    const key = '0123 4567 89AB CDEF 2345 6789 ABCD EF01 4567 89AB CDEF 0123'
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', 'a1a3679052607883b30ef4b95156ff29'],
+      ['cipher_decode', 'a1a3679052607883b30ef4b95156ff29', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({ name, arguments: { cipher: 'triple-des', text, key } })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
   it('discovers and executes the 24-letter Bacon table through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'bacon' } })
@@ -241,6 +260,8 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
       ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],
+      ['key', { cipher: 'triple-des', text: 'abc' }],
+      ['key', { cipher: 'triple-des', text: 'abc', key: '00'.repeat(32) }],
     ] as const) {
       const response = await client.callTool({
         name: 'cipher_encode',
@@ -280,7 +301,9 @@ describe('Ciphers MCP server', () => {
 
     const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
-    expect(onlyText(block.content)).toMatch(/^block:\n {2}aes \[substitution-permutation\]/)
+    expect(onlyText(block.content)).toMatch(
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
+    )
 
     const unknownCategory = await client.callTool({
       name: 'cipher_info',

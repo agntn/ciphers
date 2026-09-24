@@ -4,10 +4,11 @@ import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors'
 import { aesEcb } from '../../src/ciphers/block/aes'
+import { tripleDesEcb } from '../../src/ciphers/block/triple-des'
 
 describe('registry', () => {
-  it('registers all 21 ciphers', () => {
-    expect(ciphers()).toHaveLength(21)
+  it('registers all 22 ciphers', () => {
+    expect(ciphers()).toHaveLength(22)
     for (const name of [
       'caesar',
       'rot13',
@@ -24,6 +25,7 @@ describe('registry', () => {
       'polybius',
       'enigma',
       'aes',
+      'triple-des',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -757,6 +759,7 @@ describe('edge cases', () => {
     columnar: { key: 'TEST' },
     bifid: { key: 'TEST' },
     aes: { key: '000102030405060708090a0b0c0d0e0f' },
+    'triple-des': { key: '0123456789abcdef23456789abcdef01' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -1070,6 +1073,128 @@ describe('aes', () => {
       name: 'aes',
       category: 'block',
       family: 'substitution-permutation',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('triple-des', () => {
+  const tripleDes = create('triple-des')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '0123456789abcdef23456789abcdef01456789abcdef0123'
+
+  /** NIST SP 800-67 example: three keys over three blocks of "The qufck brown fox jump". */
+  it('matches the SP 800-67 example', () => {
+    const plaintext = [...new TextEncoder().encode('The qufck brown fox jump')]
+    const ciphertext = hex('a826fd8ce53b855fcce21c8112256fe668d5c05dd9b6b900')
+    expect(tripleDesEcb(plaintext, hex(key), 'encrypt')).toEqual(ciphertext)
+    expect(tripleDesEcb(ciphertext, hex(key), 'decrypt')).toEqual(plaintext)
+  })
+
+  /**
+   * With K1 = K2 = K3 the middle decryption undoes the first encryption, leaving single DES: the
+   * worked example from Grabbe's "The DES Algorithm Illustrated" and NIST SP 800-17 Table B.1.
+   */
+  it('reduces to single DES when all three keys are equal', () => {
+    for (const [des, plaintext, ciphertext] of [
+      ['133457799bbcdff1', '0123456789abcdef', '85e813540f0ab405'],
+      ['0101010101010101', '8000000000000000', '95f8a5e5dd31d900'],
+      ['0101010101010101', '4000000000000000', 'dd7f121ca5015619'],
+      ['0101010101010101', '0000000000000001', '166b40b44aba4bd6'],
+    ]) {
+      const tripled = hex(des!.repeat(3))
+      expect(tripleDesEcb(hex(plaintext!), tripled, 'encrypt')).toEqual(hex(ciphertext!))
+      expect(tripleDesEcb(hex(ciphertext!), tripled, 'decrypt')).toEqual(hex(plaintext!))
+    }
+  })
+
+  /** Expected values from `openssl enc -des-ede3-ecb` and `-des-ede-ecb`, PKCS#7 by default. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, ciphertext] of [
+      ['', '832846b52f9e213d'],
+      ['ATTACK AT DAWN', 'a1a3679052607883b30ef4b95156ff29'],
+      ['zażółć gęślą jaźń 🙂', 'bb7a90330462f93ef8a6538af365aaf19bd43cee549495068b36bef890430c00'],
+      ['A'.repeat(8), '9f6ca443ceebf424832846b52f9e213d'],
+    ]) {
+      expect(tripleDes.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'triple-des',
+        operation: 'encode',
+        options: { key, mode: 'ecb' },
+      })
+      expect(tripleDes.decode(ciphertext!, { key }).text).toBe(text)
+    }
+    const twoKey = '0123456789abcdef23456789abcdef01'
+    expect(tripleDes.encode('ATTACK AT DAWN', { key: twoKey }).text).toBe(
+      '45f012b58fb81e02784b7f2a776275b6',
+    )
+    expect(tripleDes.decode('45f012b58fb81e02784b7f2a776275b6', { key: twoKey }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('ignores the parity bit of every key byte', () => {
+    const flipped = '0022446688aaccee22446688aaccee00446688aaccee0022'
+    expect(tripleDes.encode('ATTACK AT DAWN', { key: flipped }).text).toBe(
+      'a1a3679052607883b30ef4b95156ff29',
+    )
+  })
+
+  it('gives equal ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = tripleDes.encode('A'.repeat(16), { key })
+    expect(text).toBe('9f6ca443ceebf4249f6ca443ceebf424832846b52f9e213d')
+    expect(text.slice(0, 16)).toBe(text.slice(16, 32))
+  })
+
+  it('reads hex keys and ciphertext in any case and with spaces', () => {
+    const spaced = '0123 4567 89AB CDEF 2345 6789 ABCD EF01 4567 89AB CDEF 0123'
+    expect(tripleDes.encode('ATTACK AT DAWN', { key: spaced }).options).toEqual({
+      key,
+      mode: 'ecb',
+    })
+    expect(tripleDes.decode('A1A36790 52607883\nB30EF4B9 5156FF29', { key: spaced }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('rejects keys that are not a Triple DES key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => tripleDes[operation]('')).toThrow(MissingOptionError)
+      expect(() => tripleDes[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of [
+        'YELLOW SUBMARINE',
+        '00'.repeat(8),
+        '00'.repeat(20),
+        '00'.repeat(32),
+        'g'.repeat(48),
+        12,
+      ]) {
+        expect(() => tripleDes[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => tripleDes.decode('', { key })).toThrow(/whole 8-byte blocks/)
+    expect(() => tripleDes.decode('a1a36790', { key })).toThrow(/got 8 hex digits/)
+    expect(() => tripleDes.decode('zz'.repeat(8), { key })).toThrow(/must be hex digits/)
+    // OpenSSL: "bad decrypt" for this ciphertext under this key.
+    expect(() =>
+      tripleDes.decode('a1a3679052607883b30ef4b95156ff29', { key: '0123456789abcdef'.repeat(3) }),
+    ).toThrow(/PKCS#7/)
+    // ff then seven bytes of 07: valid padding, invalid UTF-8.
+    expect(() => tripleDes.decode('4e5e53c58c101be5', { key })).toThrow(/not UTF-8/)
+    expect(() => tripleDes.decode('4e5e53c58c101be5', { key })).toThrow(CipherError)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('Triple DES')).toBe(tripleDes)
+    expect(tripleDes.info()).toMatchObject({
+      name: 'triple-des',
+      category: 'block',
+      family: 'feistel',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
     })

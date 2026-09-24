@@ -1,16 +1,9 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
 import { Cipher } from '../../core/cipher'
-import {
-  CipherError,
-  InvalidOptionError,
-  MissingOptionError,
-  normalizeError,
-} from '../../core/errors'
+import { normalizeError } from '../../core/errors'
+import { type Bytes, type EcbCipher, decodeEcb, encodeEcb } from '../../core/ecb'
 
 const BLOCK_SIZE = 16
-
-/** Bytes as plain numbers, so every step can take a readonly block and return a new one. */
-type Bytes = readonly number[]
 
 interface AesTables {
   sbox: Bytes
@@ -162,56 +155,13 @@ export function aesEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'
   return output
 }
 
-function toHex(bytes: Bytes): string {
-  return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
-}
-
-function fromHex(hex: string): number[] {
-  return Array.from(hex.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
-}
-
-function readKey(options: Readonly<CipherBaseOptions>): { hex: string; bytes: Bytes } {
-  const key = options.key
-  if (key === undefined || key === '') throw new MissingOptionError('key')
-  if (typeof key !== 'string') throw new InvalidOptionError('key', key, 'must be a string')
-  const hex = key.replaceAll(/\s/g, '').toLowerCase()
-  if (!/^(?:[0-9a-f]{32}|[0-9a-f]{48}|[0-9a-f]{64})$/.test(hex)) {
-    throw new InvalidOptionError(
-      'key',
-      key,
-      'must be 32, 48 or 64 hex digits (a 128, 192 or 256-bit AES key)',
-    )
-  }
-  return { hex, bytes: fromHex(hex) }
-}
-
-function pad(bytes: Bytes): Bytes {
-  const fill = BLOCK_SIZE - (bytes.length % BLOCK_SIZE)
-  return [...bytes, ...Array.from({ length: fill }, () => fill)]
-}
-
-function unpad(bytes: Bytes): Bytes {
-  const fill = bytes.at(-1) ?? 0
-  const valid = fill >= 1 && fill <= BLOCK_SIZE && bytes.slice(-fill).every((byte) => byte === fill)
-  if (!valid) {
-    throw new CipherError(
-      '[aes] Decrypted blocks do not end in PKCS#7 padding: wrong key, or not AES-ECB ciphertext',
-    )
-  }
-  return bytes.slice(0, -fill)
-}
-
-function readCiphertext(text: string): Bytes {
-  const hex = text.replaceAll(/\s/g, '')
-  if (!/^[0-9a-f]*$/i.test(hex)) {
-    throw new CipherError('[aes] Ciphertext must be hex digits')
-  }
-  if (hex.length === 0 || hex.length % (2 * BLOCK_SIZE) !== 0) {
-    throw new CipherError(
-      `[aes] Ciphertext must be whole 16-byte blocks (a multiple of 32 hex digits), got ${hex.length} hex digits`,
-    )
-  }
-  return fromHex(hex)
+const AES: EcbCipher = {
+  name: 'aes',
+  label: 'AES-ECB',
+  blockSize: BLOCK_SIZE,
+  keyDigits: [32, 48, 64],
+  keyError: 'must be 32, 48 or 64 hex digits (a 128, 192 or 256-bit AES key)',
+  run: aesEcb,
 }
 
 export class Aes extends Cipher {
@@ -242,14 +192,7 @@ export class Aes extends Cipher {
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      const key = readKey(options ?? {})
-      const ciphertext = aesEcb(pad([...new TextEncoder().encode(text)]), key.bytes, 'encrypt')
-      return {
-        text: toHex(ciphertext),
-        cipher: 'aes',
-        operation: 'encode',
-        options: { key: key.hex, mode: 'ecb' },
-      }
+      return encodeEcb(AES, text, options ?? {})
     } catch (e) {
       throw normalizeError(e, 'aes')
     }
@@ -257,20 +200,7 @@ export class Aes extends Cipher {
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      const key = readKey(options ?? {})
-      const plaintext = unpad(aesEcb(readCiphertext(text), key.bytes, 'decrypt'))
-      let decoded: string
-      try {
-        decoded = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(plaintext))
-      } catch {
-        throw new CipherError('[aes] Decrypted bytes are not UTF-8 text')
-      }
-      return {
-        text: decoded,
-        cipher: 'aes',
-        operation: 'decode',
-        options: { key: key.hex, mode: 'ecb' },
-      }
+      return decodeEcb(AES, text, options ?? {})
     } catch (e) {
       throw normalizeError(e, 'aes')
     }

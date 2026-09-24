@@ -136,7 +136,7 @@ export interface CipherInfo {
   label: string
   /** One-line description. */
   description: string
-  /** Category the cipher belongs to, such as `classical`. */
+  /** Category the cipher belongs to, such as `classical` or `block`. */
   category: CipherCategory
   /** Cipher family within the category. */
   family:
@@ -149,6 +149,7 @@ export interface CipherInfo {
     | 'transposition'
     | 'polyalphabetic'
     | 'rotor'
+    | 'substitution-permutation'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
   /** Required/optional options. */

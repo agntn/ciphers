@@ -44,7 +44,11 @@ export default defineCommand({
   async run({ args }) {
     const category = args.category
     if (category !== undefined && !(cipherCategories as readonly string[]).includes(category)) {
-      throw new InvalidOptionError('category', category, `must be ${cipherCategories.join(', ')}`)
+      throw new InvalidOptionError(
+        'category',
+        category,
+        `must be one of ${cipherCategories.join(', ')}`,
+      )
     }
     const names = listCiphers().filter(
       (name) => category === undefined || create(name).info().category === category,

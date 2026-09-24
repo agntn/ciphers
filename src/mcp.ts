@@ -63,6 +63,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     ciphers: ['playfair', 'columnar'],
     required: ['key'],
   },
+  {
+    ciphers: ['aes'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,
+      error: 'must be 32, 48 or 64 hex digits (AES-128, AES-192 or AES-256)',
+    },
+  },
 ]
 
 /**

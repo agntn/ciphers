@@ -147,6 +147,32 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('discovers and executes AES-ECB through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'aes' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(aes) — block, substitution-permutation')
+    expect(onlyText(info.content)).toContain('key (string, required)')
+    const key = '2B7E 1516 28AE D2A6 ABF7 1588 09CF 4F3C'
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', 'bef12e48d0f1739d732326cbecbef389'],
+      ['cipher_decode', 'bef12e48d0f1739d732326cbecbef389', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({ name, arguments: { cipher: 'aes', text, key } })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+
+    const wrongKey = await client.callTool({
+      name: 'cipher_decode',
+      arguments: { cipher: 'aes', text: 'bef12e48d0f1739d732326cbecbef389', key: '00'.repeat(16) },
+    })
+    expect(wrongKey.isError).toBe(true)
+    expect(onlyText(wrongKey.content)).toBe(
+      'cipher_decode failed: [aes] Decrypted blocks do not end in PKCS#7 padding: wrong key, or not AES-ECB ciphertext',
+    )
+  })
+
   it('discovers and executes the 24-letter Bacon table through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'bacon' } })
@@ -212,6 +238,9 @@ describe('Ciphers MCP server', () => {
       ['period', { cipher: 'alberti', text: 'abc', key: 'KEY' }],
       ['key', { cipher: 'alberti', text: 'abc', key: '123', period: 5 }],
       ['key', { cipher: 'vigenere', text: 'abc', key: '123' }],
+      ['key', { cipher: 'aes', text: 'abc' }],
+      ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
+      ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],
     ] as const) {
       const response = await client.callTool({
         name: 'cipher_encode',
@@ -239,17 +268,23 @@ describe('Ciphers MCP server', () => {
     const [listEntry] = list.content as [{ type: string; text: string }]
     expect(listEntry.text).toMatch(/^classical:\n {2}caesar \[substitution-shift\]/)
     expect(listEntry.text).toContain('  enigma [rotor]')
+    expect(listEntry.text).toContain('\nblock:\n  aes [substitution-permutation]')
 
     const filtered = await client.callTool({
       name: 'cipher_info',
       arguments: { category: 'classical' },
     })
     expect(filtered.isError).not.toBe(true)
-    expect(filtered.content).toEqual(list.content)
+    expect(onlyText(filtered.content)).toContain('  enigma [rotor]')
+    expect(onlyText(filtered.content)).not.toMatch(/\baes\b/)
+
+    const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
+    expect(block.isError).not.toBe(true)
+    expect(onlyText(block.content)).toMatch(/^block:\n {2}aes \[substitution-permutation\]/)
 
     const unknownCategory = await client.callTool({
       name: 'cipher_info',
-      arguments: { category: 'block' },
+      arguments: { category: 'stream' },
     })
     expect(unknownCategory.isError).toBe(true)
     expect(onlyText(unknownCategory.content)).toContain('Invalid arguments at /category')

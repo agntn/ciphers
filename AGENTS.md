@@ -9,7 +9,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 ## Architecture
 
 - Put each cipher in one `src/ciphers/<category>/<name>.ts` file. Its concrete class extends `Cipher`, implements `name()`, `info()`, `encode()`, and `decode()`, and is exported. Do not call `register()` from the file.
-- A category is one entry in `cipherCategories` in `src/core/ciphers.ts` and one folder under `src/ciphers/`. Every cipher reports it as `info().category`; `cipher_info` and `ciphers ciphers` list by it and filter on it. Today there is `classical`; a block or stream cipher gets its own category rather than a new `family` under `classical`.
+- A category is one entry in `cipherCategories` in `src/core/ciphers.ts` and one folder under `src/ciphers/`. Every cipher reports it as `info().category`; `cipher_info` and `ciphers ciphers` list by it and filter on it. Today there are `classical` and `block`; a stream cipher gets its own category rather than a new `family` under either.
 - Each category folder has an `index.ts` with its ordered list, and `src/ciphers/index.ts` concatenates those lists into `builtins`, the list the registry is seeded from. A cipher file that is not in them is not in the registry.
 - Keep `src/core/registry.ts` constructor-based. `create()` returns one cached instance per name, and re-registering a name invalidates that instance.
 - `sideEffects` names `dist/cli.mjs` and nothing else. That holds only while no module registers itself on import: put a `register()` call back at the top of a cipher file and the class reaches the registry through a bare import, which a tree-shaker is free to drop. New ciphers go in `builtins`.
@@ -27,6 +27,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - Bacon defaults to the 26-letter A-Z variant; `letters: 24` selects the historical table with I/J and U/V shared.
 - ADFGVX runs its columnar transposition only when `transposition` is set; without it the output is the grid step alone.
 - Enigma models Wehrmacht M3 with rotors I-II-III and reflector B.
+- AES runs in ECB only: UTF-8 text with PKCS#7 padding in, lowercase hex out, and a key of 32, 48 or 64 hex digits. It is a teaching implementation, not constant time.
 
 ## Adding or Changing a Cipher
 

@@ -10,6 +10,7 @@ export const FAMILIES: ReadonlyArray<{ key: CipherInfo["family"]; label: string 
   { key: "fractionation", label: "Fractionation" },
   { key: "transposition", label: "Transposition" },
   { key: "rotor", label: "Rotor" },
+  { key: "substitution-permutation", label: "Substitution-permutation" },
 ] as const;
 
 /** Icons and a one-liner per cipher. Everything else comes from `create(name).info()`. */
@@ -37,6 +38,7 @@ const PRESENTATION: Record<
   adfgvx: { icon: "i-solar-widget-4-linear", blurb: "A 6×6 grid of letters and digits", sample: "ATTACK AT 1200" },
   bifid: { icon: "i-solar-widget-4-linear", blurb: "Polybius coordinates, split and re-read", sample: "FLEE AT ONCE", options: { key: "BICONDITIONAL", period: 5 } },
   enigma: { icon: "i-solar-lock-keyhole-linear", blurb: "Wehrmacht M3, rotors I II III, reflector B", sample: "ATTACK AT DAWN", options: { positions: "MCK", rings: "BDF", plugboard: "AV BS CG" } },
+  aes: { icon: "i-solar-lock-password-linear", blurb: "AES, every 16-byte block on its own", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c" } },
 };
 
 export interface CipherEntry {

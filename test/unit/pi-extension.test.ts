@@ -76,8 +76,13 @@ describe('Pi extension', () => {
 
     const list = await info.execute('info', {})
     expect(list.content[0]?.text).toMatch(/^classical:\n {2}caesar \[substitution-shift\]/)
-    expect((await info.execute('info', { category: 'classical' })).content).toEqual(list.content)
     expect(list.content[0]?.text).toContain('enigma [rotor]')
+    expect(list.content[0]?.text).toContain('\nblock:\n  aes [substitution-permutation]')
+    const classical = await info.execute('info', { category: 'classical' })
+    expect(classical.content[0]?.text).toContain('enigma [rotor]')
+    expect(classical.content[0]?.text).not.toMatch(/\baes\b/)
+    const block = await info.execute('info', { category: 'block' })
+    expect(block.content[0]?.text).toMatch(/^block:\n {2}aes \[substitution-permutation\]/)
 
     const detail = await info.execute('info', { cipher: 'vigenere' })
     expect(detail.content[0]?.text).toContain('(vigenere) — classical, polyalphabetic')

@@ -54,7 +54,7 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
 export const OPTION_DESCRIPTIONS = {
   cipher: `Exact built-in cipher name: ${builtinCiphers.join(', ')}`,
   category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
-  key: 'Keyword. Required by vigenere, beaufort, autokey, alberti, playfair and columnar; optional for polybius, adfgvx and bifid',
+  key: 'Keyword, or for aes the key as 32, 48 or 64 hex digits. Required by vigenere, beaufort, autokey, alberti, playfair, columnar and aes; optional for polybius, adfgvx and bifid',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
   period:
     'Block length. Required by alberti (letters before the disk rotates); optional for bifid (default 5)',

@@ -102,6 +102,15 @@ try {
     'ATTACKATDAWN',
   )
   assert.equal(run(binPath, ['decode', 'beaufort', 'HCKHA', '--key', 'KEY']).trim(), 'DCODE')
+  const aesKey = '2b7e151628aed2a6abf7158809cf4f3c'
+  assert.equal(
+    run(binPath, ['encode', 'aes', 'ATTACK AT DAWN', '--key', aesKey]).trim(),
+    'bef12e48d0f1739d732326cbecbef389',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'aes', 'bef12e48d0f1739d732326cbecbef389', '--key', aesKey]).trim(),
+    'ATTACK AT DAWN',
+  )
   assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',

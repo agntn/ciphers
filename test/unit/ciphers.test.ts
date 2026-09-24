@@ -3,10 +3,11 @@ import { create, ciphers, has } from '../../src/core/registry'
 import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors'
+import { aesEcb } from '../../src/ciphers/block/aes'
 
 describe('registry', () => {
-  it('registers all 20 ciphers', () => {
-    expect(ciphers()).toHaveLength(20)
+  it('registers all 21 ciphers', () => {
+    expect(ciphers()).toHaveLength(21)
     for (const name of [
       'caesar',
       'rot13',
@@ -22,6 +23,7 @@ describe('registry', () => {
       'playfair',
       'polybius',
       'enigma',
+      'aes',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -754,6 +756,7 @@ describe('edge cases', () => {
     playfair: { key: 'TEST' },
     columnar: { key: 'TEST' },
     bifid: { key: 'TEST' },
+    aes: { key: '000102030405060708090a0b0c0d0e0f' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -953,6 +956,120 @@ describe('autokey', () => {
     expect(autokey.info()).toMatchObject({
       name: 'autokey',
       family: 'polyalphabetic',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('aes', () => {
+  const aes = create('aes')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key128 = '2b7e151628aed2a6abf7158809cf4f3c'
+
+  /** FIPS-197 Appendix C: one block under a 128, 192 and 256-bit key. */
+  it('encrypts and decrypts the FIPS-197 example blocks', () => {
+    const plaintext = hex('00112233445566778899aabbccddeeff')
+    for (const [key, ciphertext] of [
+      ['000102030405060708090a0b0c0d0e0f', '69c4e0d86a7b0430d8cdb78070b4c55a'],
+      ['000102030405060708090a0b0c0d0e0f1011121314151617', 'dda97ca4864cdfe06eaf70a0ec0d7191'],
+      [
+        '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f',
+        '8ea2b7ca516745bfeafc49904b496089',
+      ],
+    ]) {
+      expect(aesEcb(plaintext, hex(key!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(aesEcb(hex(ciphertext!), hex(key!), 'decrypt')).toEqual(plaintext)
+    }
+  })
+
+  /** NIST SP 800-38A, F.1.1 and F.1.5: ECB-AES128 and ECB-AES256 over four blocks. */
+  it('matches the SP 800-38A ECB vectors', () => {
+    const plaintext = hex(
+      '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710',
+    )
+    for (const [key, ciphertext] of [
+      [
+        key128,
+        '3ad77bb40d7a3660a89ecaf32466ef97f5d3d58503b9699de785895a96fdbaaf43b1cd7f598ece23881b00e3ed0306887b0c785e27e8ad3f8223207104725dd4',
+      ],
+      [
+        '603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4',
+        'f3eed1bdb5d2a03c064b5a7e3db181f8591ccb10d410ed26dc5ba74a31362870b6ed21b99ca6f4f9f153e7b1beafed1d23304b7a39f9f3ff067d8d8f9e24ecc7',
+      ],
+    ]) {
+      expect(aesEcb(plaintext, hex(key!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(aesEcb(hex(ciphertext!), hex(key!), 'decrypt')).toEqual(plaintext)
+    }
+  })
+
+  /** Expected values from `openssl enc -aes-128-ecb`, which pads with PKCS#7 by default. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, ciphertext] of [
+      ['', 'a254be88e037ddd9d79fb6411c3f9df8'],
+      ['ATTACK AT DAWN', 'bef12e48d0f1739d732326cbecbef389'],
+      ['zażółć gęślą jaźń 🙂', 'fbe4d3e5fc47b5ea0b7d5d2fc4c6d90799eb267882774042e4f7345acb563729'],
+      ['A'.repeat(16), '6c2a3fd93aa7b417c5438d26a4619519a254be88e037ddd9d79fb6411c3f9df8'],
+    ]) {
+      expect(aes.encode(text!, { key: key128 })).toEqual({
+        text: ciphertext,
+        cipher: 'aes',
+        operation: 'encode',
+        options: { key: key128, mode: 'ecb' },
+      })
+      expect(aes.decode(ciphertext!, { key: key128 }).text).toBe(text)
+    }
+  })
+
+  it('gives equal ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = aes.encode('A'.repeat(32), { key: '000102030405060708090a0b0c0d0e0f' })
+    expect(text).toBe(
+      'dd4b1a0b47daa7067d0b59d95d58a6aedd4b1a0b47daa7067d0b59d95d58a6ae954f64f2e4e86e9eee82d20216684899',
+    )
+    expect(text.slice(0, 32)).toBe(text.slice(32, 64))
+  })
+
+  it('reads hex keys and ciphertext in any case and with spaces', () => {
+    const key = '2B7E 1516 28AE D2A6 ABF7 1588 09CF 4F3C'
+    expect(aes.encode('ATTACK AT DAWN', { key }).options).toEqual({ key: key128, mode: 'ecb' })
+    expect(aes.decode('BEF12E48 D0F1739D\n732326CB ECBEF389', { key }).text).toBe('ATTACK AT DAWN')
+  })
+
+  it('rejects keys that are not an AES key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => aes[operation]('')).toThrow(MissingOptionError)
+      expect(() => aes[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const key of [
+        'YELLOW SUBMARINE',
+        '00'.repeat(15),
+        '00'.repeat(20),
+        'g'.repeat(32),
+        12,
+      ]) {
+        expect(() => aes[operation]('', { key })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    const key = '000102030405060708090a0b0c0d0e0f'
+    expect(() => aes.decode('', { key })).toThrow(/whole 16-byte blocks/)
+    expect(() => aes.decode('bef12e48', { key })).toThrow(/got 8 hex digits/)
+    expect(() => aes.decode('zz'.repeat(16), { key })).toThrow(/must be hex digits/)
+    // OpenSSL: "bad decrypt" for this ciphertext under this key.
+    expect(() => aes.decode('bef12e48d0f1739d732326cbecbef389', { key })).toThrow(/PKCS#7/)
+    // ff then fifteen bytes of 0f: valid padding, invalid UTF-8.
+    expect(() => aes.decode('03781889b339a511f58a94480f84a3fa', { key })).toThrow(/not UTF-8/)
+    expect(() => aes.decode('03781889b339a511f58a94480f84a3fa', { key })).toThrow(CipherError)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('AES')).toBe(aes)
+    expect(aes.info()).toMatchObject({
+      name: 'aes',
+      category: 'block',
+      family: 'substitution-permutation',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
     })

@@ -85,6 +85,9 @@ const cipherParams = Type.Object({
   transposition: Type.Optional(
     Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
   ),
+  tweak: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.tweak }),
+  ),
   rails: Type.Optional(
     Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' }),
   ),
@@ -139,6 +142,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       promptGuidelines: [
         'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
         'AES needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
+        'AES-LRW (aes-lrw) takes the AES key and a 32-digit tweak key in one key, and tweak as the first block index.',
         'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
         'cipher_info lists every option with its default.',
       ],

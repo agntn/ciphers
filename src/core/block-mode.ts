@@ -4,20 +4,32 @@ import { CipherError, InvalidOptionError, MissingOptionError } from './errors'
 /** Bytes as plain numbers, so every step can take a readonly block and return a new one. */
 export type Bytes = readonly number[]
 
-/** What text ECB needs to know about one block cipher. */
-export interface EcbCipher {
+/** What the text helpers need to know about one block cipher in one mode. */
+export interface BlockMode {
   /** Registry name, used as the `[name]` error prefix and in the result. */
   readonly name: string
   /** How the error for a wrong key names the ciphertext, such as `AES-ECB`. */
   readonly label: string
+  /** Mode reported in the result options, such as `ecb`. */
+  readonly mode: string
   /** Block length in bytes. */
   readonly blockSize: number
   /** Accepted key lengths in hex digits. */
   readonly keyDigits: readonly number[]
   /** Why a key of another shape is refused. */
   readonly keyError: string
+  /**
+   * Read the options the mode takes besides the key, throwing on a bad one. What it returns goes
+   * to `run` and back in the result options.
+   */
+  readonly settings?: (options: Readonly<CipherBaseOptions>) => Readonly<Record<string, string>>
   /** Transform whole blocks under a key of one of the accepted lengths. */
-  readonly run: (data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt') => number[]
+  readonly run: (
+    data: Bytes,
+    key: Bytes,
+    operation: 'encrypt' | 'decrypt',
+    settings: Readonly<Record<string, string>>,
+  ) => number[]
 }
 
 function toHex(bytes: Bytes): string {
@@ -29,7 +41,7 @@ function fromHex(hex: string): number[] {
 }
 
 function readKey(
-  cipher: EcbCipher,
+  cipher: BlockMode,
   options: Readonly<CipherBaseOptions>,
 ): { hex: string; bytes: Bytes } {
   const key = options.key
@@ -47,7 +59,7 @@ function pad(bytes: Bytes, blockSize: number): Bytes {
   return [...bytes, ...Array.from({ length: fill }, () => fill)]
 }
 
-function unpad(cipher: EcbCipher, bytes: Bytes): Bytes {
+function unpad(cipher: BlockMode, bytes: Bytes): Bytes {
   const fill = bytes.at(-1) ?? 0
   const valid =
     fill >= 1 && fill <= cipher.blockSize && bytes.slice(-fill).every((byte) => byte === fill)
@@ -59,7 +71,7 @@ function unpad(cipher: EcbCipher, bytes: Bytes): Bytes {
   return bytes.slice(0, -fill)
 }
 
-function readCiphertext(cipher: EcbCipher, text: string): Bytes {
+function readCiphertext(cipher: BlockMode, text: string): Bytes {
   const hex = text.replaceAll(/\s/g, '')
   if (!/^[0-9a-f]*$/i.test(hex)) {
     throw new CipherError(`[${cipher.name}] Ciphertext must be hex digits`)
@@ -74,44 +86,47 @@ function readCiphertext(cipher: EcbCipher, text: string): Bytes {
 }
 
 /**
- * Encrypt the UTF-8 bytes of a text in ECB: PKCS#7 padding, every block on its own, hex out.
+ * Encrypt the UTF-8 bytes of a text: PKCS#7 padding, the blocks through the mode, hex out.
  *
- * @param cipher - The block cipher to run.
+ * @param cipher - The block cipher and mode to run.
  * @param text - Any text.
- * @param options - Carries the hex `key`.
- * @returns {CipherResult} Lowercase hex, with the key as it was read.
+ * @param options - Carries the hex `key` and whatever else the mode reads.
+ * @returns {CipherResult} Lowercase hex, with the key and settings as they were read.
  */
-export function encodeEcb(
-  cipher: EcbCipher,
+export function encodeBlocks(
+  cipher: BlockMode,
   text: string,
   options: Readonly<CipherBaseOptions>,
 ): CipherResult {
   const key = readKey(cipher, options)
+  const settings = cipher.settings?.(options) ?? {}
   const plaintext = pad([...new TextEncoder().encode(text)], cipher.blockSize)
   return {
-    text: toHex(cipher.run(plaintext, key.bytes, 'encrypt')),
+    text: toHex(cipher.run(plaintext, key.bytes, 'encrypt', settings)),
     cipher: cipher.name,
     operation: 'encode',
-    options: { key: key.hex, mode: 'ecb' },
+    options: { key: key.hex, mode: cipher.mode, ...settings },
   }
 }
 
 /**
- * Decrypt hex ECB ciphertext back to text. Fails when the padding or the UTF-8 does not hold,
- * which is how a wrong key shows.
+ * Decrypt hex ciphertext back to text. Fails when the padding or the UTF-8 does not hold, which
+ * is how a wrong key shows.
  *
- * @param cipher - The block cipher to run.
+ * @param cipher - The block cipher and mode to run.
  * @param text - Whole blocks as hex; case and whitespace are ignored.
- * @param options - Carries the hex `key`.
+ * @param options - Carries the hex `key` and whatever else the mode reads.
  * @returns {CipherResult} The decoded text.
  */
-export function decodeEcb(
-  cipher: EcbCipher,
+export function decodeBlocks(
+  cipher: BlockMode,
   text: string,
   options: Readonly<CipherBaseOptions>,
 ): CipherResult {
   const key = readKey(cipher, options)
-  const plaintext = unpad(cipher, cipher.run(readCiphertext(cipher, text), key.bytes, 'decrypt'))
+  const settings = cipher.settings?.(options) ?? {}
+  const ciphertext = readCiphertext(cipher, text)
+  const plaintext = unpad(cipher, cipher.run(ciphertext, key.bytes, 'decrypt', settings))
   let decoded: string
   try {
     decoded = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(plaintext))
@@ -122,6 +137,6 @@ export function decodeEcb(
     text: decoded,
     cipher: cipher.name,
     operation: 'decode',
-    options: { key: key.hex, mode: 'ecb' },
+    options: { key: key.hex, mode: cipher.mode, ...settings },
   }
 }

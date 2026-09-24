@@ -40,6 +40,7 @@ const PRESENTATION: Record<
   bifid: { icon: "i-solar-widget-4-linear", blurb: "Polybius coordinates, split and re-read", sample: "FLEE AT ONCE", options: { key: "BICONDITIONAL", period: 5 } },
   enigma: { icon: "i-solar-lock-keyhole-linear", blurb: "Wehrmacht M3, rotors I II III, reflector B", sample: "ATTACK AT DAWN", options: { positions: "MCK", rings: "BDF", plugboard: "AV BS CG" } },
   aes: { icon: "i-solar-lock-password-linear", blurb: "AES, every 16-byte block on its own", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c" } },
+  "aes-lrw": { icon: "i-solar-lock-password-linear", blurb: "AES with every block masked by its position", sample: "ATTACK AT DAWN", options: { key: "4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87" } },
   "triple-des": { icon: "i-solar-lock-password-linear", blurb: "DES three times, every 8-byte block on its own", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef23456789abcdef01456789abcdef0123" } },
 };
 

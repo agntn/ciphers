@@ -83,7 +83,7 @@ describe('Pi extension', () => {
     expect(classical.content[0]?.text).not.toMatch(/\baes\b/)
     const block = await info.execute('info', { category: 'block' })
     expect(block.content[0]?.text).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}triple-des \[feistel\]/,
     )
 
     const detail = await info.execute('info', { cipher: 'vigenere' })

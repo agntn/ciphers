@@ -5,6 +5,7 @@ export interface TransformOptionArgs {
   readonly shift?: string
   readonly key?: string
   readonly transposition?: string
+  readonly tweak?: string
   readonly rails?: string
   readonly period?: string
   readonly letters?: string
@@ -50,6 +51,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['positions', args.positions],
     ['rings', args.rings],
     ['plugboard', args.plugboard],
+    ['tweak', args.tweak],
   ] as const
   for (const [name, value] of strings) {
     if (value !== undefined) options[name] = value

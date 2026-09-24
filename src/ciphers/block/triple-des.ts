@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
 import { Cipher } from '../../core/cipher'
 import { normalizeError } from '../../core/errors'
-import { type Bytes, type EcbCipher, decodeEcb, encodeEcb } from '../../core/ecb'
+import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode'
 
 const BLOCK_SIZE = 8
 
@@ -188,9 +188,10 @@ export function tripleDesEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'de
   return output
 }
 
-const TRIPLE_DES: EcbCipher = {
+const TRIPLE_DES: BlockMode = {
   name: 'triple-des',
   label: 'Triple DES ECB',
+  mode: 'ecb',
   blockSize: BLOCK_SIZE,
   keyDigits: [32, 48],
   keyError: 'must be 32 or 48 hex digits (a two-key or three-key Triple DES key)',
@@ -225,7 +226,7 @@ export class TripleDes extends Cipher {
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      return encodeEcb(TRIPLE_DES, text, options ?? {})
+      return encodeBlocks(TRIPLE_DES, text, options ?? {})
     } catch (e) {
       throw normalizeError(e, 'triple-des')
     }
@@ -233,7 +234,7 @@ export class TripleDes extends Cipher {
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      return decodeEcb(TRIPLE_DES, text, options ?? {})
+      return decodeBlocks(TRIPLE_DES, text, options ?? {})
     } catch (e) {
       throw normalizeError(e, 'triple-des')
     }

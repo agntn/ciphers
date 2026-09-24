@@ -14,6 +14,7 @@ export type {
   AdfgvxOptions,
   BaconOptions,
   AesOptions,
+  AesLrwOptions,
   TripleDesOptions,
   CipherInfo,
   CipherOption,

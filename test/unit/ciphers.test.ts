@@ -4,11 +4,12 @@ import { resolveCipher } from '../../src/core/resolve'
 import { Cipher } from '../../src/core/cipher'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors'
 import { aesEcb } from '../../src/ciphers/block/aes'
+import { aesLrw } from '../../src/ciphers/block/aes-lrw'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des'
 
 describe('registry', () => {
-  it('registers all 22 ciphers', () => {
-    expect(ciphers()).toHaveLength(22)
+  it('registers all 23 ciphers', () => {
+    expect(ciphers()).toHaveLength(23)
     for (const name of [
       'caesar',
       'rot13',
@@ -25,6 +26,7 @@ describe('registry', () => {
       'polybius',
       'enigma',
       'aes',
+      'aes-lrw',
       'triple-des',
     ]) {
       expect(has(name)).toBe(true)
@@ -759,6 +761,7 @@ describe('edge cases', () => {
     columnar: { key: 'TEST' },
     bifid: { key: 'TEST' },
     aes: { key: '000102030405060708090a0b0c0d0e0f' },
+    'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
   }
 
@@ -1075,6 +1078,155 @@ describe('aes', () => {
       family: 'substitution-permutation',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('aes-lrw', () => {
+  const lrw = create('aes-lrw')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87'
+  const first = '00000000000000000000000000000001'
+
+  /**
+   * IEEE P1619 LRW-32-AES vectors 1 to 7 (pdf00017), as the Linux kernel's testmgr.h carries
+   * them: the AES key, then the 16-byte tweak key, over "0123456789ABCDEF" at one block index.
+   */
+  it('matches the IEEE P1619 LRW-AES vectors', () => {
+    const plaintext = hex('30313233343536373839414243444546')
+    for (const [vectorKey, index, ciphertext] of [
+      [key, 1n, 'f1b273cd65a3df5fe95d489254634eb8'],
+      [
+        '59704714f557478cd779e80f548879440d48f0b7b15a53ea1caa6b29c2cafbaf',
+        2n,
+        '00c82bae95bbcde5274f0769b260e136',
+      ],
+      [
+        'd82a9134b26a565030fe69e2377f9847cdf90b160c648fb6b00d0d1bae85871f',
+        2n << 32n,
+        '76322183ed8ff182f9596203690e5e01',
+      ],
+      [
+        '0f6aeff8d3d2bb152583f73c1f012874cac6bc354d4a655490ae61cf7baebdccade494c54a29ae70',
+        1n,
+        '9c0f152f55a2d8f0d67b8f9e2822bc41',
+      ],
+      [
+        '8ad4ee102fbd81fff886ceac93c5adc6a01907c09df7bbdd5213b2b7f0ff11d8d608d0cd2eb1176f',
+        2n << 32n,
+        'd4276a7f14913d65c860480287e33406',
+      ],
+      [
+        'f8d476ffd646ee6c2384cb1c77d6195dfef1a9f37bbc8d21a79c21f8cb900289a845348ec8c5b5f126f50e76fefd1b1e',
+        1n,
+        'bd06b8e1db98899ec498e491cf1c702b',
+      ],
+      [
+        'fb7615b23d80891dd470980bc79584c8b2fb64ce6097878d17fce45a49e830b76e7817e72d5e12d46064047af12f9e0c',
+        2n << 32n,
+        '5b908ec1abdd675f3d698a9553c89ce5',
+      ],
+    ] as const) {
+      expect(aesLrw(plaintext, hex(vectorKey), 'encrypt', index)).toEqual(hex(ciphertext))
+      expect(aesLrw(hex(ciphertext), hex(vectorKey), 'decrypt', index)).toEqual(plaintext)
+    }
+  })
+
+  /** testmgr.h again: vector 1 over three blocks from index 2^128 - 1, so the count wraps to 0. */
+  it('wraps the block index at 2^128', () => {
+    const plaintext = hex('30313233343536373839414243444546'.repeat(3))
+    const ciphertext = hex(
+      '479050f6f48d5c7f84c783952da202c0da7fa3c0882a0a50fbc1780339fe1de5f1b273cd65a3df5fe95d489254634eb8',
+    )
+    expect(aesLrw(plaintext, hex(key), 'encrypt', (1n << 128n) - 1n)).toEqual(ciphertext)
+    expect(aesLrw(ciphertext, hex(key), 'decrypt', (1n << 128n) - 1n)).toEqual(plaintext)
+  })
+
+  /** Expected values from Linux `lrw(aes)` through AF_ALG, with PKCS#7 applied before it. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as the Linux lrw(aes) does', () => {
+    for (const [text, ciphertext] of [
+      ['', 'f383e8ba9d88d4028a79e0b3dd85e012'],
+      ['ATTACK AT DAWN', '1b3e1004e52c450fda5b2bca03bca338'],
+      ['zażółć gęślą jaźń 🙂', 'e672b68b27d1a953907b1a938261953041f911664783aab43a2635354476b638'],
+      ['0123456789ABCDEF', 'f1b273cd65a3df5fe95d489254634eb84571f1e1ed7d253c04eb85699cc5fd50'],
+    ]) {
+      expect(lrw.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'aes-lrw',
+        operation: 'encode',
+        options: { key, mode: 'lrw', tweak: first },
+      })
+      expect(lrw.decode(ciphertext!, { key }).text).toBe(text)
+    }
+    for (const [aesKey, ciphertext] of [
+      [
+        '0f6aeff8d3d2bb152583f73c1f012874cac6bc354d4a655490ae61cf7baebdccade494c54a29ae70',
+        'afdcf442f1ff5ec189ebc98ea133fd67',
+      ],
+      [
+        'f8d476ffd646ee6c2384cb1c77d6195dfef1a9f37bbc8d21a79c21f8cb900289a845348ec8c5b5f126f50e76fefd1b1e',
+        'ebacaae6e1017a046b50747c2d527c5c',
+      ],
+    ]) {
+      expect(lrw.encode('ATTACK AT DAWN', { key: aesKey }).text).toBe(ciphertext)
+      expect(lrw.decode(ciphertext!, { key: aesKey }).text).toBe('ATTACK AT DAWN')
+    }
+  })
+
+  it('starts counting from the tweak', () => {
+    const tweak = '2 0000 0000'
+    const result = lrw.encode('ATTACK AT DAWN', { key, tweak })
+    expect(result.text).toBe('f319a072c39498a1e0c6c8213de2facc')
+    expect(result.options).toEqual({ key, mode: 'lrw', tweak: '00000000000000000000000200000000' })
+    expect(lrw.decode('f319a072c39498a1e0c6c8213de2facc', { key, tweak }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+    expect(lrw.encode('', { key, tweak: '1' }).text).toBe(lrw.encode('', { key }).text)
+  })
+
+  it('gives different ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = lrw.encode('A'.repeat(32), { key })
+    expect(text).toBe(
+      '709a0bafa03db466980baedc25c44ea7c622af990436ec152db2ae69dc4d779d52b4776b71f7dd0556849ba9297439ac',
+    )
+    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
+    const wrapped = lrw.encode('A'.repeat(32), { key, tweak: 'f'.repeat(32) })
+    expect(wrapped.text).toBe(
+      'ef5723a829c6cfb1f87e78859fce222017e6b62907b5e98337c96c14a8e1eb79f383e8ba9d88d4028a79e0b3dd85e012',
+    )
+  })
+
+  it('rejects keys and tweaks it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => lrw[operation]('')).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(16), '00'.repeat(24), '00'.repeat(33), 'g'.repeat(64), 12]) {
+        expect(() => lrw[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['', '0x1', 'g', '1'.repeat(33), 1]) {
+        expect(() => lrw[operation]('', { key, tweak: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => lrw.decode('1b3e1004', { key })).toThrow(/whole 16-byte blocks/)
+    expect(() => lrw.decode('1b3e1004e52c450fda5b2bca03bca338', { key, tweak: '2' })).toThrow(
+      /not AES-LRW ciphertext/,
+    )
+  })
+
+  it('reports the block category and the tweak option', () => {
+    expect(resolveCipher('AES LRW')).toBe(lrw)
+    expect(lrw.info()).toMatchObject({
+      name: 'aes-lrw',
+      category: 'block',
+      family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'tweak', type: 'string', required: false, default: '1' },
+      ],
     })
   })
 })

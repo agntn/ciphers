@@ -1,4 +1,5 @@
-import { spawnSync, type SpawnSyncReturns } from 'node:child_process'
+import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process'
+import { once } from 'node:events'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vite-plus/test'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
@@ -141,4 +142,26 @@ describe('CLI builtin flags', () => {
     expect(result.stdout).toContain('ciphers encode|decode|ciphers|info|brute|mcp|frequency')
     expect(result.stderr).toBe('')
   })
+})
+
+describe('CLI closed stdout', () => {
+  it.each([['ciphers'], ['brute', 'KHOOR ZRUOG']])(
+    'ends `%s` quietly when the reader goes away',
+    async (...args) => {
+      const child = spawn(process.execPath, [cliPath, ...args], {
+        env: { ...process.env, CONSOLA_LEVEL: '3' },
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 10_000,
+      })
+      // Closing the read end before the child writes makes its first write fail with EPIPE, as
+      // after `| head -1`.
+      child.stdout.destroy()
+      let stderr = ''
+      child.stderr.setEncoding('utf8').on('data', (chunk: string) => (stderr += chunk))
+      await once(child, 'close')
+
+      expect(stderr).toBe('')
+      expect(child.exitCode).toBe(0)
+    },
+  )
 })

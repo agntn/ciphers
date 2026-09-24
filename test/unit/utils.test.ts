@@ -8,8 +8,12 @@ import {
   buildPolybiusSquare,
   processBaseOptions,
   withCipherError,
-} from '../../src/core/utils'
-import { UnknownCipherError, InvalidOptionError, MissingOptionError } from '../../src/core/errors'
+} from '../../src/core/utils.ts'
+import {
+  UnknownCipherError,
+  InvalidOptionError,
+  MissingOptionError,
+} from '../../src/core/errors.ts'
 
 describe('LruCache', () => {
   it('stores and retrieves values', () => {

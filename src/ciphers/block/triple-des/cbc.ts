@@ -1,6 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types'
-import { Cipher } from '../../../core/cipher'
-import { normalizeError } from '../../../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
+import { Cipher } from '../../../core/cipher.ts'
+import { normalizeError } from '../../../core/errors.ts'
 import {
   type BlockMode,
   type Bytes,
@@ -8,8 +8,8 @@ import {
   encodeBlocks,
   fromHex,
   readIv,
-} from '../../../core/block-mode'
-import { tripleDesBlock } from './block'
+} from '../../../core/block-mode.ts'
+import { tripleDesBlock } from './block.ts'
 
 const BLOCK_SIZE = 8
 

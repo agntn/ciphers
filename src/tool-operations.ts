@@ -1,5 +1,5 @@
-import type * as CiphersModule from './index'
-import { builtinCiphers, cipherCategories } from './core/ciphers'
+import type * as CiphersModule from './index.ts'
+import { builtinCiphers, cipherCategories } from './core/ciphers.ts'
 
 export { cipherCategories }
 

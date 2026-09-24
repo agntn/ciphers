@@ -1,7 +1,7 @@
-import { builtins } from '../ciphers/index'
-import { type CipherConstructor, Cipher } from './cipher'
-import { builtinCiphers } from './ciphers'
-import { UnknownCipherError } from './errors'
+import { builtins } from '../ciphers/index.ts'
+import { type CipherConstructor, Cipher } from './cipher.ts'
+import { builtinCiphers } from './ciphers.ts'
+import { UnknownCipherError } from './errors.ts'
 
 const constructors = new Map<string, CipherConstructor>()
 const instances = new Map<string, Cipher>()

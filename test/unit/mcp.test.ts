@@ -1,10 +1,10 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { afterEach, describe, expect, it } from 'vite-plus/test'
-import { Cipher, create, register, type CipherInfo, type CipherResult } from '../../src'
-import { builtinCiphers } from '../../src/core/ciphers'
-import { createMcpServer } from '../../src/mcp'
-import { BRUTE_PREVIEW_LENGTH, OPTION_DESCRIPTIONS } from '../../src/tool-operations'
+import { Cipher, create, register, type CipherInfo, type CipherResult } from '../../src/index.ts'
+import { builtinCiphers } from '../../src/core/ciphers.ts'
+import { createMcpServer } from '../../src/mcp.ts'
+import { BRUTE_PREVIEW_LENGTH, OPTION_DESCRIPTIONS } from '../../src/tool-operations.ts'
 
 const openConnections: Array<{ close(): Promise<void> }> = []
 

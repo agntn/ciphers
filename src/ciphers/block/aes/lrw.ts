@@ -1,8 +1,8 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types'
-import { Cipher } from '../../../core/cipher'
-import { InvalidOptionError, normalizeError } from '../../../core/errors'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode'
-import { aesEcb } from './ecb'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
+import { Cipher } from '../../../core/cipher.ts'
+import { InvalidOptionError, normalizeError } from '../../../core/errors.ts'
+import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode.ts'
+import { aesEcb } from './ecb.ts'
 
 const BLOCK_SIZE = 16
 const BLOCK_MASK = (1n << 128n) - 1n

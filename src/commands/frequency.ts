@@ -1,7 +1,7 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { InvalidOptionError } from '../core/errors'
-import { analyzeFrequency } from '../core/frequency'
+import { InvalidOptionError } from '../core/errors.ts'
+import { analyzeFrequency } from '../core/frequency.ts'
 
 export default defineCommand({
   meta: { name: 'frequency', description: 'Frequency analysis of text' },

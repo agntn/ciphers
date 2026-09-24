@@ -1,5 +1,5 @@
-import type { CipherBaseOptions, CipherResult } from './types'
-import { CipherError, InvalidOptionError, MissingOptionError } from './errors'
+import type { CipherBaseOptions, CipherResult } from './types.ts'
+import { CipherError, InvalidOptionError, MissingOptionError } from './errors.ts'
 
 /** Bytes as plain numbers, so every step can take a readonly block and return a new one. */
 export type Bytes = readonly number[]

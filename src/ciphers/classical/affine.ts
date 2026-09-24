@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { getOpt, processBaseOptions } from '../../core/utils'
-import { InvalidOptionError, normalizeError } from '../../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { getOpt, processBaseOptions } from '../../core/utils.ts'
+import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
 
 function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b)

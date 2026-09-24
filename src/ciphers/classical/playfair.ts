@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { buildPolybiusSquare, getOpt } from '../../core/utils'
-import { MissingOptionError, normalizeError } from '../../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { buildPolybiusSquare, getOpt } from '../../core/utils.ts'
+import { MissingOptionError, normalizeError } from '../../core/errors.ts'
 
 // Uses shared buildPolybiusSquare (1-indexed positions)
 

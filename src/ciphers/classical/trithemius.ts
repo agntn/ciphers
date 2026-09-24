@@ -1,7 +1,7 @@
-import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { normalizeError } from '../../core/errors'
-import { processBaseOptions } from '../../core/utils'
+import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { normalizeError } from '../../core/errors.ts'
+import { processBaseOptions } from '../../core/utils.ts'
 
 function transform(
   text: string,

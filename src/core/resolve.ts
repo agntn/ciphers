@@ -1,6 +1,6 @@
-import type { Cipher } from './cipher'
-import { UnknownCipherError } from './errors'
-import { ciphers, create, has } from './registry'
+import type { Cipher } from './cipher.ts'
+import { UnknownCipherError } from './errors.ts'
+import { ciphers, create, has } from './registry.ts'
 
 /**
  * Resolve a cipher by exact name.

@@ -1,5 +1,5 @@
-import type { CipherBaseOptions } from './types'
-import { CipherError } from './errors'
+import type { CipherBaseOptions } from './types.ts'
+import { CipherError } from './errors.ts'
 
 /** Shared utilities extracted from cipher implementations. */
 
@@ -131,14 +131,17 @@ export function applyBaseOptions(
   return base.preserveCase ? input : input.replaceAll(/[a-z]+/g, (run) => run.toUpperCase())
 }
 
-export { getOpt } from './types'
+export { getOpt } from './types.ts'
 
 // ── LRU Cache ──────────────────────────────────────────────────────────
 
 /** Least-recently-used cache with max size eviction. */
 export class LruCache<K, V> {
+  private readonly max: number
   private map = new Map<K, { value: V; ts: number }>()
-  constructor(private readonly max: number) {}
+  constructor(max: number) {
+    this.max = max
+  }
   get(key: K): V | undefined {
     const entry = this.map.get(key)
     if (!entry) return undefined

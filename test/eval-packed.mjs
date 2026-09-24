@@ -9,14 +9,20 @@
 // TypeScript source that the host loads from the install, so a file they import
 // that `files` leaves out breaks them while every other check stays green.
 //
+// `mcp` runs from every layout it can meet: the tarball's bin serves its bundle,
+// while the checkout's own dist/cli.mjs serves src/, so a local server takes a
+// change on restart. CIPHERS_DIST=1, a copy under node_modules and a copy without
+// devDependencies keep the bundle.
+//
 // POSIX only. Windows installs the bin as a generated .cmd shim, so neither the
 // shebang nor the execute bit decides anything there.
 //
 // Run: pnpm test:packed
 
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises'
+import { execFile, execFileSync } from 'node:child_process'
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, symlink } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { Type as OmpType } from '@oh-my-pi/omptype/typebox'
@@ -44,6 +50,49 @@ function run(command, args) {
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 60_000,
   })
+}
+
+/**
+ * Run `mcp` from a built bin under the load hook. stdin is closed at once, so the
+ * server ends on EOF. An inherited CIPHERS_DIST is dropped, so only `environment`
+ * sets it.
+ *
+ * @param {string} binPath - The bin file.
+ * @param {Readonly<Record<string, string>>} [environment] - Extra variables for the child.
+ * @returns {Promise<string[]>} Every module URL the run loaded.
+ */
+async function runMcp(binPath, environment = {}) {
+  const hook = pathToFileURL(path.join(root, 'test/record-loads.ts')).href
+  const { CIPHERS_DIST: _inherited, ...inherited } = process.env
+  /** @type {Promise<string>} */
+  const exited = new Promise((resolve, reject) => {
+    const child = execFile(
+      process.execPath,
+      ['--import', hook, binPath, 'mcp'],
+      { cwd: root, encoding: 'utf8', env: { ...inherited, ...environment }, timeout: 60_000 },
+      (error, _stdout, stderr) => (error ? reject(error) : resolve(stderr)),
+    )
+    child.stdin?.end()
+  })
+  const stderr = await exited
+  const recorded = /^@loaded (\[.*\])$/mu.exec(stderr)?.[1]
+  assert.ok(recorded !== undefined, `the load hook reported nothing for ${binPath} mcp`)
+  /** @type {unknown} */
+  const urls = JSON.parse(recorded)
+  assert.ok(Array.isArray(urls), `the load hook reported something other than a list`)
+  return urls.map(String)
+}
+
+/**
+ * Copy what a checkout holds into `directory`, so its `dist/cli.mjs` can run from there.
+ *
+ * @param {string} directory - Target directory.
+ * @returns {Promise<void>}
+ */
+async function copyCheckout(directory) {
+  for (const entry of ['dist', 'src', 'packages', 'package.json']) {
+    await cp(path.join(root, entry), path.join(directory, entry), { recursive: true })
+  }
 }
 
 // Unpacking inside the checkout lets the packed CLI resolve citty and consola
@@ -423,8 +472,71 @@ try {
     assert.equal(result.content[0]?.text, 'KHOOR', `${host} extension`)
   }
 
+  // The tarball ships src/core/ciphers.ts but no src/commands, so its mcp has
+  // only the bundle to serve.
+  const packedUrls = await runMcp(binPath)
+  assert.ok(
+    packedUrls.includes(pathToFileURL(path.join(packageRoot, 'dist/mcp.mjs')).href),
+    'the packed mcp serves dist/mcp.mjs',
+  )
+
+  // pnpm pack rebuilt the checkout's own dist, and that bin serves src/.
+  const checkoutBin = path.join(root, 'dist/cli.mjs')
+  const sourceUrl = pathToFileURL(path.join(root, 'src/')).href
+  assert.ok(
+    (await runMcp(checkoutBin)).includes(`${sourceUrl}mcp.ts`),
+    "the checkout's mcp serves src/mcp.ts",
+  )
+  assert.deepEqual(
+    (await runMcp(checkoutBin, { CIPHERS_DIST: '1' })).filter((url) => url.startsWith(sourceUrl)),
+    [],
+    'mcp under CIPHERS_DIST=1 keeps the bundle',
+  )
+
+  // Node refuses to strip types under node_modules.
+  const cache = path.join(root, 'node_modules/.cache')
+  await mkdir(cache, { recursive: true })
+  const installed = await mkdtemp(path.join(cache, 'ciphers-bin-'))
+  // The server imports typebox, a devDependency the bundle inlines.
+  const production = await mkdtemp(path.join(tmpdir(), 'ciphers-prod-'))
+  try {
+    await copyCheckout(installed)
+    assert.deepEqual(
+      (await runMcp(path.join(installed, 'dist/cli.mjs'))).filter((url) =>
+        url.startsWith(pathToFileURL(path.join(installed, 'src/')).href),
+      ),
+      [],
+      'mcp under node_modules keeps the bundle',
+    )
+
+    await copyCheckout(production)
+    assert.ok(
+      'dependencies' in manifest && typeof manifest.dependencies === 'object',
+      'packed package.json has no dependencies',
+    )
+    const dependencies = Object.keys(manifest.dependencies ?? {})
+    assert.ok(!dependencies.includes('typebox'), 'typebox became a production dependency')
+    for (const name of dependencies) {
+      await mkdir(path.join(production, 'node_modules', name, '..'), { recursive: true })
+      await symlink(
+        path.join(root, 'node_modules', name),
+        path.join(production, 'node_modules', name),
+      )
+    }
+    assert.deepEqual(
+      (await runMcp(path.join(production, 'dist/cli.mjs'))).filter((url) =>
+        url.startsWith(pathToFileURL(path.join(production, 'src/')).href),
+      ),
+      [],
+      'mcp without devDependencies keeps the bundle',
+    )
+  } finally {
+    await rm(installed, { recursive: true, force: true })
+    await rm(production, { recursive: true, force: true })
+  }
+
   console.log(
-    `Packed ${manifest.name}@${manifest.version} ran ${binEntry} as a command and loaded both extensions`,
+    `Packed ${manifest.name}@${manifest.version} ran ${binEntry} as a command, loaded both extensions and served mcp from every layout`,
   )
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true })

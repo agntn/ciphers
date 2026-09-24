@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vite-plus/test'
-import type { Cipher } from '../../src/core/cipher'
-import { create } from '../../src/core/registry'
-import { LruCache, cipherCacheKey } from '../../src/core/utils'
+import type { Cipher } from '../../src/core/cipher.ts'
+import { create } from '../../src/core/registry.ts'
+import { LruCache, cipherCacheKey } from '../../src/core/utils.ts'
 
 interface ResettableCipher extends Cipher {
   reset(): void

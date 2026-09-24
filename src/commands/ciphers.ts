@@ -1,8 +1,8 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { cipherCategories } from '../core/ciphers'
-import { InvalidOptionError } from '../core/errors'
-import { ciphers as listCiphers, create } from '../core/registry'
+import { cipherCategories } from '../core/ciphers.ts'
+import { InvalidOptionError } from '../core/errors.ts'
+import { ciphers as listCiphers, create } from '../core/registry.ts'
 
 function printVerboseCipher(name: string): void {
   const info = create(name).info()

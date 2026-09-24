@@ -17,9 +17,9 @@ import {
   formatFrequencyAnalysis,
   transformCipher,
   type CipherToolParams,
-} from '../../../src/tool-operations'
-import type { OutputTheme, RenderedToolResult, RenderOptions } from '../../shared/tui'
-import { renderToolResult } from '../../shared/tui'
+} from '../../../src/tool-operations.ts'
+import type { OutputTheme, RenderedToolResult, RenderOptions } from '../../shared/tui.ts'
+import { renderToolResult } from '../../shared/tui.ts'
 type CiphersLibrary = Pick<
   typeof CiphersModule,
   'analyzeFrequency' | 'ciphers' | 'create' | 'resolveCipher'

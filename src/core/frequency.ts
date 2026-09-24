@@ -1,4 +1,4 @@
-import { InvalidOptionError } from './errors'
+import { InvalidOptionError } from './errors.ts'
 
 /** Supported reference languages for letter-frequency analysis. */
 export type FrequencyLanguage = 'en' | 'pl' | 'ja'

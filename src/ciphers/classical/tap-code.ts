@@ -1,6 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { CipherError, normalizeError } from '../../core/errors'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { CipherError, normalizeError } from '../../core/errors.ts'
 
 // Tap code uses a 5×5 Polybius square (C/K share)
 //   1  2  3  4  5

@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it } from 'vite-plus/test'
 import type { TSchema } from 'typebox'
 import { Value } from 'typebox/value'
-import { create } from '../../src'
-import { builtinCiphers } from '../../src/core/ciphers'
-import ciphersExtension from '../../packages/pi/extensions/ciphers'
+import { create } from '../../src/index.ts'
+import { builtinCiphers } from '../../src/core/ciphers.ts'
+import ciphersExtension from '../../packages/pi/extensions/ciphers.ts'
 
 type ToolResult = {
   readonly content: ReadonlyArray<{ readonly type: string; readonly text: string }>

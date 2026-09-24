@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { InvalidOptionError } from '../../src/core/errors'
-import { analyzeFrequency } from '../../src/core/frequency'
+import { InvalidOptionError } from '../../src/core/errors.ts'
+import { analyzeFrequency } from '../../src/core/frequency.ts'
 
 describe('analyzeFrequency', () => {
   it('normalizes input and sorts counts descending', () => {

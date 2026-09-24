@@ -1,7 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types'
-import { Cipher } from '../../core/cipher'
-import { InvalidOptionError, normalizeError } from '../../core/errors'
-import { getOpt, processBaseOptions } from '../../core/utils'
+import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import { Cipher } from '../../core/cipher.ts'
+import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
+import { getOpt, processBaseOptions } from '../../core/utils.ts'
 
 function caesarProcess(
   text: string,

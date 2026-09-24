@@ -11,32 +11,40 @@ export class CipherError extends Error {
  * stays inside the message, and the message lists the registered names to pick from.
  */
 export class UnknownCipherError extends CipherError {
-  constructor(
-    public readonly cipher: string,
-    public readonly registered: readonly string[] = [],
-  ) {
+  readonly cipher: string
+  readonly registered: readonly string[]
+
+  constructor(cipher: string, registered: readonly string[] = []) {
     const choices = registered.length > 0 ? `. Registered ciphers: ${registered.join(', ')}` : ''
     super(`Unknown cipher: ${JSON.stringify(cipher)}${choices}`)
+    this.cipher = cipher
+    this.registered = registered
     this.name = 'UnknownCipherError'
   }
 }
 
 /** Invalid option value. */
 export class InvalidOptionError extends CipherError {
-  constructor(
-    public readonly option: string,
-    public readonly value: unknown,
-    public readonly reason: string,
-  ) {
+  readonly option: string
+  readonly value: unknown
+  readonly reason: string
+
+  constructor(option: string, value: unknown, reason: string) {
     super(`Invalid option ${option}=${String(value)}: ${reason}`)
+    this.option = option
+    this.value = value
+    this.reason = reason
     this.name = 'InvalidOptionError'
   }
 }
 
 /** Missing required option. */
 export class MissingOptionError extends CipherError {
-  constructor(public readonly option: string) {
+  readonly option: string
+
+  constructor(option: string) {
     super(`Missing required option: ${option}`)
+    this.option = option
     this.name = 'MissingOptionError'
   }
 }

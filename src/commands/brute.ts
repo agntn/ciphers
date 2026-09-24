@@ -1,6 +1,6 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { create } from '../core/registry'
+import { create } from '../core/registry.ts'
 
 export default defineCommand({
   meta: { name: 'brute', description: 'Brute-force Caesar cipher (all 25 shifts)' },

@@ -1,2 +1,2 @@
-export { version } from './version'
-export * from './core/index'
+export { version } from './version.ts'
+export * from './core/index.ts'

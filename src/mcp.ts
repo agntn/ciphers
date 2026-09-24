@@ -20,9 +20,9 @@ import {
   formatFrequencyAnalysis,
   transformCipher,
   type CipherToolParams,
-} from './tool-operations'
-import * as ciphersLibrary from './index'
-import { version } from './version'
+} from './tool-operations.ts'
+import * as ciphersLibrary from './index.ts'
+import { version } from './version.ts'
 
 type ToolResult = {
   content: Array<{ type: 'text'; text: string }>

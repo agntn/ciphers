@@ -36,6 +36,7 @@ export const builtinCiphers = [
   'triple-des',
   'triple-des-cbc',
   'blowfish',
+  'idea',
 ] as const
 
 export type BuiltinCipher = (typeof builtinCiphers)[number]

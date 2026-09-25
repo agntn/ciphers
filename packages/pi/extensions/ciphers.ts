@@ -173,6 +173,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
         'Triple DES CBC (triple-des-cbc) takes that key plus iv, 16 hex digits.',
         'Blowfish (blowfish) works like Triple DES with a key of any even number of hex digits from 8 to 112.',
+        'IDEA (idea) works like Triple DES with a key of 32 hex digits.',
         'cipher_info lists every option with its default.',
       ],
       parameters: cipherParams,

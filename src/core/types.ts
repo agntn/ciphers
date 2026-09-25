@@ -232,6 +232,12 @@ export interface BlowfishOptions extends CipherBaseOptions {
   key: string
 }
 
+/** IDEA ECB options. */
+export interface IdeaOptions extends CipherBaseOptions {
+  /** 32 hex digits, a 128-bit key; case and spaces are ignored. */
+  key: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *
@@ -277,6 +283,7 @@ export interface CipherInfo {
     | 'rotor'
     | 'substitution-permutation'
     | 'feistel'
+    | 'lai-massey'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
   /** Required/optional options. */

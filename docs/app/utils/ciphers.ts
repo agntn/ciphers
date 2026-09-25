@@ -12,6 +12,7 @@ export const FAMILIES: ReadonlyArray<{ key: CipherInfo["family"]; label: string 
   { key: "rotor", label: "Rotor" },
   { key: "substitution-permutation", label: "Substitution-permutation" },
   { key: "feistel", label: "Feistel" },
+  { key: "lai-massey", label: "Lai-Massey" },
 ] as const;
 
 /** Icons and a one-liner per cipher. Everything else comes from `create(name).info()`. */
@@ -55,6 +56,7 @@ const PRESENTATION: Record<
   "triple-des": { icon: "i-solar-lock-password-linear", blurb: "DES three times, every 8-byte block on its own", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef23456789abcdef01456789abcdef0123" } },
   "triple-des-cbc": { icon: "i-solar-lock-password-linear", blurb: "Triple DES with every block chained to the one before", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef23456789abcdef01456789abcdef0123", iv: "0001020304050607" } },
   blowfish: { icon: "i-solar-lock-password-linear", blurb: "Schneier's Feistel cipher, S-boxes grown from the key and pi", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeff0e1d2c3b4a59687" } },
+  idea: { icon: "i-solar-lock-password-linear", blurb: "The PGP 2 cipher, XOR, addition and multiplication and no tables", sample: "ATTACK AT DAWN", options: { key: "00010002000300040005000600070008" } },
 };
 
 export interface CipherEntry {

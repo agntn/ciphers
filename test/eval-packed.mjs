@@ -333,6 +333,15 @@ try {
     run(binPath, ['decode', 'des', '66e43480bc9810be67812271f1ee04a0', '--key', desKey]).trim(),
     'ATTACK AT DAWN',
   )
+  const desxKey = '0123456789abcdeff0e1d2c3b4a596871122334455667788'
+  assert.equal(
+    run(binPath, ['encode', 'desx', 'ATTACK AT DAWN', '--key', desxKey]).trim(),
+    'e66c99d05c13ecf7cb70b505d3d77a8e',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'desx', 'e66c99d05c13ecf7cb70b505d3d77a8e', '--key', desxKey]).trim(),
+    'ATTACK AT DAWN',
+  )
   const tripleDesKey = '0123456789abcdef23456789abcdef01456789abcdef0123'
   assert.equal(
     run(binPath, ['encode', 'triple-des', 'ATTACK AT DAWN', '--key', tripleDesKey]).trim(),

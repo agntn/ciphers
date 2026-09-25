@@ -169,6 +169,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'AES-CBC-MAC (aes-cbc-mac) takes only the AES key and encrypts nothing; the hex out is the text bytes plus a 16-byte tag, and decoding fails unless the tag matches.',
         'Rijndael (rijndael) takes a key of 32, 40, 48, 56 or 64 hex digits and blockSize in bits (128, 160, 192, 224 or 256, default 128, which is AES).',
         'DES (des) works the same way with a key of 16 hex digits.',
+        'DESX (desx) is DES between two XORs; its key is 48 hex digits, the DES key, then the input and the output whitening key.',
         'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
         'Triple DES CBC (triple-des-cbc) takes that key plus iv, 16 hex digits.',
         'Blowfish (blowfish) works like Triple DES with a key of any even number of hex digits from 8 to 112.',

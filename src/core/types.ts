@@ -203,6 +203,15 @@ export interface DesOptions extends CipherBaseOptions {
   key: string
 }
 
+/** DESX ECB options. */
+export interface DesxOptions extends CipherBaseOptions {
+  /**
+   * 48 hex digits: the DES key, then the input and the output whitening key, as OpenSSL's `desx`
+   * takes them; case and spaces are ignored.
+   */
+  key: string
+}
+
 /** Triple DES ECB options. */
 export interface TripleDesOptions extends CipherBaseOptions {
   /** 32 hex digits for two keys (K3 = K1) or 48 for three; case and spaces are ignored. */

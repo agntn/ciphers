@@ -196,6 +196,22 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('discovers and executes DESX through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'desx' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(desx) — block, feistel')
+    const key = '0123456789ABCDEF F0E1D2C3B4A59687 1122334455667788'
+    for (const [name, text, expected] of [
+      ['cipher_encode', 'ATTACK AT DAWN', 'e66c99d05c13ecf7cb70b505d3d77a8e'],
+      ['cipher_decode', 'e66c99d05c13ecf7cb70b505d3d77a8e', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({ name, arguments: { cipher: 'desx', text, key } })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
   it('discovers and executes Triple DES through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -624,6 +640,9 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'des', text: 'abc' }],
       ['key', { cipher: 'des', text: 'abc', key: '00'.repeat(7) }],
       ['key', { cipher: 'des', text: 'abc', key: '00'.repeat(16) }],
+      ['key', { cipher: 'desx', text: 'abc' }],
+      ['key', { cipher: 'desx', text: 'abc', key: '00'.repeat(8) }],
+      ['key', { cipher: 'desx', text: 'abc', key: '00'.repeat(16) }],
       ['key', { cipher: 'triple-des', text: 'abc' }],
       ['key', { cipher: 'triple-des', text: 'abc', key: '00'.repeat(32) }],
       ['key', { cipher: 'triple-des-cbc', text: 'abc', iv: '00'.repeat(8) }],
@@ -674,7 +693,7 @@ describe('Ciphers MCP server', () => {
     const block = await client.callTool({ name: 'cipher_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
     expect(onlyText(block.content)).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}aes-cbc-mac \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}des \[feistel\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\].*\n {2}blowfish \[feistel\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}aes-cbc-mac \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}des \[feistel\].*\n {2}desx \[feistel\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\].*\n {2}blowfish \[feistel\]/,
     )
 
     const unknownCategory = await client.callTool({

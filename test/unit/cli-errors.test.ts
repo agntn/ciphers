@@ -1,6 +1,7 @@
 import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process'
 import { once } from 'node:events'
 import { fileURLToPath } from 'node:url'
+import { stripVTControlCharacters } from 'node:util'
 import { describe, expect, it } from 'vite-plus/test'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
 import { version } from '../../src/version.ts'
@@ -123,6 +124,61 @@ describe('CLI frequency language', () => {
     expect(`${result.stdout}${result.stderr}`).toContain(
       'A O N I T E R U H S K D M G Y B W C Z J F P L Q V X',
     )
+  })
+})
+
+describe('CLI Caesar brute force', () => {
+  /**
+   * Run `ciphers brute` and keep its shift lines without the terminal styling.
+   *
+   * @param args - Arguments after `brute`.
+   * @returns {string[]} One `shift=N → text` line per shift, in printed order.
+   */
+  function bruteLines(args: readonly string[]): string[] {
+    const result = runCli(['brute', ...args], { ...process.env, CONSOLA_LEVEL: '3' })
+    expect(result.status).toBe(0)
+    return stripVTControlCharacters(`${result.stdout}${result.stderr}`)
+      .split('\n')
+      .filter((line) => line.includes('shift='))
+      .map((line) => line.slice(line.indexOf('shift=')))
+  }
+
+  it('puts the best English fit first by default', () => {
+    const lines = bruteLines(['DWWDFN DW GDZQ'])
+
+    expect(lines).toHaveLength(25)
+    expect(lines[0]).toBe('shift= 3 → ATTACK AT DAWN')
+  })
+
+  it('ranks by the language --lang names and keeps every line whole', () => {
+    const polish = 'OLWZR RMFCBCQR PRMD WB MHVWHV MDN CGURZLH'
+    const lines = bruteLines([polish, '--lang', 'pl'])
+
+    expect(lines).toHaveLength(25)
+    expect(lines[0]).toBe('shift= 3 → LITWO OJCZYZNO MOJA TY JESTES JAK ZDROWIE')
+    const long = bruteLines([polish.repeat(4), '--lang', 'pl'])
+    expect(long.every((line) => line.length === 'shift= 3 → '.length + polish.length * 4)).toBe(
+      true,
+    )
+    expect(bruteLines([polish])[0]).not.toContain('LITWO')
+    expect(bruteLines(['NLPLJDBR ZD FKLBR QL BDFKLBR QL', '-l', 'ja'])[0]).toBe(
+      'shift= 3 → KIMIGAYO WA CHIYO NI YACHIYO NI',
+    )
+  })
+
+  it('keeps shift order when nothing is a letter', () => {
+    const lines = bruteLines(['1234'])
+
+    expect(lines[0]).toBe('shift= 1 → 1234')
+    expect(lines[24]).toBe('shift=25 → 1234')
+  })
+
+  it('rejects a language the other surfaces do not accept', () => {
+    const result = runCli(['brute', 'KHOOR', '--lang', 'de'])
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('Invalid option lang=de: must be en, pl or ja\n')
   })
 })
 

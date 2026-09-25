@@ -50,36 +50,36 @@ ciphers brute "DWWDFN DW GDZQ"
 ```
 
 ```
-ℹ Caesar brute-force (shift 1-25):
+ℹ Caesar brute-force (25 shifts, best en fit first):
 
-  shift= 1 → CVVCEM CV FCYP
-  shift= 2 → BUUBDL BU EBXO
   shift= 3 → ATTACK AT DAWN
-  shift= 4 → ZSSZBJ ZS CZVM
-  shift= 5 → YRRYAI YR BYUL
-  shift= 6 → XQQXZH XQ AXTK
-  shift= 7 → WPPWYG WP ZWSJ
-  shift= 8 → VOOVXF VO YVRI
-  shift= 9 → UNNUWE UN XUQH
-  shift=10 → TMMTVD TM WTPG
-  shift=11 → SLLSUC SL VSOF
-  shift=12 → RKKRTB RK URNE
-  shift=13 → QJJQSA QJ TQMD
-  shift=14 → PIIPRZ PI SPLC
-  shift=15 → OHHOQY OH ROKB
-  shift=16 → NGGNPX NG QNJA
-  shift=17 → MFFMOW MF PMIZ
   shift=18 → LEELNV LE OLHY
-  shift=19 → KDDKMU KD NKGX
-  shift=20 → JCCJLT JC MJFW
-  shift=21 → IBBIKS IB LIEV
+  shift=11 → SLLSUC SL VSOF
   shift=22 → HAAHJR HA KHDU
-  shift=23 → GZZGIQ GZ JGCT
-  shift=24 → FYYFHP FY IFBS
+  shift=10 → TMMTVD TM WTPG
+  shift= 5 → YRRYAI YR BYUL
+  shift=21 → IBBIKS IB LIEV
+  shift=12 → RKKRTB RK URNE
+  shift=15 → OHHOQY OH ROKB
   shift=25 → EXXEGO EX HEAR
+  shift=24 → FYYFHP FY IFBS
+  shift=14 → PIIPRZ PI SPLC
+  shift= 9 → UNNUWE UN XUQH
+  shift= 2 → BUUBDL BU EBXO
+  shift= 1 → CVVCEM CV FCYP
+  shift= 8 → VOOVXF VO YVRI
+  shift=17 → MFFMOW MF PMIZ
+  shift=16 → NGGNPX NG QNJA
+  shift=19 → KDDKMU KD NKGX
+  shift= 7 → WPPWYG WP ZWSJ
+  shift=20 → JCCJLT JC MJFW
+  shift=23 → GZZGIQ GZ JGCT
+  shift= 4 → ZSSZBJ ZS CZVM
+  shift=13 → QJJQSA QJ TQMD
+  shift= 6 → XQQXZH XQ AXTK
 ```
 
-Shift 3, obviously. Shift 25 ends in HEAR, which is about as funny as a Caesar brute force gets ;)
+Shift 3 on top, it's the most English of the 25. `--lang pl` ranks by Polish letters instead, `--lang ja` by Japanese romaji. Shift 25 ends in HEAR, which is about as funny as a Caesar brute force gets ;)
 
 Enigma is in there too, the Wehrmacht M3 with rotors I, II and III and reflector B:
 
@@ -111,7 +111,7 @@ ciphers info bifid
 | ----------- | --------------------------------------------------- | ------------------------------------------------------ |
 | `encode`    | Plaintext in, ciphertext out                        | `ciphers encode vigenere "ATTACK AT DAWN" --key LEMON` |
 | `decode`    | The other way, same flags                           | `ciphers decode vigenere "LXFOPV EF RNHR" --key LEMON` |
-| `brute`     | All 25 Caesar shifts                                | `ciphers brute "DWWDFN DW GDZQ"`                       |
+| `brute`     | All 25 Caesar shifts, best fit first                | `ciphers brute "DWWDFN DW GDZQ"`                       |
 | `frequency` | Letter histogram and the index of coincidence       | `ciphers frequency "DWWDFN DW GDZQ" --lang en`         |
 | `ciphers`   | Every cipher by category, `-v` adds the options     | `ciphers ciphers -v`                                   |
 | `info`      | One cipher's category, family, options and keyspace | `ciphers info enigma`                                  |

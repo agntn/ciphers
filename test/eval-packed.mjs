@@ -447,6 +447,15 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const marsKey = '0123456789abcdeffedcba9876543210'
+  assert.equal(
+    run(binPath, ['encode', 'mars', 'ATTACK AT DAWN', '--key', marsKey]).trim(),
+    'de839bee915b8cd4fc0243d93c4cae4b',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'mars', 'de839bee915b8cd4fc0243d93c4cae4b', '--key', marsKey]).trim(),
+    'ATTACK AT DAWN',
+  )
   assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',

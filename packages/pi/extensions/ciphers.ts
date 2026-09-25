@@ -175,6 +175,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'Blowfish (blowfish) works like Triple DES with a key of any even number of hex digits from 8 to 112.',
         'IDEA (idea) works like Triple DES with a key of 32 hex digits.',
         'Lucifer (lucifer) works like AES with a key of 32 hex digits.',
+        'MARS (mars) works like AES with a key of 32 to 112 hex digits in steps of 8.',
         'cipher_info lists every option with its default.',
       ],
       parameters: cipherParams,

@@ -22,10 +22,11 @@ import { tripleDesCbc } from '../../src/ciphers/block/triple-des/cbc.ts'
 import { blowfishEcb } from '../../src/ciphers/block/blowfish.ts'
 import { ideaEcb } from '../../src/ciphers/block/idea.ts'
 import { luciferEcb } from '../../src/ciphers/block/lucifer.ts'
+import { marsEcb } from '../../src/ciphers/block/mars.ts'
 
 describe('registry', () => {
-  it('registers all 38 ciphers', () => {
-    expect(ciphers()).toHaveLength(38)
+  it('registers all 39 ciphers', () => {
+    expect(ciphers()).toHaveLength(39)
     for (const name of [
       'caesar',
       'rot13',
@@ -59,6 +60,7 @@ describe('registry', () => {
       'blowfish',
       'idea',
       'lucifer',
+      'mars',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -809,6 +811,7 @@ describe('edge cases', () => {
     blowfish: { key: '0123456789abcdef' },
     idea: { key: '00010002000300040005000600070008' },
     lucifer: { key: '0123456789abcdeffedcba9876543210' },
+    mars: { key: '0123456789abcdeffedcba9876543210' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -3521,6 +3524,164 @@ describe('lucifer', () => {
     expect(resolveCipher('Lucifer')).toBe(lucifer)
     expect(lucifer.info()).toMatchObject({
       name: 'lucifer',
+      category: 'block',
+      family: 'feistel',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('mars', () => {
+  const mars = create('mars')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '0123456789abcdeffedcba9876543210'
+
+  /** IBM's known answers for the tweaked key schedule, as Crypto++ ships them in `mars.txt`. */
+  it("matches IBM's known answer tests", () => {
+    for (const [vectorKey, plaintext, ciphertext] of [
+      ['80000000000000000000000000000000', '00'.repeat(16), 'b3e2ad5608ac1b6733a7cb4fdf8f9952'],
+      ['00'.repeat(16), '00'.repeat(16), 'dcc07b8dfb0738d6e30a22dfcf27e886'],
+      [
+        'cb14a1776abbc1cdafe7243def2cea02',
+        'f94512a9b42d034ec4792204d708a69b',
+        '225da2cb64b73f79069f21a5e3cb8522',
+      ],
+      [
+        '86edf4da31824cabef6a4637c40b0bab',
+        '4df955ad5b398d66408d620a2b27e1a9',
+        'a4b737340ae6d2cafd930ba97d86129f',
+      ],
+      ['00'.repeat(24), 'aa'.repeat(16), '97778747d60e425c2b4202599db856fb'],
+      [
+        'd158860838874d9500000000000000000000000000000000',
+        '93a953a82c10411dd158860838874d95',
+        '4fa0e5f64893131712f01408d233e9f7',
+      ],
+      [
+        '791739a58b04581a93a953a82c10411dd158860838874d95',
+        '6761c42d3e6142d2a84fbfadb383158f',
+        'f706bc0fd97e28b6f1af4e17d8755fff',
+      ],
+      ['00'.repeat(32), '62e45b4cf3477f1dd65063729d9aba8f', '0f4b897ea014d21fbc20f1054a42f719'],
+      [
+        'fba167983e7aef22317ce28c02aae1a3e8e5cc3cedbea82a99dbc39ad65e7227',
+        '1344aba4d3c44708a8a72116d4f49384',
+        '458335d95ea42a9f4dccd41aecc2390d',
+      ],
+    ]) {
+      expect(marsEcb(hex(plaintext!), hex(vectorKey!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(marsEcb(hex(ciphertext!), hex(vectorKey!), 'decrypt')).toEqual(hex(plaintext!))
+    }
+  })
+
+  /**
+   * IBM's `ecb_tbl.txt` feeds each ciphertext back as the next plaintext, 40 times per key size,
+   * so that between them the chains touch all 512 S-box entries. The start and the end of each.
+   */
+  it("runs IBM's S-box chains to the published end", () => {
+    for (const [size, start, end] of [
+      [16, '00'.repeat(16), '9213b43d06d0ab7eccc5ca751c5dbaa8'],
+      [24, 'aa'.repeat(16), '6e76bef9304b115efc1c9002fbb848a0'],
+      [32, '62e45b4cf3477f1dd65063729d9aba8f', '9a1c14309e4b246c9e7b485a7f41d046'],
+    ] as const) {
+      const zero = Array.from<number>({ length: size }).fill(0)
+      let block = hex(start)
+      for (let i = 0; i < 40; i++) block = marsEcb(block, zero, 'encrypt')
+      expect(block).toEqual(hex(end))
+      for (let i = 0; i < 40; i++) block = marsEcb(block, zero, 'decrypt')
+      expect(block).toEqual(hex(start))
+    }
+  })
+
+  /**
+   * Keys of every length from 4 to 14 words. Crypto++ takes only whole 64-bit multiples, so the
+   * 160 and 416-bit ones come from CycloneCRYPTO's `mars.c`; the two agree on the others.
+   */
+  it('takes keys of 4 to 14 words', () => {
+    for (const [extra, ciphertext] of [
+      ['', 'de839bee915b8cd4fc0243d93c4cae4b'],
+      ['00112233', '2e7460527593fc98fac625310235c7a5'],
+      ['0011223344556677', '3e6b7607147f196fa49355f6c63e6b1a'],
+      [key + '0011223344556677', 'eadfe3f050b1d8bf8046a4fbf1fef3aa'],
+      [key + key + '00112233', 'f284db8fdb1ac4998f9c4dde4cf8a285'],
+      [key + key + '0011223344556677', '22130c00f71d4b36b7b286e3204a0686'],
+    ]) {
+      expect(mars.encode('ATTACK AT DAWN', { key: key + extra }).text).toBe(ciphertext)
+      expect(mars.decode(ciphertext!, { key: key + extra }).text).toBe('ATTACK AT DAWN')
+    }
+  })
+
+  /** Expected values from Crypto++'s `ECB_Mode<MARS>` with PKCS padding over the UTF-8 bytes. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex', () => {
+    for (const [text, ciphertext] of [
+      ['', '8d521a3c918480273dd03bf203d294d4'],
+      ['ATTACK AT DAWN', 'de839bee915b8cd4fc0243d93c4cae4b'],
+      ['zażółć gęślą jaźń 🙂', 'e527b2a46a38399a078e0140098780e5bc7346d198f6ba5b6fc2f5f5fa1f9e7f'],
+    ]) {
+      expect(mars.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'mars',
+        operation: 'encode',
+        options: { key, mode: 'ecb' },
+      })
+      expect(mars.decode(ciphertext!, { key }).text).toBe(text)
+    }
+  })
+
+  it('gives equal ciphertext blocks for equal plaintext blocks', () => {
+    expect(mars.encode('A'.repeat(32), { key }).text).toBe(
+      '5ad31428f5ee9d935898dfa24bc60047'.repeat(2) + '8d521a3c918480273dd03bf203d294d4',
+    )
+  })
+
+  it('reads hex keys and ciphertext in any case and with spaces', () => {
+    const spaced = '01234567 89ABCDEF FEDCBA98 76543210'
+    expect(mars.encode('ATTACK AT DAWN', { key: spaced }).options).toEqual({ key, mode: 'ecb' })
+    expect(mars.decode('DE839BEE 915B8CD4\nFC0243D9 3C4CAE4B', { key: spaced }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('rejects keys that are not a MARS key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => mars[operation]('')).toThrow(MissingOptionError)
+      expect(() => mars[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of [
+        'YELLOW SUBMARINE',
+        '00'.repeat(12),
+        '00'.repeat(15),
+        '00'.repeat(17),
+        '00'.repeat(18),
+        '00'.repeat(60),
+        'g'.repeat(32),
+        12,
+      ]) {
+        expect(() => mars[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => mars.decode('', { key })).toThrow(/whole 16-byte blocks/)
+    expect(() => mars.decode('de839bee', { key })).toThrow(/got 8 hex digits/)
+    expect(() => mars.decode('zz'.repeat(16), { key })).toThrow(/must be hex digits/)
+    // The key halves swapped: the last byte comes out as 9d, which is no padding.
+    expect(() =>
+      mars.decode('de839bee915b8cd4fc0243d93c4cae4b', {
+        key: 'fedcba98765432100123456789abcdef',
+      }),
+    ).toThrow(/PKCS#7/)
+    // ff then fifteen bytes of 0f: valid padding, invalid UTF-8.
+    expect(() => mars.decode('db70131499cdf5815ead0a98de1b7aa1', { key })).toThrow(/not UTF-8/)
+    expect(() => mars.decode('db70131499cdf5815ead0a98de1b7aa1', { key })).toThrow(CipherError)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('MARS')).toBe(mars)
+    expect(mars.info()).toMatchObject({
+      name: 'mars',
       category: 'block',
       family: 'feistel',
       selfInverse: false,

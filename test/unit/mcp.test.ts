@@ -76,8 +76,14 @@ describe('Ciphers MCP server', () => {
 
   it('names the ciphers that read key and period as the registry declares them', () => {
     for (const option of ['key', 'period'] as const) {
-      const [requiredClause = '', optionalClause = ''] = OPTION_DESCRIPTIONS[option].split(';')
-      const named = (clause: string) => builtinCiphers.filter((name) => clause.includes(name))
+      // The key lengths before `Required by` name the block ciphers too, and `des` sits inside
+      // `desx` and `triple-des`, so each clause is read alone and names match whole.
+      const requirements = OPTION_DESCRIPTIONS[option].split('Required by')[1] ?? ''
+      const [requiredClause = '', optionalClause = ''] = requirements.split(';')
+      const named = (clause: string) =>
+        builtinCiphers.filter((name) =>
+          new RegExp(String.raw`(?<![\w-])${name}(?![\w-])`).test(clause),
+        )
       const declared = (required: boolean) =>
         builtinCiphers.filter((name) =>
           create(name)

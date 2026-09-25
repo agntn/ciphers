@@ -122,6 +122,15 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
+    ciphers: ['desx'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){48}$/,
+      error:
+        'must be 48 hex digits (a DES key, then the input and the output whitening key, 16 digits each)',
+    },
+  },
+  {
     ciphers: ['triple-des'],
     required: ['key'],
     key: {

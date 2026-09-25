@@ -24,6 +24,7 @@ export type {
   AesXtsOptions,
   RijndaelOptions,
   DesOptions,
+  DesxOptions,
   TripleDesOptions,
   TripleDesCbcOptions,
   BlowfishOptions,

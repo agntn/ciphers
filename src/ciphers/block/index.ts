@@ -11,6 +11,7 @@ import { AesXts } from './aes/xts.ts'
 import { AesCbcMac } from './aes/cbc-mac.ts'
 import { Rijndael } from './rijndael.ts'
 import { Des } from './des.ts'
+import { Desx } from './desx.ts'
 import { TripleDes } from './triple-des/ecb.ts'
 import { TripleDesCbc } from './triple-des/cbc.ts'
 import { Blowfish } from './blowfish.ts'
@@ -29,6 +30,7 @@ export const block: readonly CipherConstructor[] = [
   AesCbcMac,
   Rijndael,
   Des,
+  Desx,
   TripleDes,
   TripleDesCbc,
   Blowfish,

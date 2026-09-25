@@ -1,8 +1,7 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
+import type { CipherInfo, CipherBaseOptions } from '../../core/types.ts'
 import { getOpt } from '../../core/types.ts'
-import { Cipher } from '../../core/cipher.ts'
 import { InvalidOptionError } from '../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 import { rijndaelBlock } from './aes/block.ts'
 
 /** Block lengths in bits the Rijndael proposal defines: 128 is AES, the rest never made the standard. */
@@ -34,6 +33,8 @@ export function rijndaelEcb(
   return output
 }
 
+type RijndaelSettings = { blockSize: RijndaelBlockSize }
+
 function readBlockSize(options: Readonly<CipherBaseOptions>): RijndaelBlockSize {
   const blockSize = getOpt<unknown>(options, 'blockSize', 128)
   if (!RIJNDAEL_BLOCK_SIZES.includes(blockSize as RijndaelBlockSize)) {
@@ -48,7 +49,7 @@ function readBlockSize(options: Readonly<CipherBaseOptions>): RijndaelBlockSize 
  * @param blockSize - Block length in bits.
  * @returns {BlockMode} Rijndael in ECB with blocks of that length.
  */
-function rijndaelMode(blockSize: RijndaelBlockSize): BlockMode<{ blockSize: RijndaelBlockSize }> {
+function rijndaelMode(blockSize: RijndaelBlockSize): BlockMode<RijndaelSettings> {
   return {
     name: 'rijndael',
     label: `Rijndael-${blockSize} ECB`,
@@ -61,7 +62,7 @@ function rijndaelMode(blockSize: RijndaelBlockSize): BlockMode<{ blockSize: Rijn
   }
 }
 
-export class Rijndael extends Cipher {
+export class Rijndael extends BlockCipher<RijndaelSettings> {
   name(): string {
     return 'rijndael'
   }
@@ -94,11 +95,7 @@ export class Rijndael extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    return encodeBlocks(rijndaelMode(readBlockSize(options ?? {})), text, options)
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    return decodeBlocks(rijndaelMode(readBlockSize(options ?? {})), text, options)
+  protected mode(options: Readonly<CipherBaseOptions>): BlockMode<RijndaelSettings> {
+    return rijndaelMode(readBlockSize(options))
   }
 }

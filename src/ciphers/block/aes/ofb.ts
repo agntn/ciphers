@@ -1,10 +1,8 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
+import type { CipherInfo } from '../../../core/types.ts'
 import {
   type BlockMode,
   type Bytes,
-  decodeBlocks,
-  encodeBlocks,
+  BlockCipher,
   fromHex,
   readIv,
 } from '../../../core/block-mode.ts'
@@ -47,7 +45,7 @@ const AES_OFB: BlockMode = {
   run: (data, key, _operation, settings) => aesOfb(data, key, fromHex(settings.iv!)),
 }
 
-export class AesOfb extends Cipher {
+export class AesOfb extends BlockCipher {
   name(): string {
     return 'aes-ofb'
   }
@@ -79,11 +77,7 @@ export class AesOfb extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    return encodeBlocks(AES_OFB, text, options)
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    return decodeBlocks(AES_OFB, text, options)
+  protected mode(): BlockMode {
+    return AES_OFB
   }
 }

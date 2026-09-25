@@ -1,6 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode.ts'
+import type { CipherInfo } from '../../../core/types.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
 import { tripleDesBlock } from './block.ts'
 
 const BLOCK_SIZE = 8
@@ -33,7 +32,7 @@ const TRIPLE_DES: BlockMode = {
   run: tripleDesEcb,
 }
 
-export class TripleDes extends Cipher {
+export class TripleDes extends BlockCipher {
   name(): string {
     return 'triple-des'
   }
@@ -59,11 +58,7 @@ export class TripleDes extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    return encodeBlocks(TRIPLE_DES, text, options)
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    return decodeBlocks(TRIPLE_DES, text, options)
+  protected mode(): BlockMode {
+    return TRIPLE_DES
   }
 }

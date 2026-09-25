@@ -1,6 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
-import { Cipher } from '../../core/cipher.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
+import type { CipherInfo } from '../../core/types.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
 
@@ -289,7 +288,7 @@ const MARS: BlockMode = {
   run: marsEcb,
 }
 
-export class Mars extends Cipher {
+export class Mars extends BlockCipher {
   name(): string {
     return 'mars'
   }
@@ -315,11 +314,7 @@ export class Mars extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    return encodeBlocks(MARS, text, options)
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    return decodeBlocks(MARS, text, options)
+  protected mode(): BlockMode {
+    return MARS
   }
 }

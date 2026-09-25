@@ -1,4 +1,5 @@
 import type { CipherBaseOptions, CipherResult } from './types.ts'
+import { Cipher } from './cipher.ts'
 import { CipherError, InvalidOptionError, MissingOptionError, normalizeError } from './errors.ts'
 
 /** Bytes as plain numbers, so every step can take a readonly block and return a new one. */
@@ -228,5 +229,24 @@ export function decodeBlocks<Settings extends BlockSettings>(
     }
   } catch (e) {
     throw normalizeError(e, cipher.name)
+  }
+}
+
+/**
+ * A block cipher in one mode. `encode` and `decode` run the mode `mode()` picks through
+ * `encodeBlocks` and `decodeBlocks`, so a subclass gives only its name, its info and its mode.
+ */
+export abstract class BlockCipher<
+  Settings extends BlockSettings = Readonly<Record<string, string>>,
+> extends Cipher {
+  /** The block cipher and mode to run. Rijndael picks one by the `blockSize` option. */
+  protected abstract mode(options: Readonly<CipherBaseOptions>): BlockMode<Settings>
+
+  encode(text: string, options: Readonly<CipherBaseOptions> = {}): CipherResult {
+    return encodeBlocks(this.mode(options), text, options)
+  }
+
+  decode(text: string, options: Readonly<CipherBaseOptions> = {}): CipherResult {
+    return decodeBlocks(this.mode(options), text, options)
   }
 }

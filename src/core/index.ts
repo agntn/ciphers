@@ -28,6 +28,7 @@ export type {
   TripleDesOptions,
   TripleDesCbcOptions,
   BlowfishOptions,
+  IdeaOptions,
   CipherInfo,
   CipherOption,
 } from './types.ts'

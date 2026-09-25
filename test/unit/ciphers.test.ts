@@ -20,10 +20,11 @@ import { desxEcb } from '../../src/ciphers/block/desx.ts'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des/ecb.ts'
 import { tripleDesCbc } from '../../src/ciphers/block/triple-des/cbc.ts'
 import { blowfishEcb } from '../../src/ciphers/block/blowfish.ts'
+import { ideaEcb } from '../../src/ciphers/block/idea.ts'
 
 describe('registry', () => {
-  it('registers all 36 ciphers', () => {
-    expect(ciphers()).toHaveLength(36)
+  it('registers all 37 ciphers', () => {
+    expect(ciphers()).toHaveLength(37)
     for (const name of [
       'caesar',
       'rot13',
@@ -55,6 +56,7 @@ describe('registry', () => {
       'triple-des',
       'triple-des-cbc',
       'blowfish',
+      'idea',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -803,6 +805,7 @@ describe('edge cases', () => {
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
     'triple-des-cbc': { key: '0123456789abcdef23456789abcdef01', iv: '00'.repeat(8) },
     blowfish: { key: '0123456789abcdef' },
+    idea: { key: '00010002000300040005000600070008' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -3311,6 +3314,109 @@ describe('blowfish', () => {
       name: 'blowfish',
       category: 'block',
       family: 'feistel',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('idea', () => {
+  const idea = create('idea')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '00010002000300040005000600070008'
+
+  /**
+   * Botan 2.19.3 `src/tests/data/block/idea.vec`. The eighth is the example from Lai and Massey's
+   * thesis, the all-zero key has every subkey 0, which IDEA reads as 2^16.
+   */
+  it('matches the Botan IDEA vectors', () => {
+    for (const [vectorKey, plaintext, ciphertext] of [
+      ['ed1bcc9e9267925f3132ba3a8cf9b764', '7409000000000000', 'e18315c171b83765'],
+      ['729a27ed8f5c3e8baf16560d14c90b43', 'd53fabbf94ff8b5f', '1d0cb2af1654820a'],
+      ['729a27ed8f5c3e8baf16560d14c90b43', '848f836780938169', 'd7e0468226d0fc56'],
+      ['9d4075c103bc322afb03e7be6ab30006', '0808080808080808', 'f5db1ac45e5ef9f9'],
+      ['3a984e2000195db32ee501c8c47cea60', '0102030405060708', '97bcd8200780da86'],
+      ['006400c8012c019001f4025802bc0320', '05320a6414c819fa', '65be87e7a2538aed'],
+      ['00010002000300040005000600070008', '0000000100020003', '11fbed2b01986de5'],
+      ['00010002000300040005000600070008', '0102030405060708', '540e5fea18c2f8b1'],
+      ['00010002000300040005000600070008', 'f5202d5b9c671b08', 'cf18fd7355e2c5c5'],
+      ['00000000000000000000000000000000', '0000000000000000', '0001000100000000'],
+      ['00000000000000000000000000000000', '0000000000000001', '0013fff500120009'],
+    ]) {
+      expect(ideaEcb(hex(plaintext!), hex(vectorKey!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(ideaEcb(hex(ciphertext!), hex(vectorKey!), 'decrypt')).toEqual(hex(plaintext!))
+    }
+  })
+
+  /** Expected values from `openssl enc -idea-ecb -provider legacy`, PKCS#7 padding by default. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, ciphertext] of [
+      ['', '46e751f52a939266'],
+      ['ATTACK AT DAWN', '1e79aa86c8a1f33bd0182e2668bd0bf6'],
+      ['zażółć gęślą jaźń 🙂', '6751873e9d414b876e8e32cf659cf6fd15e1a010194d5945729b541ebcae11cc'],
+    ]) {
+      expect(idea.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'idea',
+        operation: 'encode',
+        options: { key, mode: 'ecb' },
+      })
+      expect(idea.decode(ciphertext!, { key }).text).toBe(text)
+    }
+  })
+
+  it('gives equal ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = idea.encode('A'.repeat(16), { key })
+    expect(text).toBe('14e5708749b11c0914e5708749b11c0946e751f52a939266')
+    expect(text.slice(0, 16)).toBe(text.slice(16, 32))
+  })
+
+  it('reads hex keys and ciphertext in any case and with spaces', () => {
+    const spaced = '0001 0002 0003 0004 0005 0006 0007 0008'
+    expect(idea.encode('ATTACK AT DAWN', { key: spaced }).options).toEqual({ key, mode: 'ecb' })
+    expect(idea.decode('1E79AA86 C8A1F33B\nD0182E26 68BD0BF6', { key: spaced }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('rejects keys that are not an IDEA key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => idea[operation]('')).toThrow(MissingOptionError)
+      expect(() => idea[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of [
+        'YELLOW SUBMARINE',
+        '00'.repeat(8),
+        '00'.repeat(15),
+        '00'.repeat(17),
+        '00'.repeat(24),
+        'g'.repeat(32),
+        12,
+      ]) {
+        expect(() => idea[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => idea.decode('', { key })).toThrow(/whole 8-byte blocks/)
+    expect(() => idea.decode('1e79aa86', { key })).toThrow(/got 8 hex digits/)
+    expect(() => idea.decode('zz'.repeat(8), { key })).toThrow(/must be hex digits/)
+    // OpenSSL: "bad decrypt" for this ciphertext with the key words reversed.
+    expect(() =>
+      idea.decode('1e79aa86c8a1f33bd0182e2668bd0bf6', { key: '00080007000600050004000300020001' }),
+    ).toThrow(/PKCS#7/)
+    // ff then seven bytes of 07: valid padding, invalid UTF-8.
+    expect(() => idea.decode('41b2916c2383df0c', { key })).toThrow(/not UTF-8/)
+    expect(() => idea.decode('41b2916c2383df0c', { key })).toThrow(CipherError)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('IDEA')).toBe(idea)
+    expect(idea.info()).toMatchObject({
+      name: 'idea',
+      category: 'block',
+      family: 'lai-massey',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
     })

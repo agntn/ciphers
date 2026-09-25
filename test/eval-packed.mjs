@@ -423,6 +423,15 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const ideaKey = '00010002000300040005000600070008'
+  assert.equal(
+    run(binPath, ['encode', 'idea', 'ATTACK AT DAWN', '--key', ideaKey]).trim(),
+    '1e79aa86c8a1f33bd0182e2668bd0bf6',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'idea', '1e79aa86c8a1f33bd0182e2668bd0bf6', '--key', ideaKey]).trim(),
+    'ATTACK AT DAWN',
+  )
   assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',

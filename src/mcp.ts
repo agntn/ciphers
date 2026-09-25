@@ -178,6 +178,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
       error: 'must be 32 to 112 hex digits in steps of 8 (a MARS key of 4 to 14 words)',
     },
   },
+  {
+    ciphers: ['serpent'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){16}){0,2}$/,
+      error: 'must be 32, 48 or 64 hex digits (a 128, 192 or 256-bit Serpent key)',
+    },
+  },
 ]
 
 /**

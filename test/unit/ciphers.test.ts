@@ -23,10 +23,11 @@ import { blowfishEcb } from '../../src/ciphers/block/blowfish.ts'
 import { ideaEcb } from '../../src/ciphers/block/idea.ts'
 import { luciferEcb } from '../../src/ciphers/block/lucifer.ts'
 import { marsEcb } from '../../src/ciphers/block/mars.ts'
+import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 
 describe('registry', () => {
-  it('registers all 39 ciphers', () => {
-    expect(ciphers()).toHaveLength(39)
+  it('registers all 40 ciphers', () => {
+    expect(ciphers()).toHaveLength(40)
     for (const name of [
       'caesar',
       'rot13',
@@ -61,6 +62,7 @@ describe('registry', () => {
       'idea',
       'lucifer',
       'mars',
+      'serpent',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -812,6 +814,7 @@ describe('edge cases', () => {
     idea: { key: '00010002000300040005000600070008' },
     lucifer: { key: '0123456789abcdeffedcba9876543210' },
     mars: { key: '0123456789abcdeffedcba9876543210' },
+    serpent: { key: '0123456789abcdeffedcba9876543210' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -3684,6 +3687,165 @@ describe('mars', () => {
       name: 'mars',
       category: 'block',
       family: 'feistel',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('serpent', () => {
+  const serpent = create('serpent')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '0123456789abcdeffedcba9876543210'
+
+  /** From Botan's `serpent.vec`, which libgcrypt's Serpent agrees with in the same byte order. */
+  it("matches Botan's test vectors", () => {
+    for (const [vectorKey, plaintext, ciphertext] of [
+      ['80' + '00'.repeat(15), '00'.repeat(16), '264e5481eff42a4606abda06c0bfda3d'],
+      ['00'.repeat(15) + '01', '00'.repeat(16), 'f668c7091f81b2827da77dd419b708e1'],
+      ['00'.repeat(16), '00'.repeat(15) + '80', '4ae9a20b2b14a10290cbb820b7ffb510'],
+      ['00'.repeat(16), '00'.repeat(15) + '40', '2c6ee9f8f64b5b1b5587cdf17e84a791'],
+      ['80' + '00'.repeat(23), '00'.repeat(16), '9e274ead9b737bb21efcfca548602689'],
+      [
+        '00'.repeat(15) + '01' + '00'.repeat(8),
+        '00'.repeat(16),
+        'deab7388a6f1c61d41e25a0d88f062c4',
+      ],
+      ['00'.repeat(24), 'ac335553d40961a3387bd2d2bfa6edb3', '167d74c63ceb050b4f14b1ce23da39bd'],
+      ['80' + '00'.repeat(31), '00'.repeat(16), 'a223aa1288463c0e2be38ebd825616c0'],
+      ['00'.repeat(32), '2f6aa890cea3e3a7ed98d9f29073d78e', 'a3e17e2df4ea6f41b2017e37023f202a'],
+    ]) {
+      expect(serpentEcb(hex(plaintext!), hex(vectorKey!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(serpentEcb(hex(ciphertext!), hex(vectorKey!), 'decrypt')).toEqual(hex(plaintext!))
+    }
+  })
+
+  /**
+   * The 960 single-bit vectors in the same file: a key with one bit set and a zero block, for
+   * every bit of every key length, then a zero key and a block with one bit set. Bit 0 is the top
+   * bit of the first byte. The digests cover the file's ciphertexts in that order, one per line.
+   */
+  it("runs every single-bit vector in Botan's file", () => {
+    const toHex = (bytes: readonly number[]) =>
+      bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
+    const oneBit = (length: number, bit: number) => {
+      const bytes = Array.from<number>({ length }).fill(0)
+      bytes[bit >>> 3] = 0x80 >>> (bit & 7)
+      return bytes
+    }
+    const zero = (length: number) => Array.from<number>({ length }).fill(0)
+    for (const [size, keyDigest, textDigest] of [
+      [
+        16,
+        '2aa48316525f1e3046a8c500752fe1111ea37b72dc66b2dda634a59914c38f18',
+        '6e230fed8b499bfec64d3990fa6626d284494b28c0c4002013209678834dd00a',
+      ],
+      [
+        24,
+        '0efeb6567abadbacba6d2f203c000bb7134fbe3c6ca48ca7ace5bcdbbe714bf9',
+        'ab6dbbe45aad02ec861c2a98ccb3d90df25047177770c9bdc0919dd16c02e093',
+      ],
+      [
+        32,
+        '5a1b9a1a401d80fafebdeec47bde39ad1fcacfa1efb714db88ec9249ba343797',
+        '78db106f28041192382e38b84bd990f0e0044fe5b5f7c92714f7b37ae007c5b5',
+      ],
+    ] as const) {
+      const keyBits = Array.from({ length: 8 * size }, (_, bit) =>
+        toHex(serpentEcb(zero(16), oneBit(size, bit), 'encrypt')),
+      )
+      const textBits = Array.from({ length: 128 }, (_, bit) =>
+        toHex(serpentEcb(oneBit(16, bit), zero(size), 'encrypt')),
+      )
+      expect(createHash('sha256').update(keyBits.join('\n')).digest('hex')).toBe(keyDigest)
+      expect(createHash('sha256').update(textBits.join('\n')).digest('hex')).toBe(textDigest)
+    }
+  })
+
+  /** Expected values from libgcrypt's `GCRY_CIPHER_SERPENT` in ECB, with the key lengths below. */
+  it('takes 128, 192 and 256-bit keys', () => {
+    for (const [extra, ciphertext] of [
+      ['', '33bd9b4c6955d0e186249aeca8b19dbf'],
+      ['0011223344556677', '561c27b6657166809536fd2231afc13c'],
+      [key, '778838efe5e816b5ebb27e88af2a1c8c'],
+    ]) {
+      expect(serpent.encode('ATTACK AT DAWN', { key: key + extra }).text).toBe(ciphertext)
+      expect(serpent.decode(ciphertext!, { key: key + extra }).text).toBe('ATTACK AT DAWN')
+    }
+  })
+
+  /** Expected values from libgcrypt's Serpent in ECB over the UTF-8 bytes with PKCS#7 padding. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex', () => {
+    for (const [text, ciphertext] of [
+      ['', '70f039bebc4127e475704e5e8a1826a7'],
+      ['ATTACK AT DAWN', '33bd9b4c6955d0e186249aeca8b19dbf'],
+      ['zażółć gęślą jaźń 🙂', 'a1d440ca3cdf1f5fbaa146044ce4588c2f8f62ff12ce9b76d01708922ef9f713'],
+    ]) {
+      expect(serpent.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'serpent',
+        operation: 'encode',
+        options: { key, mode: 'ecb' },
+      })
+      expect(serpent.decode(ciphertext!, { key }).text).toBe(text)
+    }
+  })
+
+  it('gives equal ciphertext blocks for equal plaintext blocks', () => {
+    expect(serpent.encode('A'.repeat(32), { key }).text).toBe(
+      '9f4cec54f67f8b775b9dbf076814dd75'.repeat(2) + '70f039bebc4127e475704e5e8a1826a7',
+    )
+  })
+
+  it('reads hex keys and ciphertext in any case and with spaces', () => {
+    const spaced = '01234567 89ABCDEF FEDCBA98 76543210'
+    expect(serpent.encode('ATTACK AT DAWN', { key: spaced }).options).toEqual({ key, mode: 'ecb' })
+    expect(serpent.decode('33BD9B4C 6955D0E1\n86249AEC A8B19DBF', { key: spaced }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('rejects keys that are not a Serpent key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => serpent[operation]('')).toThrow(MissingOptionError)
+      expect(() => serpent[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of [
+        'YELLOW SUBMARINE',
+        '00'.repeat(8),
+        '00'.repeat(15),
+        '00'.repeat(17),
+        '00'.repeat(20),
+        '00'.repeat(33),
+        'g'.repeat(32),
+        12,
+      ]) {
+        expect(() => serpent[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => serpent.decode('', { key })).toThrow(/whole 16-byte blocks/)
+    expect(() => serpent.decode('33bd9b4c', { key })).toThrow(/got 8 hex digits/)
+    expect(() => serpent.decode('zz'.repeat(16), { key })).toThrow(/must be hex digits/)
+    // The key halves swapped: the last byte comes out as 60, which is no padding.
+    expect(() =>
+      serpent.decode('33bd9b4c6955d0e186249aeca8b19dbf', {
+        key: 'fedcba98765432100123456789abcdef',
+      }),
+    ).toThrow(/PKCS#7/)
+    // ff then fifteen bytes of 0f: valid padding, invalid UTF-8.
+    expect(() => serpent.decode('4a6373183bb8986d53e4e430ba69a157', { key })).toThrow(/not UTF-8/)
+    expect(() => serpent.decode('4a6373183bb8986d53e4e430ba69a157', { key })).toThrow(CipherError)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('Serpent')).toBe(serpent)
+    expect(serpent.info()).toMatchObject({
+      name: 'serpent',
+      category: 'block',
+      family: 'substitution-permutation',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
     })

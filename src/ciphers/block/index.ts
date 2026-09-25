@@ -18,6 +18,7 @@ import { Blowfish } from './blowfish.ts'
 import { Idea } from './idea.ts'
 import { Lucifer } from './lucifer.ts'
 import { Mars } from './mars.ts'
+import { Serpent } from './serpent.ts'
 
 /** The block ciphers, in registry order. */
 export const block: readonly CipherConstructor[] = [
@@ -40,4 +41,5 @@ export const block: readonly CipherConstructor[] = [
   Idea,
   Lucifer,
   Mars,
+  Serpent,
 ]

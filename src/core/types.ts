@@ -250,6 +250,12 @@ export interface MarsOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Serpent ECB options. */
+export interface SerpentOptions extends CipherBaseOptions {
+  /** 32, 48 or 64 hex digits, a 128, 192 or 256-bit key; case and spaces are ignored. */
+  key: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *

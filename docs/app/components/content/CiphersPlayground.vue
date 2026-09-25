@@ -71,7 +71,7 @@ type Answer = TransformAnswer | BruteAnswer | FrequencyAnswer | ErrorAnswer | nu
 const answer = computed<Answer>(() => {
   try {
     if (operation.value === "brute") {
-      return { kind: "brute", rows: bruteRows(text.value) };
+      return { kind: "brute", rows: bruteRows(text.value, language.value) };
     }
     if (operation.value === "frequency") {
       const view = frequencyView(text.value, language.value);
@@ -98,7 +98,7 @@ const current = computed(() => OPERATIONS.find((row) => row.key === operation.va
 /** The same call as one CLI line. */
 const cliLine = computed(() => {
   if (operation.value === "brute") {
-    return `ciphers brute ${shellArg(text.value)}`;
+    return `ciphers brute ${shellArg(text.value)} --lang ${language.value}`;
   }
   if (operation.value === "frequency") {
     return `ciphers frequency ${shellArg(text.value)} --lang ${language.value}`;
@@ -112,11 +112,9 @@ const cliLine = computed(() => {
 /** The same call as a tool invocation, the JSON an MCP client sends. */
 const toolCall = computed(() => {
   const args: Record<string, unknown> =
-    operation.value === "brute"
-      ? { text: text.value }
-      : operation.value === "frequency"
-        ? { text: text.value, lang: language.value }
-        : { cipher: entry.value.slug, text: text.value, ...options.value };
+    operation.value === "brute" || operation.value === "frequency"
+      ? { text: text.value, lang: language.value }
+      : { cipher: entry.value.slug, text: text.value, ...options.value };
   return JSON.stringify({ name: current.value.tool, arguments: args }, null, 2);
 });
 
@@ -217,7 +215,7 @@ const shareQuery = computed(() => {
       query.stripNonAlpha = "1";
     }
   }
-  if (operation.value === "frequency") {
+  if (operation.value === "brute" || operation.value === "frequency") {
     query.lang = language.value;
   }
   return query;
@@ -328,7 +326,7 @@ const shareLink = computed(() => {
         </label>
       </div>
 
-      <label v-if="operation === 'frequency'" class="flex flex-col gap-1.5">
+      <label v-if="operation === 'brute' || operation === 'frequency'" class="flex flex-col gap-1.5">
         <span class="ciphers-eyebrow">reference language</span>
         <select v-model="language" class="ciphers-field">
           <option value="en">English</option>

@@ -49,6 +49,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - Triple DES CBC takes the Triple DES key and a required 16-digit `iv`, and chains blocks as NIST SP 800-38A §6.2 does. Text, padding and hex work as for Triple DES.
 - `blowfish` runs in ECB only, with a key of 8 to 112 hex digits (4 to 56 bytes, the 32 to 448 bits of Schneier's paper). The P-array and S-boxes start from the fractional hex digits of pi, computed once in `BigInt` rather than stored. Text, padding and hex work as for Triple DES.
 - `idea` runs in ECB only, as Lai and Massey's IDEA with a key of 32 hex digits: 8.5 rounds on 16-bit words, with the word 0 standing for 2^16 in multiplication modulo 2^16 + 1. Its family is `lai-massey`, since it is neither Feistel nor SPN. Text, padding and hex work as for Triple DES.
+- `lucifer` runs in ECB only, as Sorkin's Lucifer from Cryptologia 8(1), 1984, with his bit numbering correction from Cryptologia 8(3), July 1984 applied: 16 Feistel rounds on 16-byte blocks and a key of 32 hex digits. The uncorrected January listing, and code copied from it, gives other ciphertext; the fixed vectors are Outerbridge's 2015 triples. Text, padding and hex work as for AES.
 
 ## Adding or Changing a Cipher
 

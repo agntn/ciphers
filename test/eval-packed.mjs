@@ -432,6 +432,21 @@ try {
     run(binPath, ['decode', 'idea', '1e79aa86c8a1f33bd0182e2668bd0bf6', '--key', ideaKey]).trim(),
     'ATTACK AT DAWN',
   )
+  const luciferKey = '0123456789abcdeffedcba9876543210'
+  assert.equal(
+    run(binPath, ['encode', 'lucifer', 'ATTACK AT DAWN', '--key', luciferKey]).trim(),
+    '3511c560cf11d61ec299417602e29bc5',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'lucifer',
+      '3511c560cf11d61ec299417602e29bc5',
+      '--key',
+      luciferKey,
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',

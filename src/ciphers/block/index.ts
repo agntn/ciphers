@@ -16,6 +16,7 @@ import { TripleDes } from './triple-des/ecb.ts'
 import { TripleDesCbc } from './triple-des/cbc.ts'
 import { Blowfish } from './blowfish.ts'
 import { Idea } from './idea.ts'
+import { Lucifer } from './lucifer.ts'
 
 /** The block ciphers, in registry order. */
 export const block: readonly CipherConstructor[] = [
@@ -36,4 +37,5 @@ export const block: readonly CipherConstructor[] = [
   TripleDesCbc,
   Blowfish,
   Idea,
+  Lucifer,
 ]

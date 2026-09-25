@@ -103,10 +103,10 @@ describe('Ciphers MCP server', () => {
       name: 'cipher_encode',
       arguments: { cipher: 'caesar', text: 'abc', shift: 1, preserveCase: false },
     })
-    expect(encoded).toMatchObject({
+    // The agents guide promises the text alone over MCP, with no `details` to lean on.
+    expect(encoded).toEqual({
       content: [{ type: 'text', text: 'BCD' }],
     })
-    expect(encoded.isError).not.toBe(true)
 
     const decoded = await client.callTool({
       name: 'cipher_decode',

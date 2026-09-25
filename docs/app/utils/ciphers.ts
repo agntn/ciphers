@@ -59,6 +59,7 @@ const PRESENTATION: Record<
   idea: { icon: "i-solar-lock-password-linear", blurb: "The PGP 2 cipher, XOR, addition and multiplication and no tables", sample: "ATTACK AT DAWN", options: { key: "00010002000300040005000600070008" } },
   lucifer: { icon: "i-solar-lock-password-linear", blurb: "The IBM cipher DES was cut down from, 128-bit blocks and keys", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
   mars: { icon: "i-solar-lock-password-linear", blurb: "IBM's AES finalist, 32 rounds and an S-box grown from SHA-1", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
+  serpent: { icon: "i-solar-lock-password-linear", blurb: "The AES runner-up, 32 rounds of 4-bit S-boxes run bitslice", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
 };
 
 export interface CipherEntry {

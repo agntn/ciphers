@@ -457,6 +457,20 @@ try {
     'ATTACK AT DAWN',
   )
   assert.equal(
+    run(binPath, ['encode', 'serpent', 'ATTACK AT DAWN', '--key', marsKey]).trim(),
+    '33bd9b4c6955d0e186249aeca8b19dbf',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'serpent',
+      '33bd9b4c6955d0e186249aeca8b19dbf',
+      '--key',
+      marsKey,
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
+  assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',
   )

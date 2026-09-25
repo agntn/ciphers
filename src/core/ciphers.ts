@@ -39,6 +39,7 @@ export const builtinCiphers = [
   'idea',
   'lucifer',
   'mars',
+  'serpent',
 ] as const
 
 export type BuiltinCipher = (typeof builtinCiphers)[number]

@@ -114,6 +114,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
+    ciphers: ['des'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){16}$/,
+      error: 'must be 16 hex digits (a 64-bit DES key, 56 bits without parity)',
+    },
+  },
+  {
     ciphers: ['triple-des'],
     required: ['key'],
     key: {

@@ -141,18 +141,31 @@ function feistel(right: Bits, subkey: Bits): Bits {
 }
 
 /**
- * One DES block. Decryption is the same network with the subkeys reversed.
+ * The 16 rounds on one block. Decryption is the same network with the subkeys reversed.
  *
  * @param block - 8 bytes.
  * @param keys - The 16 subkeys, in the order the rounds use them.
  * @returns {Bytes} The transformed 8 bytes.
  */
-function desBlock(block: Bytes, keys: readonly Bits[]): Bytes {
+function desRounds(block: Bytes, keys: readonly Bits[]): Bytes {
   const bits = permute(toBits(block), INITIAL_PERMUTATION)
   let left: Bits = bits.slice(0, 32)
   let right: Bits = bits.slice(32)
   for (const key of keys) [left, right] = [right, xor(left, feistel(right, key))]
   return toBytes(permute([...right, ...left], FINAL_PERMUTATION))
+}
+
+/**
+ * Single DES on one block, the DEA of FIPS 46-3.
+ *
+ * @param key - 8 key bytes.
+ * @param operation - Encrypt or decrypt.
+ * @returns {(block: Bytes) => Bytes} A transform for one 8-byte block.
+ */
+export function desBlock(key: Bytes, operation: 'encrypt' | 'decrypt'): (block: Bytes) => Bytes {
+  const keys = subkeys(key)
+  const ordered = operation === 'encrypt' ? keys : keys.toReversed()
+  return (block) => desRounds(block, ordered)
 }
 
 /**
@@ -175,5 +188,5 @@ export function tripleDesBlock(
     operation === 'encrypt'
       ? [encrypt[0]!, decrypt[1]!, encrypt[2]!]
       : [decrypt[2]!, encrypt[1]!, decrypt[0]!]
-  return (block) => steps.reduce((bytes, keys) => desBlock(bytes, keys), block)
+  return (block) => steps.reduce((bytes, keys) => desRounds(bytes, keys), block)
 }

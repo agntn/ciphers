@@ -324,6 +324,15 @@ try {
     run(binPath, ['decode', 'aes-cbc-mac', signed, '--key', macKey]).trim(),
     'ATTACK AT DAWN',
   )
+  const desKey = '0123456789abcdef'
+  assert.equal(
+    run(binPath, ['encode', 'des', 'ATTACK AT DAWN', '--key', desKey]).trim(),
+    '66e43480bc9810be67812271f1ee04a0',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'des', '66e43480bc9810be67812271f1ee04a0', '--key', desKey]).trim(),
+    'ATTACK AT DAWN',
+  )
   const tripleDesKey = '0123456789abcdef23456789abcdef01456789abcdef0123'
   assert.equal(
     run(binPath, ['encode', 'triple-des', 'ATTACK AT DAWN', '--key', tripleDesKey]).trim(),

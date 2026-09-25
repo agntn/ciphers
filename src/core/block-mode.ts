@@ -1,5 +1,5 @@
 import type { CipherBaseOptions, CipherResult } from './types.ts'
-import { CipherError, InvalidOptionError, MissingOptionError } from './errors.ts'
+import { CipherError, InvalidOptionError, MissingOptionError, normalizeError } from './errors.ts'
 
 /** Bytes as plain numbers, so every step can take a readonly block and return a new one. */
 export type Bytes = readonly number[]
@@ -164,59 +164,69 @@ function readCiphertext(cipher: BlockShape, text: string): Bytes {
 
 /**
  * Encrypt the UTF-8 bytes of a text: PKCS#7 padding unless the mode has none, the bytes through
- * the mode, hex out.
+ * the mode, hex out. Anything thrown on the way comes out as a `CipherError`, with the mode's name
+ * in front when it was not one already.
  *
  * @param cipher - The block cipher and mode to run.
  * @param text - Any text.
- * @param options - Carries the hex `key` and whatever else the mode reads.
+ * @param options - Carries the hex `key` and whatever else the mode reads; none when left out.
  * @returns {CipherResult} Lowercase hex, with the key and settings as they were read.
  */
 export function encodeBlocks<Settings extends BlockSettings>(
   cipher: BlockMode<Settings>,
   text: string,
-  options: Readonly<CipherBaseOptions>,
+  options: Readonly<CipherBaseOptions> = {},
 ): CipherResult {
-  const key = readKey(cipher, options)
-  const settings = cipher.settings?.(options) ?? ({} as Settings)
-  const bytes = [...new TextEncoder().encode(text)]
-  const plaintext = cipher.padding === false ? bytes : pad(bytes, cipher.blockSize)
-  return {
-    text: toHex(cipher.run(plaintext, key.bytes, 'encrypt', settings)),
-    cipher: cipher.name,
-    operation: 'encode',
-    options: { key: key.hex, mode: cipher.mode, ...settings },
+  try {
+    const key = readKey(cipher, options)
+    const settings = cipher.settings?.(options) ?? ({} as Settings)
+    const bytes = [...new TextEncoder().encode(text)]
+    const plaintext = cipher.padding === false ? bytes : pad(bytes, cipher.blockSize)
+    return {
+      text: toHex(cipher.run(plaintext, key.bytes, 'encrypt', settings)),
+      cipher: cipher.name,
+      operation: 'encode',
+      options: { key: key.hex, mode: cipher.mode, ...settings },
+    }
+  } catch (e) {
+    throw normalizeError(e, cipher.name)
   }
 }
 
 /**
  * Decrypt hex ciphertext back to text. Fails when the padding or the UTF-8 does not hold, which
- * is how a wrong key shows. A mode without padding has only the UTF-8 check.
+ * is how a wrong key shows. A mode without padding has only the UTF-8 check. Errors come out as
+ * for `encodeBlocks`.
  *
  * @param cipher - The block cipher and mode to run.
  * @param text - Hex, whole blocks unless the mode has no padding; case and whitespace are ignored.
- * @param options - Carries the hex `key` and whatever else the mode reads.
+ * @param options - Carries the hex `key` and whatever else the mode reads; none when left out.
  * @returns {CipherResult} The decoded text.
  */
 export function decodeBlocks<Settings extends BlockSettings>(
   cipher: BlockMode<Settings>,
   text: string,
-  options: Readonly<CipherBaseOptions>,
+  options: Readonly<CipherBaseOptions> = {},
 ): CipherResult {
-  const key = readKey(cipher, options)
-  const settings = cipher.settings?.(options) ?? ({} as Settings)
-  const ciphertext = readCiphertext(cipher, text)
-  const decrypted = cipher.run(ciphertext, key.bytes, 'decrypt', settings)
-  const plaintext = cipher.padding === false ? decrypted : unpad(cipher, decrypted)
-  let decoded: string
   try {
-    decoded = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(plaintext))
-  } catch {
-    throw new CipherError(`[${cipher.name}] Decrypted bytes are not UTF-8 text`)
-  }
-  return {
-    text: decoded,
-    cipher: cipher.name,
-    operation: 'decode',
-    options: { key: key.hex, mode: cipher.mode, ...settings },
+    const key = readKey(cipher, options)
+    const settings = cipher.settings?.(options) ?? ({} as Settings)
+    const ciphertext = readCiphertext(cipher, text)
+    const decrypted = cipher.run(ciphertext, key.bytes, 'decrypt', settings)
+    const plaintext = cipher.padding === false ? decrypted : unpad(cipher, decrypted)
+    let decoded: string
+    try {
+      decoded = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(plaintext))
+    } catch {
+      throw new CipherError(`[${cipher.name}] Decrypted bytes are not UTF-8 text`)
+    }
+    return {
+      text: decoded,
+      cipher: cipher.name,
+      operation: 'decode',
+      options: { key: key.hex, mode: cipher.mode, ...settings },
+    }
+  } catch (e) {
+    throw normalizeError(e, cipher.name)
   }
 }

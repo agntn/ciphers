@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
 import { Cipher } from '../../../core/cipher.ts'
-import { normalizeError } from '../../../core/errors.ts'
 import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode.ts'
 import { aesBlock } from './block.ts'
 
@@ -61,18 +60,10 @@ export class Aes extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes')
-    }
+    return encodeBlocks(AES, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes')
-    }
+    return decodeBlocks(AES, text, options)
   }
 }

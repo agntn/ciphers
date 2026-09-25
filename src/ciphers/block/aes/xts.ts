@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
 import { Cipher } from '../../../core/cipher.ts'
-import { CipherError, InvalidOptionError, normalizeError } from '../../../core/errors.ts'
+import { CipherError, InvalidOptionError } from '../../../core/errors.ts'
 import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode.ts'
 import { aesBlock } from './block.ts'
 
@@ -161,18 +161,10 @@ export class AesXts extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_XTS, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-xts')
-    }
+    return encodeBlocks(AES_XTS, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_XTS, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-xts')
-    }
+    return decodeBlocks(AES_XTS, text, options)
   }
 }

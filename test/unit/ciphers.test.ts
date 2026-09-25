@@ -4,6 +4,7 @@ import { create, ciphers, has } from '../../src/core/registry.ts'
 import { resolveCipher } from '../../src/core/resolve.ts'
 import { Cipher } from '../../src/core/cipher.ts'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors.ts'
+import { type BlockMode, decodeBlocks, encodeBlocks } from '../../src/core/block-mode.ts'
 import { aesEcb } from '../../src/ciphers/block/aes/ecb.ts'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw.ts'
 import { aesXts } from '../../src/ciphers/block/aes/xts.ts'
@@ -1027,6 +1028,35 @@ describe('autokey', () => {
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
     })
+  })
+})
+
+describe('block modes', () => {
+  const broken: BlockMode = {
+    name: 'broken',
+    label: 'Broken ECB',
+    mode: 'ecb',
+    blockSize: 1,
+    keyDigits: [2],
+    keyError: 'must be 2 hex digits',
+    run: () => {
+      throw new TypeError('boom')
+    },
+  }
+
+  it('turns whatever the block cipher throws into a CipherError named after the mode', () => {
+    for (const run of [
+      () => encodeBlocks(broken, 'a', { key: '00' }),
+      () => decodeBlocks(broken, '00', { key: '00' }),
+    ]) {
+      expect(run).toThrow(CipherError)
+      expect(run).toThrow('[broken] boom')
+    }
+  })
+
+  it('reads missing options as none', () => {
+    expect(() => encodeBlocks(broken, 'a')).toThrow(MissingOptionError)
+    expect(() => decodeBlocks(broken, '00')).toThrow(MissingOptionError)
   })
 })
 

@@ -1,12 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
 import { getOpt } from '../../../core/types.ts'
 import { Cipher } from '../../../core/cipher.ts'
-import {
-  CipherError,
-  InvalidOptionError,
-  MissingOptionError,
-  normalizeError,
-} from '../../../core/errors.ts'
+import { CipherError, InvalidOptionError, MissingOptionError } from '../../../core/errors.ts'
 import {
   type BlockMode,
   type Bytes,
@@ -233,18 +228,10 @@ export class AesCcm extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_CCM, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-ccm')
-    }
+    return encodeBlocks(AES_CCM, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_CCM, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-ccm')
-    }
+    return decodeBlocks(AES_CCM, text, options)
   }
 }

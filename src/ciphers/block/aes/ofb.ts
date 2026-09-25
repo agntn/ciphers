@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
 import { Cipher } from '../../../core/cipher.ts'
-import { normalizeError } from '../../../core/errors.ts'
 import {
   type BlockMode,
   type Bytes,
@@ -81,18 +80,10 @@ export class AesOfb extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_OFB, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-ofb')
-    }
+    return encodeBlocks(AES_OFB, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_OFB, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-ofb')
-    }
+    return decodeBlocks(AES_OFB, text, options)
   }
 }

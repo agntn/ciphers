@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
 import { Cipher } from '../../../core/cipher.ts'
-import { normalizeError } from '../../../core/errors.ts'
 import {
   type BlockMode,
   type Bytes,
@@ -94,18 +93,10 @@ export class AesCbc extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_CBC, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-cbc')
-    }
+    return encodeBlocks(AES_CBC, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_CBC, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-cbc')
-    }
+    return decodeBlocks(AES_CBC, text, options)
   }
 }

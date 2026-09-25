@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { getOpt } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
+import { InvalidOptionError } from '../../core/errors.ts'
 import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
 import { rijndaelBlock } from './aes/block.ts'
 
@@ -95,18 +95,10 @@ export class Rijndael extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(rijndaelMode(readBlockSize(options ?? {})), text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'rijndael')
-    }
+    return encodeBlocks(rijndaelMode(readBlockSize(options ?? {})), text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(rijndaelMode(readBlockSize(options ?? {})), text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'rijndael')
-    }
+    return decodeBlocks(rijndaelMode(readBlockSize(options ?? {})), text, options)
   }
 }

@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
 import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 8
@@ -169,18 +168,10 @@ export class Idea extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(IDEA, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'idea')
-    }
+    return encodeBlocks(IDEA, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(IDEA, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'idea')
-    }
+    return decodeBlocks(IDEA, text, options)
   }
 }

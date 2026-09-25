@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
 import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
@@ -114,18 +113,10 @@ export class Lucifer extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(LUCIFER, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'lucifer')
-    }
+    return encodeBlocks(LUCIFER, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(LUCIFER, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'lucifer')
-    }
+    return decodeBlocks(LUCIFER, text, options)
   }
 }

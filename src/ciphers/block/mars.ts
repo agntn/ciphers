@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
 import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
@@ -317,18 +316,10 @@ export class Mars extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(MARS, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'mars')
-    }
+    return encodeBlocks(MARS, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(MARS, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'mars')
-    }
+    return decodeBlocks(MARS, text, options)
   }
 }

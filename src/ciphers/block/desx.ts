@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
 import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
 import { desBlock } from './triple-des/block.ts'
 
@@ -71,18 +70,10 @@ export class Desx extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(DESX, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'desx')
-    }
+    return encodeBlocks(DESX, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(DESX, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'desx')
-    }
+    return decodeBlocks(DESX, text, options)
   }
 }

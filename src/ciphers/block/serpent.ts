@@ -1,6 +1,5 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
 import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
@@ -218,18 +217,10 @@ export class Serpent extends Cipher {
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(SERPENT, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'serpent')
-    }
+    return encodeBlocks(SERPENT, text, options)
   }
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(SERPENT, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'serpent')
-    }
+    return decodeBlocks(SERPENT, text, options)
   }
 }

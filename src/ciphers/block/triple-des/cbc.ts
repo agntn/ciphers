@@ -1,11 +1,8 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import { normalizeError } from '../../../core/errors.ts'
+import type { CipherInfo } from '../../../core/types.ts'
 import {
   type BlockMode,
   type Bytes,
-  decodeBlocks,
-  encodeBlocks,
+  BlockCipher,
   fromHex,
   readIv,
 } from '../../../core/block-mode.ts'
@@ -62,7 +59,7 @@ const TRIPLE_DES_CBC: BlockMode = {
     tripleDesCbc(data, key, operation, fromHex(settings.iv!)),
 }
 
-export class TripleDesCbc extends Cipher {
+export class TripleDesCbc extends BlockCipher {
   name(): string {
     return 'triple-des-cbc'
   }
@@ -94,19 +91,7 @@ export class TripleDesCbc extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(TRIPLE_DES_CBC, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'triple-des-cbc')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(TRIPLE_DES_CBC, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'triple-des-cbc')
-    }
+  protected mode(): BlockMode {
+    return TRIPLE_DES_CBC
   }
 }

@@ -1,7 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
-import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
+import type { CipherInfo } from '../../core/types.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 import { desBlock } from './triple-des/block.ts'
 
 const BLOCK_SIZE = 8
@@ -34,7 +32,7 @@ const DES: BlockMode = {
   run: desEcb,
 }
 
-export class Des extends Cipher {
+export class Des extends BlockCipher {
   name(): string {
     return 'des'
   }
@@ -60,19 +58,7 @@ export class Des extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(DES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'des')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(DES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'des')
-    }
+  protected mode(): BlockMode {
+    return DES
   }
 }

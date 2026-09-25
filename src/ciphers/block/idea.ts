@@ -1,7 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
-import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
+import type { CipherInfo } from '../../core/types.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 8
 const ROUNDS = 8
@@ -142,7 +140,7 @@ const IDEA: BlockMode = {
   run: ideaEcb,
 }
 
-export class Idea extends Cipher {
+export class Idea extends BlockCipher {
   name(): string {
     return 'idea'
   }
@@ -168,19 +166,7 @@ export class Idea extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(IDEA, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'idea')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(IDEA, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'idea')
-    }
+  protected mode(): BlockMode {
+    return IDEA
   }
 }

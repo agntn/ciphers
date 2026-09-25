@@ -1,7 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import { CipherError, normalizeError } from '../../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode.ts'
+import type { CipherInfo } from '../../../core/types.ts'
+import { CipherError } from '../../../core/errors.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
 import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
@@ -61,7 +60,7 @@ const AES_CBC_MAC: BlockMode = {
   run: (data, key, operation) => signOrVerify(data, key, operation),
 }
 
-export class AesCbcMac extends Cipher {
+export class AesCbcMac extends BlockCipher {
   name(): string {
     return 'aes-cbc-mac'
   }
@@ -87,19 +86,7 @@ export class AesCbcMac extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_CBC_MAC, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-cbc-mac')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_CBC_MAC, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-cbc-mac')
-    }
+  protected mode(): BlockMode {
+    return AES_CBC_MAC
   }
 }

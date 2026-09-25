@@ -1,7 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import { normalizeError } from '../../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode.ts'
+import type { CipherInfo } from '../../../core/types.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
 import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
@@ -34,7 +32,7 @@ const AES: BlockMode = {
   run: aesEcb,
 }
 
-export class Aes extends Cipher {
+export class Aes extends BlockCipher {
   name(): string {
     return 'aes'
   }
@@ -60,19 +58,7 @@ export class Aes extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes')
-    }
+  protected mode(): BlockMode {
+    return AES
   }
 }

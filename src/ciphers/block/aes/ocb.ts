@@ -1,17 +1,10 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
+import type { CipherInfo, CipherBaseOptions } from '../../../core/types.ts'
 import { getOpt } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import {
-  CipherError,
-  InvalidOptionError,
-  MissingOptionError,
-  normalizeError,
-} from '../../../core/errors.ts'
+import { CipherError, InvalidOptionError, MissingOptionError } from '../../../core/errors.ts'
 import {
   type BlockMode,
   type Bytes,
-  decodeBlocks,
-  encodeBlocks,
+  BlockCipher,
   fromHex,
   readHex,
 } from '../../../core/block-mode.ts'
@@ -246,7 +239,7 @@ const AES_OCB: BlockMode<OcbSettings> = {
     ),
 }
 
-export class AesOcb extends Cipher {
+export class AesOcb extends BlockCipher<OcbSettings> {
   name(): string {
     return 'aes-ocb'
   }
@@ -292,19 +285,7 @@ export class AesOcb extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_OCB, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-ocb')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_OCB, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-ocb')
-    }
+  protected mode(): BlockMode<OcbSettings> {
+    return AES_OCB
   }
 }

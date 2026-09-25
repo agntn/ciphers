@@ -1,11 +1,8 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import { normalizeError } from '../../../core/errors.ts'
+import type { CipherInfo } from '../../../core/types.ts'
 import {
   type BlockMode,
   type Bytes,
-  decodeBlocks,
-  encodeBlocks,
+  BlockCipher,
   fromHex,
   readIv,
 } from '../../../core/block-mode.ts'
@@ -64,7 +61,7 @@ const AES_CTR: BlockMode = {
   run: (data, key, _operation, settings) => aesCtr(data, key, fromHex(settings.iv!)),
 }
 
-export class AesCtr extends Cipher {
+export class AesCtr extends BlockCipher {
   name(): string {
     return 'aes-ctr'
   }
@@ -96,19 +93,7 @@ export class AesCtr extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_CTR, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-ctr')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_CTR, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-ctr')
-    }
+  protected mode(): BlockMode {
+    return AES_CTR
   }
 }

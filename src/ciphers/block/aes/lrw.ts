@@ -1,7 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import { InvalidOptionError, normalizeError } from '../../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode.ts'
+import type { CipherInfo, CipherBaseOptions } from '../../../core/types.ts'
+import { InvalidOptionError } from '../../../core/errors.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
 import { aesEcb } from './ecb.ts'
 
 const BLOCK_SIZE = 16
@@ -83,7 +82,7 @@ const AES_LRW: BlockMode = {
     aesLrw(data, key, operation, BigInt(`0x${settings.tweak}`)),
 }
 
-export class AesLrw extends Cipher {
+export class AesLrw extends BlockCipher {
   name(): string {
     return 'aes-lrw'
   }
@@ -117,19 +116,7 @@ export class AesLrw extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_LRW, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-lrw')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_LRW, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-lrw')
-    }
+  protected mode(): BlockMode {
+    return AES_LRW
   }
 }

@@ -8,7 +8,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 
 ## Architecture
 
-- Put each cipher in one `src/ciphers/<category>/<name>.ts` file. Its concrete class extends `Cipher`, implements `name()`, `info()`, `encode()`, and `decode()`, and is exported. Do not call `register()` from the file.
+- Put each cipher in one `src/ciphers/<category>/<name>.ts` file. Its concrete class extends `Cipher`, implements `name()`, `info()`, `encode()`, and `decode()`, and is exported. A block cipher extends `BlockCipher` from `src/core/block-mode.ts` instead and implements `mode()` in place of `encode()` and `decode()`. Do not call `register()` from the file.
 - Modes of one block cipher share a folder instead: `src/ciphers/block/aes/` holds the AES primitive in `block.ts` and one file per mode, `ecb.ts` for `aes`, `cbc.ts` for `aes-cbc`, `cfb.ts` for `aes-cfb`, `ofb.ts` for `aes-ofb`, `ctr.ts` for `aes-ctr`, `ccm.ts` for `aes-ccm`, `ocb.ts` for `aes-ocb`, `lrw.ts` for `aes-lrw`, `xts.ts` for `aes-xts` and `cbc-mac.ts` for `aes-cbc-mac`. `src/ciphers/block/triple-des/` does the same for Triple DES: `block.ts`, `ecb.ts` for `triple-des` and `cbc.ts` for `triple-des-cbc`.
 - `rijndael` is not an AES mode, so it has its own `src/ciphers/block/rijndael.ts`. It runs the primitive from `aes/block.ts`, which takes the block length, and AES is that primitive at 16 bytes.
 - `des` is not a Triple DES mode either, so it has its own `src/ciphers/block/des.ts` and runs `desBlock` from `triple-des/block.ts`, the same rounds Triple DES runs three times. `desx` runs that `desBlock` too, from its own `src/ciphers/block/desx.ts`.

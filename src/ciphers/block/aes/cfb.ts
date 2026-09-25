@@ -1,12 +1,10 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
+import type { CipherInfo, CipherBaseOptions } from '../../../core/types.ts'
 import { getOpt } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import { InvalidOptionError, normalizeError } from '../../../core/errors.ts'
+import { InvalidOptionError } from '../../../core/errors.ts'
 import {
   type BlockMode,
   type Bytes,
-  decodeBlocks,
-  encodeBlocks,
+  BlockCipher,
   fromHex,
   readIv,
 } from '../../../core/block-mode.ts'
@@ -81,7 +79,9 @@ export function aesCfb(
   return output
 }
 
-function readSettings(options: Readonly<CipherBaseOptions>): { iv: string; segment: CfbSegment } {
+type CfbSettings = { iv: string; segment: CfbSegment }
+
+function readSettings(options: Readonly<CipherBaseOptions>): CfbSettings {
   const segment = getOpt<unknown>(options, 'segment', 128)
   if (!CFB_SEGMENTS.includes(segment as CfbSegment)) {
     throw new InvalidOptionError('segment', segment, 'must be 1, 8 or 128 (bits fed back per step)')
@@ -89,7 +89,7 @@ function readSettings(options: Readonly<CipherBaseOptions>): { iv: string; segme
   return { iv: readIv(options, BLOCK_SIZE), segment: segment as CfbSegment }
 }
 
-const AES_CFB: BlockMode<{ iv: string; segment: CfbSegment }> = {
+const AES_CFB: BlockMode<CfbSettings> = {
   name: 'aes-cfb',
   label: 'AES-CFB',
   mode: 'cfb',
@@ -102,7 +102,7 @@ const AES_CFB: BlockMode<{ iv: string; segment: CfbSegment }> = {
     aesCfb(data, key, operation, fromHex(settings.iv), settings.segment),
 }
 
-export class AesCfb extends Cipher {
+export class AesCfb extends BlockCipher<CfbSettings> {
   name(): string {
     return 'aes-cfb'
   }
@@ -141,19 +141,7 @@ export class AesCfb extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_CFB, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-cfb')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_CFB, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-cfb')
-    }
+  protected mode(): BlockMode<CfbSettings> {
+    return AES_CFB
   }
 }

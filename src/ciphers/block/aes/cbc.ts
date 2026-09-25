@@ -1,11 +1,8 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import { normalizeError } from '../../../core/errors.ts'
+import type { CipherInfo } from '../../../core/types.ts'
 import {
   type BlockMode,
   type Bytes,
-  decodeBlocks,
-  encodeBlocks,
+  BlockCipher,
   fromHex,
   readIv,
 } from '../../../core/block-mode.ts'
@@ -61,7 +58,7 @@ const AES_CBC: BlockMode = {
   run: (data, key, operation, settings) => aesCbc(data, key, operation, fromHex(settings.iv!)),
 }
 
-export class AesCbc extends Cipher {
+export class AesCbc extends BlockCipher {
   name(): string {
     return 'aes-cbc'
   }
@@ -93,19 +90,7 @@ export class AesCbc extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_CBC, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-cbc')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_CBC, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-cbc')
-    }
+  protected mode(): BlockMode {
+    return AES_CBC
   }
 }

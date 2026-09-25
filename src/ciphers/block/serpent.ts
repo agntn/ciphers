@@ -1,7 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
-import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
+import type { CipherInfo } from '../../core/types.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
 
@@ -191,7 +189,7 @@ const SERPENT: BlockMode = {
   run: serpentEcb,
 }
 
-export class Serpent extends Cipher {
+export class Serpent extends BlockCipher {
   name(): string {
     return 'serpent'
   }
@@ -217,19 +215,7 @@ export class Serpent extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(SERPENT, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'serpent')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(SERPENT, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'serpent')
-    }
+  protected mode(): BlockMode {
+    return SERPENT
   }
 }

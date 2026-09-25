@@ -31,9 +31,10 @@ function cipherFiles(): Array<{ name: string; file: string }> {
   const files: Array<{ name: string; file: string }> = []
   for (const file of moduleFiles()) {
     const source = readFileSync(file, 'utf8')
-    if (!/\bextends Cipher\b/.test(source)) continue
+    if (!/\bextends (?:Block)?Cipher\b/.test(source)) continue
     const name = /\bname\(\): string \{\s*return '([^']+)'/.exec(source)?.[1]
-    if (name === undefined) throw new Error(`${file} extends Cipher but its name() was not found`)
+    if (name === undefined)
+      throw new Error(`${file} extends Cipher or BlockCipher but its name() was not found`)
     files.push({ name, file })
   }
   return files

@@ -1,7 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
-import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
+import type { CipherInfo } from '../../core/types.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 8
 const ROUNDS = 16
@@ -137,7 +135,7 @@ const BLOWFISH: BlockMode = {
   run: blowfishEcb,
 }
 
-export class Blowfish extends Cipher {
+export class Blowfish extends BlockCipher {
   name(): string {
     return 'blowfish'
   }
@@ -163,19 +161,7 @@ export class Blowfish extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(BLOWFISH, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'blowfish')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(BLOWFISH, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'blowfish')
-    }
+  protected mode(): BlockMode {
+    return BLOWFISH
   }
 }

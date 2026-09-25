@@ -1,7 +1,5 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
-import { Cipher } from '../../core/cipher.ts'
-import { normalizeError } from '../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
+import type { CipherInfo } from '../../core/types.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
 const ROUNDS = 16
@@ -87,7 +85,7 @@ const LUCIFER: BlockMode = {
   run: luciferEcb,
 }
 
-export class Lucifer extends Cipher {
+export class Lucifer extends BlockCipher {
   name(): string {
     return 'lucifer'
   }
@@ -113,19 +111,7 @@ export class Lucifer extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(LUCIFER, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'lucifer')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(LUCIFER, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'lucifer')
-    }
+  protected mode(): BlockMode {
+    return LUCIFER
   }
 }

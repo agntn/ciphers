@@ -1,7 +1,6 @@
-import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../../core/types.ts'
-import { Cipher } from '../../../core/cipher.ts'
-import { CipherError, InvalidOptionError, normalizeError } from '../../../core/errors.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../../core/block-mode.ts'
+import type { CipherInfo, CipherBaseOptions } from '../../../core/types.ts'
+import { CipherError, InvalidOptionError } from '../../../core/errors.ts'
+import { type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
 import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
@@ -126,7 +125,7 @@ const AES_XTS: BlockMode = {
     aesXts(data, key, operation, BigInt(`0x${settings.tweak}`)),
 }
 
-export class AesXts extends Cipher {
+export class AesXts extends BlockCipher {
   name(): string {
     return 'aes-xts'
   }
@@ -160,19 +159,7 @@ export class AesXts extends Cipher {
     }
   }
 
-  encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return encodeBlocks(AES_XTS, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-xts')
-    }
-  }
-
-  decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
-    try {
-      return decodeBlocks(AES_XTS, text, options ?? {})
-    } catch (e) {
-      throw normalizeError(e, 'aes-xts')
-    }
+  protected mode(): BlockMode {
+    return AES_XTS
   }
 }

@@ -169,22 +169,19 @@ export function formatCipherInfo(
 }
 
 /**
- * Decode with every shift, best frequency fit to the language first, so the likely plaintext
- * leads both the model's reading and the collapsed preview. Shifts that tie, including every
- * shift of a text without A-Z letters, stay in shift order. Only the top line carries the whole
- * decoding; the others stop at `BRUTE_PREVIEW_LENGTH` characters and end in `…`, so a long
- * ciphertext costs one decoding plus 24 previews instead of 25 decodings.
+ * Decode with every shift and sort the decodings by frequency fit to the language, best first.
+ * Shifts that tie, including every shift of a text without A-Z letters, stay in shift order.
  *
  * @param library - The loaded cipher library.
  * @param text - Caesar ciphertext.
  * @param language - Language the plaintext should read in; English by default.
- * @returns {CipherToolResult} One `shift=N -> text` line per shift, best fit first.
+ * @returns {Array<{ shift: number; text: string }>} All 25 decodings, best fit first.
  */
-export function bruteForceCaesar(
-  library: Readonly<CiphersLibrary>,
+export function rankCaesarShifts(
+  library: Readonly<Pick<CiphersLibrary, 'analyzeFrequency' | 'create'>>,
   text: string,
   language?: 'en' | 'pl' | 'ja',
-): CipherToolResult {
+): Array<{ shift: number; text: string }> {
   const cipher = library.create('caesar')
   const decodings: Array<{ shift: number; text: string; fit: number }> = []
   for (let shift = 1; shift <= 25; shift++) {
@@ -196,7 +193,26 @@ export function bruteForceCaesar(
     })
   }
   decodings.sort((left, right) => right.fit - left.fit)
-  const lines = decodings.map(({ shift, text: decoded }, rank) => {
+  return decodings.map(({ shift, text: decoded }) => ({ shift, text: decoded }))
+}
+
+/**
+ * Brute-force a Caesar ciphertext for a model, best fit first as `rankCaesarShifts` orders it, so
+ * the likely plaintext leads both the model's reading and the collapsed preview. Only the top line
+ * carries the whole decoding; the others stop at `BRUTE_PREVIEW_LENGTH` characters and end in `…`,
+ * so a long ciphertext costs one decoding plus 24 previews instead of 25 decodings.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - Caesar ciphertext.
+ * @param language - Language the plaintext should read in; English by default.
+ * @returns {CipherToolResult} One `shift=N -> text` line per shift, best fit first.
+ */
+export function bruteForceCaesar(
+  library: Readonly<CiphersLibrary>,
+  text: string,
+  language?: 'en' | 'pl' | 'ja',
+): CipherToolResult {
+  const lines = rankCaesarShifts(library, text, language).map(({ shift, text: decoded }, rank) => {
     let shown = decoded
     if (rank > 0 && decoded.length > BRUTE_PREVIEW_LENGTH) {
       const splitsPair = /[\uD800-\uDBFF]/.test(decoded[BRUTE_PREVIEW_LENGTH - 1]!)

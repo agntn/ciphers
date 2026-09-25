@@ -147,7 +147,7 @@ const activeCipher = computed(() => current.value.entry.slug);
       to="/guide/analysis"
       link="Brute force and frequency"
       :checks="[
-        'ciphers brute prints every shift. You pick the one that reads as English',
+        'ciphers brute prints every shift, the one that reads most like English on top',
         'cipher_brute_caesar returns the same list as text, so a model can pick too',
         'Shift 0 is not on the list. An identity is not a decode',
       ]"

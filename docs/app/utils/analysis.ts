@@ -5,13 +5,18 @@ export interface BruteRow {
   text: string;
 }
 
-/** All 25 Caesar shifts, the way `ciphers brute` and `cipher_brute_caesar` list them. */
-export function bruteRows(text: string): BruteRow[] {
+/**
+ * All 25 Caesar shifts, the way `ciphers brute` and `cipher_brute_caesar` list them: best letter
+ * fit to the language first, ties in shift order.
+ */
+export function bruteRows(text: string, language: FrequencyLanguage = "en"): BruteRow[] {
   const caesar = create("caesar");
-  return Array.from({ length: 25 }, (_, i) => ({
-    shift: i + 1,
-    text: caesar.decode(text, { shift: i + 1 }).text,
-  }));
+  return Array.from({ length: 25 }, (_, i) => {
+    const decoded = caesar.decode(text, { shift: i + 1 }).text;
+    return { shift: i + 1, text: decoded, fit: analyzeFrequency(decoded, language)?.fit ?? 0 };
+  })
+    .sort((left, right) => right.fit - left.fit)
+    .map(({ shift, text: decoded }) => ({ shift, text: decoded }));
 }
 
 export interface FrequencyBar {

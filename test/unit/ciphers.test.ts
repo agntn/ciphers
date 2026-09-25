@@ -21,10 +21,11 @@ import { tripleDesEcb } from '../../src/ciphers/block/triple-des/ecb.ts'
 import { tripleDesCbc } from '../../src/ciphers/block/triple-des/cbc.ts'
 import { blowfishEcb } from '../../src/ciphers/block/blowfish.ts'
 import { ideaEcb } from '../../src/ciphers/block/idea.ts'
+import { luciferEcb } from '../../src/ciphers/block/lucifer.ts'
 
 describe('registry', () => {
-  it('registers all 37 ciphers', () => {
-    expect(ciphers()).toHaveLength(37)
+  it('registers all 38 ciphers', () => {
+    expect(ciphers()).toHaveLength(38)
     for (const name of [
       'caesar',
       'rot13',
@@ -57,6 +58,7 @@ describe('registry', () => {
       'triple-des-cbc',
       'blowfish',
       'idea',
+      'lucifer',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -806,6 +808,7 @@ describe('edge cases', () => {
     'triple-des-cbc': { key: '0123456789abcdef23456789abcdef01', iv: '00'.repeat(8) },
     blowfish: { key: '0123456789abcdef' },
     idea: { key: '00010002000300040005000600070008' },
+    lucifer: { key: '0123456789abcdeffedcba9876543210' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -3417,6 +3420,109 @@ describe('idea', () => {
       name: 'idea',
       category: 'block',
       family: 'lai-massey',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('lucifer', () => {
+  const lucifer = create('lucifer')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '0123456789abcdeffedcba9876543210'
+
+  /**
+   * The triples Richard Outerbridge sent to Cryptologia in 2015 for Sorkin's FORTRAN, checked
+   * against it compiled. They hold for the FORTRAN with Sorkin's correction from July 1984; the
+   * listing as printed in January, and the ports made from it, give other ciphertext.
+   */
+  it("matches Outerbridge's triples for Sorkin's FORTRAN", () => {
+    for (const [vectorKey, plaintext, ciphertext] of [
+      [key, '00'.repeat(16), 'a201fc18d62c85ef5965a58295bbf609'],
+      ['00'.repeat(16), key, '9d14fe4377aa87dd07cc8a14522c21ed'],
+      [key, 'ff'.repeat(16), '97f1c104b0f120d194c07024f14815ed'],
+      ['ff'.repeat(16), key, 'd442a34dd70e2b4156eb0f2a8aded1a7'],
+      [key, key, 'cf46622fa98546bb9a5bc00239eb0c92'],
+      ['fedcba98765432100123456789abcdef', key, '7faf65bfc5458fd2dc9cc2266012ef44'],
+    ]) {
+      expect(luciferEcb(hex(plaintext!), hex(vectorKey!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(luciferEcb(hex(ciphertext!), hex(vectorKey!), 'decrypt')).toEqual(hex(plaintext!))
+    }
+  })
+
+  /** Expected values from Outerbridge's `lucifer.c` over the PKCS#7-padded UTF-8 bytes. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex', () => {
+    for (const [text, ciphertext] of [
+      ['', 'c08ecb7db68c5dadbe4ccb075fe83d4c'],
+      ['ATTACK AT DAWN', '3511c560cf11d61ec299417602e29bc5'],
+      ['zażółć gęślą jaźń 🙂', 'ed0d229bdfa37897f0cdf3bfb303081b3235779b614a2ee38617404564f88b20'],
+    ]) {
+      expect(lucifer.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'lucifer',
+        operation: 'encode',
+        options: { key, mode: 'ecb' },
+      })
+      expect(lucifer.decode(ciphertext!, { key }).text).toBe(text)
+    }
+  })
+
+  it('gives equal ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = lucifer.encode('A'.repeat(32), { key })
+    expect(text).toBe(
+      '82b100ca638d465d5b4f3ab021dd3aa082b100ca638d465d5b4f3ab021dd3aa0c08ecb7db68c5dadbe4ccb075fe83d4c',
+    )
+    expect(text.slice(0, 32)).toBe(text.slice(32, 64))
+  })
+
+  it('reads hex keys and ciphertext in any case and with spaces', () => {
+    const spaced = '01234567 89ABCDEF FEDCBA98 76543210'
+    expect(lucifer.encode('ATTACK AT DAWN', { key: spaced }).options).toEqual({ key, mode: 'ecb' })
+    expect(lucifer.decode('3511C560 CF11D61E\nC2994176 02E29BC5', { key: spaced }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('rejects keys that are not a Lucifer key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => lucifer[operation]('')).toThrow(MissingOptionError)
+      expect(() => lucifer[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of [
+        'YELLOW SUBMARINE',
+        '00'.repeat(8),
+        '00'.repeat(15),
+        '00'.repeat(17),
+        '00'.repeat(24),
+        'g'.repeat(32),
+        12,
+      ]) {
+        expect(() => lucifer[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => lucifer.decode('', { key })).toThrow(/whole 16-byte blocks/)
+    expect(() => lucifer.decode('3511c560', { key })).toThrow(/got 8 hex digits/)
+    expect(() => lucifer.decode('zz'.repeat(16), { key })).toThrow(/must be hex digits/)
+    // The key halves swapped: the last byte comes out as f4, which is no padding.
+    expect(() =>
+      lucifer.decode('3511c560cf11d61ec299417602e29bc5', {
+        key: 'fedcba98765432100123456789abcdef',
+      }),
+    ).toThrow(/PKCS#7/)
+    // ff then fifteen bytes of 0f: valid padding, invalid UTF-8.
+    expect(() => lucifer.decode('562ab2d01b6cefddf5cfbc141cf01c43', { key })).toThrow(/not UTF-8/)
+    expect(() => lucifer.decode('562ab2d01b6cefddf5cfbc141cf01c43', { key })).toThrow(CipherError)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('Lucifer')).toBe(lucifer)
+    expect(lucifer.info()).toMatchObject({
+      name: 'lucifer',
+      category: 'block',
+      family: 'feistel',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
     })

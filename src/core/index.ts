@@ -29,6 +29,7 @@ export type {
   TripleDesCbcOptions,
   BlowfishOptions,
   IdeaOptions,
+  LuciferOptions,
   CipherInfo,
   CipherOption,
 } from './types.ts'

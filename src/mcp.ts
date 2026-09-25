@@ -162,6 +162,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
       error: 'must be 32 hex digits (a 128-bit IDEA key)',
     },
   },
+  {
+    ciphers: ['lucifer'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}$/,
+      error: 'must be 32 hex digits (a 128-bit Lucifer key)',
+    },
+  },
 ]
 
 /**

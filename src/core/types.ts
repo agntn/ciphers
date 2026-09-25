@@ -238,6 +238,12 @@ export interface IdeaOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Lucifer ECB options. */
+export interface LuciferOptions extends CipherBaseOptions {
+  /** 32 hex digits, a 128-bit key; case and spaces are ignored. */
+  key: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *

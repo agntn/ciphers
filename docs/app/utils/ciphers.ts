@@ -57,6 +57,7 @@ const PRESENTATION: Record<
   "triple-des-cbc": { icon: "i-solar-lock-password-linear", blurb: "Triple DES with every block chained to the one before", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef23456789abcdef01456789abcdef0123", iv: "0001020304050607" } },
   blowfish: { icon: "i-solar-lock-password-linear", blurb: "Schneier's Feistel cipher, S-boxes grown from the key and pi", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeff0e1d2c3b4a59687" } },
   idea: { icon: "i-solar-lock-password-linear", blurb: "The PGP 2 cipher, XOR, addition and multiplication and no tables", sample: "ATTACK AT DAWN", options: { key: "00010002000300040005000600070008" } },
+  lucifer: { icon: "i-solar-lock-password-linear", blurb: "The IBM cipher DES was cut down from, 128-bit blocks and keys", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
 };
 
 export interface CipherEntry {

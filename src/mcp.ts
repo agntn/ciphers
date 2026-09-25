@@ -170,6 +170,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
       error: 'must be 32 hex digits (a 128-bit Lucifer key)',
     },
   },
+  {
+    ciphers: ['mars'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:(?:[0-9A-Fa-f]\s*){8}){4,14}$/,
+      error: 'must be 32 to 112 hex digits in steps of 8 (a MARS key of 4 to 14 words)',
+    },
+  },
 ]
 
 /**

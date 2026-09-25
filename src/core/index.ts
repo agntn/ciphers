@@ -30,6 +30,7 @@ export type {
   BlowfishOptions,
   IdeaOptions,
   LuciferOptions,
+  MarsOptions,
   CipherInfo,
   CipherOption,
 } from './types.ts'

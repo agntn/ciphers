@@ -244,6 +244,12 @@ export interface LuciferOptions extends CipherBaseOptions {
   key: string
 }
 
+/** MARS ECB options. */
+export interface MarsOptions extends CipherBaseOptions {
+  /** 32 to 112 hex digits in steps of 8, a key of 4 to 14 words; case and spaces are ignored. */
+  key: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *

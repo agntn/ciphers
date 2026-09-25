@@ -41,6 +41,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "desx",
   "idea",
   "lucifer",
+  "mars",
 ];
 
 /** Every cipher in the registry. A newcomer missing from `ORDER` joins at the end. */

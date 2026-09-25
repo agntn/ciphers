@@ -58,6 +58,7 @@ const PRESENTATION: Record<
   blowfish: { icon: "i-solar-lock-password-linear", blurb: "Schneier's Feistel cipher, S-boxes grown from the key and pi", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeff0e1d2c3b4a59687" } },
   idea: { icon: "i-solar-lock-password-linear", blurb: "The PGP 2 cipher, XOR, addition and multiplication and no tables", sample: "ATTACK AT DAWN", options: { key: "00010002000300040005000600070008" } },
   lucifer: { icon: "i-solar-lock-password-linear", blurb: "The IBM cipher DES was cut down from, 128-bit blocks and keys", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
+  mars: { icon: "i-solar-lock-password-linear", blurb: "IBM's AES finalist, 32 rounds and an S-box grown from SHA-1", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
 };
 
 export interface CipherEntry {

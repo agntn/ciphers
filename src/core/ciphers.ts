@@ -31,6 +31,7 @@ export const builtinCiphers = [
   'aes-xts',
   'aes-cbc-mac',
   'rijndael',
+  'des',
   'triple-des',
   'triple-des-cbc',
   'blowfish',

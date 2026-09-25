@@ -197,6 +197,12 @@ export interface RijndaelOptions extends CipherBaseOptions {
   blockSize?: 128 | 160 | 192 | 224 | 256
 }
 
+/** DES ECB options. */
+export interface DesOptions extends CipherBaseOptions {
+  /** 16 hex digits for a 64-bit key, parity bits included; case and spaces are ignored. */
+  key: string
+}
+
 /** Triple DES ECB options. */
 export interface TripleDesOptions extends CipherBaseOptions {
   /** 32 hex digits for two keys (K3 = K1) or 48 for three; case and spaces are ignored. */

@@ -168,6 +168,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'AES-XTS (aes-xts) takes two AES keys in one key, the data key then the tweak key (64 or 128 hex digits), and tweak as the data unit number; text must be at least 16 bytes and nothing is padded.',
         'AES-CBC-MAC (aes-cbc-mac) takes only the AES key and encrypts nothing; the hex out is the text bytes plus a 16-byte tag, and decoding fails unless the tag matches.',
         'Rijndael (rijndael) takes a key of 32, 40, 48, 56 or 64 hex digits and blockSize in bits (128, 160, 192, 224 or 256, default 128, which is AES).',
+        'DES (des) works the same way with a key of 16 hex digits.',
         'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
         'Triple DES CBC (triple-des-cbc) takes that key plus iv, 16 hex digits.',
         'Blowfish (blowfish) works like Triple DES with a key of any even number of hex digits from 8 to 112.',

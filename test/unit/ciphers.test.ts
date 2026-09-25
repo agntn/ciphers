@@ -15,13 +15,14 @@ import { aesCtr } from '../../src/ciphers/block/aes/ctr.ts'
 import { aesCcm } from '../../src/ciphers/block/aes/ccm.ts'
 import { aesOcb } from '../../src/ciphers/block/aes/ocb.ts'
 import { rijndaelEcb } from '../../src/ciphers/block/rijndael.ts'
+import { desEcb } from '../../src/ciphers/block/des.ts'
 import { tripleDesEcb } from '../../src/ciphers/block/triple-des/ecb.ts'
 import { tripleDesCbc } from '../../src/ciphers/block/triple-des/cbc.ts'
 import { blowfishEcb } from '../../src/ciphers/block/blowfish.ts'
 
 describe('registry', () => {
-  it('registers all 34 ciphers', () => {
-    expect(ciphers()).toHaveLength(34)
+  it('registers all 35 ciphers', () => {
+    expect(ciphers()).toHaveLength(35)
     for (const name of [
       'caesar',
       'rot13',
@@ -48,6 +49,7 @@ describe('registry', () => {
       'aes-xts',
       'aes-cbc-mac',
       'rijndael',
+      'des',
       'triple-des',
       'triple-des-cbc',
       'blowfish',
@@ -794,6 +796,7 @@ describe('edge cases', () => {
     'aes-xts': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'aes-cbc-mac': { key: '000102030405060708090a0b0c0d0e0f' },
     rijndael: { key: '000102030405060708090a0b0c0d0e0f', blockSize: 256 },
+    des: { key: '0123456789abcdef' },
     'triple-des': { key: '0123456789abcdef23456789abcdef01' },
     'triple-des-cbc': { key: '0123456789abcdef23456789abcdef01', iv: '00'.repeat(8) },
     blowfish: { key: '0123456789abcdef' },
@@ -2654,6 +2657,126 @@ describe('rijndael', () => {
         { name: 'key', type: 'string', required: true },
         { name: 'blockSize', type: 'number', required: false, default: 128 },
       ],
+    })
+  })
+})
+
+describe('des', () => {
+  const des = create('des')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '0123456789abcdef'
+
+  /** FIPS 81 Appendix B, Table B1: ECB over "Now is the time for all " under 0123456789abcdef. */
+  it('matches the FIPS 81 ECB example', () => {
+    const plaintext = [...new TextEncoder().encode('Now is the time for all ')]
+    const ciphertext = hex('3fa40e8a984d48156a271787ab8883f9893d51ec4b563b53')
+    expect(desEcb(plaintext, hex(key), 'encrypt')).toEqual(ciphertext)
+    expect(desEcb(ciphertext, hex(key), 'decrypt')).toEqual(plaintext)
+  })
+
+  /** Grabbe's "The DES Algorithm Illustrated" and NIST SP 800-17 Table B.1. */
+  it('matches the known-answer blocks', () => {
+    for (const [vectorKey, plaintext, ciphertext] of [
+      ['133457799bbcdff1', '0123456789abcdef', '85e813540f0ab405'],
+      ['0101010101010101', '8000000000000000', '95f8a5e5dd31d900'],
+      ['0101010101010101', '4000000000000000', 'dd7f121ca5015619'],
+      ['0101010101010101', '0000000000000001', '166b40b44aba4bd6'],
+    ]) {
+      expect(desEcb(hex(plaintext!), hex(vectorKey!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(desEcb(hex(ciphertext!), hex(vectorKey!), 'decrypt')).toEqual(hex(plaintext!))
+    }
+  })
+
+  /** Expected values from `openssl enc -des-ecb -provider legacy`, PKCS#7 by default. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, ciphertext] of [
+      ['', '086f9a1d74c94d4e'],
+      ['ATTACK AT DAWN', '66e43480bc9810be67812271f1ee04a0'],
+      ['zażółć gęślą jaźń 🙂', 'e8a2cc1f743acd6d83ea97d27e78d67d385ad632de1514b427a02b270824202b'],
+      ['A'.repeat(8), 'a827de10956a609d086f9a1d74c94d4e'],
+    ]) {
+      expect(des.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'des',
+        operation: 'encode',
+        options: { key, mode: 'ecb' },
+      })
+      expect(des.decode(ciphertext!, { key }).text).toBe(text)
+    }
+  })
+
+  it('is Triple DES with three equal keys', () => {
+    expect(des.encode('ATTACK AT DAWN', { key: '133457799bbcdff1' }).text).toBe(
+      create('triple-des').encode('ATTACK AT DAWN', { key: '133457799bbcdff1'.repeat(3) }).text,
+    )
+  })
+
+  it('ignores the parity bit of every key byte', () => {
+    expect(des.encode('ATTACK AT DAWN', { key: '0022446688aaccee' }).text).toBe(
+      '66e43480bc9810be67812271f1ee04a0',
+    )
+  })
+
+  /** A weak key gives 16 equal subkeys, so encrypting twice is the identity (FIPS 74). */
+  it('undoes itself under a weak key', () => {
+    const plaintext = [...new TextEncoder().encode('ATTACK AT DAWN\u0002\u0002')]
+    const weak = hex('0101010101010101')
+    expect(desEcb(desEcb(plaintext, weak, 'encrypt'), weak, 'encrypt')).toEqual(plaintext)
+  })
+
+  it('gives equal ciphertext blocks for equal plaintext blocks', () => {
+    const { text } = des.encode('A'.repeat(16), { key })
+    expect(text).toBe('a827de10956a609da827de10956a609d086f9a1d74c94d4e')
+    expect(text.slice(0, 16)).toBe(text.slice(16, 32))
+  })
+
+  it('reads hex keys and ciphertext in any case and with spaces', () => {
+    const spaced = '0123 4567 89AB CDEF'
+    expect(des.encode('ATTACK AT DAWN', { key: spaced }).options).toEqual({ key, mode: 'ecb' })
+    expect(des.decode('66E43480 BC9810BE\n67812271 F1EE04A0', { key: spaced }).text).toBe(
+      'ATTACK AT DAWN',
+    )
+  })
+
+  it('rejects keys that are not a DES key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => des[operation]('')).toThrow(MissingOptionError)
+      expect(() => des[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of [
+        'YELLOW S',
+        '00'.repeat(7),
+        '00'.repeat(9),
+        '00'.repeat(16),
+        'g'.repeat(16),
+        12,
+      ]) {
+        expect(() => des[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => des.decode('', { key })).toThrow(/whole 8-byte blocks/)
+    expect(() => des.decode('66e43480', { key })).toThrow(/got 8 hex digits/)
+    expect(() => des.decode('zz'.repeat(8), { key })).toThrow(/must be hex digits/)
+    // OpenSSL: "bad decrypt" for this ciphertext under this key.
+    expect(() =>
+      des.decode('66e43480bc9810be67812271f1ee04a0', { key: 'fedcba9876543210' }),
+    ).toThrow(/PKCS#7/)
+    // ff then seven bytes of 07: valid padding, invalid UTF-8.
+    expect(() => des.decode('472bb7d465c29474', { key })).toThrow(/not UTF-8/)
+    expect(() => des.decode('472bb7d465c29474', { key })).toThrow(CipherError)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('DES')).toBe(des)
+    expect(des.info()).toMatchObject({
+      name: 'des',
+      category: 'block',
+      family: 'feistel',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
     })
   })
 })

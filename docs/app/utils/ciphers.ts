@@ -50,6 +50,7 @@ const PRESENTATION: Record<
   "aes-xts": { icon: "i-solar-lock-password-linear", blurb: "AES for disk sectors, the last block stealing from the one before", sample: "ATTACK AT DAWN FROM THE NORTH", options: { key: "2718281828459045235360287471352631415926535897932384626433832795" } },
   "aes-cbc-mac": { icon: "i-solar-lock-password-linear", blurb: "AES over the text for a tag, the text itself left as it is", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c" } },
   rijndael: { icon: "i-solar-lock-password-linear", blurb: "AES before NIST cut it down, blocks up to 256 bits", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c762e7160f38b4da56a784d9045190cfe", blockSize: 256 } },
+  des: { icon: "i-solar-lock-password-linear", blurb: "The 1977 standard, 56 key bits and 16 Feistel rounds", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef" } },
   "triple-des": { icon: "i-solar-lock-password-linear", blurb: "DES three times, every 8-byte block on its own", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef23456789abcdef01456789abcdef0123" } },
   "triple-des-cbc": { icon: "i-solar-lock-password-linear", blurb: "Triple DES with every block chained to the one before", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef23456789abcdef01456789abcdef0123", iv: "0001020304050607" } },
   blowfish: { icon: "i-solar-lock-password-linear", blurb: "Schneier's Feistel cipher, S-boxes grown from the key and pi", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeff0e1d2c3b4a59687" } },

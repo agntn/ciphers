@@ -1,5 +1,60 @@
 # Changelog
 
+## v0.3.0
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.2.0...v0.3.0)
+
+### 🚀 Enhancements
+
+- ⚠️  File ciphers under a category ([#78](https://github.com/agntn/ciphers/pull/78))
+- **block:** AES in ECB mode ([#80](https://github.com/agntn/ciphers/pull/80))
+- **block:** Triple DES with two or three keys ([#81](https://github.com/agntn/ciphers/pull/81))
+- **block:** AES-LRW, a tweak for every block ([#82](https://github.com/agntn/ciphers/pull/82))
+- **block:** AES-CBC, each block tied to the last ([#83](https://github.com/agntn/ciphers/pull/83))
+- **block:** Run AES as a keystream in CFB ([#84](https://github.com/agntn/ciphers/pull/84))
+- **block:** Count blocks up with AES-CTR ([#85](https://github.com/agntn/ciphers/pull/85))
+- **block:** AES-CCM refuses a forged tag ([#86](https://github.com/agntn/ciphers/pull/86))
+- **block:** OFB loops AES over its own output ([#87](https://github.com/agntn/ciphers/pull/87))
+- **block:** Add `aes-ocb` ([#88](https://github.com/agntn/ciphers/pull/88))
+- **block:** Chain Triple DES blocks with CBC ([#90](https://github.com/agntn/ciphers/pull/90))
+- **block:** Rijndael with blocks up to 256 bits ([#91](https://github.com/agntn/ciphers/pull/91))
+- **block:** AES-XTS steals the short last block ([#92](https://github.com/agntn/ciphers/pull/92))
+- **block:** AES-CBC-MAC tags text, hides nothing ([#93](https://github.com/agntn/ciphers/pull/93))
+- **block:** Blowfish, keyed S-boxes from pi ([#94](https://github.com/agntn/ciphers/pull/94))
+- **mcp:** Run the checkout's source, not dist ([#98](https://github.com/agntn/ciphers/pull/98))
+- **brute:** CLI puts the best --lang fit first ([#100](https://github.com/agntn/ciphers/pull/100))
+- **block:** DES on its own, not only in 3DES ([#103](https://github.com/agntn/ciphers/pull/103))
+- **block:** Wrap DES in two XOR keys as DESX ([#104](https://github.com/agntn/ciphers/pull/104))
+- **block:** IDEA from PGP 2, no tables at all ([#105](https://github.com/agntn/ciphers/pull/105))
+- **block:** Lucifer as Sorkin fixed it in 1984 ([#106](https://github.com/agntn/ciphers/pull/106))
+- **block:** MARS, its S-box grown from SHA-1 ([#107](https://github.com/agntn/ciphers/pull/107))
+- **block:** Serpent runs its S-boxes bitslice ([#108](https://github.com/agntn/ciphers/pull/108))
+
+### 🩹 Fixes
+
+- **release:** Leave CHANGELOG to changelogen ([#79](https://github.com/agntn/ciphers/pull/79))
+- Block cipher lists follow the registry ([#96](https://github.com/agntn/ciphers/pull/96))
+- **cli:** Stop quietly when the pipe closes ([#99](https://github.com/agntn/ciphers/pull/99))
+- **tools:** Say serpent needs a key ([#111](https://github.com/agntn/ciphers/pull/111))
+
+### 💅 Refactors
+
+- **block:** Shared base for block ciphers ([#109](https://github.com/agntn/ciphers/pull/109))
+
+### 📖 Documentation
+
+- **agents:** MCP answers in text, no details ([#101](https://github.com/agntn/ciphers/pull/101))
+- **guide:** List every option the tools take ([#110](https://github.com/agntn/ciphers/pull/110))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  File ciphers under a category ([#78](https://github.com/agntn/ciphers/pull/78))
+
+### ❤️ Contributors
+
+- Ori ([@oritwoen](https://github.com/oritwoen))
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+
 ## v0.2.0
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.1.9...v0.2.0)

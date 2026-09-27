@@ -190,7 +190,7 @@ describe('every option list names what the ciphers take', () => {
           .options.map((option) => option.name),
       ),
     )
-    const listed = optionList('docs/content/1.guide/01.index.md', 'The rest is per cipher -')
+    const listed = optionList('docs/content/1.guide/01.index.md', 'The rest is per cipher:')
     expect(new Set(listed).size, 'no option twice').toBe(listed.length)
     expect([...listed].sort()).toEqual([...declared].sort())
   })

@@ -1,15 +1,53 @@
+<script setup lang="ts">
+import { version } from "../../../package.json";
+</script>
+
 <template>
-  <p class="text-sm text-muted">
-    <span class="font-mono text-highlighted">@agntn/ciphers</span>
-    <span class="mx-2 text-dimmed">·</span>
-    <a
-      href="https://github.com/agntn/ciphers/blob/main/LICENSE"
-      target="_blank"
-      rel="noopener"
-      class="hover:text-highlighted"
-      >MIT license</a
-    >
-    <span class="mx-2 text-dimmed">·</span>
-    Classical ciphers, for lessons and puzzles. Not for protecting anything, ever.
-  </p>
+  <div class="footer-left">
+    <p class="console-id footer-id">
+      <span class="console-id-tag">ID</span>
+      <span>@agntn/ciphers</span>
+      <span class="console-id-sep" aria-hidden="true">/</span>
+      <span>v{{ version }}</span>
+      <a
+        href="https://github.com/agntn/ciphers/blob/main/LICENSE"
+        target="_blank"
+        rel="noopener"
+        class="footer-license"
+        >MIT license</a
+      >
+    </p>
+    <p class="footer-note">
+      Ciphers for lessons and puzzles, never for a secret. Nothing on this site makes a network
+      call, and what you type into the playground never leaves the tab.
+    </p>
+  </div>
 </template>
+
+<style scoped>
+.footer-left {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  max-width: 40rem;
+}
+.footer-license {
+  color: var(--ui-text-dimmed);
+  text-decoration: underline dotted var(--console-line);
+  text-underline-offset: 3px;
+}
+.footer-license:hover {
+  color: var(--console-accent);
+}
+.footer-license:focus-visible {
+  outline: 1px solid var(--ui-primary);
+  outline-offset: 2px;
+}
+.footer-note {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ui-text-muted);
+}
+</style>

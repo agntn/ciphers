@@ -1,7 +1,7 @@
 {
   "name": "@agntn/ciphers",
   "short_name": "ciphers",
-  "description": "Eighteen classical ciphers behind one local API, a CLI and five agent tools",
+  "description": "Classical and block ciphers behind one local API, a CLI and agent tools",
   "start_url": "/",
   "display": "browser",
   "background_color": "#0b0d10",

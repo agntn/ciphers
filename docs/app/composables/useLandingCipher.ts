@@ -57,6 +57,8 @@ export interface LandingSample {
   options: Record<string, string | number>;
   ciphertext: string;
   roundtrip: string;
+  /** `result.options`: what the cipher actually applied, defaults included. */
+  applied: Record<string, unknown>;
 }
 
 /** Encodes one fixed sample. A throw here is a broken sample, not a runtime case. */
@@ -68,6 +70,7 @@ export function encodeSample(entry: CipherEntry): LandingSample {
     plaintext: entry.sample,
     options: entry.options,
     ciphertext: encoded.text,
+    applied: encoded.options,
     roundtrip: cipher.decode(encoded.text, entry.options).text,
   };
 }
@@ -85,8 +88,9 @@ export function useLandingCipher() {
 
   let timer: number | undefined;
 
+  /** Wraps at both ends, so the previous button on the first cipher lands on the last one. */
   function step(delta: number) {
-    tick.value = Math.max(0, tick.value + delta);
+    tick.value = (tick.value + delta + samples.length) % samples.length;
   }
 
   function stopWalk() {

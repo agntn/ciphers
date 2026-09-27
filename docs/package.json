@@ -17,7 +17,6 @@
   "devDependencies": {
     "@iconify-json/lucide": "1.2.133",
     "@iconify-json/simple-icons": "1.2.96",
-    "@iconify-json/solar": "1.2.11",
     "@iconify-json/vscode-icons": "1.2.77",
     "wrangler": "4.128.0"
   },

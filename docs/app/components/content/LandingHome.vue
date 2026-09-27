@@ -1,112 +1,23 @@
 <script setup lang="ts">
-import { CIPHERS, FAMILY_COUNT, TOOLS, familySize } from "../../utils/ciphers";
-import { capitalize, counted, spellOut, spellOutCapital } from "../../utils/format";
+import { analyzeFrequency } from "@agntn/ciphers";
+import { CIPHERS, FAMILY_COUNT } from "../../utils/ciphers";
+import { spellOutCapital, spellOut } from "../../utils/format";
+import { TOOLS } from "../../utils/tools";
 
-const { samples, tick, paused, current, caesar, step } = useLandingCipher();
+const { samples, paused, current, caesar, step } = useLandingCipher();
 
-/** The headline count, spelled out. The stats row below it shows the same number in digits. */
-const cipherCount = spellOutCapital(CIPHERS.length);
+/** Plaintext's index of coincidence as the library's English table puts it. */
+const ENGLISH_IC = analyzeFrequency("A", "en")!.referenceIc.toFixed(3);
 
-/** The cipher family panel, counted from the registry so a new cipher moves the numbers. */
-const familyTitle = `${cipherCount} ciphers, ${spellOut(FAMILY_COUNT)} families`;
-const familyChecks = [
-  `Shift, reflection and multiplicative substitutions, ${counted(familySize("polyalphabetic"), "polyalphabetic")}, ${counted(familySize("digraph"), "digraph")}`,
-  `${capitalize(counted(familySize("fractionation"), "fractionation"))} from Polybius to ADFGVX, ${counted(familySize("transposition"), "transposition")}, one Enigma M3, AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS, CBC-MAC over AES, Rijndael with its wider blocks, plain DES, DESX, Blowfish, IDEA, Lucifer, MARS and Serpent`,
-  "Each page lists the options, the keyspace and the conventions, like I and J sharing a cell",
-];
-
-const stats = [
-  { value: String(CIPHERS.length), label: "ciphers" },
-  { value: String(FAMILY_COUNT), label: "families" },
-  { value: String(TOOLS.length), label: "agent tools" },
-  { value: "0", label: "network calls" },
-] as const;
-
-const copied = ref(false);
-
-async function copyInstall() {
-  try {
-    await navigator.clipboard.writeText("pnpm add @agntn/ciphers");
-  } catch {
-    return;
-  }
-  copied.value = true;
-  setTimeout(() => {
-    copied.value = false;
-  }, 1200);
-}
-
-/** The cipher grid highlights whichever cipher the panels are showing. */
-const activeCipher = computed(() => current.value.entry.slug);
+const classical = CIPHERS.filter((entry) => entry.info.category === "classical").length;
+const block = CIPHERS.length - classical;
 </script>
 
 <template>
   <div class="ciphers-landing not-prose">
-    <header
-      class="ciphers-hero mx-auto w-full max-w-[var(--ui-container)] px-8 pt-24 pb-20 text-center sm:px-12 lg:px-16"
-    >
-      <h1
-        class="ciphers-enter mx-auto max-w-3xl text-4xl leading-[1.08] font-medium tracking-tight text-highlighted sm:text-5xl lg:text-[3.75rem]"
-      >
-        {{ cipherCount }} ciphers. <span class="text-primary">One call.</span>
-      </h1>
-      <p class="ciphers-enter ciphers-enter-2 mx-auto mt-6 max-w-xl text-base leading-7 text-muted">
-        Caesar to Enigma behind one small API. Encode, decode, brute force a Caesar, count letters.
-        All in your process - no network, no keys, nothing to configure. Library, CLI, MCP server,
-        Pi and OMP extensions. For lessons, and for the puzzle you're stuck on at 1am.
-      </p>
-      <div
-        class="ciphers-enter ciphers-enter-3 mt-8 flex flex-wrap items-center justify-center gap-2"
-      >
-        <UButton to="/guide" color="primary" trailing-icon="i-solar-arrow-right-linear">
-          Get started
-        </UButton>
-        <UButton
-          to="https://github.com/agntn/ciphers"
-          target="_blank"
-          color="neutral"
-          variant="outline"
-          icon="i-simple-icons-github"
-        >
-          Star on GitHub
-        </UButton>
-      </div>
-      <button
-        type="button"
-        class="ciphers-enter ciphers-enter-4 ciphers-install mt-5"
-        :aria-label="copied ? 'Copied' : 'Copy install command'"
-        @click="copyInstall"
-      >
-        <span class="text-dimmed">$</span>
-        <span>pnpm add @agntn/ciphers</span>
-        <UIcon :name="copied ? 'i-solar-unread-linear' : 'i-solar-copy-linear'" class="size-3.5 text-dimmed" />
-      </button>
-
-      <div
-        class="ciphers-enter ciphers-enter-4 mx-auto mt-16 hidden max-w-6xl md:block"
-        @mouseenter="paused = true"
-        @mouseleave="paused = false"
-      >
-        <LandingFlow :sample="current" :tick="tick" />
-      </div>
-    </header>
-
-    <dl class="ciphers-section grid grid-cols-2 sm:grid-cols-4">
-      <div
-        v-for="(stat, i) in stats"
-        :key="stat.label"
-        class="border-default px-6 py-7 text-center"
-        :class="{ 'border-t sm:border-t-0': i >= 2, 'border-l': i % 2 === 1, 'sm:border-l': i > 0 }"
-      >
-        <dd class="font-mono text-2xl text-highlighted">{{ stat.value }}</dd>
-        <dt class="mt-1 font-mono text-[11px] tracking-[0.12em] text-dimmed uppercase">
-          {{ stat.label }}
-        </dt>
-      </div>
-    </dl>
+    <LandingHero :sample="current" :samples="samples" @step="step" @pause="paused = $event" />
 
     <LandingFeature
-      eyebrow="Encode and decode"
       title="Same two methods, every cipher"
       to="/guide/transform"
       link="Encode and decode"
@@ -116,34 +27,19 @@ const activeCipher = computed(() => current.value.entry.slug);
         'Missing key is a MissingOptionError, shift 26 an InvalidOptionError. Never a silent identity',
       ]"
     >
-      <code class="font-mono text-[13px] text-highlighted">create("vigenere")</code> gives you a
-      class with <code class="font-mono text-[13px] text-highlighted">encode</code> and
-      <code class="font-mono text-[13px] text-highlighted">decode</code>. Each cipher keeps its own
-      option names. Case survives by default, punctuation passes through, and
-      <code class="font-mono text-[13px] text-highlighted">stripNonAlpha</code> flattens the input
-      when a puzzle wants one clean block. This panel walks through {{ samples.length }} ciphers.
-      Nothing here is a recording, the library computes every value in your browser.
+      <code class="ciphers-code">create("vigenere")</code> gives you a class with
+      <code class="ciphers-code">encode</code> and <code class="ciphers-code">decode</code>. Each
+      cipher keeps its own option names. Case survives by default, punctuation passes through, and
+      <code class="ciphers-code">stripNonAlpha</code> flattens the input when a puzzle wants one
+      clean block. This file walks through {{ samples.length }} ciphers and none of it is a
+      recording, the library computes every line in your browser.
       <template #visual>
-        <div @mouseenter="paused = true" @mouseleave="paused = false">
-          <LandingRotatingCode :sample="current" />
-          <div class="mt-3 flex items-center justify-between font-mono text-[11px] text-dimmed">
-            <span>{{ current.entry.info.label }} · {{ current.entry.info.family }}</span>
-            <span class="inline-flex gap-1">
-              <button type="button" class="ciphers-copy" aria-label="Previous cipher" @click="step(-1)">
-                <UIcon name="i-solar-alt-arrow-left-linear" class="size-3.5" />
-              </button>
-              <button type="button" class="ciphers-copy" aria-label="Next cipher" @click="step(1)">
-                <UIcon name="i-solar-alt-arrow-right-linear" class="size-3.5" />
-              </button>
-            </span>
-          </div>
-        </div>
+        <LandingRotatingCode :sample="current" @step="step" @pause="paused = $event" />
       </template>
     </LandingFeature>
 
     <LandingFeature
-      eyebrow="Brute force"
-      title="Twenty-five shifts, one line each"
+      title="Twenty-five shifts, best fit on top"
       to="/guide/analysis"
       link="Brute force and frequency"
       :checks="[
@@ -153,103 +49,87 @@ const activeCipher = computed(() => current.value.entry.slug);
       ]"
       reverse
     >
-      A Caesar has 25 keys and the fastest attack is all of them. The list is the current
-      plaintext shifted by 3, then decoded with every shift, the hit in the accent. Same loop
-      behind the CLI command and the agent tool, there was no reason to write it twice.
+      A Caesar has 25 keys and the fastest attack is all of them. The panel takes the current
+      plaintext, shifts it by 3, then decodes it with every shift and ranks the results by how much
+      they read like English. Short samples are the honest failure, three letters don't make a
+      histogram, so the right key sometimes lands second.
       <template #visual>
-        <LandingBrute :ciphertext="caesar" :plaintext="current.plaintext" />
-      </template>
-    </LandingFeature>
-
-    <LandingFeature
-      eyebrow="Frequency"
-      title="Count letters before guessing a key"
-      to="/guide/analysis"
-      link="analyzeFrequency"
-      :checks="[
-        'Counts sorted by frequency, expected order for English, Polish or Japanese romaji next to them',
-        'Index of coincidence near 0.067 is a substitution, near 0.038 polyalphabetic or random',
-        'No letters in, undefined out. Not an empty histogram',
-      ]"
-    >
-      <code class="font-mono text-[13px] text-highlighted">analyzeFrequency(text, "en")</code>
-      tells you whether a ciphertext still has English underneath. A shift keeps the histogram
-      shape and only moves it. A Vigenère flattens it. The panel counts whatever the walk just
-      produced, so watch it collapse when Enigma comes around.
-      <template #visual>
-        <LandingFrequency
-          :text="current.ciphertext || current.plaintext"
-          :label="`${current.entry.slug} output`"
+        <LandingBrute
+          :ciphertext="caesar"
+          :plaintext="current.plaintext"
+          :shift="3"
+          @pause="paused = $event"
         />
       </template>
     </LandingFeature>
 
     <LandingFeature
-      eyebrow="Ciphers"
-      :title="familyTitle"
-      to="/ciphers"
-      link="All ciphers"
-      :checks="familyChecks"
-      reverse
+      title="Count letters before guessing a key"
+      to="/guide/analysis"
+      link="analyzeFrequency"
+      :checks="[
+        'Counts sorted by frequency, the expected order for English, Polish or Japanese romaji next to them',
+        `Index of coincidence near ${ENGLISH_IC} is one alphabet, near 0.038 several or none`,
+        'No letters in, undefined out. Not an empty histogram',
+      ]"
     >
-      Latin alphabets are A to Z. Playfair and Polybius fold J into I, tap code shares C and K,
-      Bacon uses 26 letters not 24, Enigma is the Wehrmacht M3 with rotors I, II, III and reflector
-      B. Every one of those is a choice, and every choice is written down on the cipher's page. A
-      puzzle answer you can't reproduce is not an answer.
+      <code class="ciphers-code">analyzeFrequency(text, "en")</code> tells you whether a
+      ciphertext still has English underneath. A shift keeps the histogram's shape and only moves
+      it. A Vigenère flattens it, and the block ciphers leave nothing but a to f. The panel counts
+      whatever the walk just produced, so watch it collapse when Enigma comes around.
       <template #visual>
-        <div
-          class="ciphers-frame grid grid-cols-2 overflow-hidden rounded-xl sm:grid-cols-3"
-        >
-          <NuxtLink
-            v-for="(cipher, i) in CIPHERS"
-            :key="cipher.slug"
-            :to="cipher.to"
-            class="group flex flex-col gap-2 border-muted px-4 py-3.5 transition-colors duration-500 hover:bg-muted"
-            :class="{
-              'border-t': i >= 2,
-              'sm:border-t-0': i < 3,
-              'border-l': i % 2 === 1,
-              'sm:border-l': i % 3 !== 0,
-              'sm:border-l-0': i % 3 === 0,
-              'ciphers-cell-active': cipher.slug === activeCipher,
-            }"
-          >
-            <UIcon
-              :name="cipher.icon"
-              class="size-4 text-muted transition-colors duration-500 group-hover:text-primary"
-              :class="{ 'text-primary': cipher.slug === activeCipher }"
-            />
-            <span>
-              <span class="block text-sm font-medium text-highlighted">{{ cipher.info.label }}</span>
-              <span class="mt-0.5 block font-mono text-[11px] text-dimmed">"{{ cipher.slug }}"</span>
-            </span>
-          </NuxtLink>
-        </div>
+        <LandingFrequency
+          :text="current.ciphertext || current.plaintext"
+          :slug="current.entry.slug"
+          @pause="paused = $event"
+        />
       </template>
     </LandingFeature>
 
+    <section class="ciphers-section">
+      <div class="mx-auto w-full max-w-[var(--ui-container)] px-8 py-20 sm:px-12 lg:px-16">
+        <div class="max-w-2xl">
+          <h2 class="text-2xl font-medium tracking-tight text-highlighted sm:text-[1.75rem]">
+            {{ spellOutCapital(CIPHERS.length) }} ciphers, {{ spellOut(FAMILY_COUNT) }} families
+          </h2>
+          <p class="mt-4 text-sm leading-6 text-muted">
+            {{ spellOutCapital(classical) }} classical, from Caesar to Enigma, and
+            {{ spellOut(block) }} block ciphers from DES to Serpent. Latin alphabets are A to Z.
+            Playfair and Polybius fold J into I, tap code shares C and K, Enigma is the Wehrmacht M3
+            with rotors I, II, III and reflector B, and the block ciphers count bytes, not letters.
+            Every one of those is a choice, and every choice is written
+            down on the cipher's page. A puzzle answer you can't reproduce is not an answer.
+          </p>
+          <p class="landing-entry">
+            <span class="console-tag">Import</span>
+            <code>import { ciphers, create } from "@agntn/ciphers"</code>
+          </p>
+        </div>
+        <LandingRegistry :sample="current" class="mt-10" @pause="paused = $event" />
+      </div>
+    </section>
+
     <LandingFeature
-      eyebrow="Agents"
-      title="Five tools, three hosts"
+      :title="`${spellOutCapital(TOOLS.length)} tools, three hosts`"
       to="/guide/agents"
       link="MCP, Pi and OMP"
       :checks="[
-        'cipher_encode, cipher_decode, cipher_brute_caesar, cipher_frequency, cipher_info',
+        TOOLS.join(', '),
         'Arguments checked against the published JSON Schema before a cipher sees them',
-        'Text and key lengths are bounded. A model cannot hand the process a novel',
+        'Text and key lengths are bounded. A model can\'t hand the process a novel',
       ]"
+      reverse
     >
-      <code class="font-mono text-[13px] text-highlighted">ciphers mcp</code> serves the tools over
-      stdio, the Pi and OMP extensions render them in the terminal. All three call the same
-      executors, so they answer identically and a fix lands once. Nothing leaves the machine, there
-      is nowhere for it to go.
+      <code class="ciphers-code">ciphers mcp</code> serves the tools over stdio, the Pi and OMP
+      extensions render them in the terminal. All three call the same executors, so they answer
+      identically and a fix lands once. The page runs those executors too, the text in the dialog
+      is what a model reads. Nothing leaves the machine, there is nowhere for it to go.
       <template #visual>
-        <LandingToolCall :sample="current" />
+        <LandingToolCall :sample="current" @pause="paused = $event" />
       </template>
     </LandingFeature>
 
     <LandingFeature
-      eyebrow="Your cipher"
       title="Extend Cipher, call register"
       to="/guide/custom"
       link="Custom ciphers"
@@ -258,76 +138,44 @@ const activeCipher = computed(() => current.value.entry.slug);
         'register(name, Class) makes it visible to create and resolveCipher',
         'Register a name again and the cached instance is dropped, so a hot reload takes',
       ]"
-      reverse
     >
       Every built-in is a concrete class extending the exported abstract
-      <code class="font-mono text-[13px] text-highlighted">Cipher</code>. Yours is the same shape,
-      one file. Throw <code class="font-mono text-[13px] text-highlighted">InvalidOptionError</code>
-      when an option is wrong and let
-      <code class="font-mono text-[13px] text-highlighted">normalizeError</code> wrap the rest. No
-      base class magic, no plugin manifest.
+      <code class="ciphers-code">Cipher</code>. Yours is the same shape, one file. Throw
+      <code class="ciphers-code">InvalidOptionError</code> when an option is wrong and let
+      <code class="ciphers-code">normalizeError</code> wrap the rest. No base class magic, no
+      plugin manifest.
       <template #visual>
-        <div class="ciphers-frame overflow-hidden rounded-xl">
-          <div class="flex items-center gap-2 border-b border-muted px-4 py-3">
-            <span class="font-mono text-[10px] font-bold text-primary">TS</span>
-            <span class="text-sm text-default">reverse.ts</span>
-          </div>
-          <pre class="ciphers-rotating ciphers-nowrap"><code><span class="tok-kw">import</span> { Cipher, register } <span class="tok-kw">from</span> <span class="tok-str">"@agntn/ciphers"</span>;
-<span class="tok-kw">import type</span> { CipherInfo, CipherResult } <span class="tok-kw">from</span> <span class="tok-str">"@agntn/ciphers"</span>;
-
-<span class="tok-kw">class</span> <span class="tok-fn">Reverse</span> <span class="tok-kw">extends</span> Cipher {
-  <span class="tok-fn">name</span>() {
-    <span class="tok-kw">return</span> <span class="tok-str">"reverse"</span>;
-  }
-
-  <span class="tok-fn">info</span>(): CipherInfo {
-    <span class="tok-kw">return</span> {
-      name: <span class="tok-str">"reverse"</span>,
-      label: <span class="tok-str">"Reverse"</span>,
-      description: <span class="tok-str">"The text backwards"</span>,
-      family: <span class="tok-str">"transposition"</span>,
-      selfInverse: <span class="tok-kw">true</span>,
-      options: [],
-    };
-  }
-
-  <span class="tok-fn">encode</span>(text: <span class="tok-kw">string</span>): CipherResult {
-    <span class="tok-kw">return</span> {
-      text: [...text].<span class="tok-fn">reverse</span>().<span class="tok-fn">join</span>(<span class="tok-str">""</span>),
-      cipher: <span class="tok-str">"reverse"</span>,
-      operation: <span class="tok-str">"encode"</span>,
-      options: {},
-    };
-  }
-
-  <span class="tok-fn">decode</span>(text: <span class="tok-kw">string</span>): CipherResult {
-    <span class="tok-kw">return</span> { ...<span class="tok-kw">this</span>.<span class="tok-fn">encode</span>(text), operation: <span class="tok-str">"decode"</span> };
-  }
-}
-
-<span class="tok-fn">register</span>(<span class="tok-str">"reverse"</span>, Reverse);</code></pre>
-        </div>
+        <LandingCustom />
       </template>
     </LandingFeature>
 
     <section class="ciphers-section">
-      <div
-        class="mx-auto w-full max-w-[var(--ui-container)] px-8 py-20 text-center sm:px-12 lg:px-16"
-      >
-        <h2 class="text-2xl font-medium tracking-tight text-highlighted sm:text-3xl">
-          Start with one command
-        </h2>
-        <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-muted">
-          Pre-1.0, so pin exact versions. And these are classical ciphers - fine for a riddle, a
-          lesson or a CTF, useless for a secret. Use a real primitive for those, seriously.
-        </p>
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-2">
-          <UButton to="/guide" color="primary" trailing-icon="i-solar-arrow-right-linear">
-            Read the guide
-          </UButton>
-          <UButton to="/playground" color="neutral" variant="outline"> Open the playground </UButton>
-        </div>
+      <div class="mx-auto w-full max-w-[var(--ui-container)] px-8 py-20 sm:px-12 lg:px-16">
+        <LandingStart />
       </div>
     </section>
   </div>
 </template>
+
+<style scoped>
+.landing-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 20px 0 0;
+  min-width: 0;
+}
+.landing-entry > .console-tag {
+  flex: none;
+  margin: 0;
+}
+.landing-entry > code {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ui-text-highlighted);
+}
+</style>

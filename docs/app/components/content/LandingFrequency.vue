@@ -1,41 +1,155 @@
 <script setup lang="ts">
-import { frequencyView } from "../../utils/analysis";
+import { analyzeFrequency } from "@agntn/ciphers";
+import { frequencyText } from "../../utils/tools";
 
-const props = defineProps<{ text: string; label: string }>();
+const props = defineProps<{ text: string; slug: string }>();
+const emit = defineEmits<{ pause: [paused: boolean] }>();
 
-/** The twelve most frequent letters, scaled to the top one. */
-const analysis = computed(() => frequencyView(props.text, "en", 12));
+/** Index of coincidence of uniformly random letters, the floor the tool prints next to the language's. */
+const RANDOM_IC = 0.0385;
+
+/** Plaintext's index of coincidence as the library's English table puts it. */
+const ENGLISH_IC = analyzeFrequency("A", "en")!.referenceIc.toFixed(3);
+
+const analysis = computed(() => analyzeFrequency(props.text, "en"));
+
+const ic = computed(() => analysis.value?.ic);
+/** Which of the two references the text sits closer to. */
+const reads = computed(() => {
+  const found = analysis.value;
+  if (!found || found.ic === undefined) return undefined;
+  return Math.abs(found.ic - found.referenceIc) < Math.abs(found.ic - RANDOM_IC) ? "english" : "flat";
+});
+
+const response = computed(() => frequencyText(props.text));
+const title = computed(() => `cipher_frequency(${props.slug} output)`);
 </script>
 
 <template>
-  <div class="ciphers-frame overflow-hidden rounded-xl">
-    <div class="flex items-center justify-between gap-3 border-b border-muted px-4 py-3">
-      <p class="font-mono text-xs text-muted">
-        <span class="text-dimmed">analyzeFrequency</span>
-        <span class="ms-2 text-highlighted">{{ label }}</span>
-      </p>
-      <p v-if="analysis" class="font-mono text-[11px] text-dimmed">
-        {{ analysis.total }} letters
-        <template v-if="analysis.ic !== undefined"> · IC {{ analysis.ic.toFixed(3) }}</template>
-      </p>
+  <section
+    class="tool-console landing-frequency"
+    aria-label="Letter counts of the current ciphertext"
+    @mouseenter="emit('pause', true)"
+    @mouseleave="emit('pause', false)"
+    @focusin="emit('pause', true)"
+    @focusout="emit('pause', false)"
+  >
+    <span class="console-cross console-cross-tl" aria-hidden="true">+</span>
+    <span class="console-cross console-cross-br" aria-hidden="true">+</span>
+    <header class="console-bar">
+      <UTooltip :text="text">
+        <span class="console-title frequency-call" tabindex="0"
+          ><span class="console-tag">Call</span>analyzeFrequency(<span class="frequency-arg"
+            >{{ slug }} output</span
+          >, <span class="tok-str">"en"</span>)</span
+        >
+      </UTooltip>
+      <span class="console-meta">{{ analysis?.total ?? 0 }} letters</span>
+      <span class="console-mark" aria-hidden="true" />
+    </header>
+    <div class="console-ruler" aria-hidden="true">
+      <span :key="text" class="console-cursor" />
     </div>
-    <div v-if="analysis" :key="text" class="ciphers-derive px-4 py-4">
-      <ol class="space-y-1.5">
-        <li v-for="bar in analysis.bars" :key="bar.letter" class="flex items-center gap-3 font-mono text-xs">
-          <span class="w-3 text-highlighted">{{ bar.letter }}</span>
-          <span class="ciphers-bar-track">
-            <span class="ciphers-bar" :style="{ width: `${bar.width}%` }" />
-          </span>
-          <span class="w-6 text-right text-dimmed">{{ bar.count }}</span>
-        </li>
-      </ol>
-      <dl class="mt-4 grid grid-cols-[5rem_1fr] gap-x-3 gap-y-1 font-mono text-[11px]">
-        <dt class="text-dimmed">expected</dt>
-        <dd class="tracking-[0.2em] text-muted">{{ analysis.expected }}</dd>
-        <dt class="text-dimmed">actual</dt>
-        <dd class="tracking-[0.2em] text-highlighted">{{ analysis.actual }}</dd>
-      </dl>
+
+    <div class="frequency-subject">
+      <div :key="text" class="console-scan" aria-hidden="true" />
+      <div class="frequency-identity">
+        <ConsoleReticle :key="text" icon="i-lucide-chart-column" />
+        <div class="frequency-name">
+          <span class="console-label"
+            >Counts / <span class="console-label-key">{{ slug }}</span></span
+          >
+          <h3 v-if="ic !== undefined">
+            IC <span class="frequency-ic">{{ ic.toFixed(3) }}</span>
+          </h3>
+          <h3 v-else>no letters</h3>
+          <p class="console-about">
+            <template v-if="reads === 'english'"
+              >Close to English at {{ analysis!.referenceIc.toFixed(3) }}. One alphabet, maybe
+              moved, the shape survived.</template
+            >
+            <template v-else-if="reads === 'flat'"
+              >Close to random at {{ RANDOM_IC.toFixed(3) }}. Several alphabets or none, the
+              histogram went flat.</template
+            >
+            <template v-else>Nothing from A to Z in this output, so nothing to count.</template>
+          </p>
+        </div>
+      </div>
     </div>
-    <p v-else class="px-4 py-6 text-sm text-dimmed">No A to Z letters in this output. Nothing to count.</p>
-  </div>
+
+    <div v-if="analysis" class="console-band frequency-band">
+      <p class="console-label console-rule-title">
+        <span>Histogram <span aria-hidden="true">[ A to Z, English top six marked ]</span></span>
+        <span class="console-mark" aria-hidden="true" />
+      </p>
+      <CipherHistogram :key="text" :analysis="analysis!" />
+    </div>
+
+    <ConsoleResponse :title="title" :text="response" />
+
+    <footer class="console-footer console-footer-plain">
+      <span>English near {{ ENGLISH_IC }}, random near {{ RANDOM_IC.toFixed(3) }}</span>
+    </footer>
+  </section>
 </template>
+
+<style scoped>
+.frequency-call {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.frequency-arg {
+  color: var(--ui-text-muted);
+}
+.frequency-subject {
+  position: relative;
+  padding: 18px 20px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M16 18h4m-2-2v4' fill='none' stroke='%23818a94' stroke-opacity='.1'/%3E%3C/svg%3E");
+  background-size: 36px 36px;
+  background-position: 24px 20px;
+}
+.frequency-subject > :not(.console-scan) {
+  position: relative;
+}
+.frequency-identity {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+.frequency-name {
+  min-width: 0;
+}
+.frequency-name h3 {
+  margin: 4px 0 6px;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--ui-text-highlighted);
+}
+.frequency-ic {
+  color: var(--console-accent);
+}
+.frequency-name .console-about {
+  font-size: 14px;
+}
+.frequency-band > .console-rule-title {
+  margin-bottom: 12px;
+}
+@media (width < 400px) {
+  .frequency-subject {
+    padding-inline: 14px;
+  }
+  .frequency-identity {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .frequency-band > .console-rule-title > span:first-child > span {
+    display: none;
+  }
+}
+</style>

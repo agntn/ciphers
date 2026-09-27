@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { ciphersTheme } from "./shiki-theme";
 
 /** Bundled from the checkout's sources: a deploy needs neither dist/ nor the root node_modules. */
 const librarySource = resolve(import.meta.dirname, "../src");
@@ -9,6 +10,8 @@ export default defineNuxtConfig({
   workspaceDir: import.meta.dirname,
   alias: {
     "@agntn/ciphers": resolve(librarySource, "index.ts"),
+    /** The text the agent tools answer with; the module imports only the library, so the page runs it too. */
+    "#tool-operations": resolve(librarySource, "tool-operations.ts"),
   },
   vite: {
     build: { target: "es2024" },
@@ -25,39 +28,80 @@ export default defineNuxtConfig({
   },
   llms: {
     domain: "https://ciphers.agntn.dev",
+    title: "@agntn/ciphers",
+    description:
+      "Classical and block ciphers behind one local API: encode, decode, Caesar brute force and letter frequencies, as a library, a CLI, an MCP server and Pi and OMP extensions.",
+    sections: [
+      {
+        title: "Playground",
+        description: "Encode, decode, brute force and count letters with any cipher, in the browser.",
+        links: [
+          {
+            title: "Playground",
+            href: "https://ciphers.agntn.dev/playground",
+            description: "The library running in the page: encode, decode, brute force, frequency and info.",
+          },
+        ],
+      },
+    ],
+  },
+  /** Docus pages define their own OG images; the alt text is the one thing they leave unset. */
+  ogImage: {
+    defaults: {
+      alt: "@agntn/ciphers: classical and block ciphers behind one local API",
+    },
   },
   icon: {
     clientBundle: {
       icons: [
+        "lucide:activity",
+        "lucide:arrow-down",
+        "lucide:arrow-left",
+        "lucide:arrow-right",
+        "lucide:arrow-right-left",
+        "lucide:arrow-up",
+        "lucide:arrow-up-right",
+        "lucide:binary",
+        "lucide:blocks",
+        "lucide:book-open",
+        "lucide:bot",
+        "lucide:calculator",
+        "lucide:chart-column",
+        "lucide:check",
+        "lucide:check-circle",
+        "lucide:chevron-down",
+        "lucide:chevron-left",
+        "lucide:chevron-right",
+        "lucide:chevrons-up-down",
+        "lucide:circle-alert",
+        "lucide:circle-check",
+        "lucide:circle-x",
+        "lucide:columns-3",
+        "lucide:copy",
+        "lucide:disc-3",
+        "lucide:expand",
         "lucide:external-link",
+        "lucide:flask-conical",
+        "lucide:flip-horizontal-2",
+        "lucide:grid-2x2",
+        "lucide:grid-3x3",
+        "lucide:hash",
+        "lucide:key-round",
+        "lucide:keyboard",
+        "lucide:library",
+        "lucide:link",
+        "lucide:list-ordered",
+        "lucide:plus",
+        "lucide:radio",
+        "lucide:rotate-ccw",
+        "lucide:rotate-ccw-key",
+        "lucide:split",
+        "lucide:square-sigma",
+        "lucide:table",
+        "lucide:terminal",
         "lucide:x",
         "simple-icons:github",
         "simple-icons:npm",
-        "solar:add-circle-linear",
-        "solar:alt-arrow-left-linear",
-        "solar:alt-arrow-right-linear",
-        "solar:arrow-right-linear",
-        "solar:arrow-right-up-linear",
-        "solar:book-2-linear",
-        "solar:bot-linear",
-        "solar:calculator-linear",
-        "solar:chart-linear",
-        "solar:unread-linear",
-        "solar:code-2-linear",
-        "solar:code-square-linear",
-        "solar:copy-linear",
-        "solar:flip-horizontal-linear",
-        "solar:hashtag-linear",
-        "solar:key-linear",
-        "solar:library-linear",
-        "solar:lock-keyhole-linear",
-        "solar:radio-linear",
-        "solar:restart-linear",
-        "solar:shuffle-linear",
-        "solar:transfer-horizontal-linear",
-        "solar:tuning-2-linear",
-        "solar:vinyl-record-linear",
-        "solar:widget-4-linear",
         "vscode-icons:file-type-js",
         "vscode-icons:file-type-json",
         "vscode-icons:file-type-shell",
@@ -79,6 +123,8 @@ export default defineNuxtConfig({
         { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#0b0d10" },
         { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#eef1f4" },
         { name: "apple-mobile-web-app-title", content: "ciphers" },
+        { name: "author", content: "oritwoen" },
+        { property: "og:locale", content: "en_US" },
       ],
     },
   },
@@ -105,8 +151,8 @@ export default defineNuxtConfig({
   css: ["~/assets/fonts.css"],
   fonts: {
     families: [
-      { name: "Space Grotesk", provider: "local", weights: [400, 500, 600] },
-      { name: "Space Mono", provider: "local", weights: [400, 700] },
+      { name: "Figtree", provider: "local", weights: [400, 500] },
+      { name: "Fira Code", provider: "local", weights: [400, 500] },
     ],
   },
   content: {
@@ -118,9 +164,9 @@ export default defineNuxtConfig({
       markdown: {
         highlight: {
           theme: {
-            default: "github-light",
-            light: "github-light",
-            dark: "poimandres",
+            default: ciphersTheme,
+            light: ciphersTheme,
+            dark: ciphersTheme,
           },
         },
       },

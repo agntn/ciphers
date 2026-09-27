@@ -6,21 +6,23 @@ Docus site for `@agntn/ciphers`. Markdown lives in `content/`. The playground is
 
 ```
 docs/
-├── nuxt.config.ts                 # extends: ['docus'], cloudflare_module preset (Workers), @agntn/ciphers aliased to ../src
-├── app/app.config.ts              # title, github, theme
-├── app/app.css                    # theme tokens (light + .dark), shared `ciphers-*` classes
-├── app/components/                # Docus overrides: AppHeaderLogo, AppHeaderCTA (nav), AppFooterLeft, DocsAsideLeftBody; icons are Solar (linear), brands stay simple-icons
-├── app/components/content/        # MDC components (`::landing-home`, `::cipher-facts`), the landing panels, CiphersPlayground
+├── DESIGN.md                      # the instruments this site owns and where it departs from the agntn design system
+├── nuxt.config.ts                 # extends: ['docus'], cloudflare_module preset (Workers), @agntn/ciphers and #tool-operations aliased to ../src
+├── shiki-theme.ts                 # code block theme, every colour a --shiki-token-* variable from app.css
+├── app/app.config.ts              # title, github, theme, the Nuxt UI variants in the instrument grammar
+├── app/app.css                    # theme tokens, the shared `console-*` and `hero-*` grammar, `ciphers-*` classes
+├── app/components/                # Docus overrides: header, tabs, sidebar, table of contents, page links, surround, callout; icons are Lucide, brands simple-icons
+├── app/components/content/        # MDC components (`::landing-home`, `::cipher-facts`, `::cipher-roster`), the landing instruments, Prose* overrides, CiphersPlayground
 ├── app/components/OgImage/        # Docs.takumi and Landing.takumi override the Docus OG templates
 ├── app/assets/fonts.css           # @font-face for the TTFs served from public/fonts (site and OG images)
-├── app/composables/               # useLandingCipher (one clock for every live panel), useSubNavigation
-├── app/utils/                     # ciphers table (icons, blurbs, samples over the library's info()), analysis helpers shared by landing and playground, formatting
+├── app/composables/               # useLandingCipher (one clock for every live panel), useSubNavigation (the Classical and Block tabs), useCopied, useRosterFlip
+├── app/utils/                     # ciphers table (icons, blurbs, samples over the library's info()), tools (the agent tools' text), tokens, roster, formatting
 ├── app/pages/playground.vue       # playground, own route outside the docs layout, its own useSeo and OG image
 ├── server/routes/sitemap.xml.ts   # Docus sitemap plus the Vue pages it cannot see
 ├── public/                        # fonts, favicon.svg and the icons and manifest cut from it
 ├── content/index.md               # landing
 ├── content/1.guide/               # getting started, transform, analysis, cli, agents, custom, playground
-└── content/2.ciphers/             # one page per cipher
+└── content/2.ciphers/             # overview, the classical and block overviews, one page per cipher
 ```
 
 ## Commands
@@ -46,6 +48,7 @@ Two resolution traps, both because the repo root is its own pnpm workspace:
 ## Live values
 
 - Every number on the landing and every facts strip comes from the library at render time. `CIPHERS` in `app/utils/ciphers.ts` maps `builtinCiphers` through `create(name).info()`, `useLandingCipher` encodes the sample sentences with `create(name).encode`. No recorded fixtures to regenerate, nothing to drift. A cipher added to the library shows up in the grid by itself, the sidebar icon needs one line in `PRESENTATION`.
+- Every text a tool would hand a model, in the `03 Full tool response` rows and the playground, comes from `src/tool-operations.ts` through the `#tool-operations` alias. That module imports nothing but the library, so the page runs the executors the MCP server runs instead of a copy.
 - The counts in prose (the headline, the OG image, the SEO description, the playground) come from `CIPHERS.length` through `spellOut` in `app/utils/format.ts`. The landing walk in `useLandingCipher` is a curated order and a cipher missing from it joins at the end, so give a new one a place. The counts written as words in `content/` frontmatter and in the README can't be live; `test/unit/docs-counts.test.ts` at the root fails when they fall behind `builtinCiphers`. The same test holds the option lists in `1.guide/01.index.md` and `1.guide/05.agents.md` to what the built-ins declare and what `cipher_encode` takes.
 - The samples are deterministic, so SSR and the client agree and hydration doesn't flicker. Keep it that way. No `Math.random`, no clock inside a computed.
 - `CiphersPlayground.vue` reads the deep link through a `watch(route.query)` registered in `onMounted` that fires once. A prerendered page hydrates with an empty query and Nuxt restores the address only afterwards, so reading `route.query` in setup gives you nothing. It writes state back with `router.replace` on every change.
@@ -60,12 +63,13 @@ Two resolution traps, both because the repo root is its own pnpm workspace:
 ## OG images
 
 - `app/components/OgImage/Docs.takumi.vue` and `Landing.takumi.vue` override the Docus templates of the same name and are rendered by Takumi at build time. Takumi has no CSS variables, so the theme colours from `app.css` are repeated there as literals. Annoying, but that's what it is.
-- nuxt-og-image doesn't see the faces `@nuxt/fonts` generates on this Nuxt version, but it does parse `@font-face` rules from the files in `css`. That's why `app/assets/fonts.css` declares the five TTFs in `public/fonts` and `fonts.families` uses the `local` provider. Site and OG images share the same files.
+- nuxt-og-image doesn't see the faces `@nuxt/fonts` generates on this Nuxt version, but it does parse `@font-face` rules from the files in `css`. That's why `app/assets/fonts.css` declares the Figtree and Fira Code TTFs in `public/fonts` and `fonts.families` uses the `local` provider. Site and OG images share the same files.
 - The landing OG file is named from the SEO description. Nitro refuses to write a prerender path containing `..`, so a description ending in a period is silently skipped and the landing ships with a dead `og:image`. Keep the description in `content/index.md` without a trailing period. Silently is the bad part.
 
 ## Constraints
 
 - Text a visitor types into the playground is rendered as text, through interpolation or a `<pre>`. Never `v-html`, never evaluate.
-- Cipher names, icons, blurbs and sample sentences live once, in `app/utils/ciphers.ts`. Sidebar, landing grid, playground samples and `::cipher-facts` read from it. Labels, families, options and keyspaces come from the library and are not repeated here.
+- Cipher names, icons, blurbs and sample sentences live once, in `app/utils/ciphers.ts`. Sidebar, roster, playground samples and `::cipher-facts` read from it.
+- The header tabs split the cipher pages by `info().category` in `useSubNavigation`; the pages keep their `/ciphers/<name>` paths. The file numbers set the reading order inside a tab: the classical ones grouped by kind, the block ones in registry order. A new category needs its overview page in `content/2.ciphers/` and a line in `CATEGORY_SECTIONS`. Labels, families, options and keyspaces come from the library and are not repeated here.
 - Every vector quoted in `content/` came out of `dist/index.mjs`. Check a new one the same way before writing it down. Don't derive it by hand, that is how wrong vectors end up in docs with a straight face.
 - The site makes no network request for its own work and stays that way. The footer says so.

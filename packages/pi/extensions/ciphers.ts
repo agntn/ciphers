@@ -125,6 +125,7 @@ const cipherParams = Type.Object({
   tagLength: Type.Optional(
     Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
   ),
+  endian: Type.Optional(Type.Enum(['big', 'little'], { description: OPTION_DESCRIPTIONS.endian })),
   preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
   stripNonAlpha: Type.Optional(
     Type.Boolean({
@@ -177,6 +178,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'Lucifer (lucifer) works like AES with a key of 32 hex digits.',
         'MARS (mars) works like AES with a key of 32 to 112 hex digits in steps of 8.',
         'Serpent (serpent) works like AES, with the same key lengths.',
+        'Rabbit (rabbit) is a stream cipher with a key of 32 hex digits and an optional iv of 16; it pads nothing, and endian picks the byte order (big as in RFC 4503, the default, or little as in Crypto++).',
         'cipher_info lists every option with its default.',
       ],
       parameters: cipherParams,

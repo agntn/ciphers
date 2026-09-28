@@ -25,6 +25,7 @@ export type CipherToolParams = {
   letters?: number
   segment?: number
   blockSize?: number
+  endian?: 'big' | 'little'
   tagLength?: number
   preserveCase?: boolean
   stripNonAlpha?: boolean
@@ -61,9 +62,11 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
 export const OPTION_DESCRIPTIONS = {
   cipher: `Exact built-in cipher name: ${builtinCiphers.join(', ')}`,
   category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
-  key: 'Keyword, or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent. Required by vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars and serpent; optional for polybius, adfgvx and bifid',
+  key: 'Keyword, or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, 32 for rabbit. Required by vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent and rabbit; optional for polybius, adfgvx and bifid',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
-  iv: 'AES-CBC, AES-CFB, AES-OFB, AES-CTR and Triple DES CBC only, and required there: initialization vector, 32 hex digits for AES (the initial counter block for AES-CTR), 16 for triple-des-cbc',
+  iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it)',
+  endian:
+    'Rabbit only: byte order of key, IV and keystream, big as in RFC 4503 and CyberChef (default) or little as in Crypto++',
   segment: 'AES-CFB only: bits fed back per step, 1, 8 or 128 (default 128)',
   blockSize:
     'Rijndael only: block length in bits, 128, 160, 192, 224 or 256 (default 128, which is AES)',
@@ -95,6 +98,7 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'letters',
     'segment',
     'blockSize',
+    'endian',
     'tagLength',
     'preserveCase',
     'stripNonAlpha',

@@ -317,6 +317,42 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('discovers and executes Rabbit with and without an IV through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'cipher_info', arguments: { cipher: 'rabbit' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(rabbit) — stream, arx')
+    expect(onlyText(info.content)).toContain('iv (string, default=none)')
+    expect(onlyText(info.content)).toContain('endian (string, default=big)')
+    for (const [args, expected] of [
+      [
+        { text: 'ATTACK AT DAWN', key: '91281329 2e3d36fe 3bfc62f1 dc51c3ac' },
+        'b29c6ab764eac93e97a4c3a306d2',
+      ],
+      [
+        {
+          text: 'Rabbit stream cipher test',
+          key: '23c2731e8b5469fd8dabb5bc592a0f3a',
+          iv: '712906405ef03201',
+          endian: 'little',
+        },
+        '1ae2d4edcf9b6063b00fd6fda0b223aded157e77031cf0440b',
+      ],
+    ] as const) {
+      const encoded = await client.callTool({
+        name: 'cipher_encode',
+        arguments: { cipher: 'rabbit', ...args },
+      })
+      expect(encoded.isError).not.toBe(true)
+      expect(onlyText(encoded.content)).toBe(expected)
+      const decoded = await client.callTool({
+        name: 'cipher_decode',
+        arguments: { cipher: 'rabbit', ...args, text: expected },
+      })
+      expect(onlyText(decoded.content)).toBe(args.text)
+    }
+  })
+
   it('discovers and executes Triple DES CBC with an IV through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -735,6 +771,10 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'serpent', text: 'abc' }],
       ['key', { cipher: 'serpent', text: 'abc', key: '00'.repeat(20) }],
       ['key', { cipher: 'serpent', text: 'abc', key: '00'.repeat(33) }],
+      ['key', { cipher: 'rabbit', text: 'abc' }],
+      ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(15) }],
+      ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(17) }],
+      ['endian', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(16), endian: 'middle' }],
     ] as const) {
       const response = await client.callTool({
         name: 'cipher_encode',
@@ -763,6 +803,7 @@ describe('Ciphers MCP server', () => {
     expect(listEntry.text).toMatch(/^classical:\n {2}caesar \[substitution-shift\]/)
     expect(listEntry.text).toContain('  enigma [rotor]')
     expect(listEntry.text).toContain('\nblock:\n  aes [substitution-permutation]')
+    expect(listEntry.text).toContain('\nstream:\n  rabbit [arx]')
 
     const filtered = await client.callTool({
       name: 'cipher_info',
@@ -777,10 +818,15 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(block.content)).toMatch(
       /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}aes-cbc-mac \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}des \[feistel\].*\n {2}desx \[feistel\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\].*\n {2}blowfish \[feistel\].*\n {2}idea \[lai-massey\].*\n {2}lucifer \[feistel\].*\n {2}mars \[feistel\].*\n {2}serpent \[substitution-permutation\]/,
     )
+    expect(onlyText(block.content)).not.toContain('rabbit')
+
+    const stream = await client.callTool({ name: 'cipher_info', arguments: { category: 'stream' } })
+    expect(stream.isError).not.toBe(true)
+    expect(onlyText(stream.content)).toMatch(/^stream:\n {2}rabbit \[arx\] — Rabbit stream cipher/)
 
     const unknownCategory = await client.callTool({
       name: 'cipher_info',
-      arguments: { category: 'stream' },
+      arguments: { category: 'hash' },
     })
     expect(unknownCategory.isError).toBe(true)
     expect(onlyText(unknownCategory.content)).toContain('Invalid arguments at /category')

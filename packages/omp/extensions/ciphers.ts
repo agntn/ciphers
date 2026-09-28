@@ -107,6 +107,9 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     tagLength: Type.Optional(
       Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
     ),
+    endian: Type.Optional(
+      Type.Enum(['big', 'little'], { description: OPTION_DESCRIPTIONS.endian }),
+    ),
     preserveCase: Type.Optional(
       Type.Boolean({ description: 'Preserve letter case (default true)' }),
     ),

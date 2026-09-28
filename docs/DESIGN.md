@@ -12,7 +12,7 @@ The instruments ciphers owns:
 | [LandingBrute.vue](app/components/content/LandingBrute.vue) | "Twenty-five shifts, best fit on top" | verdict console: the sample as a Caesar, the key's rank among the 25 shifts |
 | [LandingFrequency.vue](app/components/content/LandingFrequency.vue) | "Count letters before guessing a key" | `analyzeFrequency` over the sample's ciphertext, IC and histogram |
 | [CipherHistogram.vue](app/components/CipherHistogram.vue) | frequency panel and playground | 26 columns A to Z, the language's top six in the accent |
-| [LandingRegistry.vue](app/components/content/LandingRegistry.vue) | "Forty ciphers, eleven families" | the registry as a grid of cells, one band per category, the walk's cipher and its family on the nodes |
+| [LandingRegistry.vue](app/components/content/LandingRegistry.vue) | "Forty-one ciphers, twelve families" | the registry as a grid of cells, one band per category, the walk's cipher and its family on the nodes |
 | [CipherRoster.vue](app/components/content/CipherRoster.vue) | `/ciphers`, `/ciphers/classical`, `/ciphers/block` | roster of the registry on `UTable`, sortable |
 | [LandingToolCall.vue](app/components/content/LandingToolCall.vue) | "Five tools, three hosts" | one `cipher_info` call, full text in the dialog |
 | [LandingCustom.vue](app/components/content/LandingCustom.vue) | "Extend Cipher, call register" | `reverse.ts`, a custom cipher as a file |
@@ -47,7 +47,7 @@ Labels, families, categories, options and keyspaces come from `create(name).info
 Departures from the shared rules, recorded for the shared package:
 
 - The hero instrument is a tape with its wiring, not a record dossier: the domain is text going through a cipher, so the first screen shows the plaintext, what the library made of it and which letters decided which output.
-- The docs sections split the cipher pages by category: the header tabs are Guide, Classical and Block, each with its own overview page and its own sidebar, and `/ciphers` stays the overview of both as an `All` lead. The pages keep their `/ciphers/<name>` paths, only the menu is regrouped, so it stays short as the registry grows. The landing shows the registry as a grid of cells instead of the roster for the same reason: forty rows were a page, a hundred cells are still a few lines.
+- The docs sections split the cipher pages by category: the header tabs are Guide, Classical, Block and Stream, each with its own overview page and its own sidebar, and `/ciphers` stays the overview of all of them as an `All` lead. The pages keep their `/ciphers/<name>` paths, only the menu is regrouped, so it stays short as the registry grows. The landing shows the registry as a grid of cells instead of the roster for the same reason: forty rows were a page, a hundred cells are still a few lines.
 - `reverse.ts` next to "Extend Cipher, call register" folds `name`, `info` and `decode` to their signatures the way an editor would, so the file stays as tall as its text; copy hands out the whole file.
 - No network call anywhere: every instrument computes in the browser from the library, so no bar says `recorded` or `live`, and every footer that names locality says `no network`.
 - The version comes from the root `package.json`; there's no data version, so ID strips and footers carry none.

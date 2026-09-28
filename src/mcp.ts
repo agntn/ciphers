@@ -186,6 +186,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
       error: 'must be 32, 48 or 64 hex digits (a 128, 192 or 256-bit Serpent key)',
     },
   },
+  {
+    ciphers: ['rabbit'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}$/,
+      error: 'must be 32 hex digits (a 128-bit Rabbit key)',
+    },
+  },
 ]
 
 /**
@@ -254,6 +262,7 @@ const cipherInputSchema = Type.Object({
   tagLength: Type.Optional(
     Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
   ),
+  endian: Type.Optional(Type.Enum(['big', 'little'], { description: OPTION_DESCRIPTIONS.endian })),
   preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
   stripNonAlpha: Type.Optional(
     Type.Boolean({

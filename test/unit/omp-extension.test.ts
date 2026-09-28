@@ -170,6 +170,15 @@ describe('OMP extension', () => {
     expect(info.content[0]?.text).toContain('key (string, required)')
   })
 
+  it('lists the stream ciphers in their own category', async () => {
+    const list = await getTool('cipher_info').execute('info', {})
+    expect(list.content[0]?.text).toContain('\nstream:\n  rabbit [arx]')
+    const block = await getTool('cipher_info').execute('info', { category: 'block' })
+    expect(block.content[0]?.text).not.toContain('rabbit')
+    const stream = await getTool('cipher_info').execute('info', { category: 'stream' })
+    expect(stream.content[0]?.text).toMatch(/^stream:\n {2}rabbit \[arx\] — Rabbit stream cipher/)
+  })
+
   it('describes ciphers for discovery', async () => {
     const list = await getTool('cipher_info').execute('info', {})
     expect(list.content[0]?.text).toMatch(/^classical:\n {2}caesar \[substitution-shift\]/)

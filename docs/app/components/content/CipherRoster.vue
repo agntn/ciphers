@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TableColumn } from "@nuxt/ui";
+import type { CipherCategory } from "@agntn/ciphers";
 import { CIPHERS, familyLabel, keyspaceParts, type CipherEntry } from "../../utils/ciphers";
 import { ROSTER_CLASS, ROSTER_TABLE_UI } from "../../utils/roster";
 
@@ -15,7 +16,7 @@ interface Row {
 }
 
 /** One category only, the way `ciphers ciphers --category` lists it; every cipher when left out. */
-const props = defineProps<{ category?: "classical" | "block" }>();
+const props = defineProps<{ category?: CipherCategory }>();
 
 /** Every value comes from `info()`; the registry order is the default. */
 const rows = computed<Row[]>(() =>
@@ -94,7 +95,7 @@ const order = computed(() => {
       <span :class="ROSTER_CLASS.title">{{
         category ? `ciphers ciphers --category ${category}` : "ciphers()"
       }}</span>
-      <span :class="ROSTER_CLASS.meta">{{ rows.length }} ciphers · {{ order }}</span>
+      <span :class="ROSTER_CLASS.meta">{{ rows.length }} {{ rows.length === 1 ? "cipher" : "ciphers" }} · {{ order }}</span>
     </header>
     <div class="roster-ruler" aria-hidden="true" />
     <UTable

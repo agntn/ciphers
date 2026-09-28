@@ -485,6 +485,21 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const rabbitKey = '23c2731e8b5469fd8dabb5bc592a0f3a'
+  const rabbitFlags = ['--key', rabbitKey, '--iv', '712906405ef03201', '--endian', 'little']
+  assert.equal(
+    run(binPath, ['encode', 'rabbit', 'Rabbit stream cipher test', ...rabbitFlags]).trim(),
+    '1ae2d4edcf9b6063b00fd6fda0b223aded157e77031cf0440b',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'rabbit',
+      '1ae2d4edcf9b6063b00fd6fda0b223aded157e77031cf0440b',
+      ...rabbitFlags,
+    ]).trim(),
+    'Rabbit stream cipher test',
+  )
   assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',

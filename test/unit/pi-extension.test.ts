@@ -64,10 +64,10 @@ describe('Pi extension', () => {
     ])
   })
 
-  it('gives every block cipher its own encode guideline', () => {
+  it('gives every block and stream cipher its own encode guideline', () => {
     const guidelines = getTool('cipher_encode').promptGuidelines ?? []
-    const block = builtinCiphers.filter((name) => create(name).info().category === 'block')
-    expect(block.filter((name) => !guidelines.some((line) => line.includes(`(${name})`)))).toEqual(
+    const keyed = builtinCiphers.filter((name) => create(name).info().category !== 'classical')
+    expect(keyed.filter((name) => !guidelines.some((line) => line.includes(`(${name})`)))).toEqual(
       [],
     )
   })
@@ -79,6 +79,15 @@ describe('Pi extension', () => {
     for (const name of ['cipher_frequency', 'cipher_info']) {
       expect(getTool(name).renderResult).toBeUndefined()
     }
+  })
+
+  it('lists the stream ciphers in their own category', async () => {
+    const list = await getTool('cipher_info').execute('info', {})
+    expect(list.content[0]?.text).toContain('\nstream:\n  rabbit [arx]')
+    const block = await getTool('cipher_info').execute('info', { category: 'block' })
+    expect(block.content[0]?.text).not.toContain('rabbit')
+    const stream = await getTool('cipher_info').execute('info', { category: 'stream' })
+    expect(stream.content[0]?.text).toMatch(/^stream:\n {2}rabbit \[arx\] — Rabbit stream cipher/)
   })
 
   it('describes ciphers for discovery', async () => {

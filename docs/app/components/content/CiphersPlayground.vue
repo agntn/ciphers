@@ -82,7 +82,7 @@ const needsCipher = computed(
 );
 const isTransform = computed(() => operation.value === "encode" || operation.value === "decode");
 const needsLanguage = computed(() => operation.value === "brute" || operation.value === "frequency");
-/** The block ciphers encrypt bytes; case and stripping don't apply to them. */
+/** The block and stream ciphers encrypt bytes; case and stripping don't apply to them. */
 const lettersOnly = computed(() => entry.value.info.category === "classical");
 
 const cipherItems = CIPHERS.map((cipher) => ({
@@ -223,7 +223,7 @@ const responseTitle = computed(() => `${current.value.tool}(${JSON.stringify(too
 
 const outputUnit = computed(() => {
   if (answer.value.kind !== "transform") return "";
-  return entry.value.info.category === "block" && operation.value === "encode"
+  return entry.value.info.category !== "classical" && operation.value === "encode"
     ? `${answer.value.output.length / 2} bytes in hex`
     : `${[...answer.value.output].length} chars`;
 });

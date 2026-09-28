@@ -1,4 +1,7 @@
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vite-plus/test'
 
@@ -10,23 +13,29 @@ type CliRun = SpawnSyncReturns<string> & { readonly loaded: readonly string[] }
 /**
  * Run `src/cli.ts` under the load hook, not the built bin: Publish tests before it builds. Plain Node
  * strips the types, since the sources name every relative import with its `.ts` extension, and citty
- * exits the process itself.
+ * exits the process itself, so the hook reports at exit, into a file owned by this call.
  *
  * @param args - CLI arguments.
  * @param input - Text handed to the child's stdin; empty stdin ends `mcp` on EOF.
  * @returns {CliRun} The spawn result plus every module URL the child loaded.
  */
 function runCli(args: readonly string[], input = ''): CliRun {
-  const result = spawnSync(process.execPath, ['--import', hookPath, cliPath, ...args], {
-    encoding: 'utf8',
-    input,
-    timeout: 20_000,
-  })
-  const report = /^@loaded (\[.*\])$/mu.exec(result.stderr)?.[1]
-  expect(report, `the load hook reported nothing:\n${result.stderr}`).toBeDefined()
-  const loaded: unknown = JSON.parse(report ?? '[]')
-  expect(Array.isArray(loaded)).toBe(true)
-  return { ...result, loaded: (loaded as unknown[]).map(String) }
+  const directory = mkdtempSync(path.join(tmpdir(), 'ciphers-loads-'))
+  const report = path.join(directory, 'loaded.json')
+  try {
+    const result = spawnSync(process.execPath, ['--import', hookPath, cliPath, ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, CIPHERS_RECORD_LOADS: report },
+      input,
+      timeout: 20_000,
+    })
+    expect(existsSync(report), `the load hook wrote no report:\n${result.stderr}`).toBe(true)
+    const loaded: unknown = JSON.parse(readFileSync(report, 'utf8'))
+    expect(Array.isArray(loaded)).toBe(true)
+    return { ...result, loaded: (loaded as unknown[]).map(String) }
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
 }
 
 /**

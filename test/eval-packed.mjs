@@ -55,7 +55,7 @@ function run(command, args) {
 /**
  * Run `mcp` from a built bin under the load hook. stdin is closed at once, so the
  * server ends on EOF. An inherited CIPHERS_DIST is dropped, so only `environment`
- * sets it.
+ * sets it. The hook writes its report to a temporary file, not to the piped stderr.
  *
  * @param {string} binPath - The bin file.
  * @param {Readonly<Record<string, string>>} [environment] - Extra variables for the child.
@@ -63,24 +63,39 @@ function run(command, args) {
  */
 async function runMcp(binPath, environment = {}) {
   const hook = pathToFileURL(path.join(root, 'test/record-loads.ts')).href
+  const report = path.join(await mkdtemp(path.join(tmpdir(), 'ciphers-loads-')), 'loaded.json')
   const { CIPHERS_DIST: _inherited, ...inherited } = process.env
-  /** @type {Promise<string>} */
-  const exited = new Promise((resolve, reject) => {
-    const child = execFile(
-      process.execPath,
-      ['--import', hook, binPath, 'mcp'],
-      { cwd: root, encoding: 'utf8', env: { ...inherited, ...environment }, timeout: 60_000 },
-      (error, _stdout, stderr) => (error ? reject(error) : resolve(stderr)),
-    )
-    child.stdin?.end()
-  })
-  const stderr = await exited
-  const recorded = /^@loaded (\[.*\])$/mu.exec(stderr)?.[1]
-  assert.ok(recorded !== undefined, `the load hook reported nothing for ${binPath} mcp`)
-  /** @type {unknown} */
-  const urls = JSON.parse(recorded)
-  assert.ok(Array.isArray(urls), `the load hook reported something other than a list`)
-  return urls.map(String)
+  try {
+    /** @type {Promise<void>} */
+    const exited = new Promise((resolve, reject) => {
+      const child = execFile(
+        process.execPath,
+        ['--import', hook, binPath, 'mcp'],
+        {
+          cwd: root,
+          encoding: 'utf8',
+          env: { ...inherited, ...environment, CIPHERS_RECORD_LOADS: report },
+          timeout: 60_000,
+        },
+        (error) => (error ? reject(error) : resolve()),
+      )
+      child.stdin?.end()
+    })
+    await exited
+    /** @type {string} */
+    let recorded
+    try {
+      recorded = await readFile(report, 'utf8')
+    } catch (error) {
+      throw new Error(`the load hook wrote no report for ${binPath} mcp`, { cause: error })
+    }
+    /** @type {unknown} */
+    const urls = JSON.parse(recorded)
+    assert.ok(Array.isArray(urls), `the load hook reported something other than a list`)
+    return urls.map(String)
+  } finally {
+    await rm(path.dirname(report), { recursive: true, force: true })
+  }
 }
 
 /**

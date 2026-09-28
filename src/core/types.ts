@@ -256,6 +256,16 @@ export interface SerpentOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Rabbit options. */
+export interface RabbitOptions extends CipherBaseOptions {
+  /** 32 hex digits, a 128-bit key; case and spaces are ignored. */
+  key: string
+  /** 16 hex digits, a 64-bit IV; case and spaces are ignored. Without it the IV setup is skipped. */
+  iv?: string
+  /** Byte order of key, IV and keystream: `big` as in RFC 4503, `little` as in Crypto++. Default: `big`. */
+  endian?: 'big' | 'little'
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *
@@ -302,6 +312,7 @@ export interface CipherInfo {
     | 'substitution-permutation'
     | 'feistel'
     | 'lai-massey'
+    | 'arx'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
   /** Required/optional options. */

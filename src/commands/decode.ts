@@ -15,14 +15,14 @@ export default defineCommand({
     key: {
       type: 'string',
       description:
-        'Keyword for keyed ciphers, hex digits for block ciphers (ciphers ciphers -c block lists them)',
+        'Keyword for keyed ciphers, hex digits for block and stream ciphers (ciphers ciphers -v lists them)',
       alias: 'k',
     },
     transposition: { type: 'string', description: 'Transposition keyword (ADFGVX)' },
     iv: {
       type: 'string',
       description:
-        'Initialization vector, 32 hex digits (AES-CBC, AES-CFB, AES-OFB, AES-CTR) or 16 (Triple DES CBC)',
+        'Initialization vector, 32 hex digits (AES-CBC, AES-CFB, AES-OFB, AES-CTR) or 16 (Triple DES CBC; Rabbit, optional)',
     },
     segment: {
       type: 'string',
@@ -31,6 +31,10 @@ export default defineCommand({
     blockSize: {
       type: 'string',
       description: 'Block length in bits, 128, 160, 192, 224 or 256 (Rijndael; default 128)',
+    },
+    endian: {
+      type: 'string',
+      description: 'Byte order, big as in RFC 4503 or little as in Crypto++ (Rabbit; default big)',
     },
     tweak: {
       type: 'string',

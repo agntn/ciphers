@@ -14,6 +14,7 @@ export interface TransformOptionArgs {
   readonly letters?: string
   readonly segment?: string
   readonly blockSize?: string
+  readonly endian?: string
   readonly tagLength?: string
   readonly a?: string
   readonly b?: string
@@ -64,6 +65,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['tweak', args.tweak],
     ['nonce', args.nonce],
     ['aad', args.aad],
+    ['endian', args.endian],
   ] as const
   for (const [name, value] of strings) {
     if (value !== undefined) options[name] = value

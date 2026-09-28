@@ -95,7 +95,7 @@ const title = computed(() => `cipher_info("${props.name}")`);
           </div>
           <div>
             <dt>Works on</dt>
-            <dd>{{ entry.info.category === "block" ? "UTF-8 bytes, hex out" : "letters, rest passes" }}</dd>
+            <dd>{{ entry.info.category !== "classical" ? "UTF-8 bytes, hex out" : "letters, rest passes" }}</dd>
           </div>
           <div>
             <dt>Family</dt>

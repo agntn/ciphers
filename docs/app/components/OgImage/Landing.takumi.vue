@@ -5,18 +5,17 @@
  * so the palette from app.css is repeated as literals.
  */
 import { version } from "../../../../package.json";
-import { CIPHERS, FAMILY_COUNT } from "../../utils/ciphers";
+import { CIPHERS, FAMILY_COUNT, categorySize } from "../../utils/ciphers";
 import { TOOLS } from "../../utils/tools";
 
 defineProps<{ title?: string; description?: string }>();
 
 const TAGLINE =
-  "Caesar to Serpent behind the same two methods. Encode, decode, brute force a Caesar, count letters. All in your process.";
+  "Caesar to Rabbit behind the same two methods. Encode, decode, brute force a Caesar, count letters. All in your process.";
 
 /** The same three readouts as the hero, counted from the same registry. */
-const classical = CIPHERS.filter((entry) => entry.info.category === "classical").length;
 const METRICS = [
-  { label: "Ciphers", value: String(CIPHERS.length), unit: "", note: `${classical} classical · ${CIPHERS.length - classical} block`, accent: false },
+  { label: "Ciphers", value: String(CIPHERS.length), unit: "", note: `${categorySize("classical")} classical · ${categorySize("block")} block · ${categorySize("stream")} stream`, accent: false },
   { label: "Families", value: String(FAMILY_COUNT), unit: "", note: `${TOOLS.length} agent tools on top`, accent: false },
   { label: "Network", value: "0", unit: "calls", note: "computed in place", accent: true },
 ];

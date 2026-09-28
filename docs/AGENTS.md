@@ -15,14 +15,14 @@ docs/
 ├── app/components/content/        # MDC components (`::landing-home`, `::cipher-facts`, `::cipher-roster`), the landing instruments, Prose* overrides, CiphersPlayground
 ├── app/components/OgImage/        # Docs.takumi and Landing.takumi override the Docus OG templates
 ├── app/assets/fonts.css           # @font-face for the TTFs served from public/fonts (site and OG images)
-├── app/composables/               # useLandingCipher (one clock for every live panel), useSubNavigation (the Classical and Block tabs), useCopied, useRosterFlip
+├── app/composables/               # useLandingCipher (one clock for every live panel), useSubNavigation (the Classical, Block and Stream tabs), useCopied, useRosterFlip
 ├── app/utils/                     # ciphers table (icons, blurbs, samples over the library's info()), tools (the agent tools' text), tokens, roster, formatting
 ├── app/pages/playground.vue       # playground, own route outside the docs layout, its own useSeo and OG image
 ├── server/routes/sitemap.xml.ts   # Docus sitemap plus the Vue pages it cannot see
 ├── public/                        # fonts, favicon.svg and the icons and manifest cut from it
 ├── content/index.md               # landing
 ├── content/1.guide/               # getting started, transform, analysis, cli, agents, custom, playground
-└── content/2.ciphers/             # overview, the classical and block overviews, one page per cipher
+└── content/2.ciphers/             # overview, the classical, block and stream overviews, one page per cipher
 ```
 
 ## Commands

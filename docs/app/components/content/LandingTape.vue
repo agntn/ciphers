@@ -10,7 +10,7 @@ const emit = defineEmits<{ step: [delta: number]; pause: [paused: boolean] }>();
 const { copied, copy } = useCopied();
 
 const entry = computed(() => props.sample.entry);
-const block = computed(() => entry.value.info.category === "block");
+const block = computed(() => entry.value.info.category !== "classical");
 const options = computed(() => optionLiteral(props.sample.options));
 const call = computed(() => {
   const head = `encode("${entry.value.slug}", "${props.sample.plaintext}"`;

@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { cipherCategories } from "@agntn/ciphers";
 import { version } from "../../../../package.json";
 import type { LandingSample } from "../../composables/useLandingCipher";
-import { CIPHERS, FAMILY_COUNT } from "../../utils/ciphers";
+import { CIPHERS, FAMILY_COUNT, categorySize } from "../../utils/ciphers";
 import { TOOLS } from "../../utils/tools";
 
 defineProps<{ sample: LandingSample; samples: readonly LandingSample[] }>();
@@ -9,8 +10,6 @@ const emit = defineEmits<{ step: [delta: number]; pause: [paused: boolean] }>();
 
 const INSTALL = "pnpm add @agntn/ciphers";
 
-const classical = CIPHERS.filter((entry) => entry.info.category === "classical").length;
-const block = CIPHERS.length - classical;
 
 const { copied, copy } = useCopied();
 </script>
@@ -32,7 +31,7 @@ const { copied, copy } = useCopied();
 
       <h1 class="hero-title">Pick a cipher. <span>One call.</span></h1>
       <p class="hero-lead">
-        Caesar to Serpent behind the same two methods. Encode, decode, brute force a Caesar, count
+        Caesar to Rabbit behind the same two methods. Encode, decode, brute force a Caesar, count
         letters. It all runs in your process, no network, no keys to sign up for, nothing to
         configure. For lessons, and for the puzzle you're stuck on at 1am.
       </p>
@@ -41,7 +40,14 @@ const { copied, copy } = useCopied();
         <div>
           <dt>Ciphers</dt>
           <dd>{{ CIPHERS.length }}</dd>
-          <dd class="hero-metric-sub">{{ classical }} classical · {{ block }} block</dd>
+          <dd class="hero-metric-sub">
+            <template v-for="(category, index) in cipherCategories" :key="category"
+              >{{ index ? " · " : ""
+              }}<span class="whitespace-nowrap"
+                >{{ categorySize(category) }} {{ category }}</span
+              ></template
+            >
+          </dd>
         </div>
         <div>
           <dt>Families</dt>

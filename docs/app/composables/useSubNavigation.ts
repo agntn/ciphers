@@ -12,6 +12,7 @@ const NAV_ICONS: Record<string, string> = {
   "/ciphers": "i-lucide-library",
   "/ciphers/classical": "i-lucide-scroll-text",
   "/ciphers/block": "i-lucide-blocks",
+  "/ciphers/stream": "i-lucide-waves",
   "/playground": "i-lucide-flask-conical",
   ...Object.fromEntries(CIPHERS.map((cipher) => [cipher.to, cipher.icon])),
 };
@@ -42,10 +43,11 @@ function firstPagePath(item: ContentNavigationItem): string {
 const CATEGORY_SECTIONS = [
   { category: "classical", title: "Classical" },
   { category: "block", title: "Block" },
+  { category: "stream", title: "Stream" },
 ] as const;
 
 /**
- * The tree with `/ciphers` split by category: a Classical and a Block section, each holding its
+ * The tree with `/ciphers` split by category: a Classical, a Block and a Stream section, each holding its
  * overview page and its ciphers, with the all-ciphers overview as a shared `All` lead. The pages keep
  * their `/ciphers/<name>` paths; only the menu is regrouped, so it stays short as the registry grows.
  *

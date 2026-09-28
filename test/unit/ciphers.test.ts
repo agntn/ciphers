@@ -25,10 +25,11 @@ import { ideaEcb } from '../../src/ciphers/block/idea.ts'
 import { luciferEcb } from '../../src/ciphers/block/lucifer.ts'
 import { marsEcb } from '../../src/ciphers/block/mars.ts'
 import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
+import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 
 describe('registry', () => {
-  it('registers all 40 ciphers', () => {
-    expect(ciphers()).toHaveLength(40)
+  it('registers all 41 ciphers', () => {
+    expect(ciphers()).toHaveLength(41)
     for (const name of [
       'caesar',
       'rot13',
@@ -64,6 +65,7 @@ describe('registry', () => {
       'lucifer',
       'mars',
       'serpent',
+      'rabbit',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -816,6 +818,7 @@ describe('edge cases', () => {
     lucifer: { key: '0123456789abcdeffedcba9876543210' },
     mars: { key: '0123456789abcdeffedcba9876543210' },
     serpent: { key: '0123456789abcdeffedcba9876543210' },
+    rabbit: { key: '0123456789abcdeffedcba9876543210' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -3878,6 +3881,186 @@ describe('serpent', () => {
       family: 'substitution-permutation',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('rabbit', () => {
+  const rabbitCipher = create('rabbit')
+  const hex = (value: string) =>
+    Array.from(value.replaceAll(' ', '').match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const zeros = Array.from({ length: 48 }, () => 0)
+  const key = '912813292e3d36fe3bfc62f1dc51c3ac'
+
+  /**
+   * RFC 4503 Appendix A: S[0], S[1] and S[2] for each key and IV. Its Appendix B prints the second
+   * key with `2E ED` where A.1 and the state words it lists have `2E 3D`.
+   */
+  it('matches the RFC 4503 test vectors', () => {
+    for (const [vectorKey, iv, keystream] of [
+      [
+        '00000000000000000000000000000000',
+        undefined,
+        'B1 57 54 F0 36 A5 D6 EC F5 6B 45 26 1C 4A F7 02 88 E8 D8 15 C5 9C 0C 39 7B 69 6C 47 89 C6 8A A7 F4 16 A1 C3 70 0C D4 51 DA 68 D1 88 16 73 D6 96',
+      ],
+      [
+        key,
+        undefined,
+        '3D 2D F3 C8 3E F6 27 A1 E9 7F C3 84 87 E2 51 9C F5 76 CD 61 F4 40 5B 88 96 BF 53 AA 85 54 FC 19 E5 54 74 73 FB DB 43 50 8A E5 3B 20 20 4D 4C 5E',
+      ],
+      [
+        '83957415 87E0C733 E9E9AB01 C09B0043',
+        undefined,
+        '0C B1 0D CD A0 41 CD AC 32 EB 5C FD 02 D0 60 9B 95 FC 9F CA 0F 17 01 5A 7B 70 92 11 4C FF 3E AD 96 49 E5 DE 8B FC 7F 3F 92 41 47 AD 3A 94 74 28',
+      ],
+      [
+        '00000000000000000000000000000000',
+        '0000000000000000',
+        'C6 A7 27 5E F8 54 95 D8 7C CD 5D 37 67 05 B7 ED 5F 29 A6 AC 04 F5 EF D4 7B 8F 29 32 70 DC 4A 8D 2A DE 82 2B 29 DE 6C 1E E5 2B DB 8A 47 BF 8F 66',
+      ],
+      [
+        '00000000000000000000000000000000',
+        'C373F575C1267E59',
+        '1F CD 4E B9 58 00 12 E2 E0 DC CC 92 22 01 7D 6D A7 5F 4E 10 D1 21 25 01 7B 24 99 FF ED 93 6F 2E EB C1 12 C3 93 E7 38 39 23 56 BD D0 12 02 9B A7',
+      ],
+      [
+        '00000000000000000000000000000000',
+        'A6EB561AD2F41727',
+        '44 5A D8 C8 05 85 8D BF 70 B6 AF 23 A1 51 10 4D 96 C8 F2 79 47 F4 2C 5B AE AE 67 C6 AC C3 5B 03 9F CB FC 89 5F A7 1C 17 31 3D F0 34 F0 15 51 CB',
+      ],
+    ] as const) {
+      const ivBytes = iv === undefined ? undefined : hex(iv)
+      expect(rabbit(zeros, hex(vectorKey), ivBytes, 'big')).toEqual(hex(keystream))
+      expect(rabbit(hex(keystream), hex(vectorKey), ivBytes, 'big')).toEqual(zeros)
+    }
+  })
+
+  /** CyberChef's Rabbit tests, big-endian: data XORed with the stream, then a short last block. */
+  it('takes the least significant keystream bytes for a short last block, as CyberChef does', () => {
+    const zeroKey = hex('00'.repeat(16))
+    expect(
+      rabbit(
+        hex(
+          'cedda96c054e3ddd93da7ed05e2a4b7bdb0c00fe214f03502e2708b2c2bfc77aa2311b0b9af8aa78d119f92b26db0a6b',
+        ),
+        zeroKey,
+        undefined,
+        'big',
+      ),
+    ).toEqual(
+      hex(
+        '7f8afd9c33ebeb3166b13bf64260bc7953e4d8ebe4d30f69554e64f54b794ddd5627bac8eaf47e290b7128a330a8dcfd',
+      ),
+    )
+    expect(rabbit(hex('00'.repeat(8)), zeroKey, undefined, 'big')).toEqual(hex('f56b45261c4af702'))
+  })
+
+  /** The first example on the Crypto++ wiki's Rabbit page, which CyberChef's tests take too. */
+  it('matches Crypto++ in little-endian byte order', () => {
+    expect(
+      rabbitCipher.encode('Rabbit stream cipher test', {
+        key: '23c2731e8b5469fd8dabb5bc592a0f3a',
+        iv: '712906405ef03201',
+        endian: 'little',
+      }).text,
+    ).toBe('1ae2d4edcf9b6063b00fd6fda0b223aded157e77031cf0440b')
+  })
+
+  /** Expected values from Crypto++ 8.9 `RabbitWithIV` and `Rabbit` over the UTF-8 bytes. */
+  it('encodes UTF-8 text in little-endian order as Crypto++ does, with and without an IV', () => {
+    const cryptoppKey = '23c2731e8b5469fd8dabb5bc592a0f3a'
+    const text = 'zażółć gęślą jaźń 🙂'
+    for (const [iv, ciphertext] of [
+      ['712906405ef03201', '32e27333655c859200fa93fb090b855ff1b99e254909508dba473fb749878e'],
+      [undefined, '4d8fb770cb0a818df8650d53932f18dcc7d05acfabd93d3799b069ca116e59'],
+    ] as const) {
+      const options = { key: cryptoppKey, endian: 'little', ...(iv && { iv }) }
+      expect(rabbitCipher.encode(text, options)).toEqual({
+        text: ciphertext,
+        cipher: 'rabbit',
+        operation: 'encode',
+        options: { key: cryptoppKey, endian: 'little', ...(iv && { iv }) },
+      })
+      expect(rabbitCipher.decode(ciphertext, options).text).toBe(text)
+    }
+  })
+
+  /** S[0] and S[1] of RFC 4503 A.1 for this key, XORed by hand into the UTF-8 bytes. */
+  it('encodes text in RFC byte order by default, across a block boundary', () => {
+    for (const [text, ciphertext] of [
+      ['', ''],
+      ['ATTACK AT DAWN', 'b29c6ab764eac93e97a4c3a306d2'],
+      ['ATTACK AT DAWN, NOT DUSK', '7c79a7897dbd07e0bd5f87c5d0ac7dbcd8f0078ac101af52'],
+    ] as const) {
+      expect(rabbitCipher.encode(text, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'rabbit',
+        operation: 'encode',
+        options: { key, endian: 'big' },
+      })
+      expect(rabbitCipher.decode(ciphertext, { key }).text).toBe(text)
+    }
+  })
+
+  it('reads key, IV and ciphertext in any case and with spaces', () => {
+    const iv = 'c373f575c1267e59'
+    const result = rabbitCipher.encode('ATTACK AT DAWN', {
+      key: '91281329 2E3D36FE 3BFC62F1 DC51C3AC',
+      iv: 'C373 F575 C126 7E59',
+    })
+    expect(result.options).toEqual({ key, endian: 'big', iv })
+    expect(
+      rabbitCipher.decode(result.text.toUpperCase().replaceAll(/(.{8})/g, '$1 '), { key, iv }).text,
+    ).toBe('ATTACK AT DAWN')
+    expect(rabbitCipher.encode('ATTACK AT DAWN', { key, iv: '' }).text).toBe(
+      'b29c6ab764eac93e97a4c3a306d2',
+    )
+  })
+
+  it('rejects keys, IVs and byte orders it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => rabbitCipher[operation]('')).toThrow(MissingOptionError)
+      expect(() => rabbitCipher[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of [
+        'YELLOW SUBMARINE',
+        '00'.repeat(15),
+        '00'.repeat(17),
+        'g'.repeat(32),
+        12,
+      ]) {
+        expect(() => rabbitCipher[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['00'.repeat(4), '00'.repeat(16), 'g'.repeat(16), 1]) {
+        expect(() => rabbitCipher[operation]('', { key, iv: bad })).toThrow(
+          /iv.*16 hex digits|iv.*string/,
+        )
+      }
+      for (const bad of ['Big', 'le', 1]) {
+        expect(() => rabbitCipher[operation]('', { key, endian: bad })).toThrow(/big or little/)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => rabbitCipher.decode('b29c6', { key })).toThrow(/whole bytes/)
+    expect(() => rabbitCipher.decode('b2zz', { key })).toThrow(/must be hex digits/)
+    expect(() =>
+      rabbitCipher.decode('b29c6ab764eac93e97a4c3a306d2', { key, endian: 'little' }),
+    ).toThrow(/not UTF-8/)
+  })
+
+  it('reports the stream category and its options', () => {
+    expect(resolveCipher('Rabbit')).toBe(rabbitCipher)
+    expect(rabbitCipher.info()).toMatchObject({
+      name: 'rabbit',
+      category: 'stream',
+      family: 'arx',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'iv', type: 'string', required: false },
+        { name: 'endian', type: 'string', required: false, default: 'big' },
+      ],
     })
   })
 })

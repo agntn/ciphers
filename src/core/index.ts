@@ -32,6 +32,7 @@ export type {
   LuciferOptions,
   MarsOptions,
   SerpentOptions,
+  RabbitOptions,
   CipherInfo,
   CipherOption,
 } from './types.ts'

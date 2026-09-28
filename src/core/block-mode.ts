@@ -14,8 +14,8 @@ export interface BlockMode<Settings extends BlockSettings = Readonly<Record<stri
   readonly name: string
   /** How the error for a wrong key names the ciphertext, such as `AES-ECB`. */
   readonly label: string
-  /** Mode reported in the result options, such as `ecb`. */
-  readonly mode: string
+  /** Mode reported in the result options, such as `ecb`. A stream cipher has none. */
+  readonly mode?: string
   /** Block length in bytes. */
   readonly blockSize: number
   /**
@@ -187,7 +187,7 @@ export function encodeBlocks<Settings extends BlockSettings>(
       text: toHex(cipher.run(plaintext, key.bytes, 'encrypt', settings)),
       cipher: cipher.name,
       operation: 'encode',
-      options: { key: key.hex, mode: cipher.mode, ...settings },
+      options: { key: key.hex, ...(cipher.mode && { mode: cipher.mode }), ...settings },
     }
   } catch (e) {
     throw normalizeError(e, cipher.name)
@@ -225,7 +225,7 @@ export function decodeBlocks<Settings extends BlockSettings>(
       text: decoded,
       cipher: cipher.name,
       operation: 'decode',
-      options: { key: key.hex, mode: cipher.mode, ...settings },
+      options: { key: key.hex, ...(cipher.mode && { mode: cipher.mode }), ...settings },
     }
   } catch (e) {
     throw normalizeError(e, cipher.name)

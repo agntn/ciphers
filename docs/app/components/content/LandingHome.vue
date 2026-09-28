@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { analyzeFrequency } from "@agntn/ciphers";
-import { CIPHERS, FAMILY_COUNT } from "../../utils/ciphers";
+import { CIPHERS, FAMILY_COUNT, categorySize } from "../../utils/ciphers";
 import { spellOutCapital, spellOut } from "../../utils/format";
 import { TOOLS } from "../../utils/tools";
 
@@ -9,8 +9,6 @@ const { samples, paused, current, caesar, step } = useLandingCipher();
 /** Plaintext's index of coincidence as the library's English table puts it. */
 const ENGLISH_IC = analyzeFrequency("A", "en")!.referenceIc.toFixed(3);
 
-const classical = CIPHERS.filter((entry) => entry.info.category === "classical").length;
-const block = CIPHERS.length - classical;
 </script>
 
 <template>
@@ -93,10 +91,11 @@ const block = CIPHERS.length - classical;
             {{ spellOutCapital(CIPHERS.length) }} ciphers, {{ spellOut(FAMILY_COUNT) }} families
           </h2>
           <p class="mt-4 text-sm leading-6 text-muted">
-            {{ spellOutCapital(classical) }} classical, from Caesar to Enigma, and
-            {{ spellOut(block) }} block ciphers from DES to Serpent. Latin alphabets are A to Z.
+            {{ spellOutCapital(categorySize("classical")) }} classical, from Caesar to Enigma,
+            {{ spellOut(categorySize("block")) }} block ciphers from DES to Serpent, and
+            Rabbit, a stream cipher. Latin alphabets are A to Z.
             Playfair and Polybius fold J into I, tap code shares C and K, Enigma is the Wehrmacht M3
-            with rotors I, II, III and reflector B, and the block ciphers count bytes, not letters.
+            with rotors I, II, III and reflector B, and the block and stream ciphers count bytes, not letters.
             Every one of those is a choice, and every choice is written
             down on the cipher's page. A puzzle answer you can't reproduce is not an answer.
           </p>

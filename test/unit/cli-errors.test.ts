@@ -55,11 +55,13 @@ describe('CLI cipher categories', () => {
   })
 
   it('rejects a category the registry does not use', () => {
-    const result = runCli(['ciphers', '--category', 'stream'])
+    const result = runCli(['ciphers', '--category', 'hash'])
 
     expect(result.status).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('Invalid option category=stream: must be one of classical, block\n')
+    expect(result.stderr).toBe(
+      'Invalid option category=hash: must be one of classical, block, stream\n',
+    )
   })
 
   it('names the category in cipher info', () => {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { cipherCategories } from "@agntn/ciphers";
 import type { LandingSample } from "../../composables/useLandingCipher";
 import { CIPHERS, familyLabel, type CipherEntry } from "../../utils/ciphers";
 
@@ -9,7 +10,7 @@ type State = "current" | "kin" | "other";
 
 /** One band per category, a cell per cipher in registry order; the node says how it relates to the sample. */
 const bands = computed(() =>
-  (["classical", "block"] as const).map((category) => ({
+  cipherCategories.map((category) => ({
     category,
     cells: CIPHERS.filter((entry) => entry.info.category === category).map((entry) => ({
       entry,
@@ -49,8 +50,8 @@ function about(entry: CipherEntry): string {
     <header class="console-bar">
       <span class="console-title"><span class="console-tag">Call</span>ciphers()</span>
       <span class="console-meta"
-        >{{ CIPHERS.length }} names · {{ bands[0]!.cells.length }} classical ·
-        {{ bands[1]!.cells.length }} block</span
+        >{{ CIPHERS.length }} names ·
+        {{ bands.map((band) => `${band.cells.length} ${band.category}`).join(" · ") }}</span
       >
       <span class="console-mark" aria-hidden="true" />
     </header>

@@ -14,7 +14,7 @@ The puzzle says the answer is in a Vigenère, so you open a cipher site. The key
 Docs, and a playground where the library runs in your browser: [ciphers.agntn.dev](https://ciphers.agntn.dev).
 
 > [!CAUTION]
-> **Not audited.** This code has never had a security audit. Do not use it in production, with real funds or with sensitive data. It is meant for agents, puzzles and local experiments only. It comes as is, without warranty of any kind, and the authors are not liable for any loss, as the MIT license states. Anything that matters wants an audited library, like [@noble/ciphers](https://github.com/paulmillr/noble-ciphers).
+> **Not audited.** This code has never had a security audit. Do not use it in production, with real funds or with sensitive data. It is meant for agents, puzzles and local experiments only. It comes as is, without warranty of any kind, and the authors are not liable for any loss, as the MIT license states. Anything that matters wants an audited library.
 
 ## ✨ Features
 

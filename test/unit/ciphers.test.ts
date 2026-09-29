@@ -5,8 +5,8 @@ import { resolveCipher } from '../../src/core/resolve.ts'
 import { Cipher } from '../../src/core/cipher.ts'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors.ts'
 import { type BlockMode, decodeBlocks, encodeBlocks } from '../../src/core/block-mode.ts'
-import { ecb } from '../../src/ciphers/block/aes/ecb.ts'
-import { aesEcb } from '../../src/index.ts'
+import { aesEcb } from '../../src/ciphers/block/aes/ecb.ts'
+import { ecb } from '../../src/aes.ts'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw.ts'
 import { aesXts } from '../../src/ciphers/block/aes/xts.ts'
 import { aesCbcMac } from '../../src/ciphers/block/aes/cbc-mac.ts'
@@ -1081,8 +1081,8 @@ describe('aes', () => {
         '8ea2b7ca516745bfeafc49904b496089',
       ],
     ]) {
-      expect(ecb(plaintext, hex(key!), 'encrypt')).toEqual(hex(ciphertext!))
-      expect(ecb(hex(ciphertext!), hex(key!), 'decrypt')).toEqual(plaintext)
+      expect(aesEcb(plaintext, hex(key!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(aesEcb(hex(ciphertext!), hex(key!), 'decrypt')).toEqual(plaintext)
     }
   })
 
@@ -1101,13 +1101,13 @@ describe('aes', () => {
         'f3eed1bdb5d2a03c064b5a7e3db181f8591ccb10d410ed26dc5ba74a31362870b6ed21b99ca6f4f9f153e7b1beafed1d23304b7a39f9f3ff067d8d8f9e24ecc7',
       ],
     ]) {
-      expect(ecb(plaintext, hex(key!), 'encrypt')).toEqual(hex(ciphertext!))
-      expect(ecb(hex(ciphertext!), hex(key!), 'decrypt')).toEqual(plaintext)
+      expect(aesEcb(plaintext, hex(key!), 'encrypt')).toEqual(hex(ciphertext!))
+      expect(aesEcb(hex(ciphertext!), hex(key!), 'decrypt')).toEqual(plaintext)
     }
   })
 
-  /** NIST SP 800-38A, F.1.3 and F.1.4: ECB-AES192 over four blocks, through the byte export. */
-  it('exports AES-ECB on raw bytes from the package root', () => {
+  /** NIST SP 800-38A, F.1.3 and F.1.4: ECB-AES192 over four blocks, as bytes. */
+  it('runs ECB on raw bytes from the aes subpath', () => {
     const bytes = (value: string) => Uint8Array.from(hex(value))
     const key = bytes('8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b')
     const plaintext = bytes(
@@ -1116,29 +1116,29 @@ describe('aes', () => {
     const ciphertext = bytes(
       'bd334f1d6e45f25ff712a214571fa5cc974104846d0ad3ad7734ecb3ecee4eefef7afd2270e2e60adce0ba2face6444e9a4b41ba738d6c72fb16691603c18e0e',
     )
-    expect(aesEcb(plaintext, key, 'encrypt')).toEqual(ciphertext)
-    expect(aesEcb(ciphertext, key, 'decrypt')).toEqual(plaintext)
+    expect(ecb(plaintext, key, 'encrypt')).toEqual(ciphertext)
+    expect(ecb(ciphertext, key, 'decrypt')).toEqual(plaintext)
     /* A view into a larger buffer reads only its own bytes, and the input stays as it was. */
     const framed = new Uint8Array(80)
     framed.set(plaintext, 8)
-    expect(aesEcb(framed.subarray(8, 72), key, 'encrypt')).toEqual(ciphertext)
+    expect(ecb(framed.subarray(8, 72), key, 'encrypt')).toEqual(ciphertext)
     expect(framed.subarray(8, 72)).toEqual(plaintext)
-    expect(aesEcb(new Uint8Array(), key, 'encrypt')).toEqual(new Uint8Array())
+    expect(ecb(new Uint8Array(), key, 'encrypt')).toEqual(new Uint8Array())
   })
 
   it('refuses a byte key or data of the wrong shape without printing the key', () => {
     const block = new Uint8Array(16)
     const secret = Uint8Array.from({ length: 20 }, (_, i) => 0xa0 + i)
-    expect(() => aesEcb(block, secret, 'encrypt')).toThrow(
+    expect(() => ecb(block, secret, 'encrypt')).toThrow(
       'Invalid option key=20 bytes: must be a Uint8Array of 16, 24 or 32 bytes',
     )
-    expect(() => aesEcb(block, secret, 'encrypt')).toThrow(InvalidOptionError)
-    expect(() => aesEcb(new Uint8Array(17), new Uint8Array(16), 'decrypt')).toThrow(
+    expect(() => ecb(block, secret, 'encrypt')).toThrow(InvalidOptionError)
+    expect(() => ecb(new Uint8Array(17), new Uint8Array(16), 'decrypt')).toThrow(
       '[aes] Data must be whole 16-byte blocks, got 17 bytes',
     )
-    expect(() => aesEcb(block, block, 'sign' as 'encrypt')).toThrow(InvalidOptionError)
-    expect(() => aesEcb('00' as unknown as Uint8Array, block, 'encrypt')).toThrow(CipherError)
-    expect(() => aesEcb(block, [...block] as unknown as Uint8Array, 'encrypt')).toThrow(
+    expect(() => ecb(block, block, 'sign' as 'encrypt')).toThrow(InvalidOptionError)
+    expect(() => ecb('00' as unknown as Uint8Array, block, 'encrypt')).toThrow(CipherError)
+    expect(() => ecb(block, [...block] as unknown as Uint8Array, 'encrypt')).toThrow(
       'Invalid option key=object',
     )
   })

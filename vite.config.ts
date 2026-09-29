@@ -13,7 +13,7 @@ export default defineConfig({
     ...oxlint,
     rules: {
       ...oxlint.rules,
-      /** TypedArrays have no readonly form in the TS lib, and `aesEcb` takes and returns bytes. */
+      /** TypedArrays have no readonly form in the TS lib, and `src/aes.ts` works on bytes. */
       'typescript/prefer-readonly-parameter-types': [
         severity,
         { ...options, allow: [...(options?.allow ?? []), { from: 'lib', name: 'Uint8Array' }] },

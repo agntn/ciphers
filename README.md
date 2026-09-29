@@ -13,6 +13,9 @@ The puzzle says the answer is in a Vigenère, so you open a cipher site. The key
 
 Docs, and a playground where the library runs in your browser: [ciphers.agntn.dev](https://ciphers.agntn.dev).
 
+> [!CAUTION]
+> **Not audited.** This code has never had a security audit. Do not use it in production, with real funds or with sensitive data. It is meant for agents, puzzles and local experiments only. It comes as is, without warranty of any kind, and the authors are not liable for any loss, as the MIT license states. Anything that matters wants an audited library.
+
 ## ✨ Features
 
 - 🔡 **Forty-one ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, and two AES finalists, IBM's MARS and Serpent. Then one stream cipher, Rabbit from RFC 4503.

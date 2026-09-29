@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherBaseOptions } from '../../../core/types.ts'
 import { InvalidOptionError } from '../../../core/errors.ts'
 import { type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
-import { aesEcb } from './ecb.ts'
+import { ecb } from './ecb.ts'
 
 const BLOCK_SIZE = 16
 const BLOCK_MASK = (1n << 128n) - 1n
@@ -56,7 +56,7 @@ export function aesLrw(
     masks.push(...toBytes(multiply(tweakKey, (first + BigInt(i)) & BLOCK_MASK)))
   }
   const masked = data.map((byte, i) => byte ^ masks[i]!)
-  return aesEcb(masked, key.slice(0, -BLOCK_SIZE), operation).map((byte, i) => byte ^ masks[i]!)
+  return ecb(masked, key.slice(0, -BLOCK_SIZE), operation).map((byte, i) => byte ^ masks[i]!)
 }
 
 function readTweak(options: Readonly<CipherBaseOptions>): Record<string, string> {

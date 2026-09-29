@@ -32,7 +32,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - Bacon defaults to the 26-letter A-Z variant; `letters: 24` selects the historical table with I/J and U/V shared.
 - ADFGVX runs its columnar transposition only when `transposition` is set; without it the output is the grid step alone.
 - Enigma models Wehrmacht M3 with rotors I-II-III and reflector B.
-- `aes` runs in ECB only: UTF-8 text with PKCS#7 padding in, lowercase hex out, and a key of 32, 48 or 64 hex digits. It is a teaching implementation, not constant time.
+- `aes` runs in ECB only: UTF-8 text with PKCS#7 padding in, lowercase hex out, and a key of 32, 48 or 64 hex digits. It is a teaching implementation, not constant time. `aesEcb`, exported from the package root, runs the same ECB on a `Uint8Array`: whole blocks in and out, no padding and no hex, and a key of 16, 24 or 32 bytes.
 - AES-CBC takes the AES key and a required 32-digit `iv`, and chains blocks as NIST SP 800-38A §6.2 does. Text, padding and hex work as for AES.
 - AES-CFB takes the AES key and a required 32-digit `iv`, and feeds back `segment` bits per step (1, 8 or 128, default 128) as NIST SP 800-38A §6.3 does. It has no padding: the ciphertext has as many bytes as the UTF-8 text. Hex works as for AES.
 - AES-OFB takes the AES key and a required 32-digit `iv`, and encrypts each output block again for the next, starting from the IV, as NIST SP 800-38A §6.4 does. Padding and hex work as for AES-CFB.

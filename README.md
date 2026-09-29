@@ -138,7 +138,7 @@ console.log(enigma.encode('ATTACK AT DAWN').text) // BZHGNO CR RTCM
 console.log(analyzeFrequency('DWWDFN DW GDZQ', 'en')?.ic) // 0.13636363636363635
 ```
 
-That's nearly all of it. `create()` wants the exact registered name and hands you one cached instance per cipher. `resolveCipher()` lowercases and turns spaces into hyphens, so `'Rail Fence'` works and `'railfence'` doesn't, there is no fuzzy matching on purpose. Every result carries `cipher`, `operation` and the `options` that were applied, so one logged result is enough to repeat the call. Wrong key, shift out of range, unknown name: one `CipherError` family, and the message names the option or the cipher. The rest: [Transform](https://ciphers.agntn.dev/guide/transform), [Analysis](https://ciphers.agntn.dev/guide/analysis), [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+That's nearly all of it. `create()` wants the exact registered name and hands you one cached instance per cipher. `resolveCipher()` lowercases and turns spaces into hyphens, so `'Rail Fence'` works and `'railfence'` doesn't, there is no fuzzy matching on purpose. Every result carries `cipher`, `operation` and the `options` that were applied, so one logged result is enough to repeat the call. Holding raw bytes? `ecb(data, key, 'encrypt')` from `@agntn/ciphers/aes` takes a `Uint8Array` and gives one back, no padding and no hex. Wrong key, shift out of range, unknown name: one `CipherError` family, and the message names the option or the cipher. The rest: [Transform](https://ciphers.agntn.dev/guide/transform), [Analysis](https://ciphers.agntn.dev/guide/analysis), [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
 
 ## 🔡 Ciphers
 

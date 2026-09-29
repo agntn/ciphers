@@ -6,6 +6,7 @@ import { Cipher } from '../../src/core/cipher.ts'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors.ts'
 import { type BlockMode, decodeBlocks, encodeBlocks } from '../../src/core/block-mode.ts'
 import { aesEcb } from '../../src/ciphers/block/aes/ecb.ts'
+import { ecb } from '../../src/aes.ts'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw.ts'
 import { aesXts } from '../../src/ciphers/block/aes/xts.ts'
 import { aesCbcMac } from '../../src/ciphers/block/aes/cbc-mac.ts'
@@ -1103,6 +1104,43 @@ describe('aes', () => {
       expect(aesEcb(plaintext, hex(key!), 'encrypt')).toEqual(hex(ciphertext!))
       expect(aesEcb(hex(ciphertext!), hex(key!), 'decrypt')).toEqual(plaintext)
     }
+  })
+
+  /** NIST SP 800-38A, F.1.3 and F.1.4: ECB-AES192 over four blocks, as bytes. */
+  it('runs ECB on raw bytes from the aes subpath', () => {
+    const bytes = (value: string) => Uint8Array.from(hex(value))
+    const key = bytes('8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b')
+    const plaintext = bytes(
+      '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710',
+    )
+    const ciphertext = bytes(
+      'bd334f1d6e45f25ff712a214571fa5cc974104846d0ad3ad7734ecb3ecee4eefef7afd2270e2e60adce0ba2face6444e9a4b41ba738d6c72fb16691603c18e0e',
+    )
+    expect(ecb(plaintext, key, 'encrypt')).toEqual(ciphertext)
+    expect(ecb(ciphertext, key, 'decrypt')).toEqual(plaintext)
+    /* A view into a larger buffer reads only its own bytes, and the input stays as it was. */
+    const framed = new Uint8Array(80)
+    framed.set(plaintext, 8)
+    expect(ecb(framed.subarray(8, 72), key, 'encrypt')).toEqual(ciphertext)
+    expect(framed.subarray(8, 72)).toEqual(plaintext)
+    expect(ecb(new Uint8Array(), key, 'encrypt')).toEqual(new Uint8Array())
+  })
+
+  it('refuses a byte key or data of the wrong shape without printing the key', () => {
+    const block = new Uint8Array(16)
+    const secret = Uint8Array.from({ length: 20 }, (_, i) => 0xa0 + i)
+    expect(() => ecb(block, secret, 'encrypt')).toThrow(
+      'Invalid option key=20 bytes: must be a Uint8Array of 16, 24 or 32 bytes',
+    )
+    expect(() => ecb(block, secret, 'encrypt')).toThrow(InvalidOptionError)
+    expect(() => ecb(new Uint8Array(17), new Uint8Array(16), 'decrypt')).toThrow(
+      '[aes] Data must be whole 16-byte blocks, got 17 bytes',
+    )
+    expect(() => ecb(block, block, 'sign' as 'encrypt')).toThrow(InvalidOptionError)
+    expect(() => ecb('00' as unknown as Uint8Array, block, 'encrypt')).toThrow(CipherError)
+    expect(() => ecb(block, [...block] as unknown as Uint8Array, 'encrypt')).toThrow(
+      'Invalid option key=object',
+    )
   })
 
   /** Expected values from `openssl enc -aes-128-ecb`, which pads with PKCS#7 by default. */

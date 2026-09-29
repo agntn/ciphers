@@ -4,7 +4,7 @@
 
 Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides this file only for its subtree.
 
-`@agntn/ciphers` provides local text transformations for educational, agent, and puzzle use. Keep production cryptographic primitives in a separate package. Cipher operations must not require HTTP, API keys, or another external service.
+`@agntn/ciphers` provides local text transformations for educational, agent, and puzzle use. Nothing here is audited or meant for production, real funds or sensitive data, and the README and the first guide page say so. Other `@agntn` packages still build on these primitives rather than on `@noble/*` (keys takes AES for BIP38, #122). Cipher operations must not require HTTP, API keys, or another external service.
 
 ## Architecture
 

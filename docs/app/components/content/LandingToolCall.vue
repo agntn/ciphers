@@ -7,7 +7,7 @@ const props = defineProps<{ sample: LandingSample }>();
 const emit = defineEmits<{ pause: [paused: boolean] }>();
 
 const text = computed(() => infoText(props.sample.entry.slug));
-const title = computed(() => `cipher_info("${props.sample.entry.slug}")`);
+const title = computed(() => `ciphers_info("${props.sample.entry.slug}")`);
 
 /** Four rows, the fields a model needs before its first call; an absent one says so out loud. */
 const rows = computed(() => {
@@ -38,7 +38,7 @@ const rows = computed(() => {
 
     <header class="console-bar">
       <span class="console-title"
-        ><span class="console-tag">Call</span>cipher_info(<Transition
+        ><span class="console-tag">Call</span>ciphers_info(<Transition
           name="ciphers-roll"
           mode="out-in"
           ><span :key="sample.entry.slug" class="ciphers-roll-slot tok-str"

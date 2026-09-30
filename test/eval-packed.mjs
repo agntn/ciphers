@@ -561,8 +561,8 @@ try {
         tools.set(tool.name, tool)
       },
     })
-    const encode = tools.get('cipher_encode')
-    assert.ok(encode, `${host} extension registered no cipher_encode`)
+    const encode = tools.get('ciphers_encode')
+    assert.ok(encode, `${host} extension registered no ciphers_encode`)
     const result = await encode.execute('packed', { cipher: 'caesar', text: 'HELLO', shift: 3 })
     assert.equal(result.content[0]?.text, 'KHOOR', `${host} extension`)
   }

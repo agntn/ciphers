@@ -152,10 +152,11 @@ const cipherParams = Type.Object({
 export default function ciphersExtension(pi: ExtensionAPI) {
   pi.registerTool(
     defineTool({
-      name: 'cipher_encode',
+      name: 'ciphers_encode',
       label: 'Cipher Encode',
-      description: 'Encode text with an exact-name built-in cipher. cipher_info lists the options.',
-      promptSnippet: 'Use cipher_encode to encode text with local educational and puzzle ciphers.',
+      description:
+        'Encode text with an exact-name built-in cipher. ciphers_info lists the options.',
+      promptSnippet: 'Use ciphers_encode to encode text with local educational and puzzle ciphers.',
       promptGuidelines: [
         'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
         'AES (aes) needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
@@ -179,7 +180,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'MARS (mars) works like AES with a key of 32 to 112 hex digits in steps of 8.',
         'Serpent (serpent) works like AES, with the same key lengths.',
         'Rabbit (rabbit) is a stream cipher with a key of 32 hex digits and an optional iv of 16; it pads nothing, and endian picks the byte order (big as in RFC 4503, the default, or little as in Crypto++).',
-        'cipher_info lists every option with its default.',
+        'ciphers_info lists every option with its default.',
       ],
       parameters: cipherParams,
       renderCall(args, _theme) {
@@ -194,12 +195,13 @@ export default function ciphersExtension(pi: ExtensionAPI) {
 
   pi.registerTool(
     defineTool({
-      name: 'cipher_decode',
+      name: 'ciphers_decode',
       label: 'Cipher Decode',
-      description: 'Decode text with an exact-name built-in cipher. cipher_info lists the options.',
+      description:
+        'Decode text with an exact-name built-in cipher. ciphers_info lists the options.',
       promptSnippet:
-        'Use cipher_decode to decode text encoded with local educational and puzzle ciphers.',
-      promptGuidelines: ['Same options as cipher_encode.'],
+        'Use ciphers_decode to decode text encoded with local educational and puzzle ciphers.',
+      promptGuidelines: ['Same options as ciphers_encode.'],
       parameters: cipherParams,
       renderCall(args, _theme) {
         return new Text(`🔓 decode ${args.cipher}: "${args.text}"`, 0, 0)
@@ -213,10 +215,10 @@ export default function ciphersExtension(pi: ExtensionAPI) {
 
   pi.registerTool(
     defineTool({
-      name: 'cipher_brute_caesar',
+      name: 'ciphers_caesar_brute',
       label: 'Brute Force Caesar',
-      description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; cipher_decode with that shift returns the whole text.`,
-      promptSnippet: 'Use cipher_brute_caesar to brute-force an unknown Caesar shift.',
+      description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; ciphers_decode with that shift returns the whole text.`,
+      promptSnippet: 'Use ciphers_caesar_brute to brute-force an unknown Caesar shift.',
       promptGuidelines: [
         `Input is ciphertext. Returns all 25 shifts, the most English-like first, the most Polish-like with lang pl, the most Japanese-like with lang ja; only the top line is whole, the rest stop at ${BRUTE_PREVIEW_LENGTH} characters.`,
         'Read the top lines first; on a short text the plaintext can rank a few lines down.',
@@ -245,12 +247,12 @@ export default function ciphersExtension(pi: ExtensionAPI) {
 
   pi.registerTool(
     defineTool({
-      name: 'cipher_frequency',
+      name: 'ciphers_frequency',
       label: 'Frequency Analysis',
       description:
         'Analyze A-Z letter frequencies, compare their order with English, Polish or Japanese romaji, and report the index of coincidence.',
       promptSnippet:
-        'Use cipher_frequency to analyze letter distribution for cipher identification.',
+        'Use ciphers_frequency to analyze letter distribution for cipher identification.',
       promptGuidelines: [
         'Useful for identifying substitution ciphers (frequency distribution preserved).',
         'Compare actual frequency order with expected language order (EN: ETAOIN...).',
@@ -275,12 +277,12 @@ export default function ciphersExtension(pi: ExtensionAPI) {
 
   pi.registerTool(
     defineTool({
-      name: 'cipher_info',
+      name: 'ciphers_info',
       label: 'Cipher Info',
       description:
         "List the built-in ciphers by category, or show one cipher's options, category, family, and keyspace.",
       promptSnippet:
-        'Use cipher_info to check cipher names and required options before encoding or decoding.',
+        'Use ciphers_info to check cipher names and required options before encoding or decoding.',
       promptGuidelines: [
         'Without a cipher name it lists every cipher under its category, with family and description; category narrows the list.',
         'With a name it shows options, defaults, self-inverse, and keyspace.',

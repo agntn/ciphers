@@ -14,7 +14,7 @@ const top = computed(() =>
 const ticks = computed(() => Array.from({ length: 25 }, (_, index) => index + 1));
 
 const text = computed(() => bruteText(props.ciphertext));
-const title = computed(() => `cipher_brute_caesar("${props.ciphertext}")`);
+const title = computed(() => `ciphers_caesar_brute("${props.ciphertext}")`);
 const playground = computed(() => `/playground?op=brute&text=${encodeURIComponent(props.ciphertext)}`);
 
 /**

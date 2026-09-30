@@ -85,67 +85,67 @@ describe('OMP extension', () => {
         loadMode,
       })),
     ).toEqual([
-      { name: 'cipher_encode', label: 'Cipher Encode', approval: 'read', loadMode: 'essential' },
-      { name: 'cipher_decode', label: 'Cipher Decode', approval: 'read', loadMode: 'essential' },
+      { name: 'ciphers_encode', label: 'Cipher Encode', approval: 'read', loadMode: 'essential' },
+      { name: 'ciphers_decode', label: 'Cipher Decode', approval: 'read', loadMode: 'essential' },
       {
-        name: 'cipher_brute_caesar',
+        name: 'ciphers_caesar_brute',
         label: 'Brute Force Caesar',
         approval: 'read',
         loadMode: 'essential',
       },
       {
-        name: 'cipher_frequency',
+        name: 'ciphers_frequency',
         label: 'Frequency Analysis',
         approval: 'read',
         loadMode: 'essential',
       },
-      { name: 'cipher_info', label: 'Cipher Info', approval: 'read', loadMode: 'essential' },
+      { name: 'ciphers_info', label: 'Cipher Info', approval: 'read', loadMode: 'essential' },
     ])
   })
 
   it('executes Beaufort in both directions', async () => {
-    const encoded = await getTool('cipher_encode').execute('encode', {
+    const encoded = await getTool('ciphers_encode').execute('encode', {
       cipher: 'beaufort',
       text: 'DCODE',
       key: 'KEY',
     })
     expect(encoded.content[0]?.text).toBe('HCKHA')
-    const decoded = await getTool('cipher_decode').execute('decode', {
+    const decoded = await getTool('ciphers_decode').execute('decode', {
       cipher: 'beaufort',
       text: 'HCKHA',
       key: 'KEY',
     })
     expect(decoded.content[0]?.text).toBe('DCODE')
-    const info = await getTool('cipher_info').execute('info', { cipher: 'beaufort' })
+    const info = await getTool('ciphers_info').execute('info', { cipher: 'beaufort' })
     expect(info.content[0]?.text).toContain('key (string, required)')
   })
 
   it('executes the 24-letter Bacon table in both directions', async () => {
-    const encoded = await getTool('cipher_encode').execute('encode', {
+    const encoded = await getTool('ciphers_encode').execute('encode', {
       cipher: 'bacon',
       text: 'KNIGHT',
       letters: 24,
     })
     expect(encoded.content[0]?.text).toBe('ABAABABBAAABAAAAABBAAABBBBAABA')
-    const decoded = await getTool('cipher_decode').execute('decode', {
+    const decoded = await getTool('ciphers_decode').execute('decode', {
       cipher: 'bacon',
       text: 'ABAABABBAAABAAAAABBAAABBBBAABA',
       letters: 24,
     })
     expect(decoded.content[0]?.text).toBe('KNIGHT')
-    const info = await getTool('cipher_info').execute('info', { cipher: 'bacon' })
+    const info = await getTool('ciphers_info').execute('info', { cipher: 'bacon' })
     expect(info.content[0]?.text).toContain('letters (number, default=26)')
   })
 
   it('executes ADFGVX with its transposition key in both directions', async () => {
     const options = { key: 'NA1C3H8TB2OME5WRPD4F6G7I9J0KLQSUVXYZ', transposition: 'PRIVACY' }
-    const encoded = await getTool('cipher_encode').execute('encode', {
+    const encoded = await getTool('ciphers_encode').execute('encode', {
       cipher: 'adfgvx',
       text: 'attack at 1200am',
       ...options,
     })
     expect(encoded.content[0]?.text).toBe('DGDDDAGDDGAFADDFDADVDVFAADVX')
-    const decoded = await getTool('cipher_decode').execute('decode', {
+    const decoded = await getTool('ciphers_decode').execute('decode', {
       cipher: 'adfgvx',
       text: 'DGDDDAGDDGAFADDFDADVDVFAADVX',
       ...options,
@@ -154,58 +154,58 @@ describe('OMP extension', () => {
   })
 
   it('executes Autokey in both directions', async () => {
-    const encoded = await getTool('cipher_encode').execute('encode', {
+    const encoded = await getTool('ciphers_encode').execute('encode', {
       cipher: 'autokey',
       text: 'ATTACKATDAWN',
       key: 'QUEENLY',
     })
     expect(encoded.content[0]?.text).toBe('QNXEPVYTWTWP')
-    const decoded = await getTool('cipher_decode').execute('decode', {
+    const decoded = await getTool('ciphers_decode').execute('decode', {
       cipher: 'autokey',
       text: 'QNXEPVYTWTWP',
       key: 'QUEENLY',
     })
     expect(decoded.content[0]?.text).toBe('ATTACKATDAWN')
-    const info = await getTool('cipher_info').execute('info', { cipher: 'autokey' })
+    const info = await getTool('ciphers_info').execute('info', { cipher: 'autokey' })
     expect(info.content[0]?.text).toContain('key (string, required)')
   })
 
   it('lists the stream ciphers in their own category', async () => {
-    const list = await getTool('cipher_info').execute('info', {})
+    const list = await getTool('ciphers_info').execute('info', {})
     expect(list.content[0]?.text).toContain('\nstream:\n  rabbit [arx]')
-    const block = await getTool('cipher_info').execute('info', { category: 'block' })
+    const block = await getTool('ciphers_info').execute('info', { category: 'block' })
     expect(block.content[0]?.text).not.toContain('rabbit')
-    const stream = await getTool('cipher_info').execute('info', { category: 'stream' })
+    const stream = await getTool('ciphers_info').execute('info', { category: 'stream' })
     expect(stream.content[0]?.text).toMatch(/^stream:\n {2}rabbit \[arx\] — Rabbit stream cipher/)
   })
 
   it('describes ciphers for discovery', async () => {
-    const list = await getTool('cipher_info').execute('info', {})
+    const list = await getTool('ciphers_info').execute('info', {})
     expect(list.content[0]?.text).toMatch(/^classical:\n {2}caesar \[substitution-shift\]/)
     expect(list.content[0]?.text).toContain('enigma [rotor]')
     expect(list.content[0]?.text).toContain('\nblock:\n  aes [substitution-permutation]')
-    const classical = await getTool('cipher_info').execute('info', { category: 'classical' })
+    const classical = await getTool('ciphers_info').execute('info', { category: 'classical' })
     expect(classical.content[0]?.text).toContain('enigma [rotor]')
     expect(classical.content[0]?.text).not.toMatch(/\baes\b/)
-    const block = await getTool('cipher_info').execute('info', { category: 'block' })
+    const block = await getTool('ciphers_info').execute('info', { category: 'block' })
     expect(block.content[0]?.text).toMatch(
       /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}aes-cbc-mac \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}des \[feistel\].*\n {2}desx \[feistel\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\].*\n {2}blowfish \[feistel\].*\n {2}idea \[lai-massey\].*\n {2}lucifer \[feistel\].*\n {2}mars \[feistel\].*\n {2}serpent \[substitution-permutation\]/,
     )
 
-    const detail = await getTool('cipher_info').execute('info', { cipher: 'playfair' })
+    const detail = await getTool('ciphers_info').execute('info', { cipher: 'playfair' })
     expect(detail.content[0]?.text).toContain('(playfair) — classical, digraph')
     expect(detail.content[0]?.text).toContain('key (string, required)')
   })
 
   it('encodes, decodes, and throws on resolution failures', async () => {
-    const encoded = await getTool('cipher_encode').execute('encode', {
+    const encoded = await getTool('ciphers_encode').execute('encode', {
       cipher: 'caesar',
       text: 'ATTACK AT DAWN',
       shift: 3,
     })
     expect(encoded.content[0]?.text).toBe('DWWDFN DW GDZQ')
 
-    const decoded = await getTool('cipher_decode').execute('decode', {
+    const decoded = await getTool('ciphers_decode').execute('decode', {
       cipher: 'caesar',
       text: 'DWWDFN DW GDZQ',
       shift: 3,
@@ -213,7 +213,7 @@ describe('OMP extension', () => {
     expect(decoded.content[0]?.text).toBe('ATTACK AT DAWN')
 
     await expect(
-      getTool('cipher_encode').execute('failure', {
+      getTool('ciphers_encode').execute('failure', {
         cipher: 'cae',
         text: 'TEST',
       }),
@@ -221,13 +221,13 @@ describe('OMP extension', () => {
   })
 
   it('enforces language, option, and resource boundaries in OMP schemas', () => {
-    const frequencySchema = getTool('cipher_frequency').parameters
+    const frequencySchema = getTool('ciphers_frequency').parameters
     expect(frequencySchema.safeParse({ text: 'TEST', lang: 'pl' }).success).toBe(true)
     expect(frequencySchema.safeParse({ text: 'TEST', lang: 'ja' }).success).toBe(true)
     expect(frequencySchema.safeParse({ text: 'TEST', lang: 'de' }).success).toBe(false)
     expect(frequencySchema.safeParse({ text: 'X'.repeat(100_001) }).success).toBe(false)
 
-    const transformSchema = getTool('cipher_encode').parameters
+    const transformSchema = getTool('ciphers_encode').parameters
     expect(transformSchema.safeParse({ cipher: 'caesar', text: 'X'.repeat(10_000) }).success).toBe(
       true,
     )
@@ -274,12 +274,12 @@ describe('OMP extension', () => {
       transformSchema.safeParse({ cipher: 'enigma', text: 'A', plugboard: 'A'.repeat(78) }).success,
     ).toBe(false)
 
-    const bruteSchema = getTool('cipher_brute_caesar').parameters
+    const bruteSchema = getTool('ciphers_caesar_brute').parameters
     expect(bruteSchema.safeParse({ text: 'X'.repeat(2_001) }).success).toBe(false)
   })
 
   it('clips a collapsed result preview and keeps the expanded one whole', async () => {
-    const tool = getTool('cipher_brute_caesar')
+    const tool = getTool('ciphers_caesar_brute')
     const result = await tool.execute('brute', { text: 'K'.repeat(2_000) })
 
     const collapsed = renderText(tool.name, result).split('\n')
@@ -292,20 +292,20 @@ describe('OMP extension', () => {
   })
 
   it('renders encode and decode results through the same preview', async () => {
-    const encoded = await getTool('cipher_encode').execute('encode', {
+    const encoded = await getTool('ciphers_encode').execute('encode', {
       cipher: 'caesar',
       text: 'A'.repeat(10_000),
       shift: 3,
     })
-    const decoded = await getTool('cipher_decode').execute('decode', {
+    const decoded = await getTool('ciphers_decode').execute('decode', {
       cipher: 'caesar',
       text: 'D'.repeat(10_000),
       shift: 3,
     })
 
     for (const [toolName, result] of [
-      ['cipher_encode', encoded],
-      ['cipher_decode', decoded],
+      ['ciphers_encode', encoded],
+      ['ciphers_decode', decoded],
     ] as const) {
       const preview = renderText(toolName, result)
       expect(preview).toHaveLength(200)
@@ -313,12 +313,12 @@ describe('OMP extension', () => {
       expect(renderText(toolName, result, { expanded: true })).toBe(result.content[0]?.text)
     }
 
-    expect(getTool('cipher_info').renderResult).toBeUndefined()
-    expect(getTool('cipher_frequency').renderResult).toBeUndefined()
+    expect(getTool('ciphers_info').renderResult).toBeUndefined()
+    expect(getTool('ciphers_frequency').renderResult).toBeUndefined()
   })
 
   it('renders the trailing spaces caesar carries over from its input', async () => {
-    const tool = getTool('cipher_encode')
+    const tool = getTool('ciphers_encode')
     const result = await tool.execute('encode', {
       cipher: 'caesar',
       text: 'ATTACK AT DAWN  ',
@@ -330,16 +330,16 @@ describe('OMP extension', () => {
   })
 
   it('brute-forces Caesar and analyzes frequencies', async () => {
-    const brute = await getTool('cipher_brute_caesar').execute('brute', { text: 'KHOOR' })
+    const brute = await getTool('ciphers_caesar_brute').execute('brute', { text: 'KHOOR' })
     expect(brute.content[0]?.text.split('\n')).toHaveLength(25)
     expect(brute.content[0]?.text).toContain('shift= 3 -> HELLO')
-    const polish = await getTool('cipher_brute_caesar').execute('brute', {
+    const polish = await getTool('ciphers_caesar_brute').execute('brute', {
       text: 'OLWZR RMFCBCQR PRMD',
       lang: 'pl',
     })
     expect(polish.content[0]?.text.split('\n')[0]).toBe('shift= 3 -> LITWO OJCZYZNO MOJA')
 
-    const frequency = await getTool('cipher_frequency').execute('frequency', {
+    const frequency = await getTool('ciphers_frequency').execute('frequency', {
       text: 'AAABBC',
       lang: 'en',
     })

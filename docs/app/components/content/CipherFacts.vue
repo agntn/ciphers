@@ -43,7 +43,7 @@ const playground = computed(() => {
 });
 
 const text = computed(() => (entry.value ? infoText(entry.value.slug) : ""));
-const title = computed(() => `cipher_info("${props.name}")`);
+const title = computed(() => `ciphers_info("${props.name}")`);
 </script>
 
 <template>

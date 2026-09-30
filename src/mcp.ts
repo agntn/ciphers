@@ -288,25 +288,25 @@ const cipherInputSchema = Type.Object({
 
 const tools: ToolDefinition[] = [
   {
-    name: 'cipher_encode',
+    name: 'ciphers_encode',
     title: 'Cipher Encode',
-    description: 'Encode text with an exact-name built-in cipher. cipher_info lists the options.',
+    description: 'Encode text with an exact-name built-in cipher. ciphers_info lists the options.',
     inputSchema: cipherInputSchema,
     validate: cipherInputError,
     execute: (args) => transformCipher(ciphersLibrary, 'encode', args as CipherToolParams),
   },
   {
-    name: 'cipher_decode',
+    name: 'ciphers_decode',
     title: 'Cipher Decode',
-    description: 'Decode text with an exact-name built-in cipher. cipher_info lists the options.',
+    description: 'Decode text with an exact-name built-in cipher. ciphers_info lists the options.',
     inputSchema: cipherInputSchema,
     validate: cipherInputError,
     execute: (args) => transformCipher(ciphersLibrary, 'decode', args as CipherToolParams),
   },
   {
-    name: 'cipher_brute_caesar',
+    name: 'ciphers_caesar_brute',
     title: 'Brute Force Caesar',
-    description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; cipher_decode with that shift returns the whole text.`,
+    description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; ciphers_decode with that shift returns the whole text.`,
     inputSchema: Type.Object({
       text: Type.String({
         maxLength: MAX_BRUTE_TEXT_LENGTH,
@@ -327,7 +327,7 @@ const tools: ToolDefinition[] = [
       ),
   },
   {
-    name: 'cipher_frequency',
+    name: 'ciphers_frequency',
     title: 'Frequency Analysis',
     description:
       'Analyze A-Z letter frequencies, compare their order with English, Polish or Japanese romaji, and report the index of coincidence.',
@@ -347,7 +347,7 @@ const tools: ToolDefinition[] = [
       ),
   },
   {
-    name: 'cipher_info',
+    name: 'ciphers_info',
     title: 'Cipher Info',
     description:
       "List the built-in ciphers by category, or show one cipher's options, category, family, and keyspace.",

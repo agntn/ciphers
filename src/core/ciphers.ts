@@ -30,6 +30,7 @@ export const builtinCiphers = [
   'aes-lrw',
   'aes-xts',
   'aes-cbc-mac',
+  'aes-passphrase',
   'rijndael',
   'des',
   'desx',

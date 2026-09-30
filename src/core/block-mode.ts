@@ -50,7 +50,13 @@ type BlockShape = Pick<
   'name' | 'label' | 'blockSize' | 'padding' | 'keyDigits' | 'keyError'
 >
 
-function toHex(bytes: Bytes): string {
+/**
+ * Bytes as lowercase hex, two digits each.
+ *
+ * @param bytes - Any bytes.
+ * @returns {string} The hex.
+ */
+export function toHex(bytes: Bytes): string {
   return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
@@ -124,12 +130,29 @@ function readKey(
   return { hex, bytes: fromHex(hex) }
 }
 
-function pad(bytes: Bytes, blockSize: number): Bytes {
+/**
+ * Add PKCS#7 padding: 1 to `blockSize` bytes, each holding the count.
+ *
+ * @param bytes - Any number of bytes.
+ * @param blockSize - Block length in bytes.
+ * @returns {Bytes} Whole blocks.
+ */
+export function pad(bytes: Bytes, blockSize: number): Bytes {
   const fill = blockSize - (bytes.length % blockSize)
   return [...bytes, ...Array.from({ length: fill }, () => fill)]
 }
 
-function unpad(cipher: BlockShape, bytes: Bytes): Bytes {
+/**
+ * Strip PKCS#7 padding, which is how a wrong key shows after decryption.
+ *
+ * @param cipher - Name, label and block length for the error.
+ * @param bytes - Decrypted whole blocks.
+ * @returns {Bytes} The bytes before the padding.
+ */
+export function unpad(
+  cipher: Pick<BlockShape, 'name' | 'label' | 'blockSize'>,
+  bytes: Bytes,
+): Bytes {
   const fill = bytes.at(-1) ?? 0
   const valid =
     fill >= 1 && fill <= cipher.blockSize && bytes.slice(-fill).every((byte) => byte === fill)

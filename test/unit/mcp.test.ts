@@ -317,6 +317,26 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('opens the CryptoJS passphrase format through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({
+      name: 'ciphers_info',
+      arguments: { cipher: 'aes-passphrase' },
+    })
+    expect(onlyText(info.content)).toContain('keyLength (number, default=256)')
+    const wide = { cipher: 'aes-passphrase', key: 'secret', keyLength: 1024, iterations: 10_000 }
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { ...wide, text: 'ATTACK AT DAWN', salt: '0123456789abcdef' },
+    })
+    expect(onlyText(encoded.content)).toBe('U2FsdGVkX18BI0VniavN7/GNI6WzbZKfYzF61Y37l9k=')
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { ...wide, text: 'U2FsdGVkX18BI0VniavN7/GNI6WzbZKfYzF61Y37l9k=' },
+    })
+    expect(onlyText(decoded.content)).toBe('ATTACK AT DAWN')
+  })
+
   it('discovers and executes Rabbit with and without an IV through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'rabbit' } })
@@ -773,6 +793,9 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'serpent', text: 'abc' }],
       ['key', { cipher: 'serpent', text: 'abc', key: '00'.repeat(20) }],
       ['key', { cipher: 'serpent', text: 'abc', key: '00'.repeat(33) }],
+      ['key', { cipher: 'aes-passphrase', text: 'abc' }],
+      ['keyLength', { cipher: 'aes-passphrase', text: 'abc', key: 'k', keyLength: 100 }],
+      ['iterations', { cipher: 'aes-passphrase', text: 'abc', key: 'k', iterations: 100_001 }],
       ['key', { cipher: 'rabbit', text: 'abc' }],
       ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(15) }],
       ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(17) }],
@@ -818,7 +841,7 @@ describe('Ciphers MCP server', () => {
     const block = await client.callTool({ name: 'ciphers_info', arguments: { category: 'block' } })
     expect(block.isError).not.toBe(true)
     expect(onlyText(block.content)).toMatch(
-      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}aes-cbc-mac \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}des \[feistel\].*\n {2}desx \[feistel\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\].*\n {2}blowfish \[feistel\].*\n {2}idea \[lai-massey\].*\n {2}lucifer \[feistel\].*\n {2}mars \[feistel\].*\n {2}serpent \[substitution-permutation\]/,
+      /^block:\n {2}aes \[substitution-permutation\].*\n {2}aes-cbc \[substitution-permutation\].*\n {2}aes-cfb \[substitution-permutation\].*\n {2}aes-ofb \[substitution-permutation\].*\n {2}aes-ctr \[substitution-permutation\].*\n {2}aes-ccm \[substitution-permutation\].*\n {2}aes-ocb \[substitution-permutation\].*\n {2}aes-lrw \[substitution-permutation\].*\n {2}aes-xts \[substitution-permutation\].*\n {2}aes-cbc-mac \[substitution-permutation\].*\n {2}aes-passphrase \[substitution-permutation\].*\n {2}rijndael \[substitution-permutation\].*\n {2}des \[feistel\].*\n {2}desx \[feistel\].*\n {2}triple-des \[feistel\].*\n {2}triple-des-cbc \[feistel\].*\n {2}blowfish \[feistel\].*\n {2}idea \[lai-massey\].*\n {2}lucifer \[feistel\].*\n {2}mars \[feistel\].*\n {2}serpent \[substitution-permutation\]/,
     )
     expect(onlyText(block.content)).not.toContain('rabbit')
 

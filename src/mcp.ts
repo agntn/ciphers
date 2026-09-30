@@ -106,6 +106,10 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
+    ciphers: ['aes-passphrase'],
+    required: ['key'],
+  },
+  {
     ciphers: ['rijndael'],
     required: ['key'],
     key: {
@@ -261,6 +265,20 @@ const cipherInputSchema = Type.Object({
   ),
   tagLength: Type.Optional(
     Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
+  ),
+  keyLength: Type.Optional(
+    Type.Integer({
+      minimum: 128,
+      maximum: 1024,
+      multipleOf: 32,
+      description: OPTION_DESCRIPTIONS.keyLength,
+    }),
+  ),
+  iterations: Type.Optional(
+    Type.Integer({ minimum: 1, maximum: 100_000, description: OPTION_DESCRIPTIONS.iterations }),
+  ),
+  salt: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.salt }),
   ),
   endian: Type.Optional(Type.Enum(['big', 'little'], { description: OPTION_DESCRIPTIONS.endian })),
   preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),

@@ -189,6 +189,18 @@ export interface AesXtsOptions extends CipherBaseOptions {
   tweak?: string
 }
 
+/** AES passphrase options, as CryptoJS.AES.encrypt(message, passphrase) takes them. */
+export interface AesPassphraseOptions extends CipherBaseOptions {
+  /** The passphrase, any text, read as UTF-8. */
+  key: string
+  /** Key length in bits, 128 to 1024 in steps of 32. Default: 256. */
+  keyLength?: number
+  /** MD5 passes per derived block, 1 to 100000. Default: 1. */
+  iterations?: number
+  /** Encoding only: 16 hex digits. Default: random. */
+  salt?: string
+}
+
 /** Rijndael options. */
 export interface RijndaelOptions extends CipherBaseOptions {
   /** 32, 40, 48, 56 or 64 hex digits for a 128 to 256-bit key; case and spaces are ignored. */

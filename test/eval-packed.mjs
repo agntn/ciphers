@@ -485,6 +485,27 @@ try {
     ]).trim(),
     'ATTACK AT DAWN',
   )
+  const wide = ['--key', 'secret', '--key-length', '1024', '--iterations', '10000']
+  assert.equal(
+    run(binPath, [
+      'encode',
+      'aes-passphrase',
+      'ATTACK AT DAWN',
+      ...wide,
+      '--salt',
+      '0123456789abcdef',
+    ]).trim(),
+    'U2FsdGVkX18BI0VniavN7/GNI6WzbZKfYzF61Y37l9k=',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'aes-passphrase',
+      'U2FsdGVkX18BI0VniavN7/GNI6WzbZKfYzF61Y37l9k=',
+      ...wide,
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   const rabbitKey = '23c2731e8b5469fd8dabb5bc592a0f3a'
   const rabbitFlags = ['--key', rabbitKey, '--iv', '712906405ef03201', '--endian', 'little']
   assert.equal(

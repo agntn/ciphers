@@ -125,6 +125,20 @@ const cipherParams = Type.Object({
   tagLength: Type.Optional(
     Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
   ),
+  keyLength: Type.Optional(
+    Type.Integer({
+      minimum: 128,
+      maximum: 1024,
+      multipleOf: 32,
+      description: OPTION_DESCRIPTIONS.keyLength,
+    }),
+  ),
+  iterations: Type.Optional(
+    Type.Integer({ minimum: 1, maximum: 100_000, description: OPTION_DESCRIPTIONS.iterations }),
+  ),
+  salt: Type.Optional(
+    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.salt }),
+  ),
   endian: Type.Optional(Type.Enum(['big', 'little'], { description: OPTION_DESCRIPTIONS.endian })),
   preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
   stripNonAlpha: Type.Optional(
@@ -169,6 +183,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         'AES-LRW (aes-lrw) takes the AES key and a 32-digit tweak key in one key, and tweak as the first block index.',
         'AES-XTS (aes-xts) takes two AES keys in one key, the data key then the tweak key (64 or 128 hex digits), and tweak as the data unit number; text must be at least 16 bytes and nothing is padded.',
         'AES-CBC-MAC (aes-cbc-mac) takes only the AES key and encrypts nothing; the hex out is the text bytes plus a 16-byte tag, and decoding fails unless the tag matches.',
+        'AES passphrase (aes-passphrase) reads and writes what CryptoJS.AES.encrypt(message, passphrase) gives, base64 starting U2FsdGVkX1: key is the passphrase as plain text, keyLength is CryptoJS keySize times 32 (default 256) and iterations its EvpKDF iterations (default 1); salt fixes the otherwise random salt when encoding.',
         'Rijndael (rijndael) takes a key of 32, 40, 48, 56 or 64 hex digits and blockSize in bits (128, 160, 192, 224 or 256, default 128, which is AES).',
         'DES (des) works the same way with a key of 16 hex digits.',
         'DESX (desx) is DES between two XORs; its key is 48 hex digits, the DES key, then the input and the output whitening key.',

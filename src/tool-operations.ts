@@ -27,6 +27,9 @@ export type CipherToolParams = {
   blockSize?: number
   endian?: 'big' | 'little'
   tagLength?: number
+  keyLength?: number
+  iterations?: number
+  salt?: string
   preserveCase?: boolean
   stripNonAlpha?: boolean
   positions?: string
@@ -62,7 +65,7 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
 export const OPTION_DESCRIPTIONS = {
   cipher: `Exact built-in cipher name: ${builtinCiphers.join(', ')}`,
   category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
-  key: 'Keyword, or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, 32 for rabbit. Required by vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent and rabbit; optional for polybius, adfgvx and bifid',
+  key: 'Keyword, the passphrase for aes-passphrase (any text), or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, 32 for rabbit. Required by vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, aes-passphrase, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent and rabbit; optional for polybius, adfgvx and bifid',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
   iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it)',
   endian:
@@ -77,6 +80,11 @@ export const OPTION_DESCRIPTIONS = {
   aad: 'AES-CCM and AES-OCB only: associated data in hex, covered by the tag but not encrypted; decoding needs the same value (default none)',
   tagLength:
     'AES-CCM and AES-OCB only: tag length in bits, 32 to 128 in steps of 16 for AES-CCM, 64, 96 or 128 for AES-OCB (default 128); decoding needs the same value',
+  keyLength:
+    'AES-passphrase only: key length in bits, 128 to 1024 in steps of 32, CryptoJS keySize times 32 (default 256); decoding needs the same value',
+  iterations:
+    'AES-passphrase only: MD5 passes per derived block, 1 to 100000, CryptoJS EvpKDF iterations (default 1); decoding needs the same value',
+  salt: 'AES-passphrase encoding only: 16 hex digits (default random); decoding reads it from the ciphertext',
   period:
     'Block length. Required by alberti (letters before the disk rotates); optional for bifid (default 5)',
 } as const
@@ -100,6 +108,9 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'blockSize',
     'endian',
     'tagLength',
+    'keyLength',
+    'iterations',
+    'salt',
     'preserveCase',
     'stripNonAlpha',
     'positions',

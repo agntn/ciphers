@@ -11,6 +11,7 @@ import { aesLrw } from '../../src/ciphers/block/aes/lrw.ts'
 import { aesXts } from '../../src/ciphers/block/aes/xts.ts'
 import { aesCbcMac } from '../../src/ciphers/block/aes/cbc-mac.ts'
 import { aesCbc } from '../../src/ciphers/block/aes/cbc.ts'
+import { evpBytesToKey } from '../../src/ciphers/block/aes/passphrase.ts'
 import { aesCfb } from '../../src/ciphers/block/aes/cfb.ts'
 import { aesOfb } from '../../src/ciphers/block/aes/ofb.ts'
 import { aesCtr } from '../../src/ciphers/block/aes/ctr.ts'
@@ -29,8 +30,8 @@ import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 
 describe('registry', () => {
-  it('registers all 41 ciphers', () => {
-    expect(ciphers()).toHaveLength(41)
+  it('registers all 42 ciphers', () => {
+    expect(ciphers()).toHaveLength(42)
     for (const name of [
       'caesar',
       'rot13',
@@ -56,6 +57,7 @@ describe('registry', () => {
       'aes-lrw',
       'aes-xts',
       'aes-cbc-mac',
+      'aes-passphrase',
       'rijndael',
       'des',
       'desx',
@@ -818,6 +820,7 @@ describe('edge cases', () => {
     'aes-lrw': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'aes-xts': { key: '000102030405060708090a0b0c0d0e0f'.repeat(2) },
     'aes-cbc-mac': { key: '000102030405060708090a0b0c0d0e0f' },
+    'aes-passphrase': { key: 'secret' },
     rijndael: { key: '000102030405060708090a0b0c0d0e0f', blockSize: 256 },
     des: { key: '0123456789abcdef' },
     desx: { key: '0123456789abcdef'.repeat(3) },
@@ -2565,6 +2568,90 @@ describe('aes-cbc-mac', () => {
       for (const bad of ['00'.repeat(15), '00'.repeat(20), 'g'.repeat(32), 12]) {
         expect(() => mac[operation]('', { key: bad })).toThrow(InvalidOptionError)
       }
+    }
+  })
+})
+
+describe('aes-passphrase', () => {
+  const aes = create('aes-passphrase')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const salt = '0123456789abcdef'
+  const dawn = 'U2FsdGVkX18BI0VniavN73vYVeKsrRmd74V3dwhYQ3E='
+  const wide = 'U2FsdGVkX18BI0VniavN70YX2WYeKixus3JUmT8oEXqR/NZ3H+g78SrpV2crYs3H'
+
+  /** `openssl enc -aes-256-cbc -md md5 -S 0123456789abcdef -pass pass:secret -P`. */
+  it('derives key and IV as EVP_BytesToKey over MD5 does', () => {
+    expect(evpBytesToKey([...Buffer.from('secret')], hex(salt), 48, 1)).toEqual(
+      hex(
+        '5f772a83139a8d48ba45597c721ab6f2d37975c93f36a944cef01de4be7eb5d4' +
+          '0c72e5c512bf687b6331619b8545ea9d',
+      ),
+    )
+  })
+
+  /** Base64 from crypto-js 4.2.0 with key and IV from its EvpKDF; `openssl enc -md md5` agrees at 128 and 256. */
+  it('matches CryptoJS for every key length it is given', () => {
+    for (const [text, options, expected] of [
+      ['ATTACK AT DAWN', {}, dawn],
+      ['ATTACK AT DAWN', { keyLength: 128 }, 'U2FsdGVkX18BI0VniavN7/r+y5SW2eJwFMs8YnF9PlY='],
+      ['ATTACK AT DAWN', { keyLength: 192 }, 'U2FsdGVkX18BI0VniavN70PB4saQjhU/ierpWovK3Uk='],
+      ['Zażółć gęślą jaźń', { keyLength: 1024, iterations: 10_000 }, wide],
+    ] as const) {
+      expect(aes.encode(text, { key: 'secret', salt, ...options }).text).toBe(expected)
+      expect(aes.decode(expected, { key: 'secret', ...options }).text).toBe(text)
+    }
+  })
+
+  it('reads the salt from the ciphertext', () => {
+    expect(aes.decode('U2FsdGVkX1/8SH4W60kQBi0VYxWiwrLhysleV0O88xw=', { key: 'secret' })).toEqual({
+      text: 'ATTACK AT DAWN',
+      cipher: 'aes-passphrase',
+      operation: 'decode',
+      options: {
+        key: 'secret',
+        mode: 'cbc',
+        salt: 'fc487e16eb491006',
+        keyLength: 256,
+        iterations: 1,
+      },
+    })
+  })
+
+  it('draws a new salt for every encoding unless one is given', () => {
+    const first = aes.encode('ATTACK AT DAWN', { key: 'secret' })
+    const second = aes.encode('ATTACK AT DAWN', { key: 'secret' })
+    expect(first.text).toMatch(/^U2FsdGVkX1/)
+    expect(first.text).not.toBe(second.text)
+    expect(first.options.salt).toMatch(/^[0-9a-f]{16}$/)
+    expect(aes.decode(first.text, { key: 'secret' }).text).toBe('ATTACK AT DAWN')
+  })
+
+  it('names what is wrong with a ciphertext it cannot open', () => {
+    expect(() => aes.decode(dawn, { key: 'wrong' })).toThrow(
+      /padding: wrong passphrase, keyLength or iterations/,
+    )
+    expect(() => aes.decode(wide, { key: 'secret', keyLength: 1024 })).toThrow(CipherError)
+    expect(() => aes.decode('not base64!', { key: 'secret' })).toThrow(/must be base64/)
+    expect(() => aes.decode('AAAAAAAAAAAAAAAAAAAAAA==', { key: 'secret' })).toThrow(/Salted__/)
+    expect(() => aes.decode('U2FsdGVkX18BI0VniavN7w==', { key: 'secret' })).toThrow(
+      /whole 16-byte blocks, got 0 bytes/,
+    )
+    expect(() => aes.decode(dawn.slice(0, -4), { key: 'secret' })).toThrow(/got 14 bytes/)
+  })
+
+  it('refuses options outside what the format takes', () => {
+    expect(() => aes.encode('x', {})).toThrow(MissingOptionError)
+    for (const options of [
+      { key: 'secret', keyLength: 96 },
+      { key: 'secret', keyLength: 100 },
+      { key: 'secret', keyLength: 1056 },
+      { key: 'secret', iterations: 0 },
+      { key: 'secret', iterations: 1.5 },
+      { key: 'secret', iterations: 100_001 },
+      { key: 'secret', salt: '0123' },
+    ]) {
+      expect(() => aes.encode('x', options)).toThrow(InvalidOptionError)
     }
   })
 })

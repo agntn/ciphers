@@ -51,6 +51,7 @@ const PRESENTATION: Record<
   "aes-lrw": { icon: "i-lucide-blocks", blurb: "AES with every block masked by its position", sample: "ATTACK AT DAWN", options: { key: "4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87" } },
   "aes-xts": { icon: "i-lucide-blocks", blurb: "AES for disk sectors, the last block stealing from the one before", sample: "ATTACK AT DAWN FROM THE NORTH", options: { key: "2718281828459045235360287471352631415926535897932384626433832795" } },
   "aes-cbc-mac": { icon: "i-lucide-blocks", blurb: "AES over the text for a tag, the text itself left as it is", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c" } },
+  "aes-passphrase": { icon: "i-lucide-blocks", blurb: "What CryptoJS leaves on a page, AES keyed by a password", sample: "ATTACK AT DAWN", options: { key: "secret", salt: "0123456789abcdef" } },
   rijndael: { icon: "i-lucide-blocks", blurb: "AES before NIST cut it down, blocks up to 256 bits", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c762e7160f38b4da56a784d9045190cfe", blockSize: 256 } },
   des: { icon: "i-lucide-split", blurb: "The 1977 standard, 56 key bits and 16 Feistel rounds", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdef" } },
   desx: { icon: "i-lucide-split", blurb: "DES between two XORs, 184 key bits for the price of one pass", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeff0e1d2c3b4a596871122334455667788" } },

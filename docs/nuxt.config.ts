@@ -12,6 +12,8 @@ export default defineNuxtConfig({
     "@agntn/ciphers": resolve(librarySource, "index.ts"),
     /** The text the agent tools answer with; the module imports only the library, so the page runs it too. */
     "#tool-operations": resolve(librarySource, "tool-operations.ts"),
+    /** MARS imports SHA-1 from it, and a deploy installs only this directory. */
+    "@agntn/hashes": resolve(import.meta.dirname, "node_modules/@agntn/hashes"),
   },
   vite: {
     build: { target: "es2024" },

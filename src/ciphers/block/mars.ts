@@ -1,3 +1,4 @@
+import { sha1 } from '@agntn/hashes'
 import type { CipherInfo } from '../../core/types.ts'
 import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 
@@ -11,39 +12,6 @@ let sbox: readonly number[] | undefined
 function rotl(x: number, n: number): number {
   n &= 31
   return ((x << n) | (x >>> (32 - n))) >>> 0
-}
-
-/**
- * SHA-1 of a message short enough for one 64-byte block, which the 16 bytes an S-box row hashes
- * always are.
- *
- * @param message - At most 55 bytes.
- * @returns {number[]} The five digest words, big-endian as FIPS 180 reads them.
- */
-function sha1(message: readonly number[]): number[] {
-  const block = new Uint8Array(64)
-  block.set(message)
-  block[message.length] = 0x80
-  new DataView(block.buffer).setUint32(60, message.length * 8)
-  const w = Array.from({ length: 80 }, (_, i) =>
-    i < 16 ? new DataView(block.buffer).getUint32(4 * i) : 0,
-  )
-  for (let i = 16; i < 80; i++) w[i] = rotl(w[i - 3]! ^ w[i - 8]! ^ w[i - 14]! ^ w[i - 16]!, 1)
-  const h = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]
-  let [a, b, c, d, e] = h as [number, number, number, number, number]
-  for (let i = 0; i < 80; i++) {
-    const [f, k] =
-      i < 20
-        ? [(b & c) | (~b & d), 0x5a827999]
-        : i < 40
-          ? [b ^ c ^ d, 0x6ed9eba1]
-          : i < 60
-            ? [(b & c) | (b & d) | (c & d), 0x8f1bbcdc]
-            : [b ^ c ^ d, 0xca62c1d6]
-    const t = (rotl(a, 5) + f + e + k + w[i]!) >>> 0
-    ;[e, d, c, b, a] = [d, c, rotl(b, 30), a, t]
-  }
-  return [a, b, c, d, e].map((word, i) => (word + h[i]!) >>> 0)
 }
 
 /**
@@ -64,15 +32,9 @@ function marsSbox(): readonly number[] {
   }
   for (let i = 0; words.length < 512; i++) {
     input.setUint32(0, 5 * i, true)
-    for (const word of sha1([...new Uint8Array(input.buffer)])) {
-      // The digest is bytes; MARS reads them back as little-endian words.
-      words.push(
-        ((word & 0xff) << 24) |
-          (((word >>> 8) & 0xff) << 16) |
-          (((word >>> 16) & 0xff) << 8) |
-          (word >>> 24),
-      )
-    }
+    const digest = sha1(new Uint8Array(input.buffer))
+    const view = new DataView(digest.buffer, digest.byteOffset, digest.byteLength)
+    for (let j = 0; j < digest.length; j += 4) words.push(view.getUint32(j, true))
   }
   words.length = 512
   const zeroBytes = (x: number) =>

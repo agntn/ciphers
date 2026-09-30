@@ -1,5 +1,4 @@
 import type { CipherBaseOptions } from './types.ts'
-import { CipherError } from './errors.ts'
 
 /** Shared utilities extracted from cipher implementations. */
 
@@ -184,29 +183,4 @@ export function cipherCacheKey(
   options?: Readonly<Record<string, unknown>>,
 ): string {
   return `${operation}|${text}|${JSON.stringify(options ?? {})}`
-}
-
-// ── Error Handling ─────────────────────────────────────────────────────
-
-/**
- * Wrap a cipher operation with standardized error handling.
- * Catches any error and normalizes it via normalizeError.
- *
- * @param name - Cipher name included in the fallback error.
- * @param fn - Cipher operation to execute.
- * @returns {T} The operation result.
- */
-export function withCipherError<T>(name: string, fn: () => T): T {
-  try {
-    return fn()
-  } catch (e) {
-    if (e instanceof CipherError) throw e
-    const msg = e instanceof Error ? e.message : String(e)
-    throw new (class extends Error {
-      name = 'CipherError'
-      constructor() {
-        super(`[${name}] ${msg}`)
-      }
-    })()
-  }
 }

@@ -1,15 +1,30 @@
-import { analyzeFrequency, ciphers, create, resolveCipher } from "@agntn/ciphers";
+import {
+  InvalidOptionError,
+  analyzeFrequency,
+  ciphers,
+  create,
+  estimatePeriod,
+  resolveCipher,
+} from "@agntn/ciphers";
 import {
   bruteForceCaesar,
   formatCipherInfo,
   formatFrequencyAnalysis,
+  formatPeriodEstimate,
   rankCaesarShifts,
   transformCipher,
   type CipherToolParams,
 } from "#tool-operations";
 
 /** The library as the tool executors take it. The same functions the MCP server and the extensions pass. */
-const LIBRARY = { analyzeFrequency, ciphers, create, resolveCipher };
+const LIBRARY = {
+  InvalidOptionError,
+  analyzeFrequency,
+  ciphers,
+  create,
+  estimatePeriod,
+  resolveCipher,
+};
 
 /** The agent tools. Same names over MCP, Pi and OMP. */
 export const TOOLS = [
@@ -68,6 +83,23 @@ export function bruteRows(
  */
 export function frequencyText(text: string, language?: "en" | "pl" | "ja"): string {
   return formatFrequencyAnalysis(LIBRARY, text, language).content[0]!.text;
+}
+
+/**
+ * The text `ciphers_period_estimate` hands a model.
+ *
+ * @param {string} text - Vigenère ciphertext.
+ * @param {"en" | "pl" | "ja"} [language] - Language the plaintext should read in.
+ * @param {number} [maxPeriod] - Longest key length to try.
+ * @returns {string} `content[0].text`.
+ * @throws {InvalidOptionError} When `maxPeriod` is out of range.
+ */
+export function periodText(
+  text: string,
+  language?: "en" | "pl" | "ja",
+  maxPeriod?: number,
+): string {
+  return formatPeriodEstimate(LIBRARY, text, language, maxPeriod).content[0]!.text;
 }
 
 /**

@@ -3,16 +3,26 @@ import {
   CipherError,
   analyzeFrequency,
   create,
+  estimatePeriod,
   type CipherInfo,
   type FrequencyAnalysis,
   type FrequencyLanguage,
+  type PeriodAnalysis,
 } from "@agntn/ciphers";
+import { OPTION_DESCRIPTIONS, PERIOD_LINES } from "#tool-operations";
 import { CIPHERS, cipherEntry, familyLabel, keyspaceParts } from "../../utils/ciphers";
 import { optionFlags, optionLiteral, shellArg } from "../../utils/format";
 import { jsonTokens, shellTokens } from "../../utils/tokens";
-import { bruteRows, bruteText, frequencyText, infoText, transformText } from "../../utils/tools";
+import {
+  bruteRows,
+  bruteText,
+  frequencyText,
+  infoText,
+  periodText,
+  transformText,
+} from "../../utils/tools";
 
-type Operation = "encode" | "decode" | "brute" | "frequency" | "info";
+type Operation = "encode" | "decode" | "brute" | "frequency" | "period" | "info";
 
 const OPERATIONS: ReadonlyArray<{
   key: Operation;
@@ -50,6 +60,14 @@ const OPERATIONS: ReadonlyArray<{
     about: "analyzeFrequency(text, lang): letter counts, the expected order and the index of coincidence.",
   },
   {
+    key: "period",
+    label: "Period",
+    tool: "ciphers_period_estimate",
+    command: "period",
+    about:
+      "estimatePeriod(text, lang, maxPeriod): Vigenère key lengths by column IoC and Kasiski, with keys for the top three.",
+  },
+  {
     key: "info",
     label: "Info",
     tool: "ciphers_info",
@@ -57,6 +75,10 @@ const OPERATIONS: ReadonlyArray<{
     about: "create(cipher).info(): the options a cipher takes, their defaults and the keyspace.",
   },
 ];
+
+/** Example 1.11 from Stinson's Cryptography: Theory and Practice, the vector in the analysis guide. */
+const PERIOD_SAMPLE =
+  "CHREEVOAHMAERATBIAXXWTNXBEEOPHBSBQMQEQERBWRVXUOAKXAOSXXWEAHBWGJMMQMNKGRFVGXWTRZXWIAKLXFPSKAUTEMNDCMGTSXMXBTUIADNGMGPSRELXNJELXVRVPRTULHDNQWTWDTYGBPHXTFALJHASVBFXNGLLCHRZBWELEKMSJIKNBHWRJGNMGJSGLXFEYPHAGNRBIEQJTAMRVLCRREMNDGLXRRIMGNSNRWCHRQHAEYEVTAQEBBIPEEWEVKAKOEWADREMXMTBHHCHRTKDNVRZCHRCLQOHPWQAIIWXNRMGWOIIFKEE";
 
 const LANGUAGES: Array<{ label: string; value: FrequencyLanguage }> = [
   { label: "English · en", value: "en" },
@@ -74,6 +96,7 @@ const values = reactive<Record<string, string>>({ key: "LEMON" });
 const preserveCase = ref(true);
 const stripNonAlpha = ref(false);
 const language = ref<FrequencyLanguage>("en");
+const maxPeriod = ref("");
 
 const entry = computed(() => cipherEntry(cipherName.value) ?? CIPHERS[0]!);
 const optionFields = computed(() => entry.value.info.options);
@@ -81,7 +104,14 @@ const needsCipher = computed(
   () => operation.value === "encode" || operation.value === "decode" || operation.value === "info",
 );
 const isTransform = computed(() => operation.value === "encode" || operation.value === "decode");
-const needsLanguage = computed(() => operation.value === "brute" || operation.value === "frequency");
+const needsLanguage = computed(
+  () =>
+    operation.value === "brute" || operation.value === "frequency" || operation.value === "period",
+);
+/** Left empty, the library tries lengths up to its own default. */
+const maxPeriodValue = computed(() =>
+  maxPeriod.value.trim() === "" ? undefined : Number(maxPeriod.value),
+);
 /** The block and stream ciphers encrypt bytes; case and stripping don't apply to them. */
 const lettersOnly = computed(() => entry.value.info.category === "classical");
 
@@ -120,6 +150,11 @@ interface FrequencyAnswer {
   analysis: FrequencyAnalysis | undefined;
   text: string;
 }
+interface PeriodAnswer {
+  kind: "period";
+  analysis: PeriodAnalysis;
+  text: string;
+}
 interface InfoAnswer {
   kind: "info";
   info: CipherInfo;
@@ -131,7 +166,8 @@ interface ErrorAnswer {
   message: string;
   text: string;
 }
-type Answer = TransformAnswer | BruteAnswer | FrequencyAnswer | InfoAnswer | ErrorAnswer;
+type Answer =
+  TransformAnswer | BruteAnswer | FrequencyAnswer | PeriodAnswer | InfoAnswer | ErrorAnswer;
 
 const current = computed(() => OPERATIONS.find((row) => row.key === operation.value)!);
 const position = computed(() => OPERATIONS.findIndex((row) => row.key === operation.value) + 1);
@@ -168,6 +204,11 @@ const answer = computed<Answer>(() => {
           analysis: analyzeFrequency(text.value, language.value),
           text: frequencyText(text.value, language.value),
         };
+      case "period": {
+        const response = periodText(text.value, language.value, maxPeriodValue.value);
+        const analysis = estimatePeriod(text.value, language.value, maxPeriodValue.value);
+        return { kind: "period", analysis, text: response };
+      }
       case "info":
         return { kind: "info", info: entry.value.info, text: infoText(entry.value.slug) };
       default: {
@@ -195,7 +236,11 @@ const answer = computed<Answer>(() => {
 /** The same call as one CLI line. */
 const cliLine = computed(() => {
   if (needsLanguage.value) {
-    return `ciphers ${current.value.command} ${shellArg(text.value)} --lang ${language.value}`;
+    const limit =
+      operation.value === "period" && maxPeriodValue.value !== undefined
+        ? ` --max-period ${maxPeriod.value.trim()}`
+        : "";
+    return `ciphers ${current.value.command} ${shellArg(text.value)} --lang ${language.value}${limit}`;
   }
   if (operation.value === "info") return `ciphers info ${entry.value.slug}`;
   const flags = optionFlags(options.value);
@@ -203,6 +248,9 @@ const cliLine = computed(() => {
 });
 
 const toolArgs = computed((): Record<string, unknown> => {
+  if (operation.value === "period" && maxPeriodValue.value !== undefined) {
+    return { text: text.value, lang: language.value, maxPeriod: maxPeriodValue.value };
+  }
   if (needsLanguage.value) return { text: text.value, lang: language.value };
   if (operation.value === "info") return { cipher: entry.value.slug };
   return { cipher: entry.value.slug, text: text.value, ...options.value };
@@ -230,6 +278,18 @@ const outputUnit = computed(() => {
 
 const keyspace = computed(() => keyspaceParts(entry.value.info));
 
+/** The three factors that divide the most trigram distances, as the readout prints them. */
+const kasiski = computed(() => {
+  if (answer.value.kind !== "period") return "";
+  const { distances, factors } = answer.value.analysis;
+  if (distances === 0) return "no trigram repeats";
+  return factors
+    .filter((row) => row.distances > 0)
+    .slice(0, 3)
+    .map((row) => `${row.factor} (${row.distances})`)
+    .join(" · ");
+});
+
 /** The cursor and the scan run once per answer, not once per keystroke that changes nothing. */
 const scan = ref(0);
 watch(
@@ -246,6 +306,13 @@ function selectCipher(slug: string) {
   if (sample) {
     for (const [name, value] of Object.entries(sample.options)) values[name] = String(value);
   }
+}
+
+/** Open the decode with the key the estimate ranked first, on the same text. */
+function decodeWith(key: string) {
+  selectCipher("vigenere");
+  values.key = key;
+  operation.value = "decode";
 }
 
 function loadSample(slug: string) {
@@ -284,6 +351,9 @@ function readQuery(query: Record<string, unknown>) {
   if (query.preserveCase === "0") preserveCase.value = false;
   if (query.stripNonAlpha === "1") stripNonAlpha.value = true;
   if (isFrequencyLanguage(query.lang)) language.value = query.lang;
+  if (typeof query.maxPeriod === "string" && /^\d+$/.test(query.maxPeriod)) {
+    maxPeriod.value = query.maxPeriod;
+  }
 }
 
 const shareQuery = computed(() => {
@@ -299,6 +369,9 @@ const shareQuery = computed(() => {
     if (lettersOnly.value && stripNonAlpha.value) query.stripNonAlpha = "1";
   }
   if (needsLanguage.value) query.lang = language.value;
+  if (operation.value === "period" && maxPeriod.value.trim()) {
+    query.maxPeriod = maxPeriod.value.trim();
+  }
   return query;
 });
 
@@ -388,7 +461,7 @@ const shareLink = computed(() => {
               <span aria-hidden="true"
                 >[
                 {{
-                  [needsCipher && "cipher", operation !== "info" && "text", isTransform && optionFields.length && "options", needsLanguage && "lang"]
+                  [needsCipher && "cipher", operation !== "info" && "text", isTransform && optionFields.length && "options", needsLanguage && "lang", operation === "period" && "maxPeriod"]
                     .filter(Boolean)
                     .join(" · ")
                 }}
@@ -478,6 +551,24 @@ const shareLink = computed(() => {
                   />
                 </dd>
               </div>
+              <div v-if="operation === 'period'">
+                <dt>
+                  <label for="playground-max-period"
+                    >maxPeriod<span class="playground-optional">?</span></label
+                  >
+                </dt>
+                <dd>
+                  <UInput
+                    id="playground-max-period"
+                    v-model="maxPeriod"
+                    variant="none"
+                    type="number"
+                    :placeholder="OPTION_DESCRIPTIONS.maxPeriod"
+                    autocomplete="off"
+                    class="w-full"
+                  />
+                </dd>
+              </div>
             </dl>
           </div>
 
@@ -494,10 +585,31 @@ const shareLink = computed(() => {
             />
           </div>
 
+          <div
+            v-if="operation === 'period'"
+            class="playground-chips"
+            role="group"
+            aria-label="Sample ciphertext"
+          >
+            <UButton
+              :color="text === PERIOD_SAMPLE ? 'primary' : 'neutral'"
+              variant="chip"
+              icon="i-lucide-key-round"
+              label="stinson-1.11"
+              :aria-pressed="text === PERIOD_SAMPLE"
+              @click="text = PERIOD_SAMPLE"
+            />
+          </div>
+
           <p class="playground-note">
             <template v-if="needsCipher"
               >A chip loads the cipher with a sample sentence and options that work, so the fastest
               way to see an error is to load one and break a key.</template
+            >
+            <template v-else-if="operation === 'period'"
+              >Paste a Vigenère ciphertext, a few hundred letters if you have them. Under a hundred
+              the ranking is a coin toss. The chip loads Stinson's Example 1.11, key
+              hidden.</template
             >
             <template v-else
               >Paste any ciphertext. The letters are what count, everything else is carried
@@ -579,6 +691,9 @@ const shareLink = computed(() => {
         <span v-else-if="answer.kind === 'brute'" class="console-meta">25 shifts · best fit first</span>
         <span v-else-if="answer.kind === 'frequency'" class="console-meta"
           >{{ answer.analysis?.total ?? 0 }} letters · {{ language }}</span
+        >
+        <span v-else-if="answer.kind === 'period'" class="console-meta"
+          >{{ answer.analysis.total }} letters · {{ answer.analysis.language }}</span
         >
         <span v-else-if="answer.kind === 'info'" class="console-meta"
           >{{ answer.info.category }} · {{ answer.info.family }}</span
@@ -732,6 +847,97 @@ const shareLink = computed(() => {
         </div>
       </template>
 
+      <template v-else-if="answer.kind === 'period'">
+        <div class="console-band console-subject-band">
+          <div :key="scan" class="console-scan" aria-hidden="true" />
+          <div class="console-identity-block">
+            <ConsoleReticle icon="i-lucide-ruler" />
+            <div class="console-name">
+              <span class="console-label"
+                >Key length /
+                <span class="console-label-key">{{ answer.analysis.language }}</span></span
+              >
+              <h3 class="console-name-mono">
+                <template v-if="answer.analysis.periods[0]"
+                  >length
+                  <span class="playground-valid">{{
+                    answer.analysis.periods[0].period
+                  }}</span></template
+                >
+                <template v-else>no length</template>
+              </h3>
+              <p class="console-about">
+                <template v-if="answer.analysis.periods[0]"
+                  >Its columns read at IoC {{ answer.analysis.periods[0].ic.toFixed(4) }}, plaintext
+                  sits near {{ answer.analysis.referenceIc.toFixed(3) }}. Pick the wrong length and
+                  the columns mix alphabets, down toward 0.038.</template
+                >
+                <template v-else-if="answer.analysis.total === 0"
+                  >Nothing from A to Z in the text, so nothing to deal into columns.</template
+                >
+                <template v-else
+                  >Columns need at least four letters, this text has
+                  {{ answer.analysis.total }}.</template
+                >
+              </p>
+            </div>
+          </div>
+          <div v-if="answer.analysis.periods[0]" class="console-readout">
+            <svg class="console-link" viewBox="0 0 32 40" fill="none" aria-hidden="true">
+              <circle cx="3" cy="12" r="2.5" />
+              <path d="M5.5 12H14L22 20H32" />
+            </svg>
+            <dl :key="scan" class="console-readout-rows console-animate">
+              <div>
+                <dt>Letters</dt>
+                <dd>{{ answer.analysis.total }}</dd>
+              </div>
+              <div>
+                <dt>Key</dt>
+                <dd class="console-accent">
+                  <span class="playground-line">{{ answer.analysis.periods[0].key }}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Kasiski</dt>
+                <dd>
+                  <UTooltip :text="kasiski">
+                    <span class="playground-line" tabindex="0">{{ kasiski }}</span>
+                  </UTooltip>
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+        <div v-if="answer.analysis.periods[0]?.key" class="console-band">
+          <p class="console-label console-rule-title">
+            <span>Lengths <span aria-hidden="true">[ most likely first ]</span></span>
+            <span class="console-mark" aria-hidden="true" />
+            <UButton
+              color="neutral"
+              variant="subtle"
+              trailing-icon="i-lucide-arrow-up"
+              :label="`decode ${answer.analysis.periods[0].key}`"
+              :aria-label="`Decode as Vigenère with the key ${answer.analysis.periods[0].key}`"
+              @click="decodeWith(answer.analysis.periods[0].key)"
+            />
+          </p>
+          <ol :key="scan" class="console-rows console-animate playground-periods">
+            <li
+              v-for="(row, index) in answer.analysis.periods.slice(0, PERIOD_LINES)"
+              :key="row.period"
+              :data-best="index === 0 ? '' : undefined"
+              :style="{ animationDelay: `${index * 30}ms` }"
+            >
+              <span class="playground-rank">{{ String(index + 1).padStart(2, "0") }}</span>
+              <span class="playground-shift">length={{ String(row.period).padStart(2, " ") }}</span>
+              <span class="playground-ic">IoC {{ row.ic.toFixed(4) }}</span>
+              <span v-if="row.key" class="playground-brute-text">{{ row.key }}</span>
+            </li>
+          </ol>
+        </div>
+      </template>
+
       <template v-else-if="answer.kind === 'info'">
         <div class="console-band console-subject-band">
           <div :key="scan" class="console-scan" aria-hidden="true" />
@@ -794,7 +1000,7 @@ const shareLink = computed(() => {
             <p class="console-about">{{ answer.message }}</p>
           </div>
         </div>
-        <div class="console-readout">
+        <div v-if="needsCipher" class="console-readout">
           <dl class="console-readout-rows">
             <div>
               <dt>Cipher</dt>
@@ -821,7 +1027,14 @@ const shareLink = computed(() => {
             <NuxtLink :to="entry.to"><span aria-hidden="true">→ </span>{{ entry.info.label }}</NuxtLink>
           </li>
           <li>
-            <NuxtLink :to="needsLanguage ? '/guide/analysis' : '/guide/transform'"
+            <NuxtLink
+              :to="
+                operation === 'period'
+                  ? '/guide/analysis#key-length'
+                  : needsLanguage
+                    ? '/guide/analysis'
+                    : '/guide/transform'
+              "
               ><span aria-hidden="true">→ </span>How it works</NuxtLink
             >
           </li>
@@ -984,11 +1197,21 @@ const shareLink = computed(() => {
   white-space: nowrap;
   color: var(--ui-text-muted);
 }
-.playground-brute li[data-best] {
+.playground-brute li[data-best],
+.playground-periods li[data-best] {
   box-shadow: inset 2px 0 0 var(--console-accent);
 }
-.playground-brute li[data-best] .playground-brute-text {
+.playground-brute li[data-best] .playground-brute-text,
+.playground-periods li[data-best] .playground-brute-text {
   color: var(--console-accent);
+}
+/* One row per key length: rank, length, column IoC, the key on the top three. */
+.playground-periods li {
+  grid-template-columns: 2rem 6.5rem 7.5rem minmax(0, 1fr);
+}
+.playground-ic {
+  white-space: pre;
+  color: var(--ui-text-muted);
 }
 /* One row per option of `ciphers_info`: the name, whether it is required, what it does. */
 .playground-options li {
@@ -1013,6 +1236,9 @@ const shareLink = computed(() => {
   .playground-brute li {
     grid-template-columns: 4.5rem minmax(0, 1fr);
   }
+  .playground-periods li {
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+  }
   .playground-rank {
     display: none;
   }
@@ -1022,6 +1248,12 @@ const shareLink = computed(() => {
     grid-template-columns: 5rem minmax(0, 1fr);
     gap: 8px;
     padding: 10px 12px;
+  }
+  .playground-periods li {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+  .playground-periods .playground-brute-text {
+    grid-column: 1 / -1;
   }
   .playground .console-band,
   .playground .console-footer,

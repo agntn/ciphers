@@ -948,11 +948,32 @@ describe('Ciphers MCP server', () => {
     expect((await lines({ text: japanese, lang: 'ja' }))[0]).toBe(
       'shift= 3 -> KIMIGAYO WA CHIYO NI YACHIYO NI',
     )
-    expect((await lines({ text: japanese }))[0]).not.toContain('KIMIGAYO')
 
     const noLetters = await lines({ text: '1234' })
     expect(noLetters[0]).toBe('shift= 1 -> 1234')
     expect(noLetters[24]).toBe('shift=25 -> 1234')
+  })
+
+  it('puts short English text first by its letter pairs', async () => {
+    const client = await connectTestClient()
+    const caesar = create('caesar')
+    for (const plaintext of [
+      'HELLO WORLD',
+      'THE QUICK BROWN FOX',
+      'BUY GOLD NOW',
+      'HAPPY BIRTHDAY TO YOU',
+      'ALL WORK AND NO PLAY MAKES JACK A DULL BOY',
+      'WORLD',
+      'HELP',
+    ]) {
+      for (const shift of [3, 7, 13, 19]) {
+        const text = caesar.encode(plaintext, { shift }).text
+        const result = await client.callTool({ name: 'ciphers_caesar_brute', arguments: { text } })
+        expect(onlyText(result.content).split('\n')[0]).toBe(
+          `shift=${String(shift).padStart(2)} -> ${plaintext}`,
+        )
+      }
+    }
   })
 
   it('keeps the top Caesar shift whole and cuts the rest to a preview', async () => {

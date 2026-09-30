@@ -217,7 +217,7 @@ export default function ciphersExtension(pi: ExtensionAPI) {
     defineTool({
       name: 'ciphers_caesar_brute',
       label: 'Brute Force Caesar',
-      description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; ciphers_decode with that shift returns the whole text.`,
+      description: `Decode Caesar ciphertext with every shift from 1 through 25, the one that reads most like the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; ciphers_decode with that shift returns the whole text.`,
       promptSnippet: 'Use ciphers_caesar_brute to brute-force an unknown Caesar shift.',
       promptGuidelines: [
         `Input is ciphertext. Returns all 25 shifts, the most English-like first, the most Polish-like with lang pl, the most Japanese-like with lang ja; only the top line is whole, the rest stop at ${BRUTE_PREVIEW_LENGTH} characters.`,

@@ -306,7 +306,7 @@ const tools: ToolDefinition[] = [
   {
     name: 'ciphers_caesar_brute',
     title: 'Brute Force Caesar',
-    description: `Decode Caesar ciphertext with every shift from 1 through 25, the best letter-frequency fit to the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; ciphers_decode with that shift returns the whole text.`,
+    description: `Decode Caesar ciphertext with every shift from 1 through 25, the one that reads most like the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; ciphers_decode with that shift returns the whole text.`,
     inputSchema: Type.Object({
       text: Type.String({
         maxLength: MAX_BRUTE_TEXT_LENGTH,

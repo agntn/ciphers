@@ -4,7 +4,7 @@ import { bruteRows, bruteText } from "../../utils/tools";
 const props = defineProps<{ ciphertext: string; plaintext: string; shift: number }>();
 const emit = defineEmits<{ pause: [paused: boolean] }>();
 
-/** The 25 decodings as the CLI and the tool rank them, best letter fit first. */
+/** The 25 decodings as the CLI and the tool rank them, best fit first. */
 const ranked = computed(() => bruteRows(props.ciphertext));
 const rank = computed(() => ranked.value.findIndex((row) => row.shift === props.shift) + 1);
 const top = computed(() =>

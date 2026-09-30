@@ -4,8 +4,9 @@ import { analyzeFrequency } from '../../src/core/frequency.ts'
 
 describe('analyzeFrequency', () => {
   it('normalizes input and sorts counts descending', () => {
-    const { fit, referenceIc, ...analysis } = analyzeFrequency('AaA, bb! c')!
+    const { fit, pairFit, referenceIc, ...analysis } = analyzeFrequency('AaA, bb! c')!
     expect(fit).toBeLessThan(0)
+    expect(pairFit).toBeLessThan(0)
     expect(referenceIc).toBeGreaterThan(0)
     expect(analysis).toEqual({
       total: 6,
@@ -27,6 +28,31 @@ describe('analyzeFrequency', () => {
     expect(analyzeFrequency('a', 'pl')?.fit).toBeCloseTo(Math.log(8.91 / 93.09), 12)
     // The Hepburn table sums to 100.04481024 percent, A takes 15.2 of it.
     expect(analyzeFrequency('a', 'ja')?.fit).toBeCloseTo(Math.log(15.2 / 100.04481024), 12)
+  })
+
+  it('scores English letter pairs by their log probability', () => {
+    /* Norvig's count_2l.txt counts TH 133210262170 and JQ 2858953 times in 6670825274245 pairs. */
+    expect(analyzeFrequency('th')?.pairFit).toBeCloseTo(Math.log(133210262170 / 6670825274245), 5)
+    expect(analyzeFrequency('jq')?.pairFit).toBeCloseTo(Math.log(2858953 / 6670825274245), 2)
+    expect(analyzeFrequency('the')?.pairFit).toBeCloseTo(
+      (analyzeFrequency('th')!.pairFit! + analyzeFrequency('he')!.pairFit!) / 2,
+      12,
+    )
+  })
+
+  it('has a count for every English letter pair', () => {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    for (const first of letters) {
+      for (const second of letters) {
+        expect(analyzeFrequency(first + second)!.pairFit).toBeGreaterThan(-15)
+      }
+    }
+  })
+
+  it('leaves out pairFit without a pair inside a word or a pair table', () => {
+    expect(analyzeFrequency('T-H E')).not.toHaveProperty('pairFit')
+    expect(analyzeFrequency('THE', 'pl')).not.toHaveProperty('pairFit')
+    expect(analyzeFrequency('THE', 'ja')).not.toHaveProperty('pairFit')
   })
 
   it('keeps letters Hepburn never writes finite', () => {

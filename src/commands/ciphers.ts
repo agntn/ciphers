@@ -1,3 +1,4 @@
+import { styleText } from 'node:util'
 import { defineCommand } from 'citty'
 import consola from 'consola'
 import { cipherCategories } from '../core/ciphers.ts'
@@ -6,7 +7,7 @@ import { ciphers as listCiphers, create } from '../core/registry.ts'
 
 function printVerboseCipher(name: string): void {
   const info = create(name).info()
-  consola.info(`\x1B[1m${info.label}\x1B[0m (${info.name})`)
+  consola.info(`${styleText('bold', info.label)} (${info.name})`)
   consola.info(`  ${info.description}`)
   consola.info(`  Category: ${info.category}`)
   consola.info(`  Family: ${info.family}`)
@@ -23,7 +24,7 @@ function printVerboseCipher(name: string): void {
 
 function printCipherSummary(name: string): void {
   const info = create(name).info()
-  consola.info(`  \x1B[1m${name}\x1B[0m \u2014 ${info.description}`)
+  consola.info(`  ${styleText('bold', name)} \u2014 ${info.description}`)
 }
 
 export default defineCommand({

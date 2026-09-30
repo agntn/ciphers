@@ -1,3 +1,4 @@
+import { styleText } from 'node:util'
 import { defineCommand } from 'citty'
 import consola from 'consola'
 import { resolveCipher } from '../core/resolve.ts'
@@ -10,7 +11,7 @@ export default defineCommand({
   async run({ args }) {
     const cipher = resolveCipher(args.cipher)
     const info = cipher.info()
-    consola.info(`\x1B[1m${info.label}\x1B[0m (${info.name})`)
+    consola.info(`${styleText('bold', info.label)} (${info.name})`)
     consola.info(`  ${info.description}`)
     consola.info(`  Category: ${info.category}`)
     consola.info(`  Family: ${info.family}`)

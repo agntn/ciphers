@@ -1,3 +1,4 @@
+import { styleText } from 'node:util'
 import { defineCommand } from 'citty'
 import consola from 'consola'
 import { InvalidOptionError } from '../core/errors.ts'
@@ -27,7 +28,7 @@ export default defineCommand({
     const maxCount = analysis.counts[0]![1]
 
     consola.info(
-      `\x1B[1mFrequency Analysis\x1B[0m (${analysis.total} letters, lang=${analysis.language}):\n`,
+      `${styleText('bold', 'Frequency Analysis')} (${analysis.total} letters, lang=${analysis.language}):\n`,
     )
     consola.info('  Letter | Count | Freq   | Bar')
     consola.info('  -------+-------+--------+' + '-'.repeat(30))

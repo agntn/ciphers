@@ -248,3 +248,19 @@ describe('CLI closed stdout', () => {
     },
   )
 })
+
+describe('CLI host locale', () => {
+  /** Estonian collation puts Z before T, Lithuanian puts Y before J; the key order stays A to Z. */
+  it.each([
+    ['et_EE.UTF-8', 'TZ'],
+    ['lt_LT.UTF-8', 'JY'],
+  ])('orders columns A to Z under %s', (locale, key) => {
+    const env = { ...process.env, LC_ALL: locale, LANG: locale }
+
+    expect(runCli(['encode', 'columnar', 'ABCDEF', '--key', key], env).stdout).toBe('ACEBDF\n')
+    expect(runCli(['decode', 'columnar', 'ACEBDF', '--key', key], env).stdout).toBe('ABCDEF\n')
+    expect(
+      runCli(['encode', 'adfgvx', 'HELLO', '--key', 'KEY', '--transposition', key], env).stdout,
+    ).toBe(runCli(['encode', 'adfgvx', 'HELLO', '--key', 'KEY', '--transposition', 'AB']).stdout)
+  })
+})

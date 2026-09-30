@@ -7,12 +7,13 @@ import {
   cipherCacheKey,
   buildPolybiusSquare,
   processBaseOptions,
-  withCipherError,
 } from '../../src/core/utils.ts'
 import {
+  CipherError,
   UnknownCipherError,
   InvalidOptionError,
   MissingOptionError,
+  normalizeError,
 } from '../../src/core/errors.ts'
 
 describe('LruCache', () => {
@@ -127,61 +128,25 @@ describe('processBaseOptions', () => {
   })
 })
 
-describe('withCipherError', () => {
-  it('returns the result of a successful operation', () => {
-    const r = withCipherError('test', () => 42)
-    expect(r).toBe(42)
+describe('normalizeError', () => {
+  it('wraps a foreign error in a CipherError tagged with the cipher', () => {
+    const e = normalizeError(new TypeError('boom'), 'x')
+    expect(e).toBeInstanceOf(CipherError)
+    expect(e.name).toBe('CipherError')
+    expect(e.message).toBe('[x] boom')
   })
 
-  it('normalizes errors thrown by the operation', () => {
-    expect(() =>
-      withCipherError('test', () => {
-        throw new Error('boom')
-      }),
-    ).toThrow()
+  it('wraps a thrown non-Error value without a cipher tag', () => {
+    const e = normalizeError('boom')
+    expect(e).toBeInstanceOf(CipherError)
+    expect(e.message).toBe('boom')
   })
 
-  it('passes through UnknownCipherError subclass unchanged (preserves .cipher)', () => {
-    const original = new UnknownCipherError('foo')
-    let caught: unknown
-    try {
-      withCipherError('test', () => {
-        throw original
-      })
-    } catch (e) {
-      caught = e
-    }
-    expect(caught).toBe(original)
-    expect(caught).toBeInstanceOf(UnknownCipherError)
-    expect((caught as UnknownCipherError).cipher).toBe('foo')
-  })
-
-  it('passes through InvalidOptionError subclass unchanged (preserves .option/.value/.reason)', () => {
-    const original = new InvalidOptionError('shift', 99, 'out of range')
-    let caught: unknown
-    try {
-      withCipherError('test', () => {
-        throw original
-      })
-    } catch (e) {
-      caught = e
-    }
-    expect(caught).toBe(original)
-    expect(caught).toBeInstanceOf(InvalidOptionError)
-    expect((caught as InvalidOptionError).option).toBe('shift')
-  })
-
-  it('passes through MissingOptionError subclass unchanged', () => {
-    const original = new MissingOptionError('key')
-    let caught: unknown
-    try {
-      withCipherError('test', () => {
-        throw original
-      })
-    } catch (e) {
-      caught = e
-    }
-    expect(caught).toBe(original)
-    expect(caught).toBeInstanceOf(MissingOptionError)
+  it.each([
+    new UnknownCipherError('foo'),
+    new InvalidOptionError('shift', 99, 'out of range'),
+    new MissingOptionError('key'),
+  ])('passes $name through unchanged', (original) => {
+    expect(normalizeError(original, 'x')).toBe(original)
   })
 })

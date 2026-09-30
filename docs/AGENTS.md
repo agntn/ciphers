@@ -7,7 +7,7 @@ Docus site for `@agntn/ciphers`. Markdown lives in `content/`. The playground is
 ```
 docs/
 ├── DESIGN.md                      # the instruments this site owns and where it departs from the agntn design system
-├── nuxt.config.ts                 # extends: ['docus'], cloudflare_module preset (Workers), @agntn/ciphers and #tool-operations aliased to ../src
+├── nuxt.config.ts                 # extends: ['docus'], cloudflare_module preset (Workers), @agntn/ciphers and #tool-operations aliased to ../src, @agntn/hashes to docs/node_modules
 ├── shiki-theme.ts                 # code block theme, every colour a --shiki-token-* variable from app.css
 ├── app/app.config.ts              # title, github, theme, the Nuxt UI variants in the instrument grammar
 ├── app/app.css                    # theme tokens, the shared `console-*` and `hero-*` grammar, `ciphers-*` classes
@@ -37,7 +37,7 @@ pnpm generate         # static output; nothing on this site needs the worker at 
 
 Deployment: Workers Builds with root directory `docs`. It installs `docs/` and nothing else, and that's enough, because the library comes from `../src` (next paragraph). Nitro preset `cloudflare_module`. Nuxt Content wants a D1 binding named `DB`. `wrangler.jsonc` carries it plus the `NUXT_SITE_URL` var, and Nitro merges that into the generated `.output/server/wrangler.json`. Create the database once with `wrangler d1 create agntn-ciphers` and put the id in `wrangler.jsonc`. Until then the id is all zeros on purpose - `pnpm deploy` with zeros binds nothing, so don't run it before the id is real. No KV binding. Nothing is fetched, so nothing is cached.
 
-`@agntn/ciphers` is an alias in `nuxt.config.ts` for `../src/index.ts`. Vite bundles the checkout's sources for the browser and Nitro gets the same alias for the prerender, so `dist/` and the root `node_modules` are never touched. That works because the subgraph under `src/index.ts` imports nothing from npm and nothing from `node:`, only `package.json` for the version. An npm import anywhere under `src/core` or `src/ciphers` breaks the deploy; the CLI and MCP entries are where those belong, and they stay out of the alias.
+`@agntn/ciphers` is an alias in `nuxt.config.ts` for `../src/index.ts`. Vite bundles the checkout's sources for the browser and Nitro gets the same alias for the prerender, so `dist/` and the root `node_modules` are never touched. That works because the subgraph under `src/index.ts` imports nothing from `node:` and, besides `package.json` for the version, one package from npm: `@agntn/hashes`, which MARS takes SHA-1 from. Workers Builds never installs the root, so `docs/package.json` lists `@agntn/hashes` at the root's version and `nuxt.config.ts` aliases it to `docs/node_modules`. Any other npm import under `src/core` or `src/ciphers` breaks the deploy until it gets the same two lines. The CLI and MCP entries are where the rest belong, and they stay out of the alias.
 
 Two resolution traps, both because the repo root is its own pnpm workspace:
 

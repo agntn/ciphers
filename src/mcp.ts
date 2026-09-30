@@ -13,11 +13,13 @@ import {
   MAX_BRUTE_TEXT_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_LENGTH,
+  MAX_PERIOD,
   MAX_TRANSFORM_TEXT_LENGTH,
   OPTION_DESCRIPTIONS,
   bruteForceCaesar,
   formatCipherInfo,
   formatFrequencyAnalysis,
+  formatPeriodEstimate,
   transformCipher,
   type CipherToolParams,
 } from './tool-operations.ts'
@@ -362,6 +364,35 @@ const tools: ToolDefinition[] = [
         ciphersLibrary,
         args.text as string,
         args.lang as 'en' | 'pl' | 'ja' | undefined,
+      ),
+  },
+  {
+    name: 'ciphers_period_estimate',
+    title: 'Key Length Estimate',
+    description:
+      'Estimate the key length of a Vigenère ciphertext from column index of coincidence and Kasiski repeats, most likely length first, with the key for the top three. ciphers_decode with cipher vigenere and that key checks it.',
+    inputSchema: Type.Object({
+      text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
+      lang: Type.Optional(
+        Type.Enum(['en', 'pl', 'ja'], {
+          description:
+            'Language the plaintext should read in, ja for Hepburn romaji; picks the keys (default en)',
+        }),
+      ),
+      maxPeriod: Type.Optional(
+        Type.Integer({
+          minimum: 2,
+          maximum: MAX_PERIOD,
+          description: OPTION_DESCRIPTIONS.maxPeriod,
+        }),
+      ),
+    }),
+    execute: (args) =>
+      formatPeriodEstimate(
+        ciphersLibrary,
+        args.text as string,
+        args.lang as 'en' | 'pl' | 'ja' | undefined,
+        args.maxPeriod as number | undefined,
       ),
   },
   {

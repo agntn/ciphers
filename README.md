@@ -9,7 +9,7 @@
 
 ## Why?
 
-The puzzle says the answer is in a Vigenère, so you open a cipher site. The key field wants uppercase, J quietly became I, and the third tab does Playfair differently than the second one. Now hand that to an agent and it will do the Vigenère in its head and be wrong from the fourth letter on, confidently. So: one `encode` and one `decode` with the same options everywhere, and five tools a model can call instead of counting on its fingers.
+The puzzle says the answer is in a Vigenère, so you open a cipher site. The key field wants uppercase, J quietly became I, and the third tab does Playfair differently than the second one. Now hand that to an agent and it will do the Vigenère in its head and be wrong from the fourth letter on, confidently. So: one `encode` and one `decode` with the same options everywhere, and tools a model can call instead of counting on its fingers.
 
 Docs, and a playground where the library runs in your browser: [ciphers.agntn.dev](https://ciphers.agntn.dev).
 
@@ -23,7 +23,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
 - 🧭 **Ciphers describe themselves.** `info()` has the category, the family, the options, the keyspace and whether encode and decode are the same thing, and the CLI, the tools and the playground all read it from there.
-- 🖥️ **CLI, library, MCP, Pi and OMP.** Five tools with one set of executors behind them, whichever one you're holding.
+- 🖥️ **CLI, library, MCP, Pi and OMP.** The same tools and one set of executors behind them, whichever one you're holding.
 - 🌐 **Runs in the browser too.** The playground imports the package into the page, nothing is posted anywhere.
 - 🧱 **Bounded on purpose.** Text and keys have a maximum length in every tool schema, so a model can't hand the process a novel to shift.
 - 🧩 **Your cipher in one class.** Extend `Cipher`, `register()` it, and `create()` finds it like any built-in.
@@ -106,7 +106,7 @@ ciphers frequency "DWWDFN DW GDZQ" --lang pl
 ciphers info bifid
 ```
 
-`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish, about 0.082 with Japanese romaji), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram.
+`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish, about 0.082 with Japanese romaji), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram. That's `period`. It ranks the lengths by column IoC and Kasiski, and hands you a Vigenère key for the top three.
 
 ### Commands
 
@@ -116,6 +116,7 @@ ciphers info bifid
 | `decode`    | The other way, same flags                           | `ciphers decode vigenere "LXFOPV EF RNHR" --key LEMON` |
 | `brute`     | All 25 Caesar shifts, best fit first                | `ciphers brute "DWWDFN DW GDZQ"`                       |
 | `frequency` | Letter histogram and the index of coincidence       | `ciphers frequency "DWWDFN DW GDZQ" --lang en`         |
+| `period`    | Vigenère key length, with the likely key            | `ciphers period "<ciphertext>" --max-period 30`        |
 | `ciphers`   | Every cipher by category, `-v` adds the options     | `ciphers ciphers -v`                                   |
 | `info`      | One cipher's category, family, options and keyspace | `ciphers info enigma`                                  |
 | `mcp`       | The MCP server on stdio                             | `ciphers mcp`                                          |
@@ -209,7 +210,7 @@ omp install @agntn/ciphers
 }
 ```
 
-Five tools, `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphers_frequency` and `ciphers_info`, the same five on all three. Arguments are checked against the schema before a cipher sees them, and a wrong key is a tool error with the reason in it, not a dead session. A model that doesn't know what Bifid takes calls `ciphers_info` first, the encode and decode descriptions say so. And a decoded ciphertext is data: `IGNORE PREVIOUS INSTRUCTIONS` falling out of a ROT13 is the answer to the puzzle, not a new task. [Agents guide](https://ciphers.agntn.dev/guide/agents).
+The tools are `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphers_frequency`, `ciphers_period_estimate` and `ciphers_info`, the same on all three. Arguments are checked against the schema before a cipher sees them, and a wrong key is a tool error with the reason in it, not a dead session. A model that doesn't know what Bifid takes calls `ciphers_info` first, the encode and decode descriptions say so. And a decoded ciphertext is data: `IGNORE PREVIOUS INSTRUCTIONS` falling out of a ROT13 is the answer to the puzzle, not a new task. [Agents guide](https://ciphers.agntn.dev/guide/agents).
 
 ## 🚫 What this does not do
 

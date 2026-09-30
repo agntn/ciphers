@@ -9,12 +9,14 @@ import {
   MAX_BRUTE_TEXT_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_LENGTH,
+  MAX_PERIOD,
   MAX_TRANSFORM_TEXT_LENGTH,
   OPTION_DESCRIPTIONS,
   bruteForceCaesar,
   cipherCategories,
   formatCipherInfo,
   formatFrequencyAnalysis,
+  formatPeriodEstimate,
   transformCipher,
   type CipherToolParams,
 } from '../../../src/tool-operations.ts'
@@ -22,7 +24,12 @@ import type { OutputTheme, RenderedToolResult, RenderOptions } from '../../share
 import { renderToolResult } from '../../shared/tui.ts'
 type CiphersLibrary = Pick<
   typeof CiphersModule,
-  'analyzeFrequency' | 'ciphers' | 'create' | 'resolveCipher'
+  | 'analyzeFrequency'
+  | 'ciphers'
+  | 'create'
+  | 'estimatePeriod'
+  | 'InvalidOptionError'
+  | 'resolveCipher'
 >
 
 const sourcePath = fileURLToPath(new URL('../../../src/index.ts', import.meta.url))
@@ -216,6 +223,34 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     loadMode: 'essential',
     async execute(_toolCallId, params) {
       return formatFrequencyAnalysis(await loadLibrary(), params.text, params.lang)
+    },
+  })
+
+  omp.registerTool({
+    name: 'ciphers_period_estimate',
+    label: 'Key Length Estimate',
+    description:
+      'Estimate the key length of a Vigenère ciphertext from column index of coincidence and Kasiski repeats, most likely length first, with the key for the top three. ciphers_decode with cipher vigenere and that key checks it.',
+    parameters: Type.Object({
+      text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
+      lang: Type.Optional(
+        Type.Enum(['en', 'pl', 'ja'], {
+          description:
+            'Language the plaintext should read in, ja for Hepburn romaji; picks the keys (default en)',
+        }),
+      ),
+      maxPeriod: Type.Optional(
+        Type.Integer({
+          minimum: 2,
+          maximum: MAX_PERIOD,
+          description: OPTION_DESCRIPTIONS.maxPeriod,
+        }),
+      ),
+    }),
+    approval: 'read',
+    loadMode: 'essential',
+    async execute(_toolCallId, params) {
+      return formatPeriodEstimate(await loadLibrary(), params.text, params.lang, params.maxPeriod)
     },
   })
 

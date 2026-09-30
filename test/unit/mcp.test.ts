@@ -50,6 +50,7 @@ describe('Ciphers MCP server', () => {
       'ciphers_decode',
       'ciphers_caesar_brute',
       'ciphers_frequency',
+      'ciphers_period_estimate',
       'ciphers_info',
     ])
     const encodeTool = response.tools.find((tool) => tool.name === 'ciphers_encode')
@@ -947,6 +948,43 @@ describe('Ciphers MCP server', () => {
     })
     const [polishEntry] = polish.content as [{ type: string; text: string }]
     expect(polishEntry.text).toContain('(pl plaintext ~0.057, uniform random ~0.038)')
+  })
+
+  it('ranks Vigenère key lengths over the protocol', async () => {
+    const client = await connectTestClient()
+    const text =
+      'CHREEVOAHMAERATBIAXXWTNXBEEOPHBSBQMQEQERBWRVXUOAKXAOSXXWEAHBWGJMMQMNKGRFVGXWTRZXWIAKLXFPSKAUTEMNDCMGTSXMXBTUIADNGMGPSRELXNJELXVRVPRTULHDNQWTWDTYGBPHXTFALJHASVBFXNGLLCHRZBWELEKMSJIKNBHWRJGNMGJSGLXFEYPHAGNRBIEQJTAMRVLCRREMNDGLXRRIMGNSNRWCHRQHAEYEVTAQEBBIPEEWEVKAKOEWADREMXMTBHHCHRTKDNVRZCHRCLQOHPWQAIIWXNRMGWOIIFKEE'
+
+    const result = await client.callTool({ name: 'ciphers_period_estimate', arguments: { text } })
+    expect(result.isError).not.toBe(true)
+    const lines = onlyText(result.content).split('\n')
+    expect(lines[0]).toBe(
+      'Key length estimate (313 letters, lang=en, lengths 2-20), most likely first:',
+    )
+    expect(lines.slice(2, 5)).toEqual([
+      '  length  5  IoC 0.0666  key JANET',
+      '  length 10  IoC 0.0663  key JANETJANET',
+      expect.stringMatching(/^ {2}length 15 {2}IoC 0\.\d{4} {2}key [A-Z]{15}$/),
+    ])
+    expect(lines).toContain('  (9 more lengths ranked lower)')
+    expect(lines).toContain(
+      'Kasiski: 12 distances between repeated trigrams; factors dividing the most: 5 (10), 2 (4), 10 (4), 7 (3), 3 (2).',
+    )
+
+    const short = await client.callTool({
+      name: 'ciphers_period_estimate',
+      arguments: { text: 'abc', lang: 'pl' },
+    })
+    expect(onlyText(short.content)).toBe('Need at least 4 A-Z letters for a key length, got 3.')
+
+    for (const maxPeriod of [1, 101, 2.5]) {
+      const refused = await client.callTool({
+        name: 'ciphers_period_estimate',
+        arguments: { text, maxPeriod },
+      })
+      expect(refused.isError).toBe(true)
+      expect(onlyText(refused.content)).toContain('Invalid arguments at /maxPeriod')
+    }
   })
 
   it('puts the best-fitting Caesar shift first', async () => {

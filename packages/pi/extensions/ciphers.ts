@@ -16,12 +16,14 @@ import {
   MAX_BRUTE_TEXT_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_LENGTH,
+  MAX_PERIOD,
   MAX_TRANSFORM_TEXT_LENGTH,
   OPTION_DESCRIPTIONS,
   bruteForceCaesar,
   cipherCategories,
   formatCipherInfo,
   formatFrequencyAnalysis,
+  formatPeriodEstimate,
   transformCipher,
 } from '../../../src/tool-operations.ts'
 import type { OutputTheme, RenderedToolResult } from '../../shared/tui.ts'
@@ -29,7 +31,12 @@ import { renderToolResult } from '../../shared/tui.ts'
 
 type CiphersLibrary = Pick<
   typeof CiphersModule,
-  'analyzeFrequency' | 'ciphers' | 'create' | 'resolveCipher'
+  | 'analyzeFrequency'
+  | 'ciphers'
+  | 'create'
+  | 'estimatePeriod'
+  | 'InvalidOptionError'
+  | 'resolveCipher'
 >
 type PiToolResult = AgentToolResult<Record<string, unknown>>
 
@@ -286,6 +293,45 @@ export default function ciphersExtension(pi: ExtensionAPI) {
       },
       async execute(_toolCallId, params): Promise<PiToolResult> {
         return toPiResult(formatFrequencyAnalysis(await loadLibrary(), params.text, params.lang))
+      },
+    }),
+  )
+
+  pi.registerTool(
+    defineTool({
+      name: 'ciphers_period_estimate',
+      label: 'Key Length Estimate',
+      description:
+        'Estimate the key length of a Vigenère ciphertext from column index of coincidence and Kasiski repeats, most likely length first, with the key for the top three. ciphers_decode with cipher vigenere and that key checks it.',
+      promptSnippet:
+        'Use ciphers_period_estimate when ciphers_frequency puts the index of coincidence near 0.038.',
+      promptGuidelines: [
+        'Input is ciphertext. Returns key lengths by column IoC, most likely first, with the Vigenère key for the top three, then the Kasiski factors.',
+        'Try the top key with ciphers_decode and cipher vigenere; Beaufort shares the length, not the key, and autokey has no length.',
+      ],
+      parameters: Type.Object({
+        text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
+        lang: Type.Optional(
+          Type.Enum(['en', 'pl', 'ja'], {
+            description:
+              'Language the plaintext should read in, ja for Hepburn romaji; picks the keys (default en)',
+          }),
+        ),
+        maxPeriod: Type.Optional(
+          Type.Integer({
+            minimum: 2,
+            maximum: MAX_PERIOD,
+            description: OPTION_DESCRIPTIONS.maxPeriod,
+          }),
+        ),
+      }),
+      renderCall(args, _theme) {
+        return new Text(`📏 key length: "${args.text.slice(0, 40)}..."`, 0, 0)
+      },
+      async execute(_toolCallId, params): Promise<PiToolResult> {
+        return toPiResult(
+          formatPeriodEstimate(await loadLibrary(), params.text, params.lang, params.maxPeriod),
+        )
       },
     }),
   )

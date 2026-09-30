@@ -209,13 +209,13 @@ const frequencyReferences: Record<FrequencyLanguage, string> = {
   ja: frequencyOrder(letterPercentages.ja),
 }
 
-const referenceCoincidences: Record<FrequencyLanguage, number> = {
+export const referenceCoincidences: Record<FrequencyLanguage, number> = {
   en: expectedCoincidence(letterPercentages.en),
   pl: expectedCoincidence(letterPercentages.pl),
   ja: expectedCoincidence(letterPercentages.ja),
 }
 
-const letterLogProbabilities: Record<FrequencyLanguage, ReadonlyMap<string, number>> = {
+export const letterLogProbabilities: Record<FrequencyLanguage, ReadonlyMap<string, number>> = {
   en: logProbabilities(letterPercentages.en),
   pl: logProbabilities(letterPercentages.pl),
   ja: logProbabilities(letterPercentages.ja),
@@ -248,6 +248,18 @@ function meanPairLog(upper: string, language: FrequencyLanguage): number | undef
 }
 
 /**
+ * Refuse a language without a frequency table.
+ *
+ * @param language - Language to check.
+ * @throws {InvalidOptionError} When the language isn't en, pl or ja.
+ */
+export function assertLanguage(language: string): asserts language is FrequencyLanguage {
+  if (!Object.hasOwn(letterPercentages, language)) {
+    throw new InvalidOptionError('language', language, 'must be en, pl or ja')
+  }
+}
+
+/**
  * Analyze A-Z letter counts.
  *
  * @param text - Text to analyze.
@@ -259,9 +271,7 @@ export function analyzeFrequency(
   text: string,
   language: FrequencyLanguage = 'en',
 ): FrequencyAnalysis | undefined {
-  if (!Object.hasOwn(letterPercentages, language)) {
-    throw new InvalidOptionError('language', language, 'must be en, pl or ja')
-  }
+  assertLanguage(language)
   const upper = text.toUpperCase()
   const letters = upper.replaceAll(/[^A-Z]/g, '')
   if (letters.length === 0) return undefined

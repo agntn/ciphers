@@ -11,12 +11,13 @@ import {
 /** The library as the tool executors take it. The same functions the MCP server and the extensions pass. */
 const LIBRARY = { analyzeFrequency, ciphers, create, resolveCipher };
 
-/** The five agent tools. Same names over MCP, Pi and OMP. */
+/** The agent tools. Same names over MCP, Pi and OMP. */
 export const TOOLS = [
   "ciphers_encode",
   "ciphers_decode",
   "ciphers_caesar_brute",
   "ciphers_frequency",
+  "ciphers_period_estimate",
   "ciphers_info",
 ] as const;
 

@@ -54,12 +54,13 @@ beforeAll(() => {
 })
 
 describe('Pi extension', () => {
-  it('registers all five cipher tools', () => {
+  it('registers every cipher tool', () => {
     expect([...tools.keys()]).toEqual([
       'ciphers_encode',
       'ciphers_decode',
       'ciphers_caesar_brute',
       'ciphers_frequency',
+      'ciphers_period_estimate',
       'ciphers_info',
     ])
   })
@@ -76,7 +77,7 @@ describe('Pi extension', () => {
     for (const name of ['ciphers_encode', 'ciphers_decode', 'ciphers_caesar_brute']) {
       expect(getTool(name).renderResult).toBeTypeOf('function')
     }
-    for (const name of ['ciphers_frequency', 'ciphers_info']) {
+    for (const name of ['ciphers_frequency', 'ciphers_period_estimate', 'ciphers_info']) {
       expect(getTool(name).renderResult).toBeUndefined()
     }
   })
@@ -231,6 +232,13 @@ describe('Pi extension', () => {
     expect(Value.Check(frequency, { text: 'TEST', lang: 'pl' })).toBe(true)
     expect(Value.Check(frequency, { text: 'TEST', lang: 'ja' })).toBe(true)
     expect(Value.Check(brute, { text: 'TEST', lang: 'ja' })).toBe(true)
+
+    const period = getTool('ciphers_period_estimate').parameters
+    expect(Value.Check(period, { text: 'X'.repeat(100_001) })).toBe(false)
+    expect(Value.Check(period, { text: 'TEST', maxPeriod: 100 })).toBe(true)
+    expect(Value.Check(period, { text: 'TEST', maxPeriod: 101 })).toBe(false)
+    expect(Value.Check(period, { text: 'TEST', maxPeriod: 1 })).toBe(false)
+    expect(Value.Check(period, { text: 'TEST', maxPeriod: 2.5 })).toBe(false)
   })
 
   it('answers through the shared executors and lets their errors reach the harness', async () => {
@@ -261,6 +269,15 @@ describe('Pi extension', () => {
     })
     expect(frequency.content[0]?.text).toContain('A    3 ( 50.0%)')
     expect(frequency.content[0]?.text).toContain('Index of coincidence: 0.2667')
+
+    const period = await getTool('ciphers_period_estimate').execute('period', {
+      text: 'CHREEVOAHMAERATBIAXXWTNXBEEOPHBSBQMQEQERBWRVXUOAKXAOSXXWEAHBWGJMMQMNKGRFVGXWTRZXWIAKLXFPSKAUTEMNDCMGTSXMXBTUIADNGMGPSRELXNJELXVRVPRTULHDNQWTWDTYGBPHXTFALJHASVBFXNGLLCHRZBWELEKMSJIKNBHWRJGNMGJSGLXFEYPHAGNRBIEQJTAMRVLCRREMNDGLXRRIMGNSNRWCHRQHAEYEVTAQEBBIPEEWEVKAKOEWADREMXMTBHHCHRTKDNVRZCHRCLQOHPWQAIIWXNRMGWOIIFKEE',
+      maxPeriod: 6,
+    })
+    expect(period.content[0]?.text.split('\n')[2]).toBe('  length 5  IoC 0.0666  key JANET')
+    await expect(
+      getTool('ciphers_period_estimate').execute('period', { text: 'TEST', maxPeriod: 101 }),
+    ).rejects.toThrow('Invalid option maxPeriod=101: must be at most 100')
 
     await expect(
       getTool('ciphers_encode').execute('failure', { cipher: 'cae', text: 'TEST' }),

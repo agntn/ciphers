@@ -114,6 +114,13 @@ describe('the prose counts what the registry ships', () => {
   })
 })
 
+describe('the prose leaves the tool count to the docs app', () => {
+  it.each(proseFiles())('%s', (file) => {
+    const text = readFileSync(path.join(root, file), 'utf8')
+    expect([...countsIn(text, 'tools'), ...countsIn(text, 'agent tools')], file).toEqual([])
+  })
+})
+
 /**
  * The cipher each table row names, from its page link or its bold name.
  *

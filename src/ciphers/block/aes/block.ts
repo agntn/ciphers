@@ -54,7 +54,7 @@ function aesTables(): AesTables {
  * plus the initial one. Rijndael runs `max(Nk, Nb) + 6` rounds, which for the AES block of four
  * columns gives 10, 12 and 14.
  *
- * @param key - 16 to 32 key bytes, a multiple of 4.
+ * @param key - 16 key bytes or more, a multiple of 4.
  * @param columns - Block length in 4-byte columns, 4 to 8.
  * @returns {Bytes[]} The round keys, `rounds + 1` of them.
  */
@@ -171,7 +171,7 @@ export function rijndaelBlock(
  * Expand the key once and return AES on a single block, for the modes that chain one block into
  * the next. AES is Rijndael with the block fixed at 16 bytes.
  *
- * @param key - 16, 24 or 32 key bytes.
+ * @param key - 16, 24 or 32 key bytes, or up to 128 for aes-passphrase.
  * @param operation - Encrypt or decrypt.
  * @returns {(block: Bytes) => Bytes} One 16-byte block in, one out.
  */

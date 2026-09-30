@@ -9,6 +9,7 @@ import { AesOcb } from './aes/ocb.ts'
 import { AesLrw } from './aes/lrw.ts'
 import { AesXts } from './aes/xts.ts'
 import { AesCbcMac } from './aes/cbc-mac.ts'
+import { AesPassphrase } from './aes/passphrase.ts'
 import { Rijndael } from './rijndael.ts'
 import { Des } from './des.ts'
 import { Desx } from './desx.ts'
@@ -32,6 +33,7 @@ export const block: readonly CipherConstructor[] = [
   AesLrw,
   AesXts,
   AesCbcMac,
+  AesPassphrase,
   Rijndael,
   Des,
   Desx,

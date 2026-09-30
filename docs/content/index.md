@@ -1,7 +1,7 @@
 ---
 seo:
-  title: "Forty-one ciphers, one call"
-  description: Forty-one ciphers from Caesar to Rabbit behind one local API, a CLI and five agent tools, with encode, decode, brute force and letter frequencies and no network
+  title: "Forty-two ciphers, one call"
+  description: Forty-two ciphers from Caesar to Rabbit behind one local API, a CLI and five agent tools, with encode, decode, brute force and letter frequencies and no network
 ---
 
 ::landing-home

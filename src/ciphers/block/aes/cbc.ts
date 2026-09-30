@@ -20,7 +20,7 @@ function xor(a: Bytes, b: Bytes): number[] {
  * giving equal ciphertext blocks, and a change in one block carries into every later one.
  *
  * @param data - Whole 16-byte blocks to transform.
- * @param key - 16, 24 or 32 key bytes.
+ * @param key - 16, 24 or 32 key bytes, or up to 128 for aes-passphrase.
  * @param operation - Encrypt or decrypt.
  * @param iv - The 16-byte initialization vector.
  * @returns {number[]} The transformed blocks.

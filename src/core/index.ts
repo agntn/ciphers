@@ -22,6 +22,7 @@ export type {
   AesOcbOptions,
   AesLrwOptions,
   AesXtsOptions,
+  AesPassphraseOptions,
   RijndaelOptions,
   DesOptions,
   DesxOptions,

@@ -56,33 +56,33 @@ ciphers brute "DWWDFN DW GDZQ"
 ℹ Caesar brute-force (25 shifts, best en fit first):
 
   shift= 3 → ATTACK AT DAWN
-  shift=18 → LEELNV LE OLHY
-  shift=11 → SLLSUC SL VSOF
-  shift=22 → HAAHJR HA KHDU
-  shift=10 → TMMTVD TM WTPG
-  shift= 5 → YRRYAI YR BYUL
-  shift=21 → IBBIKS IB LIEV
-  shift=12 → RKKRTB RK URNE
-  shift=15 → OHHOQY OH ROKB
   shift=25 → EXXEGO EX HEAR
-  shift=24 → FYYFHP FY IFBS
+  shift=11 → SLLSUC SL VSOF
+  shift=18 → LEELNV LE OLHY
+  shift=21 → IBBIKS IB LIEV
+  shift= 5 → YRRYAI YR BYUL
+  shift=12 → RKKRTB RK URNE
   shift=14 → PIIPRZ PI SPLC
-  shift= 9 → UNNUWE UN XUQH
-  shift= 2 → BUUBDL BU EBXO
-  shift= 1 → CVVCEM CV FCYP
-  shift= 8 → VOOVXF VO YVRI
   shift=17 → MFFMOW MF PMIZ
+  shift=10 → TMMTVD TM WTPG
+  shift=22 → HAAHJR HA KHDU
   shift=16 → NGGNPX NG QNJA
-  shift=19 → KDDKMU KD NKGX
+  shift= 9 → UNNUWE UN XUQH
+  shift= 8 → VOOVXF VO YVRI
+  shift=24 → FYYFHP FY IFBS
+  shift= 1 → CVVCEM CV FCYP
+  shift= 2 → BUUBDL BU EBXO
+  shift=15 → OHHOQY OH ROKB
   shift= 7 → WPPWYG WP ZWSJ
-  shift=20 → JCCJLT JC MJFW
+  shift=19 → KDDKMU KD NKGX
   shift=23 → GZZGIQ GZ JGCT
+  shift=20 → JCCJLT JC MJFW
   shift= 4 → ZSSZBJ ZS CZVM
-  shift=13 → QJJQSA QJ TQMD
   shift= 6 → XQQXZH XQ AXTK
+  shift=13 → QJJQSA QJ TQMD
 ```
 
-Shift 3 on top, it's the most English of the 25. `--lang pl` ranks by Polish letters instead, `--lang ja` by Japanese romaji. Shift 25 ends in HEAR, which is about as funny as a Caesar brute force gets ;)
+Shift 3 on top, it's the most English of the 25. English goes by letter pairs, so `HELLO WORLD` beats `EBIIL TLOIA` too. `--lang pl` ranks by Polish letters instead, `--lang ja` by Japanese romaji. Shift 25 comes second and ends in HEAR, which is about as funny as a Caesar brute force gets ;)
 
 Enigma is in there too, the Wehrmacht M3 with rotors I, II and III and reflector B:
 

@@ -47,7 +47,7 @@ export const MAX_KEY_LENGTH = 1_000
 
 /**
  * Characters a brute-force line keeps below the top one. From this length on, scored against the
- * right language, the letter fit put the right shift first in every sampled English, Polish
+ * right language, the ranking put the right shift first in every sampled English, Polish
  * and Japanese text, and a line this long is still enough to see whether a lower shift reads.
  */
 export const BRUTE_PREVIEW_LENGTH = 80
@@ -173,7 +173,7 @@ export function formatCipherInfo(
 }
 
 /**
- * Decode with every shift and sort the decodings by frequency fit to the language, best first.
+ * Decode with every shift and sort the decodings by `pairFit`, or `fit` without one, best first.
  * Shifts that tie, including every shift of a text without A-Z letters, stay in shift order.
  *
  * @param library - The loaded cipher library.
@@ -190,11 +190,8 @@ export function rankCaesarShifts(
   const decodings: Array<{ shift: number; text: string; fit: number }> = []
   for (let shift = 1; shift <= 25; shift++) {
     const result = cipher.decode(text, { shift })
-    decodings.push({
-      shift,
-      text: result.text,
-      fit: library.analyzeFrequency(result.text, language)?.fit ?? 0,
-    })
+    const analysis = library.analyzeFrequency(result.text, language)
+    decodings.push({ shift, text: result.text, fit: analysis?.pairFit ?? analysis?.fit ?? 0 })
   }
   decodings.sort((left, right) => right.fit - left.fit)
   return decodings.map(({ shift, text: decoded }) => ({ shift, text: decoded }))

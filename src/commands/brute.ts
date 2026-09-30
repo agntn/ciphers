@@ -9,7 +9,7 @@ import { rankCaesarShifts } from '../tool-operations.ts'
 export default defineCommand({
   meta: {
     name: 'brute',
-    description: 'Brute-force Caesar cipher (all 25 shifts, best letter fit to --lang first)',
+    description: 'Brute-force Caesar cipher (all 25 shifts, best fit to --lang first)',
   },
   args: {
     text: { type: 'positional', description: 'Ciphertext to brute-force', required: true },

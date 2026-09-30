@@ -1,5 +1,54 @@
 # Changelog
 
+## v0.4.0
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.3.0...v0.4.0)
+
+### 🚀 Enhancements
+
+- **docs:** Instruments, wiring and category tabs ([#113](https://github.com/agntn/ciphers/pull/113))
+- **stream:** Rabbit opens the stream category ([#118](https://github.com/agntn/ciphers/pull/118))
+- **aes:** ECB on bytes in its own subpath ([#125](https://github.com/agntn/ciphers/pull/125))
+- **tools:** ⚠️  Rename the tools to ciphers_* ([#128](https://github.com/agntn/ciphers/pull/128))
+
+### 🩹 Fixes
+
+- **docs:** Page menu stops pointing at a 404 ([#130](https://github.com/agntn/ciphers/pull/130))
+- **cli:** Plain text when piped or NO_COLOR ([#132](https://github.com/agntn/ciphers/pull/132))
+- **playfair:** Refuse a key with no letters ([#133](https://github.com/agntn/ciphers/pull/133))
+- **columnar:** Sort keys the same on every host ([#134](https://github.com/agntn/ciphers/pull/134))
+
+### 💅 Refactors
+
+- **core:** Remove the unused withCipherError ([#131](https://github.com/agntn/ciphers/pull/131))
+
+### 📖 Documentation
+
+- Say the package is not audited ([#123](https://github.com/agntn/ciphers/pull/123))
+- Drop the production primitives rule ([#124](https://github.com/agntn/ciphers/pull/124))
+
+### 📦 Build
+
+- Take vite-plus 1.0.0 from the catalog ([#129](https://github.com/agntn/ciphers/pull/129))
+
+### 🏡 Chore
+
+- ⚠️  Drop Node.js 25 ([#126](https://github.com/agntn/ciphers/pull/126))
+
+### ✅ Tests
+
+- **loads:** Keep the load report off stderr ([#115](https://github.com/agntn/ciphers/pull/115))
+
+#### ⚠️ Breaking Changes
+
+- **tools:** ⚠️  Rename the tools to ciphers_* ([#128](https://github.com/agntn/ciphers/pull/128))
+- ⚠️  Drop Node.js 25 ([#126](https://github.com/agntn/ciphers/pull/126))
+
+### ❤️ Contributors
+
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+- Ori ([@oritwoen](https://github.com/oritwoen))
+
 ## v0.3.0
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.2.0...v0.3.0)

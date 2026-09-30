@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { buildPolybiusSquare, getOpt } from '../../core/utils.ts'
-import { MissingOptionError, normalizeError } from '../../core/errors.ts'
+import { InvalidOptionError, MissingOptionError, normalizeError } from '../../core/errors.ts'
 
 // Uses shared buildPolybiusSquare (1-indexed positions)
 
@@ -66,8 +66,11 @@ function processPlayfair(text: string, key: string, decrypt: boolean): string {
 }
 
 function validate(opts: Readonly<CipherBaseOptions>): { key: string } {
-  const key = getOpt<string | undefined>(opts, 'key', undefined)
-  if (!key) throw new MissingOptionError('key')
+  const key = getOpt<unknown>(opts, 'key', undefined)
+  if (key === undefined || key === '') throw new MissingOptionError('key')
+  if (typeof key !== 'string') throw new InvalidOptionError('key', key, 'must be a string')
+  if (!/[A-Za-z]/.test(key))
+    throw new InvalidOptionError('key', key, 'must contain at least one ASCII letter')
   return { key }
 }
 

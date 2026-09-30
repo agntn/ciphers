@@ -717,6 +717,8 @@ describe('Ciphers MCP server', () => {
       ['period', { cipher: 'alberti', text: 'abc', key: 'KEY' }],
       ['key', { cipher: 'alberti', text: 'abc', key: '123', period: 5 }],
       ['key', { cipher: 'vigenere', text: 'abc', key: '123' }],
+      ['key', { cipher: 'playfair', text: 'abc' }],
+      ['key', { cipher: 'playfair', text: 'abc', key: '123' }],
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
       ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],

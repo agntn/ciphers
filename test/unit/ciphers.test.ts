@@ -407,6 +407,15 @@ describe('playfair', () => {
     expect(() => playfair.encode('HELLO')).toThrow()
   })
 
+  it('rejects a key that fills no cell of the table', () => {
+    expect(() => playfair.encode('HELLO', { key: '123' })).toThrow(InvalidOptionError)
+    expect(() => playfair.decode('HELLO', { key: '123' })).toThrow(/at least one ASCII letter/)
+    expect(() => playfair.encode('HELLO', { key: 123 })).toThrow(/must be a string/)
+    expect(playfair.encode('HELLO', { key: 'M0NARCHY' }).text).toBe(
+      playfair.encode('HELLO', { key: 'MNARCHY' }).text,
+    )
+  })
+
   it('empty string returns empty', () => {
     expect(playfair.encode('', { key: 'MONARCHY' }).text).toBe('')
   })

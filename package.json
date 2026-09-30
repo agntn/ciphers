@@ -37,8 +37,8 @@
     "build": "obuild",
     "dev": "obuild --stub",
     "docs": "pnpm --dir docs dev",
-    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck",
-    "lint": "vp lint --tsconfig ./tsconfig.lint.json",
+    "check": "pnpm run lint && pnpm run typecheck",
+    "lint": "vp lint --tsconfig ./tsconfig.lint.json && vp fmt --check",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.omp.json && tsc --noEmit -p tsconfig.lint.json",
@@ -61,13 +61,10 @@
     "@types/node": "latest",
     "changelogen": "0.6.2",
     "obuild": "0.4.40",
-    "oxfmt": "0.68.0",
-    "oxlint": "1.83.0",
-    "oxlint-tsgolint": "7.0.2001",
     "tsx": "4.22.5",
     "typebox": "1.1.39",
     "typescript": "6.0.3",
-    "vite-plus": "0.3.2"
+    "vite-plus": "catalog:"
   },
   "engines": {
     "node": ">=26"

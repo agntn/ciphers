@@ -34,7 +34,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 pnpm add @agntn/ciphers
 ```
 
-Node.js 25 or newer. No native anything, no network, no keys to sign up for, it's all string work.
+Node.js 26 or newer. No native anything, no network, no keys to sign up for, it's all string work.
 
 ## 🚀 First call
 

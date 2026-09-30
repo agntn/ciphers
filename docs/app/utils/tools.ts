@@ -13,17 +13,17 @@ const LIBRARY = { analyzeFrequency, ciphers, create, resolveCipher };
 
 /** The five agent tools. Same names over MCP, Pi and OMP. */
 export const TOOLS = [
-  "cipher_encode",
-  "cipher_decode",
-  "cipher_brute_caesar",
-  "cipher_frequency",
-  "cipher_info",
+  "ciphers_encode",
+  "ciphers_decode",
+  "ciphers_caesar_brute",
+  "ciphers_frequency",
+  "ciphers_info",
 ] as const;
 
 export type ToolName = (typeof TOOLS)[number];
 
 /**
- * The text `cipher_encode` or `cipher_decode` hands a model, from the executor the tools run.
+ * The text `ciphers_encode` or `ciphers_decode` hands a model, from the executor the tools run.
  *
  * @param {"encode" | "decode"} operation - Which direction.
  * @param {CipherToolParams} params - The tool arguments.
@@ -34,7 +34,7 @@ export function transformText(operation: "encode" | "decode", params: CipherTool
 }
 
 /**
- * The text `cipher_brute_caesar` hands a model.
+ * The text `ciphers_caesar_brute` hands a model.
  *
  * @param {string} text - Caesar ciphertext.
  * @param {"en" | "pl" | "ja"} [language] - Language the plaintext should read in.
@@ -59,7 +59,7 @@ export function bruteRows(
 }
 
 /**
- * The text `cipher_frequency` hands a model.
+ * The text `ciphers_frequency` hands a model.
  *
  * @param {string} text - Text to count.
  * @param {"en" | "pl" | "ja"} [language] - Reference language.
@@ -70,7 +70,7 @@ export function frequencyText(text: string, language?: "en" | "pl" | "ja"): stri
 }
 
 /**
- * The text `cipher_info` hands a model about one cipher.
+ * The text `ciphers_info` hands a model about one cipher.
  *
  * @param {string} name - A registered cipher.
  * @returns {string} `content[0].text`.

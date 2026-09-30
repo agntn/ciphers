@@ -22,7 +22,7 @@ const reads = computed(() => {
 });
 
 const response = computed(() => frequencyText(props.text));
-const title = computed(() => `cipher_frequency(${props.slug} output)`);
+const title = computed(() => `ciphers_frequency(${props.slug} output)`);
 </script>
 
 <template>

@@ -42,7 +42,7 @@ const ENGLISH_IC = analyzeFrequency("A", "en")!.referenceIc.toFixed(3);
       link="Brute force and frequency"
       :checks="[
         'ciphers brute prints every shift, the one that reads most like English on top',
-        'cipher_brute_caesar returns the same list as text, so a model can pick too',
+        'ciphers_caesar_brute returns the same list as text, so a model can pick too',
         'Shift 0 is not on the list. An identity is not a decode',
       ]"
       reverse

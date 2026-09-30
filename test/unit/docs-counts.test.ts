@@ -160,14 +160,14 @@ function optionList(file: string, lead: string): string[] {
 }
 
 describe('every option list names what the ciphers take', () => {
-  it('the agents guide lists every cipher_encode argument', async () => {
+  it('the agents guide lists every ciphers_encode argument', async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const server = createMcpServer()
     const client = new Client({ name: 'docs-test', version: '1.0.0' })
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)])
     try {
       const { tools } = await client.listTools()
-      const schema = tools.find((tool) => tool.name === 'cipher_encode')!.inputSchema
+      const schema = tools.find((tool) => tool.name === 'ciphers_encode')!.inputSchema
       const expected = Object.keys(schema.properties ?? {}).filter(
         (name) => name !== 'cipher' && name !== 'text',
       )

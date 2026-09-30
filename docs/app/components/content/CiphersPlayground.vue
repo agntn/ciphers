@@ -24,35 +24,35 @@ const OPERATIONS: ReadonlyArray<{
   {
     key: "encode",
     label: "Encode",
-    tool: "cipher_encode",
+    tool: "ciphers_encode",
     command: "encode",
     about: "create(cipher).encode(text, options): the text through one cipher, options by name.",
   },
   {
     key: "decode",
     label: "Decode",
-    tool: "cipher_decode",
+    tool: "ciphers_decode",
     command: "decode",
     about: "create(cipher).decode(text, options): the same options back, the plaintext out.",
   },
   {
     key: "brute",
     label: "Brute",
-    tool: "cipher_brute_caesar",
+    tool: "ciphers_caesar_brute",
     command: "brute",
     about: "Every Caesar shift from 1 to 25, ranked by how much each reads like the language.",
   },
   {
     key: "frequency",
     label: "Frequency",
-    tool: "cipher_frequency",
+    tool: "ciphers_frequency",
     command: "frequency",
     about: "analyzeFrequency(text, lang): letter counts, the expected order and the index of coincidence.",
   },
   {
     key: "info",
     label: "Info",
-    tool: "cipher_info",
+    tool: "ciphers_info",
     command: "info",
     about: "create(cipher).info(): the options a cipher takes, their defaults and the keyspace.",
   },
@@ -990,7 +990,7 @@ const shareLink = computed(() => {
 .playground-brute li[data-best] .playground-brute-text {
   color: var(--console-accent);
 }
-/* One row per option of `cipher_info`: the name, whether it is required, what it does. */
+/* One row per option of `ciphers_info`: the name, whether it is required, what it does. */
 .playground-options li {
   grid-template-columns: 9rem 8rem minmax(0, 1fr);
 }

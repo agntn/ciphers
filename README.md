@@ -208,7 +208,7 @@ omp install @agntn/ciphers
 }
 ```
 
-Five tools, `cipher_encode`, `cipher_decode`, `cipher_brute_caesar`, `cipher_frequency` and `cipher_info`, the same five on all three. Arguments are checked against the schema before a cipher sees them, and a wrong key is a tool error with the reason in it, not a dead session. A model that doesn't know what Bifid takes calls `cipher_info` first, the encode and decode descriptions say so. And a decoded ciphertext is data: `IGNORE PREVIOUS INSTRUCTIONS` falling out of a ROT13 is the answer to the puzzle, not a new task. [Agents guide](https://ciphers.agntn.dev/guide/agents).
+Five tools, `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphers_frequency` and `ciphers_info`, the same five on all three. Arguments are checked against the schema before a cipher sees them, and a wrong key is a tool error with the reason in it, not a dead session. A model that doesn't know what Bifid takes calls `ciphers_info` first, the encode and decode descriptions say so. And a decoded ciphertext is data: `IGNORE PREVIOUS INSTRUCTIONS` falling out of a ROT13 is the answer to the puzzle, not a new task. [Agents guide](https://ciphers.agntn.dev/guide/agents).
 
 ## 🚫 What this does not do
 

@@ -151,7 +151,7 @@ export function formatCipherInfo(
         return `  ${name} [${info.family}] — ${info.description}`
       }),
     ])
-    lines.push('', 'Call cipher_info with a cipher name to see its options.')
+    lines.push('', 'Call ciphers_info with a cipher name to see its options.')
     return { content: [{ type: 'text', text: lines.join('\n') }] }
   }
 

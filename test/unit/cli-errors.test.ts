@@ -184,6 +184,31 @@ describe('CLI Caesar brute force', () => {
   })
 })
 
+describe('CLI bold text', () => {
+  const commands = [
+    'info caesar',
+    'ciphers --category stream',
+    'ciphers --category stream --verbose',
+    'brute KHOOR',
+    'frequency HELLO',
+  ]
+  const { FORCE_COLOR: _force, NO_COLOR: _noColor, ...env } = process.env
+
+  it.each(commands)('prints no escape codes into a pipe: %s', (command) => {
+    const result = runCli(command.split(' '), { ...env, CONSOLA_LEVEL: '3' })
+
+    expect(result.status).toBe(0)
+    expect(`${result.stdout}${result.stderr}`).not.toContain('\u001B[')
+  })
+
+  it.each(commands)('keeps bold when FORCE_COLOR asks for it: %s', (command) => {
+    const result = runCli(command.split(' '), { ...env, CONSOLA_LEVEL: '3', FORCE_COLOR: '1' })
+
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('\u001B[1m')
+  })
+})
+
 describe('CLI builtin flags', () => {
   it('prints the version instead of the encode usage', () => {
     const result = runCli(['--version'])

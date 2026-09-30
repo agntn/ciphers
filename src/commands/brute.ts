@@ -1,3 +1,4 @@
+import { styleText } from 'node:util'
 import { defineCommand } from 'citty'
 import consola from 'consola'
 import { InvalidOptionError } from '../core/errors.ts'
@@ -29,7 +30,7 @@ export default defineCommand({
       args.text,
       args.lang,
     )) {
-      consola.log(`  shift=\x1B[1m${String(shift).padStart(2)}\x1B[0m → ${text}`)
+      consola.log(`  shift=${styleText('bold', String(shift).padStart(2))} → ${text}`)
     }
   },
 })

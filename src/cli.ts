@@ -109,6 +109,7 @@ const main = defineCommand({
     brute: () => loadCommand(() => import('./commands/brute.ts')),
     mcp: () => loadCommand(loadMcpCommand),
     frequency: () => loadCommand(() => import('./commands/frequency.ts')),
+    period: () => loadCommand(() => import('./commands/period.ts')),
   },
 })
 

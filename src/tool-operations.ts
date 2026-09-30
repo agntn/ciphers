@@ -47,6 +47,12 @@ export const MAX_TRANSFORM_TEXT_LENGTH = 10_000
 export const MAX_BRUTE_TEXT_LENGTH = 2_000
 export const MAX_FREQUENCY_TEXT_LENGTH = 100_000
 export const MAX_KEY_LENGTH = 1_000
+/** Longest key length `ciphers_period_estimate` tries. */
+export const MAX_PERIOD = 100
+/** Key lengths the period estimate prints, most likely first. */
+export const PERIOD_LINES = 10
+/** Kasiski factors the period estimate prints. */
+export const KASISKI_FACTORS = 5
 
 /**
  * Characters a brute-force line keeps below the top one. From this length on, scored against the
@@ -85,6 +91,7 @@ export const OPTION_DESCRIPTIONS = {
   iterations:
     'AES-passphrase only: MD5 passes per derived block, 1 to 100000, CryptoJS EvpKDF iterations (default 1); decoding needs the same value',
   salt: 'AES-passphrase encoding only: 16 hex digits (default random); decoding reads it from the ciphertext',
+  maxPeriod: `Longest key length to try, 2 to ${MAX_PERIOD} (default 20)`,
   period:
     'Block length. Required by alberti (letters before the disk rotates); optional for bifid (default 5)',
 } as const
@@ -262,5 +269,70 @@ export function formatFrequencyAnalysis(
       `Index of coincidence: ${analysis.ic.toFixed(4)} (${analysis.language} plaintext ~${analysis.referenceIc.toFixed(3)}, uniform random ~0.038)`,
     )
   }
+  return { content: [{ type: 'text', text: lines.join('\n') }] }
+}
+
+/**
+ * Rank key lengths for a model. The error class comes from `library`: the tarball has no errors.ts.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - Vigenère ciphertext.
+ * @param language - Language the plaintext should read in; English by default.
+ * @param maxPeriod - Longest key length to try, 2 to `MAX_PERIOD`; 20 by default.
+ * @returns {CipherToolResult} The ranked lengths and the Kasiski factors.
+ * @throws {InvalidOptionError} When `maxPeriod` is above `MAX_PERIOD`.
+ */
+export function formatPeriodEstimate(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'estimatePeriod' | 'InvalidOptionError'>>,
+  text: string,
+  language?: 'en' | 'pl' | 'ja',
+  maxPeriod?: number,
+): CipherToolResult {
+  if (maxPeriod !== undefined && maxPeriod > MAX_PERIOD) {
+    throw new library.InvalidOptionError('maxPeriod', maxPeriod, `must be at most ${MAX_PERIOD}`)
+  }
+  const analysis = library.estimatePeriod(text, language, maxPeriod)
+  if (analysis.total === 0) {
+    return { content: [{ type: 'text', text: 'No A-Z letters found in input.' }] }
+  }
+  if (analysis.periods.length === 0) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Need at least 4 A-Z letters for a key length, got ${analysis.total}.`,
+        },
+      ],
+    }
+  }
+
+  const last = analysis.periods.reduce((longest, { period }) => Math.max(longest, period), 2)
+  const width = String(last).length
+  const lines = [
+    `Key length estimate (${analysis.total} letters, lang=${analysis.language}, lengths 2-${last}), most likely first:`,
+    '',
+  ]
+  for (const { period, ic, key } of analysis.periods.slice(0, PERIOD_LINES)) {
+    const keyText = key === undefined ? '' : `  key ${key}`
+    lines.push(`  length ${String(period).padStart(width)}  IoC ${ic.toFixed(4)}${keyText}`)
+  }
+  if (analysis.periods.length > PERIOD_LINES) {
+    lines.push(`  (${analysis.periods.length - PERIOD_LINES} more lengths ranked lower)`)
+  }
+  lines.push(
+    '',
+    `Column IoC near ${analysis.language} plaintext (~${analysis.referenceIc.toFixed(3)}) means one Caesar alphabet per column, near 0.038 a mix. A multiple of a length ranks right behind it.`,
+  )
+  const factors = analysis.factors
+    .filter(({ distances }) => distances > 0)
+    .slice(0, KASISKI_FACTORS)
+    .map(({ factor, distances }) => `${factor} (${distances})`)
+  lines.push(
+    analysis.distances === 0
+      ? 'Kasiski: no trigram repeats.'
+      : `Kasiski: ${analysis.distances} distances between repeated trigrams; factors dividing the most: ${factors.join(', ')}.`,
+    'Keys are Vigenère shifts: ciphers_decode with cipher vigenere and one of them reads the text. Beaufort shares the length, not the key.',
+  )
   return { content: [{ type: 'text', text: lines.join('\n') }] }
 }

@@ -22,7 +22,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - The sources run under plain Node: relative imports name the `.ts` file (or `index.ts` for a folder), and there are no `enum`, `namespace` or parameter properties. `tsconfig.json` holds that with `NodeNext`, `allowImportingTsExtensions` and `erasableSyntaxOnly`.
 - Report domain failures through the `CipherError` hierarchy and normalize unknown thrown values with `normalizeError()`.
 - Resolution may normalize case and spaces to hyphens, then it must match a registered name exactly. Do not add fuzzy or prefix matching.
-- Keep the `ciphers` Citty CLI and the Pi/OMP extensions aligned with the library. Both extensions expose encode, decode, Caesar brute force, frequency analysis, and cipher info lookup.
+- Keep the `ciphers` Citty CLI and the Pi/OMP extensions aligned with the library. Both extensions expose encode, decode, Caesar brute force, frequency analysis, key length estimate, and cipher info lookup.
 
 ## Cipher Contracts
 

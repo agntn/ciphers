@@ -14,7 +14,7 @@ The instruments ciphers owns:
 | [CipherHistogram.vue](app/components/CipherHistogram.vue) | frequency panel and playground | 26 columns A to Z, the language's top six in the accent |
 | [LandingRegistry.vue](app/components/content/LandingRegistry.vue) | "Forty-one ciphers, twelve families" | the registry as a grid of cells, one band per category, the walk's cipher and its family on the nodes |
 | [CipherRoster.vue](app/components/content/CipherRoster.vue) | `/ciphers`, `/ciphers/classical`, `/ciphers/block` | roster of the registry on `UTable`, sortable |
-| [LandingToolCall.vue](app/components/content/LandingToolCall.vue) | "Five tools, three hosts" | one `ciphers_info` call, full text in the dialog |
+| [LandingToolCall.vue](app/components/content/LandingToolCall.vue) | "`<count>` tools, three hosts" | one `ciphers_info` call, full text in the dialog |
 | [LandingCustom.vue](app/components/content/LandingCustom.vue) | "Extend Cipher, call register" | `reverse.ts`, a custom cipher as a file |
 | [LandingStart.vue](app/components/content/LandingStart.vue) | closing section | install, notes, first call as a file |
 | [CipherFacts.vue](app/components/content/CipherFacts.vue) | every cipher page (`::cipher-facts`) | cipher dossier: ID bar with position, reticle, readout, options, access |

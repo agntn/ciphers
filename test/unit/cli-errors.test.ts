@@ -129,6 +129,33 @@ describe('CLI frequency language', () => {
   })
 })
 
+describe('CLI key length estimate', () => {
+  it('puts the keyword length and the keyword first', () => {
+    const result = runCli(
+      [
+        'period',
+        'CHREEVOAHMAERATBIAXXWTNXBEEOPHBSBQMQEQERBWRVXUOAKXAOSXXWEAHBWGJMMQMNKGRFVGXWTRZXWIAKLXFPSKAUTEMNDCMGTSXMXBTUIADNGMGPSRELXNJELXVRVPRTULHDNQWTWDTYGBPHXTFALJHASVBFXNGLLCHRZBWELEKMSJIKNBHWRJGNMGJSGLXFEYPHAGNRBIEQJTAMRVLCRREMNDGLXRRIMGNSNRWCHRQHAEYEVTAQEBBIPEEWEVKAKOEWADREMXMTBHHCHRTKDNVRZCHRCLQOHPWQAIIWXNRMGWOIIFKEE',
+      ],
+      { ...process.env, CONSOLA_LEVEL: '3' },
+    )
+
+    expect(result.status).toBe(0)
+    const output = stripVTControlCharacters(`${result.stdout}${result.stderr}`)
+    expect(output).toContain('Key length estimate (313 letters, lang=en), most likely first:')
+    expect(output).toContain('  length  5  IoC 0.0666  key JANET\n')
+    expect(output).toContain('Kasiski: 12 trigram distances, most divided by 5 (10)')
+    expect(output).toContain('ciphers decode vigenere "<text>" --key JANET')
+  })
+
+  it('rejects a longest length below 2 as one line', () => {
+    const result = runCli(['period', 'ABCDEF', '--max-period', '1'])
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('Invalid option max-period=1: must be an integer of at least 2\n')
+  })
+})
+
 describe('CLI Caesar brute force', () => {
   /**
    * Run `ciphers brute` and keep its shift lines without the terminal styling.

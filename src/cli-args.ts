@@ -6,7 +6,7 @@
  * @returns {string[]} Normalized arguments with an explicit subcommand.
  */
 export function normalizeMainArgs(argv: readonly string[]): string[] {
-  const subcommands = ['encode', 'decode', 'ciphers', 'info', 'brute', 'frequency', 'mcp']
+  const subcommands = ['encode', 'decode', 'ciphers', 'info', 'brute', 'frequency', 'period', 'mcp']
   const builtinFlags = ['--help', '-h', '--version', '-v']
   if (argv.length === 0) return ['ciphers']
   const first = argv[0]!

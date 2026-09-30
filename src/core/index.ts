@@ -56,3 +56,9 @@ export {
 } from './ciphers.ts'
 export { LruCache, cipherCacheKey } from './utils.ts'
 export { analyzeFrequency, type FrequencyAnalysis, type FrequencyLanguage } from './frequency.ts'
+export {
+  estimatePeriod,
+  type KasiskiFactor,
+  type PeriodAnalysis,
+  type PeriodCandidate,
+} from './period.ts'

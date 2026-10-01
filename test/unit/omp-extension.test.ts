@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vite-plus/test'
-import { Type } from '@oh-my-pi/omptype/typebox'
 import ciphersExtension from '../../packages/omp/extensions/ciphers.ts'
+import { ciphersTools } from '../../src/tools.ts'
 
 type ToolResult = {
   readonly content: ReadonlyArray<{ readonly type: string; readonly text: string }>
@@ -12,9 +12,7 @@ type RegisteredTool = {
   label: string
   approval?: string
   loadMode?: string
-  parameters: {
-    safeParse(input: unknown): { success: boolean }
-  }
+  parameters: unknown
   execute(toolCallId: string, params: Readonly<Record<string, unknown>>): Promise<ToolResult>
   renderResult?: (
     result: Readonly<ToolResult>,
@@ -40,7 +38,7 @@ function isRegisteredTool(value: unknown): value is RegisteredTool {
     value !== null &&
     typeof Reflect.get(value, 'name') === 'string' &&
     typeof Reflect.get(value, 'label') === 'string' &&
-    typeof Reflect.get(value, 'parameters') === 'function' &&
+    typeof Reflect.get(value, 'parameters') === 'object' &&
     typeof Reflect.get(value, 'execute') === 'function'
   )
 }
@@ -55,15 +53,25 @@ function renderText(
   toolName: string,
   result: Readonly<ToolResult>,
   options: Readonly<{ expanded?: boolean }> = {},
+  styles: Readonly<Record<string, unknown>> = {},
 ): string {
   const renderer = getTool(toolName).renderResult
   if (renderer === undefined) throw new Error(`Tool has no result renderer: ${toolName}`)
-  return renderer(result, options, {}).text
+  return renderer(result, options, styles).text
 }
 
-beforeAll(() => {
+/** A theme that writes its styling calls into the output, with what the status line reads. */
+const theme = {
+  fg: (color: string, text: string) => `${color}(${text})`,
+  styledSymbol: (symbol: string, color: string) => `${color}:${symbol}`,
+  format: { bracketLeft: '[', bracketRight: ']' },
+  sep: { dot: ' · ' },
+}
+
+beforeAll(async () => {
   const api = {
-    typebox: { Type },
+    /* Compiled OMP validates the JSON Schema it is handed and emits it unchanged. */
+    typebox: { Type: { Unsafe: (schema: unknown) => schema } },
     pi: { Text: RenderedText },
     registerTool(tool: unknown) {
       if (!isRegisteredTool(tool)) throw new Error('Invalid tool registration')
@@ -72,11 +80,11 @@ beforeAll(() => {
   }
 
   // SAFETY: the extension uses only typebox.Type, pi.Text, and registerTool; this test double implements all three runtime members.
-  ciphersExtension(api as unknown as Parameters<typeof ciphersExtension>[0])
+  await ciphersExtension(api as unknown as Parameters<typeof ciphersExtension>[0])
 })
 
 describe('OMP extension', () => {
-  it('registers every tool as essential and read-only', () => {
+  it('registers every tool read-only, with the schema of its definition', () => {
     expect(
       [...tools.values()].map(({ name, label, approval, loadMode }) => ({
         name,
@@ -84,35 +92,17 @@ describe('OMP extension', () => {
         approval,
         loadMode,
       })),
-    ).toEqual([
-      { name: 'ciphers_encode', label: 'Cipher Encode', approval: 'read', loadMode: 'essential' },
-      { name: 'ciphers_decode', label: 'Cipher Decode', approval: 'read', loadMode: 'essential' },
-      {
-        name: 'ciphers_caesar_brute',
-        label: 'Brute Force Caesar',
+    ).toEqual(
+      ciphersTools.map((tool) => ({
+        name: tool.name,
+        label: tool.title,
         approval: 'read',
-        loadMode: 'essential',
-      },
-      {
-        name: 'ciphers_frequency',
-        label: 'Frequency Analysis',
-        approval: 'read',
-        loadMode: 'essential',
-      },
-      {
-        name: 'ciphers_period_estimate',
-        label: 'Key Length Estimate',
-        approval: 'read',
-        loadMode: 'essential',
-      },
-      {
-        name: 'ciphers_family_guess',
-        label: 'Cipher Family Guess',
-        approval: 'read',
-        loadMode: 'essential',
-      },
-      { name: 'ciphers_info', label: 'Cipher Info', approval: 'read', loadMode: 'essential' },
-    ])
+        loadMode: undefined,
+      })),
+    )
+    for (const definition of ciphersTools) {
+      expect(getTool(definition.name).parameters, definition.name).toEqual(definition.input)
+    }
   })
 
   it('executes Beaufort in both directions', async () => {
@@ -229,76 +219,59 @@ describe('OMP extension', () => {
         cipher: 'cae',
         text: 'TEST',
       }),
-    ).rejects.toThrow('Unknown cipher')
+    ).rejects.toThrow('Invalid arguments at /cipher: must be one of caesar, ')
+    await expect(getTool('ciphers_info').execute('failure', { cipher: 'cae' })).rejects.toThrow(
+      'Unknown cipher: "cae"',
+    )
+    await expect(
+      getTool('ciphers_encode').execute('key', { cipher: 'vigenere', text: 'TEST' }),
+    ).rejects.toThrow('Invalid arguments at /key: required for vigenere')
   })
 
-  it('enforces language, option, and resource boundaries in OMP schemas', () => {
-    const frequencySchema = getTool('ciphers_frequency').parameters
-    expect(frequencySchema.safeParse({ text: 'TEST', lang: 'pl' }).success).toBe(true)
-    expect(frequencySchema.safeParse({ text: 'TEST', lang: 'ja' }).success).toBe(true)
-    expect(frequencySchema.safeParse({ text: 'TEST', lang: 'de' }).success).toBe(false)
-    expect(frequencySchema.safeParse({ text: 'X'.repeat(100_001) }).success).toBe(false)
+  it('enforces language, option, and resource boundaries before the executors', async () => {
+    const rejects = async (toolName: string, params: Readonly<Record<string, unknown>>) =>
+      await expect(getTool(toolName).execute('bounds', params)).rejects.toThrow('Invalid arguments')
+    const accepts = async (toolName: string, params: Readonly<Record<string, unknown>>) =>
+      await expect(getTool(toolName).execute('bounds', params)).resolves.toBeDefined()
 
-    const periodSchema = getTool('ciphers_period_estimate').parameters
-    expect(periodSchema.safeParse({ text: 'TEST', maxPeriod: 100 }).success).toBe(true)
-    expect(periodSchema.safeParse({ text: 'TEST', maxPeriod: 101 }).success).toBe(false)
-    expect(periodSchema.safeParse({ text: 'TEST', maxPeriod: 1 }).success).toBe(false)
-    expect(periodSchema.safeParse({ text: 'TEST', lang: 'de' }).success).toBe(false)
+    await accepts('ciphers_frequency', { text: 'TEST', lang: 'pl' })
+    await accepts('ciphers_frequency', { text: 'TEST', lang: 'ja' })
+    await rejects('ciphers_frequency', { text: 'TEST', lang: 'de' })
+    await rejects('ciphers_frequency', { text: 'X'.repeat(100_001) })
 
-    const guessSchema = getTool('ciphers_family_guess').parameters
-    expect(guessSchema.safeParse({ text: 'TEST', lang: 'ja' }).success).toBe(true)
-    expect(guessSchema.safeParse({ text: 'TEST', lang: 'de' }).success).toBe(false)
-    expect(guessSchema.safeParse({ text: 'X'.repeat(100_001) }).success).toBe(false)
+    await accepts('ciphers_period_estimate', { text: 'TEST', maxPeriod: 100 })
+    await rejects('ciphers_period_estimate', { text: 'TEST', maxPeriod: 101 })
+    await rejects('ciphers_period_estimate', { text: 'TEST', maxPeriod: 1 })
+    await rejects('ciphers_period_estimate', { text: 'TEST', lang: 'de' })
 
-    const transformSchema = getTool('ciphers_encode').parameters
-    expect(transformSchema.safeParse({ cipher: 'caesar', text: 'X'.repeat(10_000) }).success).toBe(
-      true,
-    )
-    expect(transformSchema.safeParse({ cipher: 'caesar', text: 'X'.repeat(10_001) }).success).toBe(
-      false,
-    )
-    expect(transformSchema.safeParse({ cipher: 'bifid', text: 'X', period: 0 }).success).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'bacon', text: 'X', letters: 25 }).success).toBe(
-      false,
-    )
-    expect(transformSchema.safeParse({ cipher: 'bacon', text: 'X', letters: 24 }).success).toBe(
-      true,
-    )
-    expect(transformSchema.safeParse({ cipher: 'rail-fence', text: 'X', rails: 1 }).success).toBe(
-      false,
-    )
-    expect(transformSchema.safeParse({ cipher: 'affine', text: 'X', a: 2 }).success).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'affine', text: 'X', a: 3 }).success).toBe(true)
-    expect(
-      transformSchema.safeParse({ cipher: 'vigenere', text: 'X', key: 'K'.repeat(1_001) }).success,
-    ).toBe(false)
-    expect(
-      transformSchema.safeParse({
-        cipher: 'enigma',
-        text: 'A',
-        positions: 'AAA',
-        rings: 'AAA',
-        plugboard: 'AV BS',
-      }).success,
-    ).toBe(true)
-    expect(
-      transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: 'AA' }).success,
-    ).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', rings: 'AAAA' }).success).toBe(
-      false,
-    )
-    expect(
-      transformSchema.safeParse({ cipher: 'enigma', text: 'A', positions: '123' }).success,
-    ).toBe(false)
-    expect(transformSchema.safeParse({ cipher: 'enigma', text: 'A', rings: 'A1A' }).success).toBe(
-      false,
-    )
-    expect(
-      transformSchema.safeParse({ cipher: 'enigma', text: 'A', plugboard: 'A'.repeat(78) }).success,
-    ).toBe(false)
+    await accepts('ciphers_family_guess', { text: 'TEST', lang: 'ja' })
+    await rejects('ciphers_family_guess', { text: 'TEST', lang: 'de' })
+    await rejects('ciphers_family_guess', { text: 'X'.repeat(100_001) })
 
-    const bruteSchema = getTool('ciphers_caesar_brute').parameters
-    expect(bruteSchema.safeParse({ text: 'X'.repeat(2_001) }).success).toBe(false)
+    await accepts('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_000) })
+    await rejects('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_001) })
+    await rejects('ciphers_encode', { cipher: 'bifid', text: 'X', period: 0 })
+    await rejects('ciphers_encode', { cipher: 'bacon', text: 'X', letters: 25 })
+    await accepts('ciphers_encode', { cipher: 'bacon', text: 'X', letters: 24 })
+    await rejects('ciphers_encode', { cipher: 'rail-fence', text: 'X', rails: 1 })
+    await rejects('ciphers_encode', { cipher: 'affine', text: 'X', a: 2 })
+    await accepts('ciphers_encode', { cipher: 'affine', text: 'X', a: 3 })
+    await rejects('ciphers_encode', { cipher: 'vigenere', text: 'X', key: 'K'.repeat(1_001) })
+    await accepts('ciphers_encode', {
+      cipher: 'enigma',
+      text: 'A',
+      positions: 'AAA',
+      rings: 'AAA',
+      plugboard: 'AV BS',
+    })
+    await rejects('ciphers_encode', { cipher: 'enigma', text: 'A', positions: 'AA' })
+    await rejects('ciphers_encode', { cipher: 'enigma', text: 'A', rings: 'AAAA' })
+    await rejects('ciphers_encode', { cipher: 'enigma', text: 'A', positions: '123' })
+    await rejects('ciphers_encode', { cipher: 'enigma', text: 'A', rings: 'A1A' })
+    await rejects('ciphers_encode', { cipher: 'enigma', text: 'A', plugboard: 'A'.repeat(78) })
+    await rejects('ciphers_encode', { cipher: 'caesar', text: 'A', shfit: 1 })
+
+    await rejects('ciphers_caesar_brute', { text: 'X'.repeat(2_001) })
   })
 
   it('clips a collapsed result preview and keeps the expanded one whole', async () => {
@@ -336,10 +309,10 @@ describe('OMP extension', () => {
       expect(renderText(toolName, result, { expanded: true })).toBe(result.content[0]?.text)
     }
 
-    expect(getTool('ciphers_info').renderResult).toBeUndefined()
-    expect(getTool('ciphers_frequency').renderResult).toBeUndefined()
-    expect(getTool('ciphers_period_estimate').renderResult).toBeUndefined()
-    expect(getTool('ciphers_family_guess').renderResult).toBeUndefined()
+    const info = await getTool('ciphers_info').execute('info', {})
+    expect(renderText('ciphers_info', info, {}, theme)).toBe(
+      'success:status.done accent(Cipher Info) accent([read])',
+    )
   })
 
   it('renders the trailing spaces caesar carries over from its input', async () => {
@@ -351,7 +324,9 @@ describe('OMP extension', () => {
     })
 
     expect(result.content[0]?.text).toBe('DWWDFN DW GDZQ  ')
-    expect(tool.renderResult?.(result, { expanded: true }, {})?.text).toBe('DWWDFN DW GDZQ  ')
+    expect(tool.renderResult?.(result, { expanded: true }, theme)?.text).toBe(
+      'toolOutput(DWWDFN DW GDZQ  )',
+    )
   })
 
   it('brute-forces Caesar and analyzes frequencies', async () => {

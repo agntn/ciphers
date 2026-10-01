@@ -159,3 +159,10 @@ export function renderToolResult(
 
   return rendered.join('\n')
 }
+
+/** The tools whose output width the tool cannot bound, so both wrappers draw it as a preview. */
+export const PREVIEWED_TOOLS: ReadonlySet<string> = new Set([
+  'ciphers_encode',
+  'ciphers_decode',
+  'ciphers_caesar_brute',
+])

@@ -11,8 +11,8 @@
 //
 // `mcp` runs from every layout it can meet: the tarball's bin serves its bundle,
 // while the checkout's own dist/cli.mjs serves src/, so a local server takes a
-// change on restart. CIPHERS_DIST=1, a copy under node_modules and a copy without
-// devDependencies keep the bundle.
+// change on restart, and so does a copy without devDependencies. CIPHERS_DIST=1
+// and a copy under node_modules keep the bundle.
 //
 // POSIX only. Windows installs the bin as a generated .cmd shim, so neither the
 // shebang nor the execute bit decides anything there.
@@ -25,7 +25,6 @@ import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, symlink } from 'node:f
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { Type as OmpType } from '@oh-my-pi/omptype/typebox'
 import { register } from 'tsx/esm/api'
 
 if (process.platform === 'win32') {
@@ -549,33 +548,46 @@ try {
     'dist',
     'package.json',
     'packages',
-    'src',
   ])
 
   // tsx stands in for the host's loader. Its namespaced tsImport() fails on
   // node: builtins under Node 26, so the loader is registered for the two
-  // imports and removed again. The tool call then resolves `@agntn/ciphers` to
-  // this package's own dist.
+  // imports and removed again. With no src/ in the tarball, the extensions load
+  // the tools from this package's own dist.
   const unregister = register()
   /**
    * @param {string} host - Extension directory under packages/.
-   * @returns {Promise<{ default: (api: object) => void }>} The extension module.
+   * @returns {Promise<{ default: (api: object) => Promise<void> }>} The extension module.
    */
   const extension = (host) =>
     import(pathToFileURL(path.join(packageRoot, `packages/${host}/extensions/ciphers.ts`)).href)
   const omp = await extension('omp')
   const pi = await extension('pi')
   await unregister()
-  /** @type {[string, (api: object) => void, object][]} */
+  /**
+   * Compiled OMP's `Type.Unsafe`, which validates the JSON Schema and emits it unchanged.
+   *
+   * @param {object} schema - The tool's JSON Schema.
+   * @returns {object} The same schema.
+   */
+  const unsafe = (schema) => schema
+  /** @type {[string, (api: object) => Promise<void>, object][]} */
   const hosts = [
-    ['omp', omp.default, { typebox: { Type: OmpType }, pi: { Text: class {} } }],
+    [
+      'omp',
+      omp.default,
+      {
+        typebox: { Type: { Unsafe: unsafe } },
+        pi: { Text: class {} },
+      },
+    ],
     ['pi', pi.default, {}],
   ]
   for (const [host, extensionEntry, api] of hosts) {
     /** @typedef {{ name: string, execute(id: string, params: object): Promise<{ content: { text: string }[] }> }} PackedTool */
     /** @type {Map<string, Readonly<PackedTool>>} */
     const tools = new Map()
-    extensionEntry({
+    await extensionEntry({
       ...api,
       /** @param {Readonly<PackedTool>} tool - Tool the extension registers. */
       registerTool: (tool) => {
@@ -588,8 +600,7 @@ try {
     assert.equal(result.content[0]?.text, 'KHOOR', `${host} extension`)
   }
 
-  // The tarball ships src/core/ciphers.ts but no src/commands, so its mcp has
-  // only the bundle to serve.
+  // The tarball ships no src/, so its mcp has only the bundle to serve.
   const packedUrls = await runMcp(binPath)
   assert.ok(
     packedUrls.includes(pathToFileURL(path.join(packageRoot, 'dist/mcp.mjs')).href),
@@ -613,7 +624,7 @@ try {
   const cache = path.join(root, 'node_modules/.cache')
   await mkdir(cache, { recursive: true })
   const installed = await mkdtemp(path.join(cache, 'ciphers-bin-'))
-  // The server imports typebox, a devDependency the bundle inlines.
+  // The server's source imports production dependencies only.
   const production = await mkdtemp(path.join(tmpdir(), 'ciphers-prod-'))
   try {
     await copyCheckout(installed)
@@ -639,12 +650,11 @@ try {
         path.join(production, 'node_modules', name),
       )
     }
-    assert.deepEqual(
-      (await runMcp(path.join(production, 'dist/cli.mjs'))).filter((url) =>
-        url.startsWith(pathToFileURL(path.join(production, 'src/')).href),
+    assert.ok(
+      (await runMcp(path.join(production, 'dist/cli.mjs'))).includes(
+        pathToFileURL(path.join(production, 'src/mcp.ts')).href,
       ),
-      [],
-      'mcp without devDependencies keeps the bundle',
+      'mcp without devDependencies serves src/mcp.ts',
     )
   } finally {
     await rm(installed, { recursive: true, force: true })

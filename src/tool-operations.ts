@@ -27,6 +27,7 @@ export type CipherToolParams = {
   blockSize?: number
   endian?: 'big' | 'little'
   tagLength?: number
+  digest?: 'md5' | 'sha1' | 'sha256'
   keyLength?: number
   iterations?: number
   salt?: string
@@ -85,10 +86,12 @@ export const OPTION_DESCRIPTIONS = {
   aad: 'AES-CCM and AES-OCB only: associated data in hex, covered by the tag but not encrypted; decoding needs the same value (default none)',
   tagLength:
     'AES-CCM and AES-OCB only: tag length in bits, 32 to 128 in steps of 16 for AES-CCM, 64, 96 or 128 for AES-OCB (default 128); decoding needs the same value',
+  digest:
+    'AES-passphrase only: hash for EVP_BytesToKey, md5 as in CryptoJS (default), sha256 as in openssl enc since 1.1.0, or sha1; decoding needs the same value',
   keyLength:
     'AES-passphrase only: key length in bits, 128 to 1024 in steps of 32, CryptoJS keySize times 32 (default 256); decoding needs the same value',
   iterations:
-    'AES-passphrase only: MD5 passes per derived block, 1 to 100000, CryptoJS EvpKDF iterations (default 1); decoding needs the same value',
+    'AES-passphrase only: hash passes per derived block, 1 to 100000, CryptoJS EvpKDF iterations (default 1); decoding needs the same value',
   salt: 'AES-passphrase encoding only: 16 hex digits (default random); decoding reads it from the ciphertext',
   maxPeriod: `Longest key length to try, 2 to ${MAX_PERIOD} (default 20)`,
   period:
@@ -114,6 +117,7 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'blockSize',
     'endian',
     'tagLength',
+    'digest',
     'keyLength',
     'iterations',
     'salt',

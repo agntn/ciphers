@@ -1,4 +1,4 @@
-import { Md5Hasher, evpBytesToKey } from '@agntn/hashes'
+import { Md5Hasher, Sha1Hasher, Sha256Hasher, evpBytesToKey } from '@agntn/hashes'
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../../core/types.ts'
 import { getOpt } from '../../../core/types.ts'
 import { Cipher } from '../../../core/cipher.ts'
@@ -20,10 +20,15 @@ const MAGIC = [0x53, 0x61, 0x6c, 0x74, 0x65, 0x64, 0x5f, 0x5f]
 /** 32 CryptoJS words; AES runs 38 rounds on a key that wide. */
 export const MAX_PASSPHRASE_KEY_LENGTH = 1024
 
-/** Keeps one call with the widest key well under a second of MD5 work. */
+/** Keeps one call with the widest key well under a second of hashing. */
 export const MAX_PASSPHRASE_ITERATIONS = 100_000
 
-type PassphraseSettings = { keyLength: number; iterations: number }
+/** EVP_BytesToKey hashes: MD5 for CryptoJS, SHA-256 for `openssl enc` since 1.1.0. */
+const DIGESTS = { md5: Md5Hasher, sha1: Sha1Hasher, sha256: Sha256Hasher }
+
+type PassphraseDigest = keyof typeof DIGESTS
+
+type PassphraseSettings = { digest: PassphraseDigest; keyLength: number; iterations: number }
 
 function readPassphrase(options: Readonly<CipherBaseOptions>): string {
   const key = options.key
@@ -32,7 +37,16 @@ function readPassphrase(options: Readonly<CipherBaseOptions>): string {
   return key
 }
 
+function readDigest(options: Readonly<CipherBaseOptions>): PassphraseDigest {
+  const digest = getOpt<unknown>(options, 'digest', 'md5')
+  if (typeof digest !== 'string' || !Object.hasOwn(DIGESTS, digest)) {
+    throw new InvalidOptionError('digest', digest, 'must be md5, sha1 or sha256')
+  }
+  return digest as PassphraseDigest
+}
+
 function readSettings(options: Readonly<CipherBaseOptions>): PassphraseSettings {
+  const digest = readDigest(options)
   const keyLength = getOpt<unknown>(options, 'keyLength', 256)
   if (
     !Number.isInteger(keyLength) ||
@@ -58,7 +72,11 @@ function readSettings(options: Readonly<CipherBaseOptions>): PassphraseSettings 
       `must be an integer from 1 to ${MAX_PASSPHRASE_ITERATIONS}`,
     )
   }
-  return { keyLength: keyLength as number, iterations: iterations as number }
+  return {
+    digest,
+    keyLength: keyLength as number,
+    iterations: iterations as number,
+  }
 }
 
 function readSalt(options: Readonly<CipherBaseOptions>): Bytes {
@@ -76,9 +94,10 @@ function deriveKey(
   settings: Readonly<PassphraseSettings>,
 ): { key: Bytes; iv: Bytes } {
   const keyBytes = settings.keyLength / 8
+  const Hasher = DIGESTS[settings.digest]
   const derived = [
     ...evpBytesToKey(
-      () => new Md5Hasher(),
+      () => new Hasher(),
       new TextEncoder().encode(passphrase),
       Uint8Array.from(salt),
       settings.iterations,
@@ -121,7 +140,7 @@ export class AesPassphrase extends Cipher {
       name: 'aes-passphrase',
       label: 'AES (passphrase)',
       description:
-        'What CryptoJS.AES.encrypt(message, passphrase) writes, and openssl enc -md md5: base64 starting U2FsdGVkX1 (Salted__, an 8-byte salt), AES-CBC with PKCS#7, key and IV from the passphrase through EVP_BytesToKey over MD5. UTF-8 text in, base64 out',
+        'What CryptoJS.AES.encrypt(message, passphrase) and openssl enc -a write: base64 starting U2FsdGVkX1 (Salted__, an 8-byte salt), AES-CBC with PKCS#7, key and IV from the passphrase through EVP_BytesToKey over MD5, or over the SHA-1 or SHA-256 that digest picks. UTF-8 text in, base64 out',
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
@@ -131,6 +150,14 @@ export class AesPassphrase extends Cipher {
           type: 'string',
           required: true,
           description: 'The passphrase, any text, read as UTF-8',
+        },
+        {
+          name: 'digest',
+          type: 'string',
+          required: false,
+          default: 'md5',
+          description:
+            'Hash for EVP_BytesToKey: md5 as in CryptoJS and openssl enc before 1.1.0, sha256 as in openssl enc since, or sha1',
         },
         {
           name: 'keyLength',
@@ -144,7 +171,7 @@ export class AesPassphrase extends Cipher {
           type: 'number',
           required: false,
           default: 1,
-          description: `MD5 passes per derived block, 1 to ${MAX_PASSPHRASE_ITERATIONS}: CryptoJS EvpKDF.cfg.iterations`,
+          description: `Hash passes per derived block, 1 to ${MAX_PASSPHRASE_ITERATIONS}: CryptoJS EvpKDF.cfg.iterations`,
         },
         {
           name: 'salt',
@@ -194,7 +221,7 @@ export class AesPassphrase extends Cipher {
         )
       } catch {
         throw new CipherError(
-          '[aes-passphrase] Decrypted blocks do not end in PKCS#7 padding: wrong passphrase, keyLength or iterations',
+          '[aes-passphrase] Decrypted blocks do not end in PKCS#7 padding: wrong passphrase, digest, keyLength or iterations',
         )
       }
       let decoded: string

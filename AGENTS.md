@@ -18,11 +18,14 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - Byte functions of a cipher family go in their own subpath entry, `src/<family>.ts` in `build.config.ts` and `./<family>` in `exports`, not in the root barrel. `src/aes.ts` imports only the AES files and the errors, so a consumer of `@agntn/ciphers/aes` bundles no registry and no other cipher.
 - `sideEffects` names `dist/cli.mjs` and nothing else. That holds only while no module registers itself on import: put a `register()` call back at the top of a cipher file and the class reaches the registry through a bare import, which a tree-shaker is free to drop. New ciphers go in `builtins`.
 - `src/commands/mcp.ts` imports the server and the SDK inside `run()`, because citty resolves every subcommand for `--help` and for an unknown command too. `test/unit/cli-loads.test.ts` runs those usage paths under a load hook.
-- Inside a checkout, the built `dist/cli.mjs` loads the `mcp` command from `src/`, like the Pi and OMP extensions, so a local server needs only a restart after a change. The npm package ships no `src/commands` and runs the bundle, and so do a copy under `node_modules`, where Node does not strip types, and a checkout without devDependencies, since the server imports `typebox`. `CIPHERS_DIST=1` forces the bundle. A change to `src/cli.ts` itself still needs `pnpm build`; `test/eval-packed.mjs` runs `mcp` in each of these layouts.
+- Inside a checkout, the built `dist/cli.mjs` loads the `mcp` command from `src/`, like the Pi and OMP extensions, so a local server needs only a restart after a change. The npm package ships no `src/` and runs the bundle, and so does a copy under `node_modules`, where Node does not strip types. A checkout without devDependencies still runs the source, since the server imports production dependencies only. `CIPHERS_DIST=1` forces the bundle. A change to `src/cli.ts` itself still needs `pnpm build`; `test/eval-packed.mjs` runs `mcp` in each of these layouts.
 - The sources run under plain Node: relative imports name the `.ts` file (or `index.ts` for a folder), and there are no `enum`, `namespace` or parameter properties. `tsconfig.json` holds that with `NodeNext`, `allowImportingTsExtensions` and `erasableSyntaxOnly`.
 - Report domain failures through the `CipherError` hierarchy and normalize unknown thrown values with `normalizeError()`.
 - Resolution may normalize case and spaces to hyphens, then it must match a registered name exactly. Do not add fuzzy or prefix matching.
 - Keep the `ciphers` Citty CLI and the Pi/OMP extensions aligned with the library. Both extensions expose encode, decode, Caesar brute force, frequency analysis, key length estimate, family guess, and cipher info lookup.
+- Each agent tool is one `defineTool` in `src/tools.ts`, from `@agntn/tools`. `src/mcp.ts` serves that list with `createMcpServer` from `@agntn/tools/mcp`, and the extensions register the same list with `registerPiTools` and `registerOmpTools`, from `src/tools.ts` in a checkout and `dist/tools.mjs` in the package. Build schemas with `Type` from `@agntn/tools`, never from a bare `typebox` import, which OMP rewrites to its own facade.
+- The core checks every call against the schema on every surface, and an argument the tool does not take is refused. What the schema cannot say per cipher (which ciphers need `key`, `iv`, `nonce` or `period`, and their hex key lengths) is `cipherInputError` in `src/tools.ts`. The executors stay in `src/tool-operations.ts`, which the docs run too, and the library loads on the first call.
+- OMP lists the tools as `discoverable`, its default for extension tools, because `registerOmpTools` takes no `loadMode` yet (agntn/tools#8).
 
 ## Cipher Contracts
 
@@ -62,6 +65,6 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 2. For a new cipher, export the class, add it to its category list in `src/ciphers/<category>/index.ts`, and add its name to `builtinCiphers` in `src/core/ciphers.ts` in the same position `builtins` gives it. A new category also needs its entry in `cipherCategories` and its list spread into `builtins`.
 3. Run a roundtrip probe before writing fixtures.
 4. Add an independently known fixed vector plus relevant edge cases to `test/unit/ciphers.test.ts`. Never manufacture the expected value from the implementation under test.
-5. Update the CLI, Pi/OMP tools, exports, and README only where the public contract changed.
+5. Update the CLI, the tool definitions in `src/tools.ts`, exports, and README only where the public contract changed.
 
 Use the scripts in `package.json` as the command source of truth. A cipher change is complete when its focused tests pass and every affected public surface builds and typechecks.

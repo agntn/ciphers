@@ -1,401 +1,51 @@
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import type {
-  AgentToolResult,
-  ExtensionAPI,
-  ToolRenderResultOptions,
-} from '@earendil-works/pi-coding-agent'
-import { defineTool } from '@earendil-works/pi-coding-agent'
+import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
 import { Text } from '@earendil-works/pi-tui'
-import { Type } from 'typebox'
-import type * as CiphersModule from '@agntn/ciphers'
-import {
-  AFFINE_MULTIPLIERS,
-  BRUTE_PREVIEW_LENGTH,
-  MAX_BRUTE_TEXT_LENGTH,
-  MAX_FREQUENCY_TEXT_LENGTH,
-  MAX_KEY_LENGTH,
-  MAX_PERIOD,
-  MAX_TRANSFORM_TEXT_LENGTH,
-  OPTION_DESCRIPTIONS,
-  bruteForceCaesar,
-  cipherCategories,
-  formatCipherInfo,
-  formatFamilyGuess,
-  formatFrequencyAnalysis,
-  formatPeriodEstimate,
-  transformCipher,
-} from '../../../src/tool-operations.ts'
-import type { OutputTheme, RenderedToolResult } from '../../shared/tui.ts'
-import { renderToolResult } from '../../shared/tui.ts'
+import { sanitizeLine } from '@agntn/tools'
+import { registerPiTools, type PiRenderers } from '@agntn/tools/pi'
+import type * as CiphersTools from '../../../dist/tools.d.mts'
+import { PREVIEWED_TOOLS, renderToolResult } from '../../shared/tui.ts'
 
-type CiphersLibrary = Pick<
-  typeof CiphersModule,
-  | 'analyzeFrequency'
-  | 'ciphers'
-  | 'create'
-  | 'estimatePeriod'
-  | 'guessFamily'
-  | 'InvalidOptionError'
-  | 'resolveCipher'
->
-type PiToolResult = AgentToolResult<Record<string, unknown>>
-
-const sourcePath = fileURLToPath(new URL('../../../src/index.ts', import.meta.url))
-const checkoutMarker = new URL('../../../.git', import.meta.url)
-let libraryPromise: Promise<CiphersLibrary> | undefined
+const sourceModuleUrl = new URL('../../../src/tools.ts', import.meta.url)
+const distributionModuleUrl = new URL('../../../dist/tools.mjs', import.meta.url)
 
 /**
- * Same rule as the OMP loader: a checkout runs its source, an install runs the package.
+ * Narrows the call arguments Pi hands a renderer, which it types as `unknown`.
  *
- * @returns {Promise<CiphersLibrary>} The library, loaded once per process.
+ * @param value - The arguments.
+ * @returns {value is Readonly<Record<string, unknown>>} Whether they are an object.
  */
-function loadLibrary(): Promise<CiphersLibrary> {
-  const isCheckout = existsSync(fileURLToPath(checkoutMarker))
-  libraryPromise ??=
-    isCheckout && existsSync(sourcePath)
-      ? import('../../../src/index.ts')
-      : import('@agntn/ciphers')
-  return libraryPromise
-}
-
-function resultLine(
-  result: Readonly<RenderedToolResult>,
-  options: Readonly<ToolRenderResultOptions>,
-  theme: Readonly<OutputTheme>,
-) {
-  return new Text(renderToolResult(result, options, theme), 0, 0)
+function isArguments(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null
 }
 
 /**
- * Pi wants `details` on every result; the shared executors leave it optional.
+ * Registers the cipher tools from the source in a checkout, from the build in the package.
  *
- * @param result - Result from a shared executor.
- * @returns {PiToolResult} The same result with `details` always present.
+ * @param pi - Pi extension API.
  */
-function toPiResult(result: {
-  readonly content: ReadonlyArray<{ readonly type: 'text'; readonly text: string }>
-  readonly details?: Readonly<Record<string, unknown>>
-}): PiToolResult {
-  return { content: [...result.content], details: { ...result.details } }
-}
-
-/** Same schema as the OMP extension, so both harnesses reject the same input. */
-const cipherParams = Type.Object({
-  cipher: Type.String({ maxLength: 32, description: OPTION_DESCRIPTIONS.cipher }),
-  text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Text to transform' }),
-  shift: Type.Optional(
-    Type.Integer({ minimum: 1, maximum: 25, description: 'Caesar shift (1-25; default 3)' }),
-  ),
-  key: Type.Optional(
-    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.key }),
-  ),
-  transposition: Type.Optional(
-    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
-  ),
-  iv: Type.Optional(
-    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.iv }),
-  ),
-  tweak: Type.Optional(
-    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.tweak }),
-  ),
-  nonce: Type.Optional(
-    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.nonce }),
-  ),
-  aad: Type.Optional(
-    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.aad }),
-  ),
-  rails: Type.Optional(
-    Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' }),
-  ),
-  a: Type.Optional(
-    Type.Enum(AFFINE_MULTIPLIERS, {
-      description: 'Affine multiplier, coprime with 26 (default 5)',
-    }),
-  ),
-  b: Type.Optional(
-    Type.Integer({
-      minimum: 0,
-      maximum: 25,
-      description: 'Affine additive shift (0-25; default 8)',
-    }),
-  ),
-  period: Type.Optional(Type.Integer({ minimum: 1, description: OPTION_DESCRIPTIONS.period })),
-  letters: Type.Optional(
-    Type.Enum([24, 26], {
-      description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
-    }),
-  ),
-  segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
-  blockSize: Type.Optional(
-    Type.Enum([128, 160, 192, 224, 256], { description: OPTION_DESCRIPTIONS.blockSize }),
-  ),
-  tagLength: Type.Optional(
-    Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
-  ),
-  keyLength: Type.Optional(
-    Type.Integer({
-      minimum: 128,
-      maximum: 1024,
-      multipleOf: 32,
-      description: OPTION_DESCRIPTIONS.keyLength,
-    }),
-  ),
-  iterations: Type.Optional(
-    Type.Integer({ minimum: 1, maximum: 100_000, description: OPTION_DESCRIPTIONS.iterations }),
-  ),
-  salt: Type.Optional(
-    Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.salt }),
-  ),
-  endian: Type.Optional(Type.Enum(['big', 'little'], { description: OPTION_DESCRIPTIONS.endian })),
-  preserveCase: Type.Optional(Type.Boolean({ description: 'Preserve letter case (default true)' })),
-  stripNonAlpha: Type.Optional(
-    Type.Boolean({
-      description: 'Remove non-letter characters before processing (default false)',
-    }),
-  ),
-  positions: Type.Optional(
-    Type.String({
-      pattern: '^[A-Za-z]{3}$',
-      description: 'Enigma initial rotor positions (default AAA)',
-    }),
-  ),
-  rings: Type.Optional(
-    Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma ring settings (default AAA)' }),
-  ),
-  plugboard: Type.Optional(
-    Type.String({
-      maxLength: 38,
-      description: 'Enigma plugboard pairs, for example "AV BS CG"',
-    }),
-  ),
-})
-
-export default function ciphersExtension(pi: ExtensionAPI) {
-  pi.registerTool(
-    defineTool({
-      name: 'ciphers_encode',
-      label: 'Cipher Encode',
-      description:
-        'Encode text with an exact-name built-in cipher. ciphers_info lists the options.',
-      promptSnippet: 'Use ciphers_encode to encode text with local educational and puzzle ciphers.',
-      promptGuidelines: [
-        'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
-        'AES (aes) needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
-        'AES-CBC (aes-cbc) takes the same key plus iv, 32 hex digits.',
-        'AES-CFB (aes-cfb) takes the key and iv too, plus segment in bits (1, 8 or 128, default 128); nothing is padded, so the ciphertext has as many bytes as the text.',
-        'AES-OFB (aes-ofb) takes the key and iv; like CFB it pads nothing.',
-        'AES-CTR (aes-ctr) takes the key and iv, the initial counter block; like CFB it pads nothing.',
-        'AES-CCM (aes-ccm) takes the key and nonce (14 to 26 hex digits), optional aad in hex and tagLength in bits (default 128); the hex out is the text bytes plus the tag, and decoding fails unless key, nonce, aad and tagLength all match.',
-        'AES-OCB (aes-ocb) takes the same options as AES-CCM, with a nonce of 2 to 30 hex digits and tagLength 64, 96 or 128.',
-        'AES-LRW (aes-lrw) takes the AES key and a 32-digit tweak key in one key, and tweak as the first block index.',
-        'AES-XTS (aes-xts) takes two AES keys in one key, the data key then the tweak key (64 or 128 hex digits), and tweak as the data unit number; text must be at least 16 bytes and nothing is padded.',
-        'AES-CBC-MAC (aes-cbc-mac) takes only the AES key and encrypts nothing; the hex out is the text bytes plus a 16-byte tag, and decoding fails unless the tag matches.',
-        'AES passphrase (aes-passphrase) reads and writes what CryptoJS.AES.encrypt(message, passphrase) gives, base64 starting U2FsdGVkX1: key is the passphrase as plain text, keyLength is CryptoJS keySize times 32 (default 256) and iterations its EvpKDF iterations (default 1); salt fixes the otherwise random salt when encoding.',
-        'Rijndael (rijndael) takes a key of 32, 40, 48, 56 or 64 hex digits and blockSize in bits (128, 160, 192, 224 or 256, default 128, which is AES).',
-        'DES (des) works the same way with a key of 16 hex digits.',
-        'DESX (desx) is DES between two XORs; its key is 48 hex digits, the DES key, then the input and the output whitening key.',
-        'Triple DES (triple-des) works the same way with a key of 32 or 48 hex digits.',
-        'Triple DES CBC (triple-des-cbc) takes that key plus iv, 16 hex digits.',
-        'Blowfish (blowfish) works like Triple DES with a key of any even number of hex digits from 8 to 112.',
-        'IDEA (idea) works like Triple DES with a key of 32 hex digits.',
-        'Lucifer (lucifer) works like AES with a key of 32 hex digits.',
-        'MARS (mars) works like AES with a key of 32 to 112 hex digits in steps of 8.',
-        'Serpent (serpent) works like AES, with the same key lengths.',
-        'Rabbit (rabbit) is a stream cipher with a key of 32 hex digits and an optional iv of 16; it pads nothing, and endian picks the byte order (big as in RFC 4503, the default, or little as in Crypto++).',
-        'ciphers_info lists every option with its default.',
-      ],
-      parameters: cipherParams,
-      renderCall(args, _theme) {
-        return new Text(`🔐 encode ${args.cipher}: "${args.text}"`, 0, 0)
+export default async function ciphersExtension(pi: ExtensionAPI): Promise<void> {
+  const { ciphersTools, callSummaries } = (await import(
+    existsSync(fileURLToPath(sourceModuleUrl)) ? sourceModuleUrl.href : distributionModuleUrl.href
+  )) as typeof CiphersTools
+  const renderers = Object.fromEntries(
+    ciphersTools.map((tool): [string, PiRenderers] => [
+      tool.name,
+      {
+        renderCall(args) {
+          const summary = isArguments(args) ? callSummaries[tool.name]?.(args) : undefined
+          return new Text(sanitizeLine(summary ? `${tool.title}: ${summary}` : tool.title), 0, 0)
+        },
+        ...(PREVIEWED_TOOLS.has(tool.name)
+          ? {
+              renderResult: (result, options, theme) =>
+                new Text(renderToolResult(result, options, theme), 0, 0),
+            }
+          : {}),
       },
-      renderResult: resultLine,
-      async execute(_toolCallId, params): Promise<PiToolResult> {
-        return toPiResult(transformCipher(await loadLibrary(), 'encode', params))
-      },
-    }),
+    ]),
   )
-
-  pi.registerTool(
-    defineTool({
-      name: 'ciphers_decode',
-      label: 'Cipher Decode',
-      description:
-        'Decode text with an exact-name built-in cipher. ciphers_info lists the options.',
-      promptSnippet:
-        'Use ciphers_decode to decode text encoded with local educational and puzzle ciphers.',
-      promptGuidelines: ['Same options as ciphers_encode.'],
-      parameters: cipherParams,
-      renderCall(args, _theme) {
-        return new Text(`🔓 decode ${args.cipher}: "${args.text}"`, 0, 0)
-      },
-      renderResult: resultLine,
-      async execute(_toolCallId, params): Promise<PiToolResult> {
-        return toPiResult(transformCipher(await loadLibrary(), 'decode', params))
-      },
-    }),
-  )
-
-  pi.registerTool(
-    defineTool({
-      name: 'ciphers_caesar_brute',
-      label: 'Brute Force Caesar',
-      description: `Decode Caesar ciphertext with every shift from 1 through 25, the one that reads most like the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; ciphers_decode with that shift returns the whole text.`,
-      promptSnippet: 'Use ciphers_caesar_brute to brute-force an unknown Caesar shift.',
-      promptGuidelines: [
-        `Input is ciphertext. Returns all 25 shifts, the most English-like first, the most Polish-like with lang pl, the most Japanese-like with lang ja; only the top line is whole, the rest stop at ${BRUTE_PREVIEW_LENGTH} characters.`,
-        'Read the top lines first; on a short text the plaintext can rank a few lines down.',
-      ],
-      parameters: Type.Object({
-        text: Type.String({
-          maxLength: MAX_BRUTE_TEXT_LENGTH,
-          description: 'Caesar ciphertext to brute-force',
-        }),
-        lang: Type.Optional(
-          Type.Enum(['en', 'pl', 'ja'], {
-            description:
-              'Language the plaintext should read in, ja for Hepburn romaji; ranks the shifts (default en)',
-          }),
-        ),
-      }),
-      renderCall(args, _theme) {
-        return new Text(`🔍 brute caesar: "${args.text}"`, 0, 0)
-      },
-      renderResult: resultLine,
-      async execute(_toolCallId, params): Promise<PiToolResult> {
-        return toPiResult(bruteForceCaesar(await loadLibrary(), params.text, params.lang))
-      },
-    }),
-  )
-
-  pi.registerTool(
-    defineTool({
-      name: 'ciphers_frequency',
-      label: 'Frequency Analysis',
-      description:
-        'Analyze A-Z letter frequencies, compare their order with English, Polish or Japanese romaji, and report the index of coincidence.',
-      promptSnippet:
-        'Use ciphers_frequency to analyze letter distribution for cipher identification.',
-      promptGuidelines: [
-        'Useful for identifying substitution ciphers (frequency distribution preserved).',
-        'Compare actual frequency order with expected language order (EN: ETAOIN...).',
-        'An index of coincidence near the plaintext value the result names (about 0.065 English, 0.057 Polish, 0.08 to 0.09 Japanese romaji) suggests monoalphabetic; near 0.038 suggests polyalphabetic or random.',
-      ],
-      parameters: Type.Object({
-        text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
-        lang: Type.Optional(
-          Type.Enum(['en', 'pl', 'ja'], {
-            description: 'Reference language, ja for Hepburn romaji (default en)',
-          }),
-        ),
-      }),
-      renderCall(args, _theme) {
-        return new Text(`📊 frequency: "${args.text.slice(0, 40)}..."`, 0, 0)
-      },
-      async execute(_toolCallId, params): Promise<PiToolResult> {
-        return toPiResult(formatFrequencyAnalysis(await loadLibrary(), params.text, params.lang))
-      },
-    }),
-  )
-
-  pi.registerTool(
-    defineTool({
-      name: 'ciphers_period_estimate',
-      label: 'Key Length Estimate',
-      description:
-        'Estimate the key length of a Vigenère ciphertext from column index of coincidence and Kasiski repeats, most likely length first, with the key for the top three. ciphers_decode with cipher vigenere and that key checks it.',
-      promptSnippet:
-        'Use ciphers_period_estimate when ciphers_frequency puts the index of coincidence near 0.038.',
-      promptGuidelines: [
-        'Input is ciphertext. Returns key lengths by column IoC, most likely first, with the Vigenère key for the top three, then the Kasiski factors.',
-        'Try the top key with ciphers_decode and cipher vigenere; Beaufort shares the length, not the key, and autokey has no length.',
-      ],
-      parameters: Type.Object({
-        text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
-        lang: Type.Optional(
-          Type.Enum(['en', 'pl', 'ja'], {
-            description:
-              'Language the plaintext should read in, ja for Hepburn romaji; picks the keys (default en)',
-          }),
-        ),
-        maxPeriod: Type.Optional(
-          Type.Integer({
-            minimum: 2,
-            maximum: MAX_PERIOD,
-            description: OPTION_DESCRIPTIONS.maxPeriod,
-          }),
-        ),
-      }),
-      renderCall(args, _theme) {
-        return new Text(`📏 key length: "${args.text.slice(0, 40)}..."`, 0, 0)
-      },
-      async execute(_toolCallId, params): Promise<PiToolResult> {
-        return toPiResult(
-          formatPeriodEstimate(await loadLibrary(), params.text, params.lang, params.maxPeriod),
-        )
-      },
-    }),
-  )
-
-  pi.registerTool(
-    defineTool({
-      name: 'ciphers_family_guess',
-      label: 'Cipher Family Guess',
-      description:
-        'Guess which cipher family a ciphertext comes from, by its alphabet and layout, then index of coincidence and how the letters fit the language. Candidates, most likely first, each with its confidence, the signal behind it and the call to try next.',
-      promptSnippet: 'Use ciphers_family_guess first on a ciphertext whose cipher nobody named.',
-      promptGuidelines: [
-        'Input is ciphertext. Returns candidate families with the built-in ciphers to try, most likely first, each with high, medium or low confidence, its signal and the next call.',
-        'Treat the list as candidates: a short text comes back with low confidence, and only a decode that reads settles it.',
-      ],
-      parameters: Type.Object({
-        text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
-        lang: Type.Optional(
-          Type.Enum(['en', 'pl', 'ja'], {
-            description:
-              'Language the plaintext should read in, ja for Hepburn romaji (default en)',
-          }),
-        ),
-      }),
-      renderCall(args, _theme) {
-        return new Text(`🔎 family guess: "${args.text.slice(0, 40)}..."`, 0, 0)
-      },
-      async execute(_toolCallId, params): Promise<PiToolResult> {
-        return toPiResult(formatFamilyGuess(await loadLibrary(), params.text, params.lang))
-      },
-    }),
-  )
-
-  pi.registerTool(
-    defineTool({
-      name: 'ciphers_info',
-      label: 'Cipher Info',
-      description:
-        "List the built-in ciphers by category, or show one cipher's options, category, family, and keyspace.",
-      promptSnippet:
-        'Use ciphers_info to check cipher names and required options before encoding or decoding.',
-      promptGuidelines: [
-        'Without a cipher name it lists every cipher under its category, with family and description; category narrows the list.',
-        'With a name it shows options, defaults, self-inverse, and keyspace.',
-      ],
-      parameters: Type.Object({
-        cipher: Type.Optional(
-          Type.String({
-            maxLength: 32,
-            description: 'Cipher to describe; omit to list every cipher',
-          }),
-        ),
-        category: Type.Optional(
-          Type.Enum(cipherCategories, { description: OPTION_DESCRIPTIONS.category }),
-        ),
-      }),
-      renderCall(args, _theme) {
-        return new Text(`ℹ️ cipher info${args.cipher ? `: ${args.cipher}` : ''}`, 0, 0)
-      },
-      async execute(_toolCallId, params): Promise<PiToolResult> {
-        return toPiResult(formatCipherInfo(await loadLibrary(), params.cipher, params.category))
-      },
-    }),
-  )
+  registerPiTools(pi, ciphersTools, { renderers })
 }

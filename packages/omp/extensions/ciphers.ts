@@ -2,300 +2,47 @@ import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import type { ExtensionAPI } from '@oh-my-pi/pi-coding-agent'
-import type * as CiphersModule from '@agntn/ciphers'
-import {
-  AFFINE_MULTIPLIERS,
-  BRUTE_PREVIEW_LENGTH,
-  MAX_BRUTE_TEXT_LENGTH,
-  MAX_FREQUENCY_TEXT_LENGTH,
-  MAX_KEY_LENGTH,
-  MAX_PERIOD,
-  MAX_TRANSFORM_TEXT_LENGTH,
-  OPTION_DESCRIPTIONS,
-  bruteForceCaesar,
-  cipherCategories,
-  formatCipherInfo,
-  formatFamilyGuess,
-  formatFrequencyAnalysis,
-  formatPeriodEstimate,
-  transformCipher,
-  type CipherToolParams,
-} from '../../../src/tool-operations.ts'
-import type { OutputTheme, RenderedToolResult, RenderOptions } from '../../shared/tui.ts'
-import { renderToolResult } from '../../shared/tui.ts'
-type CiphersLibrary = Pick<
-  typeof CiphersModule,
-  | 'analyzeFrequency'
-  | 'ciphers'
-  | 'create'
-  | 'estimatePeriod'
-  | 'guessFamily'
-  | 'InvalidOptionError'
-  | 'resolveCipher'
->
+import { registerOmpTools, type OmpRenderers } from '@agntn/tools/omp'
+import type * as CiphersTools from '../../../dist/tools.d.mts'
+import { PREVIEWED_TOOLS, renderToolResult } from '../../shared/tui.ts'
 
-const sourcePath = fileURLToPath(new URL('../../../src/index.ts', import.meta.url))
-const checkoutMarker = new URL('../../../.git', import.meta.url)
-let libraryPromise: Promise<CiphersLibrary> | undefined
+const sourceModulePath = fileURLToPath(new URL('../../../src/tools.ts', import.meta.url))
 
-function loadLibrary(): Promise<CiphersLibrary> {
-  const isCheckout = existsSync(fileURLToPath(checkoutMarker))
-  libraryPromise ??=
-    isCheckout && existsSync(sourcePath)
-      ? import('../../../src/index.ts')
-      : import('@agntn/ciphers')
-  return libraryPromise
+/**
+ * Both specifiers stay literal: compiled OMP resolves bare imports only where it sees them.
+ *
+ * @returns {Promise<typeof CiphersTools>} The tool definitions.
+ */
+function loadTools(): Promise<typeof CiphersTools> {
+  return (
+    existsSync(sourceModulePath)
+      ? import('../../../src/tools.ts')
+      : import('../../../dist/tools.mjs')
+  ) as Promise<typeof CiphersTools>
 }
 
 /**
- * Register local educational and puzzle-cipher tools in OMP.
+ * Registers the cipher tools; the library loads on the first call.
  *
  * @param omp - OMP extension API supplied by the host.
  */
-export default function ciphersExtension(omp: ExtensionAPI): void {
-  const { Type } = omp.typebox
-  // The host injects its own TUI exports, so the wrapper renders with the
-  // running Text component instead of pulling in a second copy of it.
+export default async function ciphersExtension(omp: ExtensionAPI): Promise<void> {
+  const { ciphersTools, callSummaries } = await loadTools()
+  /** The host injects its own TUI exports, so the tools render with the running `Text`. */
   const { Text } = omp.pi
-
-  const resultLine = (
-    result: Readonly<RenderedToolResult>,
-    options: Readonly<RenderOptions>,
-    theme: Readonly<OutputTheme>,
-  ) => new Text(renderToolResult(result, options, theme), 0, 0)
-
-  const cipherParams = Type.Object({
-    cipher: Type.String({ maxLength: 32, description: OPTION_DESCRIPTIONS.cipher }),
-    text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Text to transform' }),
-    shift: Type.Optional(
-      Type.Integer({ minimum: 1, maximum: 25, description: 'Caesar shift (1-25; default 3)' }),
-    ),
-    key: Type.Optional(
-      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.key }),
-    ),
-    transposition: Type.Optional(
-      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
-    ),
-    iv: Type.Optional(
-      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.iv }),
-    ),
-    tweak: Type.Optional(
-      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.tweak }),
-    ),
-    nonce: Type.Optional(
-      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.nonce }),
-    ),
-    aad: Type.Optional(
-      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.aad }),
-    ),
-    rails: Type.Optional(
-      Type.Integer({ minimum: 2, description: 'Rail Fence rails (at least 2; default 3)' }),
-    ),
-    a: Type.Optional(
-      Type.Enum(AFFINE_MULTIPLIERS, {
-        description: 'Affine multiplier, coprime with 26 (default 5)',
-      }),
-    ),
-    b: Type.Optional(
-      Type.Integer({
-        minimum: 0,
-        maximum: 25,
-        description: 'Affine additive shift (0-25; default 8)',
-      }),
-    ),
-    period: Type.Optional(Type.Integer({ minimum: 1, description: OPTION_DESCRIPTIONS.period })),
-    letters: Type.Optional(
-      Type.Enum([24, 26], {
-        description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
-      }),
-    ),
-    segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
-    blockSize: Type.Optional(
-      Type.Enum([128, 160, 192, 224, 256], { description: OPTION_DESCRIPTIONS.blockSize }),
-    ),
-    tagLength: Type.Optional(
-      Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
-    ),
-    keyLength: Type.Optional(
-      Type.Integer({
-        minimum: 128,
-        maximum: 1024,
-        multipleOf: 32,
-        description: OPTION_DESCRIPTIONS.keyLength,
-      }),
-    ),
-    iterations: Type.Optional(
-      Type.Integer({ minimum: 1, maximum: 100_000, description: OPTION_DESCRIPTIONS.iterations }),
-    ),
-    salt: Type.Optional(
-      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.salt }),
-    ),
-    endian: Type.Optional(
-      Type.Enum(['big', 'little'], { description: OPTION_DESCRIPTIONS.endian }),
-    ),
-    preserveCase: Type.Optional(
-      Type.Boolean({ description: 'Preserve letter case (default true)' }),
-    ),
-    stripNonAlpha: Type.Optional(
-      Type.Boolean({
-        description: 'Remove non-letter characters before processing (default false)',
-      }),
-    ),
-    positions: Type.Optional(
-      Type.String({
-        pattern: '^[A-Za-z]{3}$',
-        description: 'Enigma initial rotor positions (default AAA)',
-      }),
-    ),
-    rings: Type.Optional(
-      Type.String({ pattern: '^[A-Za-z]{3}$', description: 'Enigma ring settings (default AAA)' }),
-    ),
-    plugboard: Type.Optional(
-      Type.String({
-        maxLength: 38,
-        description: 'Enigma plugboard pairs, for example "AV BS CG"',
-      }),
-    ),
-  })
-
-  omp.registerTool({
-    name: 'ciphers_encode',
-    label: 'Cipher Encode',
-    description: 'Encode text with an exact-name built-in cipher. ciphers_info lists the options.',
-    parameters: cipherParams,
-    approval: 'read',
-    loadMode: 'essential',
-    async execute(_toolCallId, params) {
-      return transformCipher(await loadLibrary(), 'encode', params as CipherToolParams)
-    },
-    renderResult: resultLine,
-  })
-
-  omp.registerTool({
-    name: 'ciphers_decode',
-    label: 'Cipher Decode',
-    description: 'Decode text with an exact-name built-in cipher. ciphers_info lists the options.',
-    parameters: cipherParams,
-    approval: 'read',
-    loadMode: 'essential',
-    async execute(_toolCallId, params) {
-      return transformCipher(await loadLibrary(), 'decode', params as CipherToolParams)
-    },
-    renderResult: resultLine,
-  })
-
-  omp.registerTool({
-    name: 'ciphers_caesar_brute',
-    label: 'Brute Force Caesar',
-    description: `Decode Caesar ciphertext with every shift from 1 through 25, the one that reads most like the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; ciphers_decode with that shift returns the whole text.`,
-    parameters: Type.Object({
-      text: Type.String({
-        maxLength: MAX_BRUTE_TEXT_LENGTH,
-        description: 'Caesar ciphertext to brute-force',
-      }),
-      lang: Type.Optional(
-        Type.Enum(['en', 'pl', 'ja'], {
-          description:
-            'Language the plaintext should read in, ja for Hepburn romaji; ranks the shifts (default en)',
-        }),
-      ),
-    }),
-    approval: 'read',
-    loadMode: 'essential',
-    async execute(_toolCallId, params) {
-      return bruteForceCaesar(await loadLibrary(), params.text, params.lang)
-    },
-    renderResult: resultLine,
-  })
-
-  omp.registerTool({
-    name: 'ciphers_frequency',
-    label: 'Frequency Analysis',
-    description:
-      'Analyze A-Z letter frequencies, compare their order with English, Polish or Japanese romaji, and report the index of coincidence.',
-    parameters: Type.Object({
-      text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Text to analyze' }),
-      lang: Type.Optional(
-        Type.Enum(['en', 'pl', 'ja'], {
-          description: 'Reference language, ja for Hepburn romaji (default en)',
-        }),
-      ),
-    }),
-    approval: 'read',
-    loadMode: 'essential',
-    async execute(_toolCallId, params) {
-      return formatFrequencyAnalysis(await loadLibrary(), params.text, params.lang)
-    },
-  })
-
-  omp.registerTool({
-    name: 'ciphers_period_estimate',
-    label: 'Key Length Estimate',
-    description:
-      'Estimate the key length of a Vigenère ciphertext from column index of coincidence and Kasiski repeats, most likely length first, with the key for the top three. ciphers_decode with cipher vigenere and that key checks it.',
-    parameters: Type.Object({
-      text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
-      lang: Type.Optional(
-        Type.Enum(['en', 'pl', 'ja'], {
-          description:
-            'Language the plaintext should read in, ja for Hepburn romaji; picks the keys (default en)',
-        }),
-      ),
-      maxPeriod: Type.Optional(
-        Type.Integer({
-          minimum: 2,
-          maximum: MAX_PERIOD,
-          description: OPTION_DESCRIPTIONS.maxPeriod,
-        }),
-      ),
-    }),
-    approval: 'read',
-    loadMode: 'essential',
-    async execute(_toolCallId, params) {
-      return formatPeriodEstimate(await loadLibrary(), params.text, params.lang, params.maxPeriod)
-    },
-  })
-
-  omp.registerTool({
-    name: 'ciphers_family_guess',
-    label: 'Cipher Family Guess',
-    description:
-      'Guess which cipher family a ciphertext comes from, by its alphabet and layout, then index of coincidence and how the letters fit the language. Candidates, most likely first, each with its confidence, the signal behind it and the call to try next.',
-    parameters: Type.Object({
-      text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
-      lang: Type.Optional(
-        Type.Enum(['en', 'pl', 'ja'], {
-          description: 'Language the plaintext should read in, ja for Hepburn romaji (default en)',
-        }),
-      ),
-    }),
-    approval: 'read',
-    loadMode: 'essential',
-    async execute(_toolCallId, params) {
-      return formatFamilyGuess(await loadLibrary(), params.text, params.lang)
-    },
-  })
-
-  omp.registerTool({
-    name: 'ciphers_info',
-    label: 'Cipher Info',
-    description:
-      "List the built-in ciphers by category, or show one cipher's options, category, family, and keyspace.",
-    parameters: Type.Object({
-      cipher: Type.Optional(
-        Type.String({
-          maxLength: 32,
-          description: 'Cipher to describe; omit to list every cipher',
-        }),
-      ),
-      category: Type.Optional(
-        Type.Enum(cipherCategories, { description: OPTION_DESCRIPTIONS.category }),
-      ),
-    }),
-    approval: 'read',
-    loadMode: 'essential',
-    async execute(_toolCallId, params) {
-      return formatCipherInfo(await loadLibrary(), params.cipher, params.category)
-    },
-  })
+  const renderers = Object.fromEntries(
+    ciphersTools.map((tool): [string, OmpRenderers] => [
+      tool.name,
+      {
+        describeCall: callSummaries[tool.name],
+        ...(PREVIEWED_TOOLS.has(tool.name)
+          ? {
+              renderResult: (result, options, theme) =>
+                new Text(renderToolResult(result, options, theme), 0, 0),
+            }
+          : {}),
+      },
+    ]),
+  )
+  registerOmpTools(omp, ciphersTools, { Text, renderers })
 }

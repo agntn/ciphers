@@ -4,6 +4,7 @@ import { Value } from 'typebox/value'
 import { create } from '../../src/index.ts'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
 import ciphersExtension from '../../packages/pi/extensions/ciphers.ts'
+import { periodEstimateTool } from '../../src/tools.ts'
 
 type ToolResult = {
   readonly content: ReadonlyArray<{ readonly type: string; readonly text: string }>
@@ -17,6 +18,7 @@ type RegisteredTool = {
     properties?: Record<string, unknown>
   }
   execute(toolCallId: string, params: Readonly<Record<string, unknown>>): Promise<ToolResult>
+  renderCall?: (args: unknown, theme: unknown) => { render(width: number): string[] }
   renderResult?: (
     result: Readonly<ToolResult>,
     options: Readonly<{ expanded: boolean; isPartial: boolean }>,
@@ -41,7 +43,7 @@ function getTool(name: string): RegisteredTool {
   return tool
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   const api = {
     registerTool(tool: unknown) {
       if (!isRegisteredTool(tool)) throw new Error('Invalid tool registration')
@@ -50,7 +52,7 @@ beforeAll(() => {
   }
 
   // SAFETY: the extension uses only registerTool; this test double implements that runtime member.
-  ciphersExtension(api as unknown as Parameters<typeof ciphersExtension>[0])
+  await ciphersExtension(api as unknown as Parameters<typeof ciphersExtension>[0])
 })
 
 describe('Pi extension', () => {
@@ -288,6 +290,9 @@ describe('Pi extension', () => {
     expect(period.content[0]?.text.split('\n')[2]).toBe('  length 5  IoC 0.0666  key JANET')
     await expect(
       getTool('ciphers_period_estimate').execute('period', { text: 'TEST', maxPeriod: 101 }),
+    ).rejects.toThrow('Invalid arguments at /maxPeriod: must be <= 100')
+    await expect(
+      Promise.resolve(periodEstimateTool.execute({ text: 'TEST', maxPeriod: 101 }, {})),
     ).rejects.toThrow('Invalid option maxPeriod=101: must be at most 100')
 
     const guess = await getTool('ciphers_family_guess').execute('guess', {
@@ -301,6 +306,30 @@ describe('Pi extension', () => {
 
     await expect(
       getTool('ciphers_encode').execute('failure', { cipher: 'cae', text: 'TEST' }),
-    ).rejects.toThrow('Unknown cipher: "cae". Registered ciphers: caesar,')
+    ).rejects.toThrow('Invalid arguments at /cipher: must be one of caesar, ')
+    await expect(getTool('ciphers_info').execute('failure', { cipher: 'cae' })).rejects.toThrow(
+      'Unknown cipher: "cae". Registered ciphers: caesar,',
+    )
+  })
+
+  it('checks the arguments the way MCP does', async () => {
+    const encode = getTool('ciphers_encode')
+    await expect(encode.execute('key', { cipher: 'vigenere', text: 'abc' })).rejects.toThrow(
+      'Invalid arguments at /key: required for vigenere',
+    )
+    await expect(
+      encode.execute('key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }),
+    ).rejects.toThrow('Invalid arguments at /key: must be 32, 48 or 64 hex digits')
+    await expect(
+      encode.execute('extra', { cipher: 'caesar', text: 'abc', shfit: 1 }),
+    ).rejects.toThrow('Invalid arguments: unknown property "shfit"; takes cipher, text, shift,')
+  })
+
+  it('summarizes a call on one clean line', () => {
+    const line = getTool('ciphers_encode')
+      .renderCall?.({ cipher: 'caesar', text: `a\nFAKE: ok${'x'.repeat(60)}` }, {})
+      .render(200)
+      .join('\n')
+    expect(line?.trim()).toBe(`Cipher Encode: caesar "a\\nFAKE: ok${'x'.repeat(30)}…"`)
   })
 })

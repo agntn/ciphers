@@ -11,7 +11,6 @@ import { aesLrw } from '../../src/ciphers/block/aes/lrw.ts'
 import { aesXts } from '../../src/ciphers/block/aes/xts.ts'
 import { aesCbcMac } from '../../src/ciphers/block/aes/cbc-mac.ts'
 import { aesCbc } from '../../src/ciphers/block/aes/cbc.ts'
-import { evpBytesToKey } from '../../src/ciphers/block/aes/passphrase.ts'
 import { aesCfb } from '../../src/ciphers/block/aes/cfb.ts'
 import { aesOfb } from '../../src/ciphers/block/aes/ofb.ts'
 import { aesCtr } from '../../src/ciphers/block/aes/ctr.ts'
@@ -2614,20 +2613,19 @@ describe('aes-cbc-mac', () => {
 
 describe('aes-passphrase', () => {
   const aes = create('aes-passphrase')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const salt = '0123456789abcdef'
   const dawn = 'U2FsdGVkX18BI0VniavN73vYVeKsrRmd74V3dwhYQ3E='
   const wide = 'U2FsdGVkX18BI0VniavN70YX2WYeKixus3JUmT8oEXqR/NZ3H+g78SrpV2crYs3H'
 
-  /** `openssl enc -aes-256-cbc -md md5 -S 0123456789abcdef -pass pass:secret -P`. */
+  /** Key and IV from `openssl enc -aes-256-cbc -md md5 -S 0123456789abcdef -pass pass:secret -P`. */
   it('derives key and IV as EVP_BytesToKey over MD5 does', () => {
-    expect(evpBytesToKey([...Buffer.from('secret')], hex(salt), 48, 1)).toEqual(
-      hex(
-        '5f772a83139a8d48ba45597c721ab6f2d37975c93f36a944cef01de4be7eb5d4' +
-          '0c72e5c512bf687b6331619b8545ea9d',
-      ),
-    )
+    const body = Buffer.from(dawn, 'base64').subarray(16).toString('hex')
+    expect(
+      create('aes-cbc').decode(body, {
+        key: '5f772a83139a8d48ba45597c721ab6f2d37975c93f36a944cef01de4be7eb5d4',
+        iv: '0c72e5c512bf687b6331619b8545ea9d',
+      }).text,
+    ).toBe('ATTACK AT DAWN')
   })
 
   /** Base64 from crypto-js 4.2.0 with key and IV from its EvpKDF; `openssl enc -md md5` agrees at 128 and 256. */

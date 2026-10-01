@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@agntn/hashes':
-        specifier: 0.5.0
-        version: 0.5.0(ai@7.0.92(zod@4.5.4))(zod@4.5.4)
+        specifier: 0.6.0
+        version: 0.6.0(ai@7.0.92(zod@4.5.4))
       better-sqlite3:
         specifier: 12.11.1
         version: 12.11.1
@@ -36,16 +36,14 @@ importers:
 
 packages:
 
-  '@agntn/hashes@0.5.0':
-    resolution: {integrity: sha512-fM7oo9DbGM1KZaYwG3izqVVCc7BiRC2X7BG9aNX1zAahSPOd16angAZCoTGU1OjdrScpbVmi7xawT3s1gOPJKg==}
+  '@agntn/hashes@0.6.0':
+    resolution: {integrity: sha512-6jRBp9LUA1jfL8jJ58777NtzEWKPdZesu70tBLplbP5W0mt0NrQaYMnWHtt86O2HPwcHz1Msu+6D49JIwoDu3w==}
     engines: {node: '>=26'}
     hasBin: true
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.87.1 <1'
       '@oh-my-pi/pi-coding-agent': '>=18.4.2 <19'
       ai: '>=7.0.0'
-      typebox: '*'
-      zod: '>=4.0.0'
     peerDependenciesMeta:
       '@earendil-works/pi-coding-agent':
         optional: true
@@ -53,9 +51,23 @@ packages:
         optional: true
       ai:
         optional: true
-      typebox:
+
+  '@agntn/tools@0.0.0':
+    resolution: {integrity: sha512-tGH2t1GDyxqaRrbJeqH3ce6OCD5pS30mneLAoCW0FhlkEWGJF1o/3J522hcIZvTHr3mz+64YQ3nCq4qRcUDxnQ==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      '@earendil-works/pi-coding-agent': '>=0.84.2 <1'
+      '@modelcontextprotocol/server': '>=2.2.0 <3'
+      '@oh-my-pi/pi-coding-agent': '>=18.0.0 <19'
+      ai: '>=7.0.0 <8'
+    peerDependenciesMeta:
+      '@earendil-works/pi-coding-agent':
         optional: true
-      zod:
+      '@modelcontextprotocol/server':
+        optional: true
+      '@oh-my-pi/pi-coding-agent':
+        optional: true
+      ai:
         optional: true
 
   '@ai-sdk/gateway@4.0.74':
@@ -1516,6 +1528,10 @@ packages:
     peerDependencies:
       rollup: ^1.20.0 || ^2.0.0 || ^3.0.0 || ^4.0.0
 
+  '@modelcontextprotocol/core@2.2.0':
+    resolution: {integrity: sha512-iLhmprRmWI8EcosOA3wVvww22z02NkgqhV4fBH6f/odQBsi7xnJc0HGmi21yWO+/iKw2yzqVE127Zhna5/+JXw==}
+    engines: {node: '>=20'}
+
   '@modelcontextprotocol/sdk@1.30.0':
     resolution: {integrity: sha512-xKd8OIzlqNzcqcNumGAa6g+PW2kjD5vrpcKOnfldAUPP3j7lnqMPwlTXQm8gF+UwH72z0lqaRbjr9hqGz0eITA==}
     engines: {node: '>=18'}
@@ -1526,15 +1542,9 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@modelcontextprotocol/sdk@1.30.1':
-    resolution: {integrity: sha512-H2HxLvC3HDNybePJaLdSrU1hhUK5iQw+WvV1b01myFyI7sdVGe1u/IPTE5D9fGCiJDVtgMV/lmFkQXLmQyIFYA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@cfworker/json-schema': ^4.1.1
-      zod: ^3.25 || ^4.0
-    peerDependenciesMeta:
-      '@cfworker/json-schema':
-        optional: true
+  '@modelcontextprotocol/server@2.2.0':
+    resolution: {integrity: sha512-qFnltjus6Gk8Lx6J1w2RXmr3YPN22MNT6qD6zjAkaiWIlFIFxWClz0rXHNuJF/KSUyn5YGhkSvXkWDbQHVLFEQ==}
+    engines: {node: '>=20'}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
@@ -7322,16 +7332,18 @@ packages:
 
 snapshots:
 
-  '@agntn/hashes@0.5.0(ai@7.0.92(zod@4.5.4))(zod@4.5.4)':
+  '@agntn/hashes@0.6.0(ai@7.0.92(zod@4.5.4))':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.30.1(zod@4.5.4)
+      '@agntn/tools': 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.5.4))
+      '@modelcontextprotocol/server': 2.2.0
       citty: 0.2.2
     optionalDependencies:
       ai: 7.0.92(zod@4.5.4)
-      zod: 4.5.4
-    transitivePeerDependencies:
-      - '@cfworker/json-schema'
-      - supports-color
+
+  '@agntn/tools@0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.5.4))':
+    optionalDependencies:
+      '@modelcontextprotocol/server': 2.2.0
+      ai: 7.0.92(zod@4.5.4)
 
   '@ai-sdk/gateway@4.0.74(zod@4.5.4)':
     dependencies:
@@ -8461,6 +8473,10 @@ snapshots:
       json5: 2.2.3
       rollup: 4.63.1
 
+  '@modelcontextprotocol/core@2.2.0':
+    dependencies:
+      zod: 4.5.4
+
   '@modelcontextprotocol/sdk@1.30.0(zod@4.5.4)':
     dependencies:
       '@hono/node-server': 2.1.1(hono@4.13.5)
@@ -8483,27 +8499,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@modelcontextprotocol/sdk@1.30.1(zod@4.5.4)':
+  '@modelcontextprotocol/server@2.2.0':
     dependencies:
-      '@hono/node-server': 2.1.1(hono@4.13.5)
-      ajv: 8.20.0
-      ajv-formats: 3.0.1(ajv@8.20.0)
-      content-type: 1.0.5
-      cors: 2.8.6
-      cross-spawn: 7.0.6
-      eventsource: 3.0.7
-      eventsource-parser: 3.1.1
-      express: 5.2.1
-      express-rate-limit: 8.7.0(express@5.2.1)
-      hono: 4.13.5
-      jose: 6.2.11
-      json-schema-typed: 8.0.2
-      pkce-challenge: 5.0.1
-      raw-body: 3.0.2
+      '@modelcontextprotocol/core': 2.2.0
       zod: 4.5.4
-      zod-to-json-schema: 3.25.2(zod@4.5.4)
-    transitivePeerDependencies:
-      - supports-color
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true

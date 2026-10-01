@@ -1,4 +1,4 @@
-import { md5 } from '@agntn/hashes'
+import { Md5Hasher, evpBytesToKey } from '@agntn/hashes'
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../../core/types.ts'
 import { getOpt } from '../../../core/types.ts'
 import { Cipher } from '../../../core/cipher.ts'
@@ -20,34 +20,8 @@ const MAGIC = [0x53, 0x61, 0x6c, 0x74, 0x65, 0x64, 0x5f, 0x5f]
 /** 32 CryptoJS words; AES runs 38 rounds on a key that wide. */
 export const MAX_PASSPHRASE_KEY_LENGTH = 1024
 
-/** Caps the MD5 work of one call at about a second with the widest key. */
+/** Keeps one call with the widest key well under a second of MD5 work. */
 export const MAX_PASSPHRASE_ITERATIONS = 100_000
-
-/**
- * OpenSSL's `EVP_BytesToKey` over MD5, CryptoJS's EvpKDF: each block hashes the one before it
- * with the passphrase and the salt, `iterations` times over, until key and IV are covered.
- *
- * @param passphrase - The passphrase bytes.
- * @param salt - The 8-byte salt.
- * @param length - Bytes to derive, the key then the IV.
- * @param iterations - MD5 passes per block, 1 in OpenSSL and by default in CryptoJS.
- * @returns {number[]} The derived bytes.
- */
-export function evpBytesToKey(
-  passphrase: Bytes,
-  salt: Bytes,
-  length: number,
-  iterations: number,
-): number[] {
-  const derived: number[] = []
-  let block: Uint8Array = new Uint8Array(0)
-  while (derived.length < length) {
-    block = md5(Uint8Array.from([...block, ...passphrase, ...salt]))
-    for (let i = 1; i < iterations; i++) block = md5(block)
-    derived.push(...block)
-  }
-  return derived.slice(0, length)
-}
 
 type PassphraseSettings = { keyLength: number; iterations: number }
 
@@ -102,12 +76,15 @@ function deriveKey(
   settings: Readonly<PassphraseSettings>,
 ): { key: Bytes; iv: Bytes } {
   const keyBytes = settings.keyLength / 8
-  const derived = evpBytesToKey(
-    [...new TextEncoder().encode(passphrase)],
-    salt,
-    keyBytes + BLOCK_SIZE,
-    settings.iterations,
-  )
+  const derived = [
+    ...evpBytesToKey(
+      () => new Md5Hasher(),
+      new TextEncoder().encode(passphrase),
+      Uint8Array.from(salt),
+      settings.iterations,
+      keyBytes + BLOCK_SIZE,
+    ),
+  ]
   return { key: derived.slice(0, keyBytes), iv: derived.slice(keyBytes) }
 }
 

@@ -13,4 +13,4 @@ peerDependencyRules:
     vite: '*'
 
 minimumReleaseAgeExclude:
-  - "@agntn/*"
+  - '@agntn/*'

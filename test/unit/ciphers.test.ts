@@ -6,7 +6,7 @@ import { Cipher } from '../../src/core/cipher.ts'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors.ts'
 import { type BlockMode, decodeBlocks, encodeBlocks } from '../../src/core/block-mode.ts'
 import { aesEcb } from '../../src/ciphers/block/aes/ecb.ts'
-import { ecb } from '../../src/aes.ts'
+import { ctr, ecb } from '../../src/aes.ts'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw.ts'
 import { aesXts } from '../../src/ciphers/block/aes/xts.ts'
 import { aesCbcMac } from '../../src/ciphers/block/aes/cbc-mac.ts'
@@ -1192,6 +1192,45 @@ describe('aes', () => {
     expect(() => ecb(block, [...block] as unknown as Uint8Array, 'encrypt')).toThrow(
       'Invalid option key=object',
     )
+  })
+
+  /** Geth's `wikipage_test_vector_pbkdf2` keystore, its PBKDF2 key half from `openssl kdf`. */
+  it('runs CTR on raw bytes from the aes subpath', () => {
+    const bytes = (value: string) => Uint8Array.from(hex(value))
+    const key = bytes('f06d69cdc7da0faffb1008270bca38f5')
+    const iv = bytes('6087dab2f9fdbbfaddc31a909735c1e6')
+    const ciphertext = bytes('5318b4d5bcd28de64ee5559e671353e16f075ecae9f99c7a79a38af5f869aa46')
+    const priv = bytes('7a28b5ba57c53603b0b07b56bba752f7784bf506fa95edc395f5cf6c7514fe9d')
+    expect(ctr(ciphertext, key, iv)).toEqual(priv)
+    expect(ctr(priv, key, iv)).toEqual(ciphertext)
+    expect(iv).toEqual(bytes('6087dab2f9fdbbfaddc31a909735c1e6'))
+    expect(ctr(new Uint8Array(), key, iv)).toEqual(new Uint8Array())
+  })
+
+  /** `openssl enc -aes-128-ctr` over 40 `A`s from `ff..fe`, the third block on a zero counter. */
+  it('wraps the CTR counter and cuts a short last block', () => {
+    const bytes = (value: string) => Uint8Array.from(hex(value))
+    const key = bytes('2b7e151628aed2a6abf7158809cf4f3c')
+    const counter = bytes('ff'.repeat(15) + 'fe')
+    const text = new TextEncoder().encode('A'.repeat(40))
+    const ciphertext = bytes(
+      '90f655f7bab4beb069dbaf6b0d0face2cbb3c74003b6c7b548713d5b7e3febed3cb62a4d5bf9d8f2',
+    )
+    expect(ctr(text, key, counter)).toEqual(ciphertext)
+    expect(ctr(ciphertext, key, counter)).toEqual(text)
+  })
+
+  it('refuses a CTR key or counter of the wrong shape without printing the key', () => {
+    const block = new Uint8Array(16)
+    const secret = Uint8Array.from({ length: 20 }, (_, i) => 0xa0 + i)
+    expect(() => ctr(block, secret, block)).toThrow(
+      'Invalid option key=20 bytes: must be a Uint8Array of 16, 24 or 32 bytes',
+    )
+    expect(() => ctr(block, block, new Uint8Array(12))).toThrow(
+      'Invalid option counter=12 bytes: must be a Uint8Array of 16 bytes',
+    )
+    expect(() => ctr(block, block, [...block] as unknown as Uint8Array)).toThrow(InvalidOptionError)
+    expect(() => ctr('00' as unknown as Uint8Array, block, block)).toThrow(CipherError)
   })
 
   /** Expected values from `openssl enc -aes-128-ecb`, which pads with PKCS#7 by default. */

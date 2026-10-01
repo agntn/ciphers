@@ -18,7 +18,7 @@ The instruments ciphers owns:
 | [LandingCustom.vue](app/components/content/LandingCustom.vue) | "Extend Cipher, call register" | `reverse.ts`, a custom cipher as a file |
 | [LandingStart.vue](app/components/content/LandingStart.vue) | closing section | install, notes, first call as a file |
 | [CipherFacts.vue](app/components/content/CipherFacts.vue) | every cipher page (`::cipher-facts`) | cipher dossier: ID bar with position, reticle, readout, options, access |
-| [CiphersPlayground.vue](app/components/content/CiphersPlayground.vue) | `/playground` under the hero zone | request and response instruments for the five tools |
+| [CiphersPlayground.vue](app/components/content/CiphersPlayground.vue) | `/playground` under the hero zone | request and response instruments for the agent tools |
 | [Landing.takumi.vue](app/components/OgImage/Landing.takumi.vue), [Docs.takumi.vue](app/components/OgImage/Docs.takumi.vue) | OG images | the hero zone in 1200 by 600; a docs page as one instrument, a cipher page with its blurb, family and keyspace, `create()` and the options as chips |
 
 Labels, families, categories, options and keyspaces come from `create(name).info()` through [ciphers.ts](app/utils/ciphers.ts); icons, blurbs and sample sentences live there too. Every tool text comes from `src/tool-operations.ts` itself through [tools.ts](app/utils/tools.ts), the same executors the MCP server runs, so nothing is mirrored.
@@ -31,7 +31,7 @@ Labels, families, categories, options and keyspaces come from `create(name).info
 - **Cipher dossier.** ID bar with the name and `05 / 40`, meta `<category> · <family>`. Subject: reticle, `Cipher / <family>`, label, blurb. Readout: keyspace in the accent, decode, what it works on, family size; a tick per option, required open. Bands `Options [ as info() declares them ]` (name, type, required or default, description) and `Access [ library · CLI · playground ]` as leads with a `Kin` lead to the rest of the family, then `03 Full tool response` with the `ciphers_info` text.
 - **Registry.** Bar `Call ciphers()`, meta the count per category. One band per category under a rule title with its size, then a cell per cipher (glyph, name, node): the cipher the panels show now a filled node on an accent edge, the rest of its family an accent outlined node, everything else quiet. Each cell has a `UTooltip` with family and options and links to its page. Footer: legend of the two nodes, a link to the full roster.
 - **Roster.** Columns cipher (glyph, label, boxed name), category (dropped when the roster shows one), family, options (required bright, optional with `?`), keyspace behind a leader, the whole sentence in the tooltip.
-- **Playground.** Request: the five tools as leads, fields as `USelectMenu`, `UTextarea` and `UInput` with variant `none` in the readout, the case flags only for a classical cipher, one chip per cipher as `UButton` variant `chip`, CLI and tool JSON with copy. Response: a subject band per answer kind (encoded or decoded with the output as a value, 25 ranked rows for brute force, histogram for frequency, options for info, error), `03 Full tool response`, footer to the cipher page and the guide.
+- **Playground.** Request: the tools as leads, fields as `USelectMenu`, `UTextarea` and `UInput` with variant `none` in the readout, the case flags only for a classical cipher, one chip per cipher as `UButton` variant `chip`, CLI and tool JSON with copy. Response: a subject band per answer kind (encoded or decoded with the output as a value, 25 ranked rows for brute force, histogram for frequency, ranked key lengths with a decode button for period, options for info, error), `03 Full tool response`, footer to the cipher page and the guide.
 
 ## Motion
 
@@ -56,4 +56,4 @@ Departures from the shared rules, recorded for the shared package:
 
 ## Checks
 
-Beyond the shared checks: `/`, `/ciphers/classical`, `/ciphers/block`, a block cipher page with a long keyspace (`/ciphers/aes-xts`) and `/playground` with a deep link for every tool (`?op=frequency&text=…`, `?op=info&cipher=enigma`, a failing `?op=decode&cipher=aes&text=zz&key=00`) at 1440 and 390 px, and no horizontal scroll on `/playground` at 320 px.
+Beyond the shared checks: `/`, `/ciphers/classical`, `/ciphers/block`, a block cipher page with a long keyspace (`/ciphers/aes-xts`) and `/playground` with a deep link for every tool (`?op=frequency&text=…`, `?op=period&text=…`, `?op=info&cipher=enigma`, a failing `?op=decode&cipher=aes&text=zz&key=00`) at 1440 and 390 px, and no horizontal scroll on `/playground` at 320 px.

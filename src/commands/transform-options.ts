@@ -15,6 +15,7 @@ export interface TransformOptionArgs {
   readonly segment?: string
   readonly blockSize?: string
   readonly endian?: string
+  readonly bytes?: string
   readonly tagLength?: string
   readonly digest?: string
   readonly keyLength?: string
@@ -72,6 +73,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['nonce', args.nonce],
     ['aad', args.aad],
     ['endian', args.endian],
+    ['bytes', args.bytes],
     ['digest', args.digest],
     ['salt', args.salt],
   ] as const

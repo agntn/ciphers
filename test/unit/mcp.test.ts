@@ -393,6 +393,31 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(decoded.content)).toBe('Attack at dawn')
   })
 
+  it('discovers and executes repeating-key XOR in both byte forms through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'xor' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(xor) — stream, polyalphabetic')
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: {
+        cipher: 'xor',
+        key: '49 43 45',
+        text: "Burning 'em, if you ain't quick and nimble",
+      },
+    })
+    expect(encoded.isError).not.toBe(true)
+    expect(onlyText(encoded.content)).toBe(
+      '0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20',
+    )
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'xor', key: 'ff', bytes: 'hex', text: '00ff80' },
+    })
+    expect(decoded.isError).not.toBe(true)
+    expect(onlyText(decoded.content)).toBe('ff007f')
+  })
+
   it('discovers and executes Triple DES CBC with an IV through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -824,6 +849,9 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'rc4', text: 'abc' }],
       ['key', { cipher: 'rc4', text: 'abc', key: '0' }],
       ['key', { cipher: 'rc4', text: 'abc', key: '00'.repeat(257) }],
+      ['key', { cipher: 'xor', text: 'abc' }],
+      ['key', { cipher: 'xor', text: 'abc', key: '494' }],
+      ['bytes', { cipher: 'xor', text: 'abc', key: '49', bytes: 'raw' }],
     ] as const) {
       const response = await client.callTool({
         name: 'ciphers_encode',
@@ -893,6 +921,7 @@ describe('Ciphers MCP server', () => {
     expect(stream.isError).not.toBe(true)
     expect(onlyText(stream.content)).toMatch(/^stream:\n {2}rabbit \[arx\] — Rabbit stream cipher/)
     expect(onlyText(stream.content)).toContain('\n  rc4 [permutation] — RC4 stream cipher')
+    expect(onlyText(stream.content)).toContain('\n  xor [polyalphabetic] — Repeating-key XOR')
 
     const unknownCategory = await client.callTool({
       name: 'ciphers_info',

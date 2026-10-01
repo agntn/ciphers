@@ -28,10 +28,11 @@ import { marsEcb } from '../../src/ciphers/block/mars.ts'
 import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 import { rc4 } from '../../src/ciphers/stream/rc4.ts'
+import { xor } from '../../src/ciphers/stream/xor.ts'
 
 describe('registry', () => {
-  it('registers all 43 ciphers', () => {
-    expect(ciphers()).toHaveLength(43)
+  it('registers all 44 ciphers', () => {
+    expect(ciphers()).toHaveLength(44)
     for (const name of [
       'caesar',
       'rot13',
@@ -70,6 +71,7 @@ describe('registry', () => {
       'serpent',
       'rabbit',
       'rc4',
+      'xor',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -871,6 +873,7 @@ describe('edge cases', () => {
     serpent: { key: '0123456789abcdeffedcba9876543210' },
     rabbit: { key: '0123456789abcdeffedcba9876543210' },
     rc4: { key: '0102030405' },
+    xor: { key: '494345' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -4395,6 +4398,80 @@ describe('rc4', () => {
       family: 'permutation',
       selfInverse: false,
       options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('xor', () => {
+  const xorCipher = create('xor')
+  const key = '494345'
+  const text = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
+  /** Cryptopals set 1 challenge 5: the two lines under the key ICE. */
+  const ciphertext =
+    '0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f'
+
+  it('matches the Cryptopals repeating-key XOR vector', () => {
+    expect(xorCipher.encode(text, { key })).toEqual({
+      text: ciphertext,
+      cipher: 'xor',
+      operation: 'encode',
+      options: { key, bytes: 'text' },
+    })
+    expect(xorCipher.decode(ciphertext, { key }).text).toBe(text)
+    expect(xorCipher.encode('', { key }).text).toBe('')
+  })
+
+  it('reads and writes hex on both sides with bytes: hex', () => {
+    const plain = Buffer.from(text).toString('hex')
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(xorCipher[operation](plain, { key, bytes: 'hex' })).toEqual({
+        text: ciphertext,
+        cipher: 'xor',
+        operation,
+        options: { key, bytes: 'hex' },
+      })
+      expect(xorCipher[operation](ciphertext.toUpperCase(), { key, bytes: 'hex' }).text).toBe(plain)
+    }
+    expect(xorCipher.decode('00 ff 80', { key: 'ff', bytes: 'hex' }).text).toBe('ff007f')
+    expect(() => xorCipher.decode('00ff80', { key: 'ff' })).toThrow(/not UTF-8/)
+  })
+
+  it('repeats the key from the first byte and ignores what runs past the text', () => {
+    expect(xor([0x00, 0x00, 0x00, 0x00, 0x00], [0x01, 0x02])).toEqual([1, 2, 1, 2, 1])
+    expect(xor([0x0f], [0xf0, 0xaa, 0xbb])).toEqual([0xff])
+    expect(xorCipher.encode('A', { key: 'ff'.repeat(1000) }).text).toBe('be')
+  })
+
+  it('takes any key of whole bytes and nothing else', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => xorCipher[operation]('')).toThrow(MissingOptionError)
+      expect(() => xorCipher[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of ['ICE', '0', '494', 'g'.repeat(2), 12]) {
+        expect(() => xorCipher[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of ['raw', 'HEX', 1]) {
+        expect(() => xorCipher[operation]('', { key, bytes: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with hex it cannot read', () => {
+    expect(() => xorCipher.decode('0b363', { key })).toThrow(/whole bytes/)
+    expect(() => xorCipher.decode('0bzz', { key })).toThrow(/must be hex digits/)
+    expect(() => xorCipher.encode('Burning', { key, bytes: 'hex' })).toThrow(/must be hex digits/)
+  })
+
+  it('reports the stream category and its options', () => {
+    expect(resolveCipher('XOR')).toBe(xorCipher)
+    expect(xorCipher.info()).toMatchObject({
+      name: 'xor',
+      category: 'stream',
+      family: 'polyalphabetic',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })

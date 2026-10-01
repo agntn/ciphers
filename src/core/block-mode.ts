@@ -23,8 +23,8 @@ export interface BlockMode<Settings extends BlockSettings = Readonly<Record<stri
    * and the ciphertext is exactly as long as the plaintext. Default: padded.
    */
   readonly padding?: boolean
-  /** Accepted key lengths in hex digits. */
-  readonly keyDigits: readonly number[]
+  /** Accepted key lengths in hex digits, as a list or as a test for one length. */
+  readonly keyDigits: readonly number[] | ((digits: number) => boolean)
   /** Why a key of another shape is refused. */
   readonly keyError: string
   /**
@@ -124,7 +124,11 @@ function readKey(
   if (key === undefined || key === '') throw new MissingOptionError('key')
   if (typeof key !== 'string') throw new InvalidOptionError('key', key, 'must be a string')
   const hex = key.replaceAll(/\s/g, '').toLowerCase()
-  if (!/^[0-9a-f]*$/.test(hex) || !cipher.keyDigits.includes(hex.length)) {
+  const fits =
+    typeof cipher.keyDigits === 'function'
+      ? cipher.keyDigits(hex.length)
+      : cipher.keyDigits.includes(hex.length)
+  if (!/^[0-9a-f]*$/.test(hex) || !fits) {
     throw new InvalidOptionError('key', key, cipher.keyError)
   }
   return { hex, bytes: fromHex(hex) }
@@ -249,6 +253,42 @@ export function decodeBlocks<Settings extends BlockSettings>(
       cipher: cipher.name,
       operation: 'decode',
       options: { key: key.hex, ...(cipher.mode && { mode: cipher.mode }), ...settings },
+    }
+  } catch (e) {
+    throw normalizeError(e, cipher.name)
+  }
+}
+
+/**
+ * Run a mode without padding from hex to hex, so bytes that aren't UTF-8 pass both ways.
+ *
+ * @param cipher - A mode with `padding: false`.
+ * @param text - Hex, whole bytes; case and whitespace are ignored.
+ * @param options - Carries the hex `key` and whatever else the mode reads; none when left out.
+ * @param operation - Which direction to run and to report.
+ * @returns {CipherResult} Lowercase hex, with the key and settings as they were read.
+ */
+export function transformHex<Settings extends BlockSettings>(
+  cipher: BlockMode<Settings>,
+  text: string,
+  options: Readonly<CipherBaseOptions>,
+  operation: 'encode' | 'decode',
+): CipherResult {
+  try {
+    const key = readKey(cipher, options)
+    const settings = cipher.settings?.(options) ?? ({} as Settings)
+    const bytes = readCiphertext(cipher, text)
+    const run = cipher.run(
+      bytes,
+      key.bytes,
+      operation === 'encode' ? 'encrypt' : 'decrypt',
+      settings,
+    )
+    return {
+      text: toHex(run),
+      cipher: cipher.name,
+      operation,
+      options: { key: key.hex, ...settings },
     }
   } catch (e) {
     throw normalizeError(e, cipher.name)

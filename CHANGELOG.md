@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.5.0
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.4.0...v0.5.0)
+
+### 🚀 Enhancements
+
+- **block:** Decode CryptoJS passphrase output ([#141](https://github.com/agntn/ciphers/pull/141))
+- **tools:** Add `ciphers_period_estimate` ([#142](https://github.com/agntn/ciphers/pull/142))
+- **docs:** Let the playground estimate periods ([#144](https://github.com/agntn/ciphers/pull/144))
+- **tools:** Guess the cipher family ([#145](https://github.com/agntn/ciphers/pull/145))
+- **stream:** Add RC4 ([#149](https://github.com/agntn/ciphers/pull/149))
+
+### 🩹 Fixes
+
+- **brute:** Rank English shifts by letter pairs ([#137](https://github.com/agntn/ciphers/pull/137))
+- **bacon:** Decode only whole groups of five ([#148](https://github.com/agntn/ciphers/pull/148))
+- **docs:** Let @agntn releases past minimumReleaseAge ([#150](https://github.com/agntn/ciphers/pull/150))
+- **adfgvx:** Refuse codes that aren't whole pairs ([#152](https://github.com/agntn/ciphers/pull/152))
+
+### 💅 Refactors
+
+- **mars:** Take SHA-1 from hashes ([#140](https://github.com/agntn/ciphers/pull/140))
+- **tools:** ⚠️  Define each tool once ([#146](https://github.com/agntn/ciphers/pull/146))
+- **block:** Derive passphrase keys via hashes ([#153](https://github.com/agntn/ciphers/pull/153))
+
+#### ⚠️ Breaking Changes
+
+- **tools:** ⚠️  Define each tool once ([#146](https://github.com/agntn/ciphers/pull/146))
+
+### ❤️ Contributors
+
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+- Ori
+
 ## v0.4.0
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.3.0...v0.4.0)

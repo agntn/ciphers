@@ -62,3 +62,9 @@ export {
   type PeriodAnalysis,
   type PeriodCandidate,
 } from './period.ts'
+export {
+  guessFamily,
+  type FamilyCandidate,
+  type FamilyGuess,
+  type GuessConfidence,
+} from './guess.ts'

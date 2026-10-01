@@ -336,3 +336,74 @@ export function formatPeriodEstimate(
   )
   return { content: [{ type: 'text', text: lines.join('\n') }] }
 }
+
+/**
+ * What to call next for a candidate: the decode its first cipher needs, or the analysis before it.
+ *
+ * @param library - The loaded cipher library.
+ * @param found - One candidate of `guessFamily`.
+ * @returns {string} One sentence naming a tool.
+ */
+function nextStep(
+  library: Readonly<Pick<CiphersLibrary, 'create'>>,
+  found: Readonly<CiphersModule.FamilyCandidate>,
+): string {
+  const [first] = found.ciphers
+  if (first === 'vigenere') {
+    return 'ciphers_period_estimate gives the key length and a Vigenère key.'
+  }
+  if (first === 'caesar' && found.options === undefined) {
+    return 'ciphers_caesar_brute ranks all 25 shifts.'
+  }
+  const given = Object.entries(found.options ?? {}).map(([name, value]) => `${name}=${value}`)
+  const needed = library
+    .create(first!)
+    .info()
+    .options.filter(({ name, required }) => required && !Object.hasOwn(found.options ?? {}, name))
+    .map(({ name }) => name)
+  const known = given.length === 0 ? '' : ` and ${given.join(', ')}`
+  const missing = needed.length === 0 ? '' : `, which needs ${needed.join(' and ')}`
+  return `ciphers_decode with cipher ${first}${known}${missing}.`
+}
+
+/**
+ * Rank the cipher families a text may come from, for a model.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - Ciphertext.
+ * @param language - Language the plaintext should read in; English by default.
+ * @returns {CipherToolResult} The candidates, each with its signal and the next call.
+ */
+export function formatFamilyGuess(
+  library: Readonly<Pick<CiphersLibrary, 'create'> & Pick<typeof CiphersModule, 'guessFamily'>>,
+  text: string,
+  language?: 'en' | 'pl' | 'ja',
+): CipherToolResult {
+  const guess = library.guessFamily(text, language)
+  const counted = `${guess.length} characters, ${guess.letters} A-Z letters`
+  if (guess.candidates.length === 0) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `No family fits (${counted}): no layout this package knows, and too few letters for statistics.`,
+        },
+      ],
+    }
+  }
+
+  const ic =
+    guess.ic === undefined
+      ? ''
+      : `, IoC ${guess.ic.toFixed(4)} (${guess.language} plaintext ~${guess.referenceIc.toFixed(3)}, uniform random ~0.038)`
+  const lines = [`Family guess (${counted}, lang=${guess.language}${ic}), most likely first:`, '']
+  guess.candidates.forEach((found, index) => {
+    lines.push(
+      `${index + 1}. ${found.families.join(', ')} (${found.confidence}): ${found.ciphers.join(', ')}`,
+      `   ${found.signal}`,
+      `   Next: ${nextStep(library, found)}`,
+    )
+  })
+  lines.push('', 'Candidates, not a verdict: only a decode that reads settles it.')
+  return { content: [{ type: 'text', text: lines.join('\n') }] }
+}

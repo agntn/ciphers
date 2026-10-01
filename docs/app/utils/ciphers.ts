@@ -65,6 +65,7 @@ const PRESENTATION: Record<
   serpent: { icon: "i-lucide-blocks", blurb: "The AES runner-up, 32 rounds of 4-bit S-boxes run bitslice", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
   rabbit: { icon: "i-lucide-rabbit", blurb: "The eSTREAM stream cipher from RFC 4503, a squaring where the S-boxes would be", sample: "ATTACK AT DAWN", options: { key: "912813292e3d36fe3bfc62f1dc51c3ac" } },
   rc4: { icon: "i-lucide-shuffle", blurb: "Rivest's 1987 trade secret, a shuffled table of 256 bytes and one swap per byte", sample: "Attack at dawn", options: { key: "536563726574" } },
+  xor: { icon: "i-lucide-repeat", blurb: "Vigenère on bytes, a short key repeated and XORed in", sample: "Attack at dawn", options: { key: "494345" } },
 };
 
 export interface CipherEntry {

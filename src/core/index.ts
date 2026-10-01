@@ -35,6 +35,7 @@ export type {
   SerpentOptions,
   RabbitOptions,
   Rc4Options,
+  XorOptions,
   CipherInfo,
   CipherOption,
 } from './types.ts'

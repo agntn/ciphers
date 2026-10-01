@@ -83,6 +83,7 @@ const STREAM = [
   'aes-cfb',
   'aes-ofb',
   'rc4',
+  'xor',
   'rabbit',
   'aes-ccm',
   'aes-ocb',

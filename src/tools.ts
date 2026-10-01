@@ -188,6 +188,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
       error: 'must be an even number of hex digits from 2 to 512 (a 1 to 256-byte RC4 key)',
     },
   },
+  {
+    ciphers: ['xor'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:(?:[0-9A-Fa-f]\s*){2})+$/,
+      error: 'must be a nonzero even number of hex digits (a key of whole bytes)',
+    },
+  },
 ]
 
 /**
@@ -314,6 +322,7 @@ const cipherInput = Type.Object(
     endian: Type.Optional(
       Type.Enum(['big', 'little'], { description: OPTION_DESCRIPTIONS.endian }),
     ),
+    bytes: Type.Optional(Type.Enum(['text', 'hex'], { description: OPTION_DESCRIPTIONS.bytes })),
     preserveCase: Type.Optional(
       Type.Boolean({ description: 'Preserve letter case (default true)' }),
     ),
@@ -381,6 +390,7 @@ export const encodeTool = defineTool({
     'Serpent (serpent) works like AES, with the same key lengths.',
     'Rabbit (rabbit) is a stream cipher with a key of 32 hex digits and an optional iv of 16; it pads nothing, and endian picks the byte order (big as in RFC 4503, the default, or little as in Crypto++).',
     'RC4 (rc4) is a stream cipher with a key of any even number of hex digits from 2 to 512 and no IV; it pads nothing.',
+    'XOR (xor) repeats a key of any nonzero even number of hex digits over the bytes; bytes: hex reads and writes hex on both sides, for bytes that are not UTF-8 text.',
     'ciphers_info lists every option with its default.',
   ],
   effect: 'read',

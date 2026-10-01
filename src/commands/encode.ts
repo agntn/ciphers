@@ -36,6 +36,11 @@ export default defineCommand({
       type: 'string',
       description: 'Byte order, big as in RFC 4503 or little as in Crypto++ (Rabbit; default big)',
     },
+    bytes: {
+      type: 'string',
+      description:
+        'text for UTF-8 text, or hex to read and write hex both ways (XOR; default text)',
+    },
     tweak: {
       type: 'string',
       description:

@@ -284,6 +284,14 @@ export interface Rc4Options extends CipherBaseOptions {
   key: string
 }
 
+/** Repeating-key XOR options. */
+export interface XorOptions extends CipherBaseOptions {
+  /** Any nonzero even number of hex digits, a key of whole bytes; case and spaces are ignored. */
+  key: string
+  /** `text` for UTF-8 text in and out, `hex` for hex on both sides. Default: `text`. */
+  bytes?: 'text' | 'hex'
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *

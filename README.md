@@ -5,7 +5,7 @@
 [![license](https://npmx.dev/api/registry/badge/license/@agntn/ciphers)](https://npmx.dev/package/@agntn/ciphers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agntn/ciphers)
 
-🔐 Forty-three ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
+🔐 Forty-four ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
 
 ## Why?
 
@@ -18,7 +18,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Forty-three ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, the passphrase format CryptoJS writes, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, and two AES finalists, IBM's MARS and Serpent. Then two stream ciphers, Rabbit from RFC 4503 and RC4, the 1987 trade secret that leaked in 1994.
+- 🔡 **Forty-four ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, the passphrase format CryptoJS writes, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, and two AES finalists, IBM's MARS and Serpent. Then the stream ones, Rabbit from RFC 4503, RC4, the 1987 trade secret that leaked in 1994, and plain repeating-key XOR.
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -189,6 +189,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **serpent**        | substitution-permutation    |      ✗       | `--key` (hex, required)                                    |
 | **rabbit**         | arx                         |      ✗       | `--key` (hex, required), `--iv`, `--endian`                |
 | **rc4**            | permutation                 |      ✗       | `--key` (hex, required)                                    |
+| **xor**            | polyalphabetic              |      ✗       | `--key` (hex, required), `--bytes`                         |
 
 Playfair and Polybius fold J into I, tap code shares C and K, Bacon is the 26-letter variant unless `letters` says 24, and Alberti is a keyed disk that turns every `period` letters, not a reenactment of the original. One page per cipher, rules and vectors included: [Ciphers](https://ciphers.agntn.dev/ciphers).
 
@@ -197,6 +198,8 @@ The block ciphers start with AES and Triple DES. They take UTF-8 text, pad it wi
 `rabbit` has no blocks to pad. It's a stream cipher from 2003, one of the eSTREAM winners, and RFC 4503 describes it. The key is 32 hex digits, `--iv` is 16 and optional, and every step gives 16 bytes of keystream that get XORed into the text, so the ciphertext is as long as the text. No S-boxes, no tables, just additions, rotations and one squaring. The byte order is the RFC's by default, the same as in CyberChef. Code built on the eSTREAM reference, Crypto++ for one, reads the bytes the other way round, and `--endian little` gives what it gives.
 
 `rc4` is older and much simpler. Ron Rivest wrote it in 1987 as an RSA trade secret, and in 1994 someone posted it to the Cypherpunks list. The key is any whole number of bytes from 1 to 256, in hex, and there's no IV. A password like `Secret` goes in as `536563726574`. The key shuffles a table of all 256 byte values, and every keystream byte is one more swap in that table. Nothing gets dropped from the start, so the output matches RFC 6229 and OpenSSL. Hex in a CTF and a short password next to it? Try this one first.
+
+`xor` is the one every CTF starts with. The key bytes repeat under the text and get XORed in, Vigenère on bytes. Any whole number of bytes works as a key. Got hex that isn't text on either side? `--bytes hex` reads and writes hex both ways.
 
 ## 🤖 Agents
 
@@ -218,11 +221,11 @@ The tools are `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphe
 
 ## 🚫 What this does not do
 
-Cryptography you'd trust with anything. The classical ones fall to anyone with a laptop and an afternoon, and that's the point, they're for puzzles, CTFs and teaching. AES and Triple DES are here too, mostly in ECB, the mode that leaks which blocks repeat. CBC, CFB, OFB, CTR, LRW and XTS hide that, but none of them checks integrity, and IEEE dropped LRW for XTS. CCM and OCB do check it, and still fall apart the moment a nonce repeats. CBC-MAC checks it without hiding anything, and a longer message can borrow the tag of a shorter one. Rabbit hides the text and checks nothing, and a key used twice without a fresh IV hands out the XOR of both texts. RC4 has no IV at all, its second byte is zero twice as often as it should be, and RFC 7465 threw it out of TLS in 2015. All of it is plain TypeScript that never tried to be constant time. They're for the CTF that uses them and for seeing that leak, not for your data. No hashing, no wallet keys. Keys and signatures are [@agntn/keys](https://github.com/agntn/keys), and even those want nothing to do with real money.
+Cryptography you'd trust with anything. The classical ones fall to anyone with a laptop and an afternoon, and that's the point, they're for puzzles, CTFs and teaching. AES and Triple DES are here too, mostly in ECB, the mode that leaks which blocks repeat. CBC, CFB, OFB, CTR, LRW and XTS hide that, but none of them checks integrity, and IEEE dropped LRW for XTS. CCM and OCB do check it, and still fall apart the moment a nonce repeats. CBC-MAC checks it without hiding anything, and a longer message can borrow the tag of a shorter one. Rabbit hides the text and checks nothing, and a key used twice without a fresh IV hands out the XOR of both texts. RC4 has no IV at all, its second byte is zero twice as often as it should be, and RFC 7465 threw it out of TLS in 2015. XOR with a repeating key falls to one known word. All of it is plain TypeScript that never tried to be constant time. They're for the CTF that uses them and for seeing that leak, not for your data. No hashing, no wallet keys. Keys and signatures are [@agntn/keys](https://github.com/agntn/keys), and even those want nothing to do with real money.
 
 ## ➕ Adding a cipher
 
-Want a forty-second? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+Want a forty-fifth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
 
 ## 🛠️ Development
 

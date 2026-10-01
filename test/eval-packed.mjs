@@ -529,6 +529,20 @@ try {
     'Attack at dawn',
   )
   assert.equal(
+    run(binPath, [
+      'encode',
+      'xor',
+      "Burning 'em, if you ain't quick and nimble",
+      '--key',
+      '494345',
+    ]).trim(),
+    '0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'xor', '00ff80', '--key', 'ff', '--bytes', 'hex']).trim(),
+    'ff007f',
+  )
+  assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',
   )

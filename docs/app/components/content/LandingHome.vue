@@ -93,7 +93,7 @@ const ENGLISH_IC = analyzeFrequency("A", "en")!.referenceIc.toFixed(3);
           <p class="mt-4 text-sm leading-6 text-muted">
             {{ spellOutCapital(categorySize("classical")) }} classical, from Caesar to Enigma,
             {{ spellOut(categorySize("block")) }} block ciphers from DES to Serpent, and
-            Rabbit, a stream cipher. Latin alphabets are A to Z.
+            {{ spellOut(categorySize("stream")) }} stream ciphers, RC4 and Rabbit. Latin alphabets are A to Z.
             Playfair and Polybius fold J into I, tap code shares C and K, Enigma is the Wehrmacht M3
             with rotors I, II, III and reflector B, and the block and stream ciphers count bytes, not letters.
             Every one of those is a choice, and every choice is written

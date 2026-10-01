@@ -28,10 +28,11 @@ import { luciferEcb } from '../../src/ciphers/block/lucifer.ts'
 import { marsEcb } from '../../src/ciphers/block/mars.ts'
 import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
+import { rc4 } from '../../src/ciphers/stream/rc4.ts'
 
 describe('registry', () => {
-  it('registers all 42 ciphers', () => {
-    expect(ciphers()).toHaveLength(42)
+  it('registers all 43 ciphers', () => {
+    expect(ciphers()).toHaveLength(43)
     for (const name of [
       'caesar',
       'rot13',
@@ -69,6 +70,7 @@ describe('registry', () => {
       'mars',
       'serpent',
       'rabbit',
+      'rc4',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -851,6 +853,7 @@ describe('edge cases', () => {
     mars: { key: '0123456789abcdeffedcba9876543210' },
     serpent: { key: '0123456789abcdeffedcba9876543210' },
     rabbit: { key: '0123456789abcdeffedcba9876543210' },
+    rc4: { key: '0102030405' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -4214,6 +4217,105 @@ describe('rabbit', () => {
         { name: 'iv', type: 'string', required: false },
         { name: 'endian', type: 'string', required: false, default: 'big' },
       ],
+    })
+  })
+})
+
+describe('rc4', () => {
+  const rc4Cipher = create('rc4')
+  const hex = (value: string) =>
+    Array.from(value.replaceAll(' ', '').match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '0102030405060708090a0b0c0d0e0f10'
+
+  /** RFC 6229 section 2: keystream at offsets 0, 1008 and 4096 for a 40, 128 and 256-bit key. */
+  it('matches the RFC 6229 test vectors', () => {
+    const zeros = Array.from({ length: 4112 }, () => 0)
+    for (const [vectorKey, at0, at1008, at4096] of [
+      [
+        '0102030405',
+        'b2 39 63 05 f0 3d c0 27 cc c3 52 4a 0a 11 18 a8',
+        '45 12 90 48 e6 a0 ed 0b 56 b4 90 33 8f 07 8d a5',
+        'ff 25 b5 89 95 99 67 07 e5 1f bd f0 8b 34 d8 75',
+      ],
+      [
+        key,
+        '9a c7 cc 9a 60 9d 1e f7 b2 93 28 99 cd e4 1b 97',
+        'e7 a7 25 74 f8 78 2a e2 6a ab cf 9e bc d6 60 65',
+        'a3 6a 4c 30 1a e8 ac 13 61 0c cb c1 22 56 ca cc',
+      ],
+      [
+        '1ada31d5cf688221c109163908ebe51debb46227c6cc8b37641910833222772a',
+        'dd 5b cb 00 18 e9 22 d4 94 75 9d 7c 39 5d 02 d3',
+        '5f 40 d5 9e c1 b0 3b 33 73 8e fa 60 b2 25 5d 31',
+        '37 0b 1c 1f e6 55 91 6d 97 fd 0d 47 ca 1d 72 b8',
+      ],
+    ] as const) {
+      const keystream = rc4(zeros, hex(vectorKey))
+      expect(keystream.slice(0, 16)).toEqual(hex(at0))
+      expect(keystream.slice(1008, 1024)).toEqual(hex(at1008))
+      expect(keystream.slice(4096, 4112)).toEqual(hex(at4096))
+    }
+  })
+
+  /** The test vectors on the English Wikipedia's RC4 page, ASCII keys written as hex. */
+  it('encodes the Wikipedia examples', () => {
+    for (const [textKey, text, ciphertext] of [
+      ['Key', 'Plaintext', 'bbf316e8d940af0ad3'],
+      ['Wiki', 'pedia', '1021bf0420'],
+      ['Secret', 'Attack at dawn', '45a01f645fc35b383552544b9bf5'],
+    ] as const) {
+      const hexKey = Buffer.from(textKey).toString('hex')
+      expect(rc4Cipher.encode(text, { key: hexKey })).toEqual({
+        text: ciphertext,
+        cipher: 'rc4',
+        operation: 'encode',
+        options: { key: hexKey },
+      })
+      expect(rc4Cipher.decode(ciphertext, { key: hexKey }).text).toBe(text)
+    }
+  })
+
+  /** Expected value from `openssl enc -rc4` (OpenSSL 3.6 legacy provider) over the UTF-8 bytes. */
+  it('encodes UTF-8 text as OpenSSL does', () => {
+    const text = 'zażółć gęślą jaźń 🙂'
+    const ciphertext = 'e0a60926a32edb75761408fe097dde0c3e8c41b5fa75d7d0ab0ea40182831c'
+    expect(rc4Cipher.encode(text, { key }).text).toBe(ciphertext)
+    expect(rc4Cipher.decode(ciphertext, { key }).text).toBe(text)
+    expect(rc4Cipher.encode('', { key }).text).toBe('')
+  })
+
+  it('reads key and ciphertext in any case and with spaces', () => {
+    const result = rc4Cipher.encode('Plaintext', { key: '4B 65 79' })
+    expect(result.options).toEqual({ key: '4b6579' })
+    expect(rc4Cipher.decode('BBF3 16E8 D940 AF0A D3', { key: '4b6579' }).text).toBe('Plaintext')
+  })
+
+  it('takes keys from 1 to 256 bytes and nothing else', () => {
+    expect(rc4Cipher.encode('a', { key: '00' }).text).toHaveLength(2)
+    expect(rc4Cipher.encode('a', { key: 'ff'.repeat(256) }).text).toHaveLength(2)
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => rc4Cipher[operation]('')).toThrow(MissingOptionError)
+      expect(() => rc4Cipher[operation]('', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of ['Key', '0', '00'.repeat(257), 'g'.repeat(2), 12]) {
+        expect(() => rc4Cipher[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('names what is wrong with a ciphertext it cannot decode', () => {
+    expect(() => rc4Cipher.decode('bbf31', { key: '4b6579' })).toThrow(/whole bytes/)
+    expect(() => rc4Cipher.decode('bbzz', { key: '4b6579' })).toThrow(/must be hex digits/)
+    expect(() => rc4Cipher.decode('bbf316e8d940af0ad3', { key: '4b6578' })).toThrow(/not UTF-8/)
+  })
+
+  it('reports the stream category and its options', () => {
+    expect(resolveCipher('RC4')).toBe(rc4Cipher)
+    expect(rc4Cipher.info()).toMatchObject({
+      name: 'rc4',
+      category: 'stream',
+      family: 'permutation',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
     })
   })
 })

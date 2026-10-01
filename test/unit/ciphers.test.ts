@@ -715,6 +715,24 @@ describe('adfgvx', () => {
       expect(adf.decode(encoded.text, options).text).toBe('THEQUICKBROWNFOX42')
     }
   })
+
+  it.each([
+    ['ADF', {}, '3 letters'],
+    ['DGDD DAGD DGAF ADDF DADV DVFA ADV', { transposition: 'PRIVACY' }, '27 letters'],
+  ])('refuses %j, whose letters do not split into pairs', (text, options, count) => {
+    expect(() => adf.decode(text, options)).toThrow(CipherError)
+    expect(() => adf.decode(text, options)).toThrow(count)
+  })
+
+  it('refuses text without a single A, D, F, G, V or X', () => {
+    expect(() => adf.decode('hello')).toThrow(CipherError)
+    expect(() => adf.decode('hello')).toThrow('no A, D, F, G, V or X')
+  })
+
+  it('decodes empty or blank text to nothing', () => {
+    expect(adf.decode('').text).toBe('')
+    expect(adf.decode('  ').text).toBe('')
+  })
 })
 
 describe('bifid', () => {

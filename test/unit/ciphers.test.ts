@@ -553,6 +553,25 @@ describe('bacon', () => {
     expect(() => bacon.encode('A', { letters })).toThrow('must be 24 or 26')
     expect(() => bacon.decode('AAAAA', { letters })).toThrow('must be 24 or 26')
   })
+
+  it.each([
+    ['AABBB ABAAA AB', '12 letters A and B'],
+    ['attack at dawn', '4 letters A and B'],
+    ['AAAA', '4 letters A and B'],
+  ])('refuses %j, whose A and B do not split into groups of five', (text, count) => {
+    expect(() => bacon.decode(text)).toThrow(CipherError)
+    expect(() => bacon.decode(text)).toThrow(count)
+  })
+
+  it('refuses text without a single A or B', () => {
+    expect(() => bacon.decode('hello world')).toThrow(CipherError)
+    expect(() => bacon.decode('hello world')).toThrow('no A or B')
+  })
+
+  it('decodes empty or blank text to nothing', () => {
+    expect(bacon.decode('').text).toBe('')
+    expect(bacon.decode('  ').text).toBe('')
+  })
 })
 
 describe('tap-code', () => {

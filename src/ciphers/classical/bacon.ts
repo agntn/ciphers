@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
+import { CipherError, InvalidOptionError, normalizeError } from '../../core/errors.ts'
 import { getOpt } from '../../core/utils.ts'
 
 /** The two Bacon tables: his own 24-letter one shares I/J and U/V, the 26-letter one codes every letter. */
@@ -36,8 +36,23 @@ function encodeBacon(text: string, alphabet: string, stripNonAlpha: boolean): st
   return result
 }
 
+/**
+ * Refuses text that isn't whole groups of A and B, instead of an empty or shorter answer.
+ *
+ * @param text - Bacon code, anything other than A and B ignored.
+ * @param alphabet - Table the groups index into.
+ * @returns {string} The decoded letters.
+ */
 function decodeBacon(text: string, alphabet: string): string {
   const clean = text.toUpperCase().replaceAll(/[^AB]/g, '')
+  if (clean === '' && text.trim() !== '') {
+    throw new CipherError('Invalid Bacon code: no A or B to decode')
+  }
+  if (clean.length % 5 !== 0) {
+    throw new CipherError(
+      `Invalid Bacon code: ${clean.length} letters A and B, not a multiple of five`,
+    )
+  }
   let result = ''
   for (let i = 0; i + 4 < clean.length; i += 5) {
     result += fromBacon(clean.slice(i, i + 5), alphabet)

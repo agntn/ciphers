@@ -34,6 +34,7 @@ export type {
   MarsOptions,
   SerpentOptions,
   RabbitOptions,
+  Rc4Options,
   CipherInfo,
   CipherOption,
 } from './types.ts'

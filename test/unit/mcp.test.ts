@@ -374,6 +374,25 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  it('discovers and executes RC4 through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'rc4' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(rc4) — stream, permutation')
+    const args = { cipher: 'rc4', key: '53 65 63 72 65 74' }
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { ...args, text: 'Attack at dawn' },
+    })
+    expect(encoded.isError).not.toBe(true)
+    expect(onlyText(encoded.content)).toBe('45a01f645fc35b383552544b9bf5')
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { ...args, text: '45a01f645fc35b383552544b9bf5' },
+    })
+    expect(onlyText(decoded.content)).toBe('Attack at dawn')
+  })
+
   it('discovers and executes Triple DES CBC with an IV through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -801,6 +820,9 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(15) }],
       ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(17) }],
       ['endian', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(16), endian: 'middle' }],
+      ['key', { cipher: 'rc4', text: 'abc' }],
+      ['key', { cipher: 'rc4', text: 'abc', key: '0' }],
+      ['key', { cipher: 'rc4', text: 'abc', key: '00'.repeat(257) }],
     ] as const) {
       const response = await client.callTool({
         name: 'ciphers_encode',
@@ -869,6 +891,7 @@ describe('Ciphers MCP server', () => {
     })
     expect(stream.isError).not.toBe(true)
     expect(onlyText(stream.content)).toMatch(/^stream:\n {2}rabbit \[arx\] — Rabbit stream cipher/)
+    expect(onlyText(stream.content)).toContain('\n  rc4 [permutation] — RC4 stream cipher')
 
     const unknownCategory = await client.callTool({
       name: 'ciphers_info',

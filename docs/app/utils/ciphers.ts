@@ -14,6 +14,7 @@ export const FAMILIES: ReadonlyArray<{ key: CipherInfo["family"]; label: string 
   { key: "feistel", label: "Feistel" },
   { key: "lai-massey", label: "Lai-Massey" },
   { key: "arx", label: "ARX" },
+  { key: "permutation", label: "Permutation" },
 ] as const;
 
 /** Icons and a one-liner per cipher. Everything else comes from `create(name).info()`. */
@@ -63,6 +64,7 @@ const PRESENTATION: Record<
   mars: { icon: "i-lucide-split", blurb: "IBM's AES finalist, 32 rounds and an S-box grown from SHA-1", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
   serpent: { icon: "i-lucide-blocks", blurb: "The AES runner-up, 32 rounds of 4-bit S-boxes run bitslice", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
   rabbit: { icon: "i-lucide-rabbit", blurb: "The eSTREAM stream cipher from RFC 4503, a squaring where the S-boxes would be", sample: "ATTACK AT DAWN", options: { key: "912813292e3d36fe3bfc62f1dc51c3ac" } },
+  rc4: { icon: "i-lucide-shuffle", blurb: "Rivest's 1987 trade secret, a shuffled table of 256 bytes and one swap per byte", sample: "Attack at dawn", options: { key: "536563726574" } },
 };
 
 export interface CipherEntry {

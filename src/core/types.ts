@@ -278,6 +278,12 @@ export interface RabbitOptions extends CipherBaseOptions {
   endian?: 'big' | 'little'
 }
 
+/** RC4 options. */
+export interface Rc4Options extends CipherBaseOptions {
+  /** 2 to 512 hex digits in whole bytes, a 1 to 256-byte key; case and spaces are ignored. */
+  key: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *
@@ -325,6 +331,7 @@ export interface CipherInfo {
     | 'feistel'
     | 'lai-massey'
     | 'arx'
+    | 'permutation'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
   /** Required/optional options. */

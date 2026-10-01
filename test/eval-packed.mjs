@@ -521,6 +521,14 @@ try {
     'Rabbit stream cipher test',
   )
   assert.equal(
+    run(binPath, ['encode', 'rc4', 'Attack at dawn', '--key', '536563726574']).trim(),
+    '45a01f645fc35b383552544b9bf5',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'rc4', '45a01f645fc35b383552544b9bf5', '--key', '536563726574']).trim(),
+    'Attack at dawn',
+  )
+  assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',
   )

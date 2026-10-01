@@ -180,6 +180,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
       error: 'must be 32 hex digits (a 128-bit Rabbit key)',
     },
   },
+  {
+    ciphers: ['rc4'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:(?:[0-9A-Fa-f]\s*){2}){1,256}$/,
+      error: 'must be an even number of hex digits from 2 to 512 (a 1 to 256-byte RC4 key)',
+    },
+  },
 ]
 
 /**
@@ -369,6 +377,7 @@ export const encodeTool = defineTool({
     'MARS (mars) works like AES with a key of 32 to 112 hex digits in steps of 8.',
     'Serpent (serpent) works like AES, with the same key lengths.',
     'Rabbit (rabbit) is a stream cipher with a key of 32 hex digits and an optional iv of 16; it pads nothing, and endian picks the byte order (big as in RFC 4503, the default, or little as in Crypto++).',
+    'RC4 (rc4) is a stream cipher with a key of any even number of hex digits from 2 to 512 and no IV; it pads nothing.',
     'ciphers_info lists every option with its default.',
   ],
   effect: 'read',

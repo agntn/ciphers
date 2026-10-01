@@ -54,13 +54,18 @@ export default defineCommand({
       description:
         'Tag length in bits, 32 to 128 in steps of 16 for AES-CCM, 64, 96 or 128 for AES-OCB (default 128)',
     },
+    digest: {
+      type: 'string',
+      description:
+        'Hash for the key, md5, sha1 or sha256 as in openssl enc -md (AES passphrase; default md5)',
+    },
     keyLength: {
       type: 'string',
       description: 'Key length in bits, 128 to 1024 in steps of 32 (AES passphrase; default 256)',
     },
     iterations: {
       type: 'string',
-      description: 'MD5 passes per derived block, 1 to 100000 (AES passphrase; default 1)',
+      description: 'Hash passes per derived block, 1 to 100000 (AES passphrase; default 1)',
     },
     salt: {
       type: 'string',

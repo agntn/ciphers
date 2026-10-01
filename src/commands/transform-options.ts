@@ -16,6 +16,7 @@ export interface TransformOptionArgs {
   readonly blockSize?: string
   readonly endian?: string
   readonly tagLength?: string
+  readonly digest?: string
   readonly keyLength?: string
   readonly iterations?: string
   readonly salt?: string
@@ -71,6 +72,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['nonce', args.nonce],
     ['aad', args.aad],
     ['endian', args.endian],
+    ['digest', args.digest],
     ['salt', args.salt],
   ] as const
   for (const [name, value] of strings) {

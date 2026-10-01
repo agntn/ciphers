@@ -816,6 +816,7 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'aes-passphrase', text: 'abc' }],
       ['keyLength', { cipher: 'aes-passphrase', text: 'abc', key: 'k', keyLength: 100 }],
       ['iterations', { cipher: 'aes-passphrase', text: 'abc', key: 'k', iterations: 100_001 }],
+      ['digest', { cipher: 'aes-passphrase', text: 'abc', key: 'k', digest: 'sha512' }],
       ['key', { cipher: 'rabbit', text: 'abc' }],
       ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(15) }],
       ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(17) }],

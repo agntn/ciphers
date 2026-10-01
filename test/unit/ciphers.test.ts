@@ -2641,6 +2641,26 @@ describe('aes-passphrase', () => {
     }
   })
 
+  /** Output of `openssl enc -a -pass pass:secret` 3.6.4 under `-md sha1` and `-md sha256`. */
+  it('opens what openssl enc writes over SHA-1 and SHA-256', () => {
+    for (const [digest, keyLength, blob] of [
+      ['sha256', 256, 'U2FsdGVkX18HYWQDuJcJTh2NoqzqwZ9pWaEBkXGGu54='],
+      ['sha256', 128, 'U2FsdGVkX1+na5gHUrEN4hG7LZRQ7qjUsIM1RiIjkv0='],
+      ['sha1', 256, 'U2FsdGVkX182QesVZh2QtuA2EYOeDO1srzryiKb6MNk='],
+      ['sha1', 128, 'U2FsdGVkX1+ksWSuMc0rUgJ7Iq06e+5j0O7VtXqcIr4='],
+    ] as const) {
+      const options = { key: 'secret', digest, keyLength }
+      const decoded = aes.decode(blob, options)
+      expect(decoded.text).toBe('ATTACK AT DAWN')
+      expect(aes.encode('ATTACK AT DAWN', { ...options, salt: decoded.options.salt }).text).toBe(
+        blob,
+      )
+      expect(() => aes.decode(blob, { key: 'secret', keyLength })).toThrow(
+        /wrong passphrase, digest, keyLength or iterations/,
+      )
+    }
+  })
+
   it('reads the salt from the ciphertext', () => {
     expect(aes.decode('U2FsdGVkX1/8SH4W60kQBi0VYxWiwrLhysleV0O88xw=', { key: 'secret' })).toEqual({
       text: 'ATTACK AT DAWN',
@@ -2650,6 +2670,7 @@ describe('aes-passphrase', () => {
         key: 'secret',
         mode: 'cbc',
         salt: 'fc487e16eb491006',
+        digest: 'md5',
         keyLength: 256,
         iterations: 1,
       },
@@ -2667,7 +2688,7 @@ describe('aes-passphrase', () => {
 
   it('names what is wrong with a ciphertext it cannot open', () => {
     expect(() => aes.decode(dawn, { key: 'wrong' })).toThrow(
-      /padding: wrong passphrase, keyLength or iterations/,
+      /padding: wrong passphrase, digest, keyLength or iterations/,
     )
     expect(() => aes.decode(wide, { key: 'secret', keyLength: 1024 })).toThrow(CipherError)
     expect(() => aes.decode('not base64!', { key: 'secret' })).toThrow(/must be base64/)
@@ -2688,6 +2709,9 @@ describe('aes-passphrase', () => {
       { key: 'secret', iterations: 1.5 },
       { key: 'secret', iterations: 100_001 },
       { key: 'secret', salt: '0123' },
+      { key: 'secret', digest: 'sha512' },
+      { key: 'secret', digest: 'SHA256' },
+      { key: 'secret', digest: 'toString' },
     ]) {
       expect(() => aes.encode('x', options)).toThrow(InvalidOptionError)
     }

@@ -42,6 +42,7 @@ const XOR: BlockMode<XorSettings> = {
   padding: false,
   keyDigits: (digits) => digits > 0 && digits % 2 === 0,
   keyError: 'must be a nonzero even number of hex digits (a key of whole bytes)',
+  textHint: 'pass bytes: hex to get them as hex',
   settings: readSettings,
   run: (data, key) => xor(data, key),
 }

@@ -27,6 +27,8 @@ export interface BlockMode<Settings extends BlockSettings = Readonly<Record<stri
   readonly keyDigits: readonly number[] | ((digits: number) => boolean)
   /** Why a key of another shape is refused. */
   readonly keyError: string
+  /** What to try when decrypted bytes are not UTF-8 text, added to that error. */
+  readonly textHint?: string
   /**
    * Read the options the mode takes besides the key, throwing on a bad one. What it returns goes
    * to `run` and back in the result options.
@@ -246,7 +248,8 @@ export function decodeBlocks<Settings extends BlockSettings>(
     try {
       decoded = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(plaintext))
     } catch {
-      throw new CipherError(`[${cipher.name}] Decrypted bytes are not UTF-8 text`)
+      const hint = cipher.textHint ? `; ${cipher.textHint}` : ''
+      throw new CipherError(`[${cipher.name}] Decrypted bytes are not UTF-8 text${hint}`)
     }
     return {
       text: decoded,

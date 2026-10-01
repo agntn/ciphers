@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.5.1
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.5.0...v0.5.1)
+
+### 🚀 Enhancements
+
+- **aes:** Run CTR on raw bytes ([#174](https://github.com/agntn/ciphers/pull/174))
+- **stream:** XOR bytes under a repeating key ([#175](https://github.com/agntn/ciphers/pull/175))
+- **stream:** Point XOR decode errors at hex bytes ([#177](https://github.com/agntn/ciphers/pull/177))
+
+### 🩹 Fixes
+
+- **block:** Read openssl enc output over SHA-256 ([#172](https://github.com/agntn/ciphers/pull/172))
+
+### ❤️ Contributors
+
+- Ori ([@oritwoen](https://github.com/oritwoen))
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+
 ## v0.5.0
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.4.0...v0.5.0)

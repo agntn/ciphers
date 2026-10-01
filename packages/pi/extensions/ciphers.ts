@@ -22,6 +22,7 @@ import {
   bruteForceCaesar,
   cipherCategories,
   formatCipherInfo,
+  formatFamilyGuess,
   formatFrequencyAnalysis,
   formatPeriodEstimate,
   transformCipher,
@@ -35,6 +36,7 @@ type CiphersLibrary = Pick<
   | 'ciphers'
   | 'create'
   | 'estimatePeriod'
+  | 'guessFamily'
   | 'InvalidOptionError'
   | 'resolveCipher'
 >
@@ -332,6 +334,35 @@ export default function ciphersExtension(pi: ExtensionAPI) {
         return toPiResult(
           formatPeriodEstimate(await loadLibrary(), params.text, params.lang, params.maxPeriod),
         )
+      },
+    }),
+  )
+
+  pi.registerTool(
+    defineTool({
+      name: 'ciphers_family_guess',
+      label: 'Cipher Family Guess',
+      description:
+        'Guess which cipher family a ciphertext comes from, by its alphabet and layout, then index of coincidence and how the letters fit the language. Candidates, most likely first, each with its confidence, the signal behind it and the call to try next.',
+      promptSnippet: 'Use ciphers_family_guess first on a ciphertext whose cipher nobody named.',
+      promptGuidelines: [
+        'Input is ciphertext. Returns candidate families with the built-in ciphers to try, most likely first, each with high, medium or low confidence, its signal and the next call.',
+        'Treat the list as candidates: a short text comes back with low confidence, and only a decode that reads settles it.',
+      ],
+      parameters: Type.Object({
+        text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
+        lang: Type.Optional(
+          Type.Enum(['en', 'pl', 'ja'], {
+            description:
+              'Language the plaintext should read in, ja for Hepburn romaji (default en)',
+          }),
+        ),
+      }),
+      renderCall(args, _theme) {
+        return new Text(`🔎 family guess: "${args.text.slice(0, 40)}..."`, 0, 0)
+      },
+      async execute(_toolCallId, params): Promise<PiToolResult> {
+        return toPiResult(formatFamilyGuess(await loadLibrary(), params.text, params.lang))
       },
     }),
   )

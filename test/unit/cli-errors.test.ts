@@ -156,6 +156,31 @@ describe('CLI key length estimate', () => {
   })
 })
 
+describe('CLI family guess', () => {
+  it('ranks the families with the command to run next', () => {
+    const result = runCli(['guess', 'FMXVEDKAPHFERBNDKRXRSREFMORUDSDKDVSHVUFEDKAPRKDLYEVLRHHRH'], {
+      ...process.env,
+      CONSOLA_LEVEL: '3',
+    })
+
+    expect(result.status).toBe(0)
+    const output = stripVTControlCharacters(`${result.stdout}${result.stderr}`)
+    expect(output).toContain('Family guess (57 characters, 57 letters, lang=en, IoC 0.0627)')
+    expect(output).toContain(
+      '  1. substitution-multiplicative, substitution-shift, substitution-reflection (medium): affine, caesar, atbash\n',
+    )
+    expect(output).toContain('     Next: ciphers decode affine "<text>" --a 3 --b 5\n')
+  })
+
+  it('rejects a language without a table as one line', () => {
+    const result = runCli(['guess', 'ABCDEF', '--lang', 'de'])
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('Invalid option lang=de: must be en, pl or ja\n')
+  })
+})
+
 describe('CLI Caesar brute force', () => {
   /**
    * Run `ciphers brute` and keep its shift lines without the terminal styling.

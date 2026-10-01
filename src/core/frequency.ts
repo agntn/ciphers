@@ -221,6 +221,24 @@ export const letterLogProbabilities: Record<FrequencyLanguage, ReadonlyMap<strin
   ja: logProbabilities(letterPercentages.ja),
 }
 
+/**
+ * The `fit` plaintext scores on average: each letter's log probability, weighted by its share.
+ *
+ * @param percentages - Percent of running text per letter.
+ * @returns {number} The expected `fit`.
+ */
+function expectedFit(percentages: Readonly<Record<string, number>>): number {
+  const values = Object.values(percentages)
+  const total = values.reduce((sum, percent) => sum + percent, 0)
+  return values.reduce((sum, percent) => sum + (percent / total) * Math.log(percent / total), 0)
+}
+
+export const referenceFits: Record<FrequencyLanguage, number> = {
+  en: expectedFit(letterPercentages.en),
+  pl: expectedFit(letterPercentages.pl),
+  ja: expectedFit(letterPercentages.ja),
+}
+
 const letterPairLogProbabilities: Partial<Record<FrequencyLanguage, ReadonlyMap<string, number>>> =
   {
     en: pairLogProbabilities(englishPairs),

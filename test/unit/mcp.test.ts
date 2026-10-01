@@ -51,6 +51,7 @@ describe('Ciphers MCP server', () => {
       'ciphers_caesar_brute',
       'ciphers_frequency',
       'ciphers_period_estimate',
+      'ciphers_family_guess',
       'ciphers_info',
     ])
     const encodeTool = response.tools.find((tool) => tool.name === 'ciphers_encode')
@@ -984,6 +985,43 @@ describe('Ciphers MCP server', () => {
       })
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain('Invalid arguments at /maxPeriod')
+    }
+  })
+
+  it('guesses the cipher family over the protocol', async () => {
+    const client = await connectTestClient()
+    const guess = async (args: Readonly<Record<string, unknown>>) =>
+      onlyText((await client.callTool({ name: 'ciphers_family_guess', arguments: args })).content)
+
+    const affine = (
+      await guess({ text: 'FMXVEDKAPHFERBNDKRXRSREFMORUDSDKDVSHVUFEDKAPRKDLYEVLRHHRH' })
+    ).split('\n')
+    expect(affine[0]).toBe(
+      'Family guess (57 characters, 57 A-Z letters, lang=en, IoC 0.0627 (en plaintext ~0.065, uniform random ~0.038)), most likely first:',
+    )
+    expect(affine.slice(2, 5)).toEqual([
+      '1. substitution-multiplicative, substitution-shift, substitution-reflection (medium): affine, caesar, atbash',
+      '   IoC 0.0627 is close to en plaintext, one alphabet throughout, and affine a=3 b=5 makes the letters fit en.',
+      '   Next: ciphers_decode with cipher affine and a=3, b=5.',
+    ])
+    expect(affine.at(-1)).toBe('Candidates, not a verdict: only a decode that reads settles it.')
+
+    expect(
+      await guess({
+        text: 'CHREEVOAHMAERATBIAXXWTNXBEEOPHBSBQMQEQERBWRVXUOAKXAOSXXWEAHBWGJMMQMNKGRFVGXWTRZXWIAKLXFPSKAUTEMNDCMGTSXMXBTUIADNGMGPSRELXNJELXVRVPRTULHDNQWTWDTYGBPHXTFALJHASVBFXNGLLCHRZBWELEKMSJIKNBHWRJGNMGJSGLXFEYPHAGNRBIEQJTAMRVLCRREMNDGLXRRIMGNSNRWCHRQHAEYEVTAQEBBIPEEWEVKAKOEWADREMXMTBHHCHRTKDNVRZCHRCLQOHPWQAIIWXNRMGWOIIFKEE',
+      }),
+    ).toContain('Next: ciphers_period_estimate gives the key length and a Vigenère key.')
+    expect(await guess({ text: '69c4e0d86a7b0430d8cdb78070b4c55a' })).toContain(
+      'Next: ciphers_decode with cipher aes, which needs key.',
+    )
+    expect(await guess({ text: 'hi', lang: 'pl' })).toBe(
+      'No family fits (2 characters, 2 A-Z letters): no layout this package knows, and too few letters for statistics.',
+    )
+
+    for (const args of [{ text: 'ABC', lang: 'de' }, { text: 'X'.repeat(100_001) }]) {
+      const refused = await client.callTool({ name: 'ciphers_family_guess', arguments: args })
+      expect(refused.isError).toBe(true)
+      expect(onlyText(refused.content)).toContain('Invalid arguments at /')
     }
   })
 

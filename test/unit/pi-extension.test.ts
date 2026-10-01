@@ -61,6 +61,7 @@ describe('Pi extension', () => {
       'ciphers_caesar_brute',
       'ciphers_frequency',
       'ciphers_period_estimate',
+      'ciphers_family_guess',
       'ciphers_info',
     ])
   })
@@ -77,7 +78,12 @@ describe('Pi extension', () => {
     for (const name of ['ciphers_encode', 'ciphers_decode', 'ciphers_caesar_brute']) {
       expect(getTool(name).renderResult).toBeTypeOf('function')
     }
-    for (const name of ['ciphers_frequency', 'ciphers_period_estimate', 'ciphers_info']) {
+    for (const name of [
+      'ciphers_frequency',
+      'ciphers_period_estimate',
+      'ciphers_family_guess',
+      'ciphers_info',
+    ]) {
       expect(getTool(name).renderResult).toBeUndefined()
     }
   })
@@ -239,6 +245,11 @@ describe('Pi extension', () => {
     expect(Value.Check(period, { text: 'TEST', maxPeriod: 101 })).toBe(false)
     expect(Value.Check(period, { text: 'TEST', maxPeriod: 1 })).toBe(false)
     expect(Value.Check(period, { text: 'TEST', maxPeriod: 2.5 })).toBe(false)
+
+    const guess = getTool('ciphers_family_guess').parameters
+    expect(Value.Check(guess, { text: 'TEST', lang: 'pl' })).toBe(true)
+    expect(Value.Check(guess, { text: 'TEST', lang: 'de' })).toBe(false)
+    expect(Value.Check(guess, { text: 'X'.repeat(100_001) })).toBe(false)
   })
 
   it('answers through the shared executors and lets their errors reach the harness', async () => {
@@ -278,6 +289,15 @@ describe('Pi extension', () => {
     await expect(
       getTool('ciphers_period_estimate').execute('period', { text: 'TEST', maxPeriod: 101 }),
     ).rejects.toThrow('Invalid option maxPeriod=101: must be at most 100')
+
+    const guess = await getTool('ciphers_family_guess').execute('guess', {
+      text: '85E813540F0AB405',
+    })
+    expect(guess.content[0]?.text.split('\n').slice(2, 5)).toEqual([
+      '1. feistel, lai-massey (high): des, desx, triple-des, triple-des-cbc, blowfish, idea',
+      '   16 hex digits, whole 8-byte blocks.',
+      '   Next: ciphers_decode with cipher des, which needs key.',
+    ])
 
     await expect(
       getTool('ciphers_encode').execute('failure', { cipher: 'cae', text: 'TEST' }),

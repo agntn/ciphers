@@ -15,6 +15,7 @@ import {
   bruteForceCaesar,
   cipherCategories,
   formatCipherInfo,
+  formatFamilyGuess,
   formatFrequencyAnalysis,
   formatPeriodEstimate,
   transformCipher,
@@ -28,6 +29,7 @@ type CiphersLibrary = Pick<
   | 'ciphers'
   | 'create'
   | 'estimatePeriod'
+  | 'guessFamily'
   | 'InvalidOptionError'
   | 'resolveCipher'
 >
@@ -251,6 +253,26 @@ export default function ciphersExtension(omp: ExtensionAPI): void {
     loadMode: 'essential',
     async execute(_toolCallId, params) {
       return formatPeriodEstimate(await loadLibrary(), params.text, params.lang, params.maxPeriod)
+    },
+  })
+
+  omp.registerTool({
+    name: 'ciphers_family_guess',
+    label: 'Cipher Family Guess',
+    description:
+      'Guess which cipher family a ciphertext comes from, by its alphabet and layout, then index of coincidence and how the letters fit the language. Candidates, most likely first, each with its confidence, the signal behind it and the call to try next.',
+    parameters: Type.Object({
+      text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
+      lang: Type.Optional(
+        Type.Enum(['en', 'pl', 'ja'], {
+          description: 'Language the plaintext should read in, ja for Hepburn romaji (default en)',
+        }),
+      ),
+    }),
+    approval: 'read',
+    loadMode: 'essential',
+    async execute(_toolCallId, params) {
+      return formatFamilyGuess(await loadLibrary(), params.text, params.lang)
     },
   })
 

@@ -76,7 +76,7 @@ beforeAll(() => {
 })
 
 describe('OMP extension', () => {
-  it('registers five essential read-only tools', () => {
+  it('registers every tool as essential and read-only', () => {
     expect(
       [...tools.values()].map(({ name, label, approval, loadMode }) => ({
         name,
@@ -102,6 +102,12 @@ describe('OMP extension', () => {
       {
         name: 'ciphers_period_estimate',
         label: 'Key Length Estimate',
+        approval: 'read',
+        loadMode: 'essential',
+      },
+      {
+        name: 'ciphers_family_guess',
+        label: 'Cipher Family Guess',
         approval: 'read',
         loadMode: 'essential',
       },
@@ -239,6 +245,11 @@ describe('OMP extension', () => {
     expect(periodSchema.safeParse({ text: 'TEST', maxPeriod: 1 }).success).toBe(false)
     expect(periodSchema.safeParse({ text: 'TEST', lang: 'de' }).success).toBe(false)
 
+    const guessSchema = getTool('ciphers_family_guess').parameters
+    expect(guessSchema.safeParse({ text: 'TEST', lang: 'ja' }).success).toBe(true)
+    expect(guessSchema.safeParse({ text: 'TEST', lang: 'de' }).success).toBe(false)
+    expect(guessSchema.safeParse({ text: 'X'.repeat(100_001) }).success).toBe(false)
+
     const transformSchema = getTool('ciphers_encode').parameters
     expect(transformSchema.safeParse({ cipher: 'caesar', text: 'X'.repeat(10_000) }).success).toBe(
       true,
@@ -328,6 +339,7 @@ describe('OMP extension', () => {
     expect(getTool('ciphers_info').renderResult).toBeUndefined()
     expect(getTool('ciphers_frequency').renderResult).toBeUndefined()
     expect(getTool('ciphers_period_estimate').renderResult).toBeUndefined()
+    expect(getTool('ciphers_family_guess').renderResult).toBeUndefined()
   })
 
   it('renders the trailing spaces caesar carries over from its input', async () => {

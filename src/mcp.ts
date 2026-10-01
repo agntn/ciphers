@@ -18,6 +18,7 @@ import {
   OPTION_DESCRIPTIONS,
   bruteForceCaesar,
   formatCipherInfo,
+  formatFamilyGuess,
   formatFrequencyAnalysis,
   formatPeriodEstimate,
   transformCipher,
@@ -393,6 +394,26 @@ const tools: ToolDefinition[] = [
         args.text as string,
         args.lang as 'en' | 'pl' | 'ja' | undefined,
         args.maxPeriod as number | undefined,
+      ),
+  },
+  {
+    name: 'ciphers_family_guess',
+    title: 'Cipher Family Guess',
+    description:
+      'Guess which cipher family a ciphertext comes from, by its alphabet and layout, then index of coincidence and how the letters fit the language. Candidates, most likely first, each with its confidence, the signal behind it and the call to try next.',
+    inputSchema: Type.Object({
+      text: Type.String({ maxLength: MAX_FREQUENCY_TEXT_LENGTH, description: 'Ciphertext' }),
+      lang: Type.Optional(
+        Type.Enum(['en', 'pl', 'ja'], {
+          description: 'Language the plaintext should read in, ja for Hepburn romaji (default en)',
+        }),
+      ),
+    }),
+    execute: (args) =>
+      formatFamilyGuess(
+        ciphersLibrary,
+        args.text as string,
+        args.lang as 'en' | 'pl' | 'ja' | undefined,
       ),
   },
   {

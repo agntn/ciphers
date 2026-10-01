@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { decodeColumnar, encodeColumnar, getOpt } from '../../core/utils.ts'
-import { normalizeError } from '../../core/errors.ts'
+import { CipherError, normalizeError } from '../../core/errors.ts'
 
 const ADFGVX_LETTERS = 'ADFGVX'
 const GRID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -42,9 +42,25 @@ function encodeAdfgvx(text: string, key: string, transposition: string): string 
   return transposition ? encodeColumnar(result, transposition) : result
 }
 
+/**
+ * Refuses text that isn't whole pairs of the six letters, instead of an empty or shorter answer.
+ *
+ * @param text - ADFGVX code, anything other than the six letters ignored.
+ * @param key - Keyword for the grid.
+ * @param transposition - Keyword for the columns, empty when there was no transposition.
+ * @returns {string} The decoded letters and digits.
+ */
 function decodeAdfgvx(text: string, key: string, transposition: string): string {
   const { grid } = buildAdfgvxGrid(key)
   const letters = text.toUpperCase().replaceAll(/[^ADFGVX]/g, '')
+  if (letters === '' && text.trim() !== '') {
+    throw new CipherError('Invalid ADFGVX code: no A, D, F, G, V or X to decode')
+  }
+  if (letters.length % 2 !== 0) {
+    throw new CipherError(
+      `Invalid ADFGVX code: ${letters.length} letters A, D, F, G, V and X, not whole pairs`,
+    )
+  }
   const clean = transposition ? decodeColumnar(letters, transposition) : letters
   let result = ''
   for (let i = 0; i + 1 < clean.length; i += 2) {

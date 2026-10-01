@@ -34,7 +34,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - Tap code shares C and K.
 - Morse uses dots and dashes, spaces between letters, and `/` between words.
 - Bacon defaults to the 26-letter A-Z variant; `letters: 24` selects the historical table with I/J and U/V shared. Decoding throws `CipherError` when the A and B in the text don't split into groups of five, or when there are none.
-- ADFGVX runs its columnar transposition only when `transposition` is set; without it the output is the grid step alone.
+- ADFGVX runs its columnar transposition only when `transposition` is set; without it the output is the grid step alone. Decoding throws `CipherError` when the A, D, F, G, V and X in the text don't split into pairs, or when there are none.
 - Enigma models Wehrmacht M3 with rotors I-II-III and reflector B.
 - `aes` runs in ECB only: UTF-8 text with PKCS#7 padding in, lowercase hex out, and a key of 32, 48 or 64 hex digits. It is a teaching implementation, not constant time. `ecb` from the `@agntn/ciphers/aes` subpath (`src/aes.ts`) runs the same ECB on a `Uint8Array`: whole blocks in and out, no padding and no hex, and a key of 16, 24 or 32 bytes.
 - AES-CBC takes the AES key and a required 32-digit `iv`, and chains blocks as NIST SP 800-38A §6.2 does. Text, padding and hex work as for AES.

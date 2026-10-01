@@ -4436,6 +4436,17 @@ describe('xor', () => {
     expect(() => xorCipher.decode('00ff80', { key: 'ff' })).toThrow(/not UTF-8/)
   })
 
+  it('points a decode that is not text at bytes: hex', () => {
+    expect(() => xorCipher.decode('00ff80', { key: 'ff' })).toThrow(
+      new CipherError(
+        '[xor] Decrypted bytes are not UTF-8 text; pass bytes: hex to get them as hex',
+      ),
+    )
+    expect(() => create('rc4').decode('bbf316e8d940af0ad3', { key: '4b6578' })).toThrow(
+      new CipherError('[rc4] Decrypted bytes are not UTF-8 text'),
+    )
+  })
+
   it('repeats the key from the first byte and ignores what runs past the text', () => {
     expect(xor([0x00, 0x00, 0x00, 0x00, 0x00], [0x01, 0x02])).toEqual([1, 2, 1, 2, 1])
     expect(xor([0x0f], [0xf0, 0xaa, 0xbb])).toEqual([0xff])

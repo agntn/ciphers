@@ -50,6 +50,7 @@ export class Rc4 extends Cipher {
       category: 'stream',
       family: 'permutation',
       selfInverse: false,
+      worksOn: 'UTF-8 bytes, hex out',
       options: [
         {
           name: 'key',

@@ -219,6 +219,7 @@ export class Rabbit extends Cipher {
       category: 'stream',
       family: 'arx',
       selfInverse: false,
+      worksOn: 'UTF-8 bytes, hex out',
       options: [
         {
           name: 'key',

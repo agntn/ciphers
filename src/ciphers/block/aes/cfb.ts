@@ -116,6 +116,7 @@ export class AesCfb extends BlockCipher<CfbSettings> {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
+      worksOn: 'UTF-8 bytes, hex out',
       options: [
         {
           name: 'key',

@@ -85,6 +85,7 @@ export class Adfgvx extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
+      worksOn: 'A-Z and 0-9, the rest dropped',
       options: [
         {
           name: 'key',

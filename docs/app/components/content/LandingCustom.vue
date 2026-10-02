@@ -21,6 +21,7 @@ const FILE = [
   '      category: "classical",',
   '      family: "transposition",',
   "      selfInverse: true,",
+  '      worksOn: "all characters, moved",',
   "      options: [],",
   "    };",
   "  }",

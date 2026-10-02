@@ -88,6 +88,7 @@ export class Playfair extends Cipher {
       category: 'classical',
       family: 'digraph',
       selfInverse: false,
+      worksOn: 'A-Z in pairs, J as I, the rest dropped',
       options: [
         {
           name: 'key',

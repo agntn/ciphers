@@ -83,6 +83,7 @@ export class Bifid extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
+      worksOn: 'A-Z, J as I, the rest dropped',
       options: [
         {
           name: 'key',

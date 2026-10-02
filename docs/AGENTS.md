@@ -70,6 +70,6 @@ Two resolution traps, both because the repo root is its own pnpm workspace:
 
 - Text a visitor types into the playground is rendered as text, through interpolation or a `<pre>`. Never `v-html`, never evaluate.
 - Cipher names, icons, blurbs and sample sentences live once, in `app/utils/ciphers.ts`. Sidebar, roster, playground samples and `::cipher-facts` read from it.
-- The header tabs split the cipher pages by `info().category` in `useSubNavigation`; the pages keep their `/ciphers/<name>` paths. The file numbers set the reading order inside a tab: the classical ones grouped by kind, the block ones in registry order. A new category needs its overview page in `content/2.ciphers/` and a line in `CATEGORY_SECTIONS`. Labels, families, options and keyspaces come from the library and are not repeated here.
+- The header tabs split the cipher pages by `info().category` in `useSubNavigation`; the pages keep their `/ciphers/<name>` paths. The file numbers set the reading order inside a tab: the classical ones grouped by kind, the block ones in registry order. A new category needs its overview page in `content/2.ciphers/` and a line in `CATEGORY_SECTIONS`. Labels, families, options, keyspaces and what a cipher works on come from the library and are not repeated here.
 - Every vector quoted in `content/` came out of `dist/index.mjs`. Check a new one the same way before writing it down. Don't derive it by hand, that is how wrong vectors end up in docs with a straight face.
 - The site makes no network request for its own work and stays that way. The footer says so.

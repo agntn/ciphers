@@ -116,6 +116,7 @@ export class StraddlingCheckerboard extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
+      worksOn: 'board cells, the rest dropped',
       options: [
         {
           name: 'key',

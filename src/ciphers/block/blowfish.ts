@@ -149,6 +149,7 @@ export class Blowfish extends BlockCipher {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
+      worksOn: 'UTF-8 bytes, hex out',
       options: [
         {
           name: 'key',

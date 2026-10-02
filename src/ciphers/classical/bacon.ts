@@ -81,6 +81,7 @@ export class Bacon extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
+      worksOn: 'A-Z, the rest dropped',
       options: [
         {
           name: 'letters',

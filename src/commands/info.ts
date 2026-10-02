@@ -16,6 +16,7 @@ export default defineCommand({
     consola.info(`  Category: ${info.category}`)
     consola.info(`  Family: ${info.family}`)
     consola.info(`  Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`)
+    consola.info(`  Works on: ${info.worksOn}`)
     if (info.keyspace) consola.info(`  Keyspace: ${info.keyspace}`)
     if (info.options.length > 0) {
       consola.info('  Options:')

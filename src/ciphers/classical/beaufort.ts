@@ -52,6 +52,7 @@ export class Beaufort extends Cipher {
       category: 'classical',
       family: 'polyalphabetic',
       selfInverse: true,
+      worksOn: 'A-Z, the rest passes',
       options: [
         {
           name: 'key',

@@ -49,6 +49,7 @@ export class Caesar extends Cipher {
       category: 'classical',
       family: 'substitution-shift',
       selfInverse: false,
+      worksOn: 'A-Z, the rest passes',
       options: [
         {
           name: 'shift',

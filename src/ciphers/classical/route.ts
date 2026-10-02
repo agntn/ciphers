@@ -176,6 +176,7 @@ export class Route extends Cipher {
       category: 'classical',
       family: 'transposition',
       selfInverse: false,
+      worksOn: 'all but line breaks, moved',
       options: [
         {
           name: 'width',

@@ -23,6 +23,7 @@ export class Rot13 extends Cipher {
       category: 'classical',
       family: 'substitution-shift',
       selfInverse: true,
+      worksOn: 'A-Z, the rest passes',
       options: [],
       keyspace: '1 (fixed shift=13)',
     }

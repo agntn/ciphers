@@ -144,6 +144,7 @@ export class AesPassphrase extends Cipher {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
+      worksOn: 'UTF-8 bytes, base64 out',
       options: [
         {
           name: 'key',

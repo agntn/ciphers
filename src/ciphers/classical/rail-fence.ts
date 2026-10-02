@@ -67,6 +67,7 @@ export class RailFence extends Cipher {
       category: 'classical',
       family: 'transposition',
       selfInverse: false,
+      worksOn: 'all characters, moved',
       options: [
         {
           name: 'rails',

@@ -83,6 +83,7 @@ export class TapCode extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
+      worksOn: 'A-Z, K as C, the rest dropped',
       options: [],
       keyspace: '1 (fixed 5×5 grid)',
     }

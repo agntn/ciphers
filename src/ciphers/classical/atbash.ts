@@ -23,6 +23,7 @@ export class Atbash extends Cipher {
       category: 'classical',
       family: 'substitution-reflection',
       selfInverse: true,
+      worksOn: 'A-Z, the rest passes',
       options: [],
       keyspace: '0 (single deterministic mapping)',
     }

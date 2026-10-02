@@ -19,6 +19,7 @@ export const builtinCiphers = [
   'columnar',
   'adfgvx',
   'bifid',
+  'straddling-checkerboard',
   'enigma',
   'aes',
   'aes-cbc',

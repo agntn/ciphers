@@ -5,7 +5,7 @@
 [![license](https://npmx.dev/api/registry/badge/license/@agntn/ciphers)](https://npmx.dev/package/@agntn/ciphers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agntn/ciphers)
 
-🔐 Forty-four ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
+🔐 Forty-five ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
 
 ## Why?
 
@@ -18,7 +18,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Forty-four ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, the passphrase format CryptoJS writes, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, and two AES finalists, IBM's MARS and Serpent. Then the stream ones, Rabbit from RFC 4503, RC4, the 1987 trade secret that leaked in 1994, and plain repeating-key XOR.
+- 🔡 **Forty-five ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid, the VIC straddling checkerboard and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, the passphrase format CryptoJS writes, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, and two AES finalists, IBM's MARS and Serpent. Then the stream ones, Rabbit from RFC 4503, RC4, the 1987 trade secret that leaked in 1994, and plain repeating-key XOR.
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -144,52 +144,53 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 
 ## 🔡 Ciphers
 
-| Cipher             | Family                      | Self-inverse | Options                                                    |
-| ------------------ | --------------------------- | :----------: | ---------------------------------------------------------- |
-| **caesar**         | substitution-shift          |      ✗       | `--shift` (1-25, default 3)                                |
-| **rot13**          | substitution-shift          |      ✓       | -                                                          |
-| **rot47**          | substitution-shift          |      ✓       | -                                                          |
-| **atbash**         | substitution-reflection     |      ✓       | -                                                          |
-| **vigenere**       | polyalphabetic              |      ✗       | `--key` (required)                                         |
-| **beaufort**       | polyalphabetic              |      ✓       | `--key` (required)                                         |
-| **autokey**        | polyalphabetic              |      ✗       | `--key` (required)                                         |
-| **trithemius**     | polyalphabetic              |      ✗       | -                                                          |
-| **alberti**        | polyalphabetic              |      ✗       | `--key`, `--period` (both required)                        |
-| **rail-fence**     | transposition               |      ✗       | `--rails` (default 3)                                      |
-| **affine**         | substitution-multiplicative |      ✗       | `--a` (multiplier), `--b` (shift)                          |
-| **playfair**       | digraph                     |      ✗       | `--key` (required)                                         |
-| **polybius**       | fractionation               |      ✗       | `--key` (optional)                                         |
-| **morse**          | fractionation               |      ✗       | -                                                          |
-| **bacon**          | fractionation               |      ✗       | `--letters` (24 or 26, default 26)                         |
-| **tap-code**       | fractionation               |      ✗       | -                                                          |
-| **columnar**       | transposition               |      ✗       | `--key` (required)                                         |
-| **adfgvx**         | fractionation               |      ✗       | `--key`, `--transposition` (both optional)                 |
-| **bifid**          | fractionation               |      ✗       | `--key` (optional), `--period` (default 5)                 |
-| **enigma**         | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`                    |
-| **aes**            | substitution-permutation    |      ✗       | `--key` (hex, required)                                    |
-| **aes-cbc**        | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                       |
-| **aes-cfb**        | substitution-permutation    |      ✗       | `--key`, `--iv` (hex), `--segment`                         |
-| **aes-ofb**        | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                       |
-| **aes-ctr**        | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                       |
-| **aes-ccm**        | substitution-permutation    |      ✗       | `--key`, `--nonce` (hex), `--aad`, `--tag-length`          |
-| **aes-ocb**        | substitution-permutation    |      ✗       | `--key`, `--nonce` (hex), `--aad`, `--tag-length`          |
-| **aes-lrw**        | substitution-permutation    |      ✗       | `--key` (hex, required), `--tweak`                         |
-| **aes-xts**        | substitution-permutation    |      ✗       | `--key` (hex, required), `--tweak`                         |
-| **aes-cbc-mac**    | substitution-permutation    |      ✗       | `--key` (hex, required)                                    |
-| **aes-passphrase** | substitution-permutation    |      ✗       | `--key` (text), `--digest`, `--key-length`, `--iterations` |
-| **rijndael**       | substitution-permutation    |      ✗       | `--key` (hex, required), `--block-size`                    |
-| **des**            | feistel                     |      ✗       | `--key` (hex, required)                                    |
-| **desx**           | feistel                     |      ✗       | `--key` (hex, required)                                    |
-| **triple-des**     | feistel                     |      ✗       | `--key` (hex, required)                                    |
-| **triple-des-cbc** | feistel                     |      ✗       | `--key`, `--iv` (hex, both required)                       |
-| **blowfish**       | feistel                     |      ✗       | `--key` (hex, required)                                    |
-| **idea**           | lai-massey                  |      ✗       | `--key` (hex, required)                                    |
-| **lucifer**        | feistel                     |      ✗       | `--key` (hex, required)                                    |
-| **mars**           | feistel                     |      ✗       | `--key` (hex, required)                                    |
-| **serpent**        | substitution-permutation    |      ✗       | `--key` (hex, required)                                    |
-| **rabbit**         | arx                         |      ✗       | `--key` (hex, required), `--iv`, `--endian`                |
-| **rc4**            | permutation                 |      ✗       | `--key` (hex, required)                                    |
-| **xor**            | polyalphabetic              |      ✗       | `--key` (hex, required), `--bytes`                         |
+| Cipher                      | Family                      | Self-inverse | Options                                                    |
+| --------------------------- | --------------------------- | :----------: | ---------------------------------------------------------- |
+| **caesar**                  | substitution-shift          |      ✗       | `--shift` (1-25, default 3)                                |
+| **rot13**                   | substitution-shift          |      ✓       | -                                                          |
+| **rot47**                   | substitution-shift          |      ✓       | -                                                          |
+| **atbash**                  | substitution-reflection     |      ✓       | -                                                          |
+| **vigenere**                | polyalphabetic              |      ✗       | `--key` (required)                                         |
+| **beaufort**                | polyalphabetic              |      ✓       | `--key` (required)                                         |
+| **autokey**                 | polyalphabetic              |      ✗       | `--key` (required)                                         |
+| **trithemius**              | polyalphabetic              |      ✗       | -                                                          |
+| **alberti**                 | polyalphabetic              |      ✗       | `--key`, `--period` (both required)                        |
+| **rail-fence**              | transposition               |      ✗       | `--rails` (default 3)                                      |
+| **affine**                  | substitution-multiplicative |      ✗       | `--a` (multiplier), `--b` (shift)                          |
+| **playfair**                | digraph                     |      ✗       | `--key` (required)                                         |
+| **polybius**                | fractionation               |      ✗       | `--key` (optional)                                         |
+| **morse**                   | fractionation               |      ✗       | -                                                          |
+| **bacon**                   | fractionation               |      ✗       | `--letters` (24 or 26, default 26)                         |
+| **tap-code**                | fractionation               |      ✗       | -                                                          |
+| **columnar**                | transposition               |      ✗       | `--key` (required)                                         |
+| **adfgvx**                  | fractionation               |      ✗       | `--key`, `--transposition` (both optional)                 |
+| **bifid**                   | fractionation               |      ✗       | `--key` (optional), `--period` (default 5)                 |
+| **straddling-checkerboard** | fractionation               |      ✗       | `--key` (optional), `--blanks` (default 26)                |
+| **enigma**                  | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`                    |
+| **aes**                     | substitution-permutation    |      ✗       | `--key` (hex, required)                                    |
+| **aes-cbc**                 | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                       |
+| **aes-cfb**                 | substitution-permutation    |      ✗       | `--key`, `--iv` (hex), `--segment`                         |
+| **aes-ofb**                 | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                       |
+| **aes-ctr**                 | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                       |
+| **aes-ccm**                 | substitution-permutation    |      ✗       | `--key`, `--nonce` (hex), `--aad`, `--tag-length`          |
+| **aes-ocb**                 | substitution-permutation    |      ✗       | `--key`, `--nonce` (hex), `--aad`, `--tag-length`          |
+| **aes-lrw**                 | substitution-permutation    |      ✗       | `--key` (hex, required), `--tweak`                         |
+| **aes-xts**                 | substitution-permutation    |      ✗       | `--key` (hex, required), `--tweak`                         |
+| **aes-cbc-mac**             | substitution-permutation    |      ✗       | `--key` (hex, required)                                    |
+| **aes-passphrase**          | substitution-permutation    |      ✗       | `--key` (text), `--digest`, `--key-length`, `--iterations` |
+| **rijndael**                | substitution-permutation    |      ✗       | `--key` (hex, required), `--block-size`                    |
+| **des**                     | feistel                     |      ✗       | `--key` (hex, required)                                    |
+| **desx**                    | feistel                     |      ✗       | `--key` (hex, required)                                    |
+| **triple-des**              | feistel                     |      ✗       | `--key` (hex, required)                                    |
+| **triple-des-cbc**          | feistel                     |      ✗       | `--key`, `--iv` (hex, both required)                       |
+| **blowfish**                | feistel                     |      ✗       | `--key` (hex, required)                                    |
+| **idea**                    | lai-massey                  |      ✗       | `--key` (hex, required)                                    |
+| **lucifer**                 | feistel                     |      ✗       | `--key` (hex, required)                                    |
+| **mars**                    | feistel                     |      ✗       | `--key` (hex, required)                                    |
+| **serpent**                 | substitution-permutation    |      ✗       | `--key` (hex, required)                                    |
+| **rabbit**                  | arx                         |      ✗       | `--key` (hex, required), `--iv`, `--endian`                |
+| **rc4**                     | permutation                 |      ✗       | `--key` (hex, required)                                    |
+| **xor**                     | polyalphabetic              |      ✗       | `--key` (hex, required), `--bytes`                         |
 
 Playfair and Polybius fold J into I, tap code shares C and K, Bacon is the 26-letter variant unless `letters` says 24, and Alberti is a keyed disk that turns every `period` letters, not a reenactment of the original. One page per cipher, rules and vectors included: [Ciphers](https://ciphers.agntn.dev/ciphers).
 
@@ -225,7 +226,7 @@ Cryptography you'd trust with anything. The classical ones fall to anyone with a
 
 ## ➕ Adding a cipher
 
-Want a forty-fifth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+Want a forty-sixth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
 
 ## 🛠️ Development
 

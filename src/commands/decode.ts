@@ -36,6 +36,10 @@ export default defineCommand({
       type: 'string',
       description: 'Byte order, big as in RFC 4503 or little as in Crypto++ (Rabbit; default big)',
     },
+    blanks: {
+      type: 'string',
+      description: 'The two blank digits of the top row (straddling checkerboard; default 26)',
+    },
     bytes: {
       type: 'string',
       description:

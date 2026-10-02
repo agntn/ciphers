@@ -5,6 +5,7 @@ export interface TransformOptionArgs {
   readonly shift?: string
   readonly key?: string
   readonly transposition?: string
+  readonly blanks?: string
   readonly iv?: string
   readonly tweak?: string
   readonly nonce?: string
@@ -74,6 +75,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['aad', args.aad],
     ['endian', args.endian],
     ['bytes', args.bytes],
+    ['blanks', args.blanks],
     ['digest', args.digest],
     ['salt', args.salt],
   ] as const

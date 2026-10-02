@@ -41,6 +41,7 @@ const PRESENTATION: Record<
   columnar: { icon: "i-lucide-columns-3", blurb: "Rows in, columns out in keyword order", sample: "ATTACK AT DAWN", options: { key: "ZEBRA" } },
   adfgvx: { icon: "i-lucide-table", blurb: "A 6×6 grid of letters and digits", sample: "ATTACK AT 1200" },
   bifid: { icon: "i-lucide-grid-3x3", blurb: "Polybius coordinates, split and re-read", sample: "FLEE AT ONCE", options: { key: "BICONDITIONAL", period: 5 } },
+  "straddling-checkerboard": { icon: "i-lucide-hash", blurb: "The VIC board, one digit for common letters and two for the rest", sample: "ATTACK AT DAWN" },
   enigma: { icon: "i-lucide-keyboard", blurb: "Wehrmacht M3, rotors I II III, reflector B", sample: "ATTACK AT DAWN", options: { positions: "MCK", rings: "BDF", plugboard: "AV BS CG" } },
   aes: { icon: "i-lucide-blocks", blurb: "AES, every 16-byte block on its own", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c" } },
   "aes-cbc": { icon: "i-lucide-blocks", blurb: "AES with every block chained to the one before", sample: "ATTACK AT DAWN", options: { key: "2b7e151628aed2a6abf7158809cf4f3c", iv: "000102030405060708090a0b0c0d0e0f" } },

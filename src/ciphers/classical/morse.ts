@@ -94,7 +94,7 @@ export class Morse extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
-      worksOn: 'A-Z, 0-9, punctuation, / between words, the rest passes',
+      worksOn: 'A-Z, 0-9, coded punctuation, / between words, the rest passes',
       options: [],
       keyspace: '1 (fixed table)',
     }

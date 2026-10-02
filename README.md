@@ -5,7 +5,7 @@
 [![license](https://npmx.dev/api/registry/badge/license/@agntn/ciphers)](https://npmx.dev/package/@agntn/ciphers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agntn/ciphers)
 
-🔐 Forty-five ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
+🔐 Forty-six ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
 
 ## Why?
 
@@ -18,7 +18,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Forty-five ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, ADFGVX, bifid, the VIC straddling checkerboard and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, the passphrase format CryptoJS writes, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, and two AES finalists, IBM's MARS and Serpent. Then the stream ones, Rabbit from RFC 4503, RC4, the 1987 trade secret that leaked in 1994, and plain repeating-key XOR.
+- 🔡 **Forty-six ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, columnar, the route transposition with its spirals, ADFGVX, bifid, the VIC straddling checkerboard and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, the passphrase format CryptoJS writes, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, and two AES finalists, IBM's MARS and Serpent. Then the stream ones, Rabbit from RFC 4503, RC4, the 1987 trade secret that leaked in 1994, and plain repeating-key XOR.
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -163,6 +163,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **bacon**                   | fractionation               |      ✗       | `--letters` (24 or 26, default 26)                         |
 | **tap-code**                | fractionation               |      ✗       | -                                                          |
 | **columnar**                | transposition               |      ✗       | `--key` (required)                                         |
+| **route**                   | transposition               |      ✗       | `--width` (required), `--corner`, `--path`                 |
 | **adfgvx**                  | fractionation               |      ✗       | `--key`, `--transposition` (both optional)                 |
 | **bifid**                   | fractionation               |      ✗       | `--key` (optional), `--period` (default 5)                 |
 | **straddling-checkerboard** | fractionation               |      ✗       | `--key` (optional), `--blanks` (default 26)                |

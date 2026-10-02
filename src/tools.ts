@@ -53,7 +53,7 @@ function answer(result: {
 
 type CipherOptionRequirement = {
   readonly ciphers: readonly string[]
-  readonly required: readonly ('key' | 'iv' | 'nonce' | 'period')[]
+  readonly required: readonly ('key' | 'iv' | 'nonce' | 'period' | 'width')[]
   readonly key?: {
     readonly pattern: RegExp
     readonly error: string
@@ -83,6 +83,7 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
   },
   { ciphers: ['columnar'], required: ['key'] },
+  { ciphers: ['route'], required: ['width'] },
   { ciphers: ['aes', 'aes-cbc-mac'], required: ['key'], key: AES_KEY },
   { ciphers: ['aes-cbc', 'aes-cfb', 'aes-ofb', 'aes-ctr'], required: ['key', 'iv'], key: AES_KEY },
   { ciphers: ['aes-ccm', 'aes-ocb'], required: ['key', 'nonce'], key: AES_KEY },
@@ -210,7 +211,7 @@ function cipherInputError(params: Readonly<CipherToolParams>): string | undefine
   )
   if (requirement === undefined) return undefined
   for (const field of requirement.required) {
-    if (params[field] === undefined || (field !== 'period' && params[field] === '')) {
+    if (params[field] === undefined || params[field] === '') {
       return `Invalid arguments at /${field}: required for ${params.cipher}`
     }
   }
@@ -270,6 +271,24 @@ const cipherInput = Type.Object(
         maximum: MAX_TRANSFORM_TEXT_LENGTH,
         description: 'Rail Fence rails (at least 2; default 3)',
       }),
+    ),
+    width: Type.Optional(
+      Type.Integer({
+        minimum: 2,
+        maximum: MAX_TRANSFORM_TEXT_LENGTH,
+        description: OPTION_DESCRIPTIONS.width,
+      }),
+    ),
+    corner: Type.Optional(
+      Type.Enum(['top-left', 'top-right', 'bottom-left', 'bottom-right'], {
+        description: OPTION_DESCRIPTIONS.corner,
+      }),
+    ),
+    path: Type.Optional(
+      Type.Enum(
+        ['spiral-clockwise', 'spiral-counterclockwise', 'snake-rows', 'snake-columns', 'columns'],
+        { description: OPTION_DESCRIPTIONS.path },
+      ),
     ),
     a: Type.Optional(
       Type.Enum(AFFINE_MULTIPLIERS, {
@@ -370,6 +389,7 @@ export const encodeTool = defineTool({
   snippet: 'Use ciphers_encode to encode text with local educational and puzzle ciphers.',
   guidelines: [
     'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
+    'Route (route) needs width, the cells per row. Decoding reads the grid along path from corner, so a grid copied row by row from a puzzle goes to ciphers_decode. Line breaks are not cells.',
     'Straddling checkerboard (straddling-checkerboard) turns letters into digits, one for the eight on the top row and two for the rest. key is the board of 28 cells and blanks its two blank digits.',
     'AES (aes) needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
     'AES-CBC (aes-cbc) takes the same key plus iv, 32 hex digits.',

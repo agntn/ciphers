@@ -14,6 +14,7 @@ import { Morse } from './morse.ts'
 import { Playfair } from './playfair.ts'
 import { Polybius } from './polybius.ts'
 import { RailFence } from './rail-fence.ts'
+import { Route } from './route.ts'
 import { StraddlingCheckerboard } from './straddling-checkerboard.ts'
 import { Rot13 } from './rot13.ts'
 import { Rot47 } from './rot47.ts'
@@ -40,6 +41,7 @@ export const classical: readonly CipherConstructor[] = [
   Bacon,
   TapCode,
   Columnar,
+  Route,
   Adfgvx,
   Bifid,
   StraddlingCheckerboard,

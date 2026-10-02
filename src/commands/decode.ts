@@ -81,6 +81,17 @@ export default defineCommand({
       description: 'Salt, 16 hex digits, when encoding (AES passphrase; default random)',
     },
     rails: { type: 'string', description: 'Number of rails (Rail Fence)', alias: 'r' },
+    width: { type: 'string', description: 'Cells per row (Route)' },
+    corner: {
+      type: 'string',
+      description:
+        'Corner the path starts from: top-left, top-right, bottom-left, bottom-right (Route; default top-left)',
+    },
+    path: {
+      type: 'string',
+      description:
+        'Path through the grid: spiral-clockwise, spiral-counterclockwise, snake-rows, snake-columns or columns (Route; default spiral-clockwise)',
+    },
     period: { type: 'string', description: 'Rotation period (Alberti, Bifid)' },
     letters: { type: 'string', description: 'Alphabet size, 24 or 26 (Bacon; default 26)' },
     a: { type: 'string', description: 'Multiplier (Affine)' },

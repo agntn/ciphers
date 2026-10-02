@@ -19,6 +19,9 @@ export type CipherToolParams = {
   nonce?: string
   aad?: string
   rails?: number
+  width?: number
+  corner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  path?: 'spiral-clockwise' | 'spiral-counterclockwise' | 'snake-rows' | 'snake-columns' | 'columns'
   a?: number
   b?: number
   period?: number
@@ -82,6 +85,10 @@ export const OPTION_DESCRIPTIONS = {
     'XOR only: text for UTF-8 text on the plain side (default), or hex to read and write hex both ways, for bytes that are not text',
   blanks:
     'Straddling checkerboard only: the two blank digits of the top row, each of which starts a code of two digits (default 26)',
+  width:
+    'Route only, and required there: cells per row of the grid the text fills row by row (at least 2)',
+  corner: 'Route only: corner the path starts from (default top-left)',
+  path: 'Route only: path through the grid, decoding reads along it and encoding writes along it (default spiral-clockwise)',
   segment: 'AES-CFB only: bits fed back per step, 1, 8 or 128 (default 128)',
   blockSize:
     'Rijndael only: block length in bits, 128, 160, 192, 224 or 256 (default 128, which is AES)',
@@ -115,6 +122,9 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'nonce',
     'aad',
     'rails',
+    'width',
+    'corner',
+    'path',
     'a',
     'b',
     'period',

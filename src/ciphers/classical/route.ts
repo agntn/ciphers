@@ -159,7 +159,7 @@ function cells(
   text: string,
   base: Readonly<{ preserveCase: boolean; stripNonAlpha: boolean }>,
 ): string[] {
-  return Array.from(applyBaseOptions(text, base).replaceAll(/[\n\r\u2028\u2029]/g, ''))
+  return Array.from(applyBaseOptions(text, base).replaceAll(/[\n\v\f\r\u0085\u2028\u2029]/g, ''))
 }
 
 export class Route extends Cipher {

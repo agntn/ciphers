@@ -4694,7 +4694,7 @@ describe('info().worksOn', () => {
   it.each(classical)('matches what %s does to the rest of the text', (name) => {
     const { worksOn } = create(name).info()
     if (worksOn.endsWith('the rest passes'))
-      expect('€ßı'.split('').filter((rest) => !encode(name, `AB${rest}1`).includes(rest))).toEqual(
+      expect('€ßıé'.split('').filter((rest) => !encode(name, `AB${rest}1`).includes(rest))).toEqual(
         [],
       )
     else if (worksOn.endsWith('the rest dropped'))
@@ -4713,6 +4713,6 @@ describe('info().worksOn', () => {
   })
 
   it('leaves every line break out of the route grid', () => {
-    expect(encode('route', 'AB\rC\u2028D\r\nE')).toBe(encode('route', 'ABCDE'))
+    expect(encode('route', 'AB\rC\u2028D\r\nE\u0085F\vG\fH')).toBe(encode('route', 'ABCDEFGH'))
   })
 })

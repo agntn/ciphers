@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.5.2
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.5.1...v0.5.2)
+
+### 🚀 Enhancements
+
+- **classical:** Add the straddling checkerboard ([#181](https://github.com/agntn/ciphers/pull/181))
+- **classical:** Read grids along spiral routes ([#184](https://github.com/agntn/ciphers/pull/184))
+
+### 📖 Documentation
+
+- **guide:** Add --bytes to the CLI flags table ([#183](https://github.com/agntn/ciphers/pull/183))
+
+### ❤️ Contributors
+
+- Ori ([@oritwoen](https://github.com/oritwoen))
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+
 ## v0.5.1
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.5.0...v0.5.1)

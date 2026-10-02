@@ -1,6 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { normalizeError } from '../../core/errors.ts'
+import { upperCase } from '../../core/utils.ts'
 
 const CHAR_TO_MORSE: Record<string, string> = {
   A: '.-',
@@ -62,9 +63,9 @@ const CHAR_TO_MORSE: Record<string, string> = {
 const MORSE_TO_CHAR = new Map(Object.entries(CHAR_TO_MORSE).map(([k, v]) => [v, k]))
 
 function encodeMorse(text: string): string {
-  return Array.from(text.toUpperCase(), (c) => {
+  return Array.from(text, (c) => {
     if (c === ' ') return '/'
-    return CHAR_TO_MORSE[c] ?? c
+    return CHAR_TO_MORSE[upperCase(c)] ?? c
   }).join(' ')
 }
 
@@ -93,6 +94,7 @@ export class Morse extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
+      worksOn: 'A-Z, 0-9, coded punctuation, / between words, the rest passes',
       options: [],
       keyspace: '1 (fixed table)',
     }

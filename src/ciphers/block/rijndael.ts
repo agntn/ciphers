@@ -76,6 +76,7 @@ export class Rijndael extends BlockCipher<RijndaelSettings> {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
+      worksOn: 'UTF-8 bytes, hex out',
       options: [
         {
           name: 'key',

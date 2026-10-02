@@ -45,6 +45,7 @@ export class Columnar extends Cipher {
       category: 'classical',
       family: 'transposition',
       selfInverse: false,
+      worksOn: 'all characters, moved',
       options: [
         {
           name: 'key',

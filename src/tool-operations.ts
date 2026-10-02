@@ -199,6 +199,7 @@ export function formatCipherInfo(
     `${info.label} (${info.name}) — ${info.category}, ${info.family}`,
     info.description,
     `Self-inverse: ${info.selfInverse ? 'yes' : 'no'}`,
+    `Works on: ${info.worksOn}`,
   ]
   if (info.keyspace) lines.push(`Keyspace: ${info.keyspace}`)
   if (info.options.length > 0) {

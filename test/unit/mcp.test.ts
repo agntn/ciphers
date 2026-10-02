@@ -148,6 +148,7 @@ describe('Ciphers MCP server', () => {
     const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'adfgvx' } })
     expect(info.isError).not.toBe(true)
     expect(onlyText(info.content)).toContain('transposition (string, default=')
+    expect(onlyText(info.content)).toContain('Works on: A-Z and 0-9, the rest dropped')
     for (const [name, text, expected] of [
       ['ciphers_encode', 'attack at 1200am', 'DXXVGDADDAAXDVDXVFGVGFADDVVD'],
       ['ciphers_decode', 'DXXVGDADDAAXDVDXVFGVGFADDVVD', 'ATTACKAT1200AM'],
@@ -1030,6 +1031,7 @@ describe('Ciphers MCP server', () => {
           category: 'classical',
           family: 'transposition',
           selfInverse: true,
+          worksOn: 'all characters, unchanged',
           options: [],
         }
       }

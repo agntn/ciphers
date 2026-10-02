@@ -136,6 +136,19 @@ export function applyBaseOptions(
   return base.preserveCase ? input : input.replaceAll(/[a-z]+/g, (run) => run.toUpperCase())
 }
 
+/**
+ * Uppercase each character unless it would turn into A-Z without being in A-Z, like `ß`.
+ *
+ * @param text - Input text.
+ * @returns {string} The uppercased text, with `ß`, `ı` and `ﬁ` left as they are.
+ */
+export function upperCase(text: string): string {
+  return Array.from(text, (character) => {
+    const upper = character.toUpperCase()
+    return /[a-z]/.test(character) || !/[A-Z]/.test(upper) ? upper : character
+  }).join('')
+}
+
 export { getOpt } from './types.ts'
 
 // ── LRU Cache ──────────────────────────────────────────────────────────

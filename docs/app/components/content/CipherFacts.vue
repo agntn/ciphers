@@ -8,8 +8,6 @@ const props = defineProps<{ name: string }>();
 const entry = computed(() => cipherEntry(props.name));
 const position = computed(() => registryPosition(props.name));
 const keyspace = computed(() => (entry.value ? keyspaceParts(entry.value.info) : undefined));
-/** What a byte cipher hands back, as its description names it. */
-const output = computed(() => /\b(hex|base64) out\b/.exec(entry.value?.info.description ?? "")?.[1] ?? "hex");
 
 /** The options in the order `info()` declares them; the gauge has one tick per option, required open. */
 const options = computed(() =>
@@ -97,7 +95,11 @@ const title = computed(() => `ciphers_info("${props.name}")`);
           </div>
           <div>
             <dt>Works on</dt>
-            <dd>{{ entry.info.category !== "classical" ? `UTF-8 bytes, ${output} out` : "letters, rest passes" }}</dd>
+            <dd>
+              <UTooltip :text="entry.info.worksOn">
+                <span class="cipher-line" tabindex="0">{{ entry.info.worksOn }}</span>
+              </UTooltip>
+            </dd>
           </div>
           <div>
             <dt>Family</dt>

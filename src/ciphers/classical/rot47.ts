@@ -22,6 +22,7 @@ export class Rot47 extends Cipher {
       category: 'classical',
       family: 'substitution-shift',
       selfInverse: true,
+      worksOn: 'ASCII 33-126, the rest passes',
       options: [],
       keyspace: '1 (fixed shift=47)',
     }

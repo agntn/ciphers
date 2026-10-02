@@ -154,6 +154,7 @@ export class Idea extends BlockCipher {
       category: 'block',
       family: 'lai-massey',
       selfInverse: false,
+      worksOn: 'UTF-8 bytes, hex out',
       options: [
         {
           name: 'key',

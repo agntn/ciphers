@@ -360,6 +360,8 @@ export interface CipherInfo {
     | 'permutation'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
+  /** What `encode` reads and does with the rest by default, such as `A-Z, the rest passes`. */
+  worksOn: string
   /** Required/optional options. */
   options: CipherOption[]
   /** Keyspace size description. */

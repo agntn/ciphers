@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { CipherError, InvalidOptionError, normalizeError } from '../../core/errors.ts'
-import { getOpt } from '../../core/utils.ts'
+import { getOpt, upperCase } from '../../core/utils.ts'
 
 /** The two Bacon tables: his own 24-letter one shares I/J and U/V, the 26-letter one codes every letter. */
 const BACON_ALPHABETS = {
@@ -12,7 +12,7 @@ const BACON_ALPHABETS = {
 type BaconLetters = keyof typeof BACON_ALPHABETS
 
 function toBacon(char: string, alphabet: string): string | null {
-  const upper = char.toUpperCase()
+  const upper = upperCase(char)
   const folded = alphabet.length === 24 ? upper.replace('J', 'I').replace('V', 'U') : upper
   const idx = alphabet.indexOf(folded)
   if (idx < 0) return null
@@ -29,7 +29,7 @@ function encodeBacon(text: string, alphabet: string, stripNonAlpha: boolean): st
   let input = text
   if (stripNonAlpha) input = input.replaceAll(/[^A-Za-z]/g, '')
   let result = ''
-  for (const c of input.toUpperCase()) {
+  for (const c of upperCase(input)) {
     const code = toBacon(c, alphabet)
     if (code) result += code
   }
@@ -44,7 +44,7 @@ function encodeBacon(text: string, alphabet: string, stripNonAlpha: boolean): st
  * @returns {string} The decoded letters.
  */
 function decodeBacon(text: string, alphabet: string): string {
-  const clean = text.toUpperCase().replaceAll(/[^AB]/g, '')
+  const clean = upperCase(text).replaceAll(/[^AB]/g, '')
   if (clean === '' && text.trim() !== '') {
     throw new CipherError('Invalid Bacon code: no A or B to decode')
   }
@@ -81,6 +81,7 @@ export class Bacon extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
+      worksOn: 'A-Z, the rest dropped',
       options: [
         {
           name: 'letters',

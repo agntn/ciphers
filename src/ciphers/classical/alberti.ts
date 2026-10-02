@@ -85,6 +85,7 @@ export class Alberti extends Cipher {
       category: 'classical',
       family: 'polyalphabetic',
       selfInverse: false,
+      worksOn: 'A-Z, the rest passes',
       options: [
         {
           name: 'key',

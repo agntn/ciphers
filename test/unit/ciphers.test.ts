@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import { describe, it, expect } from 'vite-plus/test'
 import { create, ciphers, has } from '../../src/core/registry.ts'
 import { resolveCipher } from '../../src/core/resolve.ts'
+import { builtinCiphers } from '../../src/core/ciphers.ts'
+import type { CipherBaseOptions } from '../../src/core/types.ts'
 import { Cipher } from '../../src/core/cipher.ts'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors.ts'
 import { type BlockMode, decodeBlocks, encodeBlocks } from '../../src/core/block-mode.ts'
@@ -4672,5 +4674,45 @@ describe('xor', () => {
         { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
+  })
+})
+
+describe('info().worksOn', () => {
+  const options: Record<string, CipherBaseOptions> = {
+    vigenere: { key: 'LEMON' },
+    beaufort: { key: 'KEY' },
+    autokey: { key: 'QUEENLY' },
+    alberti: { key: 'ALBERTI', period: 4 },
+    playfair: { key: 'PLAYFAIR EXAMPLE' },
+    columnar: { key: 'ZEBRA' },
+    route: { width: 3 },
+  }
+  const classical = builtinCiphers.filter((name) => create(name).info().category === 'classical')
+  const encode = (name: string, text: string): string =>
+    create(name).encode(text, options[name]).text
+
+  it.each(classical)('matches what %s does to the rest of the text', (name) => {
+    const { worksOn } = create(name).info()
+    if (worksOn.endsWith('the rest passes'))
+      expect('€ßıé'.split('').filter((rest) => !encode(name, `AB${rest}1`).includes(rest))).toEqual(
+        [],
+      )
+    else if (worksOn.endsWith('the rest dropped'))
+      expect(encode(name, 'A€ßıB')).toBe(encode(name, 'AB'))
+    else {
+      expect(worksOn).toMatch(/^all\b.*, moved$/)
+      expect(encode(name, 'AB €ß 1,').split('').sort()).toEqual('AB €ß 1,'.split('').sort())
+    }
+  })
+
+  it('keeps a board filler outside A-Z in either case', () => {
+    const key = 'ETAONRISBCDFGHJKLMPQéUVWXYZé'
+    const board = create('straddling-checkerboard')
+    expect(board.encode('Aé', { key }).text).toBe(board.encode('AÉ', { key }).text)
+    expect(board.encode('Aé', { key }).text).not.toBe(board.encode('A', { key }).text)
+  })
+
+  it('leaves every line break out of the route grid', () => {
+    expect(encode('route', 'AB\rC\u2028D\r\nE\u0085F\vG\fH')).toBe(encode('route', 'ABCDEFGH'))
   })
 })

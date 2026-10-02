@@ -22,7 +22,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
-- 🧭 **Ciphers describe themselves.** `info()` has the category, the family, the options, the keyspace and whether encode and decode are the same thing, and the CLI, the tools and the playground all read it from there.
+- 🧭 **Ciphers describe themselves.** `info()` has the category, the family, the options, the keyspace, what the cipher works on and whether encode and decode are the same thing, and the CLI, the tools and the playground all read it from there.
 - 🖥️ **CLI, library, MCP, Pi and OMP.** The same tools and one set of executors behind them, whichever one you're holding.
 - 🌐 **Runs in the browser too.** The playground imports the package into the page, nothing is posted anywhere.
 - 🧱 **Bounded on purpose.** Text and keys have a maximum length in every tool schema, so a model can't hand the process a novel to shift.

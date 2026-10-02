@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { getOpt } from '../../core/utils.ts'
+import { getOpt, upperCase } from '../../core/utils.ts'
 import { CipherError, InvalidOptionError, normalizeError } from '../../core/errors.ts'
 
 /** The board on the English Wikipedia page, top row ET AON RIS with 2 and 6 blank. */
@@ -24,7 +24,7 @@ interface Board {
  * @throws {InvalidOptionError} When the board or the blanks break those rules.
  */
 function buildBoard(key: string, blanks: string): Board {
-  const board = key.toUpperCase().replaceAll(/\s/g, '')
+  const board = upperCase(key).replaceAll(/\s/g, '')
   const cells = [...board]
   if (cells.length !== 28) {
     throw new InvalidOptionError(
@@ -65,7 +65,7 @@ function buildBoard(key: string, blanks: string): Board {
 
 function encodeCheckerboard(text: string, board: Readonly<Board>): string {
   let result = ''
-  for (const character of text.toUpperCase()) {
+  for (const character of upperCase(text)) {
     result += board.codes[character] ?? ''
   }
   return result
@@ -116,6 +116,7 @@ export class StraddlingCheckerboard extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
+      worksOn: 'board cells, the rest dropped',
       options: [
         {
           name: 'key',

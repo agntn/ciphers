@@ -61,6 +61,7 @@ export class Xor extends Cipher {
       category: 'stream',
       family: 'polyalphabetic',
       selfInverse: false,
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',

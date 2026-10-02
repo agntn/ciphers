@@ -166,6 +166,7 @@ export class Enigma extends Cipher {
       category: 'classical',
       family: 'rotor',
       selfInverse: true,
+      worksOn: 'A-Z, the rest passes',
       options: [
         {
           name: 'positions',

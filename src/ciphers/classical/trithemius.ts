@@ -38,6 +38,7 @@ export class Trithemius extends Cipher {
       category: 'classical',
       family: 'polyalphabetic',
       selfInverse: false,
+      worksOn: 'A-Z, the rest passes',
       options: [],
       keyspace: 'fixed',
     }

@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { normalizeError } from '../../core/errors.ts'
-import { buildPolybiusSquare, getOpt } from '../../core/utils.ts'
+import { buildPolybiusSquare, getOpt, upperCase } from '../../core/utils.ts'
 
 export class Polybius extends Cipher {
   name(): string {
@@ -16,6 +16,7 @@ export class Polybius extends Cipher {
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
+      worksOn: 'A-Z, J as I, the rest dropped',
       options: [
         {
           name: 'key',
@@ -34,7 +35,7 @@ export class Polybius extends Cipher {
       const key = getOpt<string>(options ?? {}, 'key', '')
       const { pos } = buildPolybiusSquare(key)
       const encoded: string[] = []
-      for (const c of text.toUpperCase()) {
+      for (const c of upperCase(text)) {
         const ch = c === 'J' ? 'I' : c
         const p = pos.get(ch)
         if (p) {

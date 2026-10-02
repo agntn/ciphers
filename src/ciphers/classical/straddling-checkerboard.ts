@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { getOpt } from '../../core/utils.ts'
+import { getOpt, upperAscii } from '../../core/utils.ts'
 import { CipherError, InvalidOptionError, normalizeError } from '../../core/errors.ts'
 
 /** The board on the English Wikipedia page, top row ET AON RIS with 2 and 6 blank. */
@@ -65,7 +65,7 @@ function buildBoard(key: string, blanks: string): Board {
 
 function encodeCheckerboard(text: string, board: Readonly<Board>): string {
   let result = ''
-  for (const character of text.toUpperCase()) {
+  for (const character of upperAscii(text)) {
     result += board.codes[character] ?? ''
   }
   return result

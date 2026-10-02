@@ -133,7 +133,17 @@ export function applyBaseOptions(
   base: Readonly<{ preserveCase: boolean; stripNonAlpha: boolean }>,
 ): string {
   const input = base.stripNonAlpha ? text.replaceAll(/[^A-Za-z]/g, '') : text
-  return base.preserveCase ? input : input.replaceAll(/[a-z]+/g, (run) => run.toUpperCase())
+  return base.preserveCase ? input : upperAscii(input)
+}
+
+/**
+ * Uppercase a-z only, so `ß` stays outside A-Z instead of turning into `SS`.
+ *
+ * @param text - Input text.
+ * @returns {string} The text with a-z uppercased.
+ */
+export function upperAscii(text: string): string {
+  return text.replaceAll(/[a-z]+/g, (run) => run.toUpperCase())
 }
 
 export { getOpt } from './types.ts'

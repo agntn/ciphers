@@ -1,6 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { CipherError, normalizeError } from '../../core/errors.ts'
+import { upperAscii } from '../../core/utils.ts'
 
 // Tap code uses a 5×5 Polybius square (C/K share)
 //   1  2  3  4  5
@@ -20,7 +21,7 @@ const TAP_TABLE = [
 ]
 
 function tapLookup(char: string): string | null {
-  const c = char.toUpperCase()
+  const c = upperAscii(char)
   const effective = c === 'K' ? 'C' : c
   for (let r = 0; r < 5; r++) {
     for (let col = 0; col < 5; col++) {
@@ -39,7 +40,7 @@ function tapReverse(r: number, c: number): string {
 
 function encodeTapCode(text: string): string {
   const parts: string[] = []
-  for (const c of text.toUpperCase()) {
+  for (const c of upperAscii(text)) {
     if (c === ' ') continue // spaces dropped (tap code is positional)
     const pair = tapLookup(c)
     if (pair) parts.push(pair)

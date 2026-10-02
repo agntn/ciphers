@@ -1,6 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { normalizeError } from '../../core/errors.ts'
+import { upperAscii } from '../../core/utils.ts'
 
 const CHAR_TO_MORSE: Record<string, string> = {
   A: '.-',
@@ -62,7 +63,7 @@ const CHAR_TO_MORSE: Record<string, string> = {
 const MORSE_TO_CHAR = new Map(Object.entries(CHAR_TO_MORSE).map(([k, v]) => [v, k]))
 
 function encodeMorse(text: string): string {
-  return Array.from(text.toUpperCase(), (c) => {
+  return Array.from(upperAscii(text), (c) => {
     if (c === ' ') return '/'
     return CHAR_TO_MORSE[c] ?? c
   }).join(' ')

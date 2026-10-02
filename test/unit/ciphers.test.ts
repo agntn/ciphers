@@ -4693,12 +4693,15 @@ describe('info().worksOn', () => {
 
   it.each(classical)('matches what %s does to the rest of the text', (name) => {
     const { worksOn } = create(name).info()
-    if (worksOn.endsWith('the rest passes')) expect(encode(name, 'AB € 1')).toContain('€')
+    if (worksOn.endsWith('the rest passes'))
+      expect('€ßı'.split('').filter((rest) => !encode(name, `AB${rest}1`).includes(rest))).toEqual(
+        [],
+      )
     else if (worksOn.endsWith('the rest dropped'))
-      expect(encode(name, 'A€B')).toBe(encode(name, 'AB'))
+      expect(encode(name, 'A€ßıB')).toBe(encode(name, 'AB'))
     else {
       expect(worksOn).toMatch(/^all\b.*, moved$/)
-      expect(encode(name, 'AB € 1,').split('').sort()).toEqual('AB € 1,'.split('').sort())
+      expect(encode(name, 'AB €ß 1,').split('').sort()).toEqual('AB €ß 1,'.split('').sort())
     }
   })
 })

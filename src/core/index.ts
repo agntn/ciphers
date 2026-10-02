@@ -8,6 +8,7 @@ export type {
   AlbertiOptions,
   EnigmaOptions,
   RailFenceOptions,
+  RouteOptions,
   AffineOptions,
   PlayfairOptions,
   PolybiusOptions,

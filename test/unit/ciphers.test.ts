@@ -31,8 +31,8 @@ import { rc4 } from '../../src/ciphers/stream/rc4.ts'
 import { xor } from '../../src/ciphers/stream/xor.ts'
 
 describe('registry', () => {
-  it('registers all 45 ciphers', () => {
-    expect(ciphers()).toHaveLength(45)
+  it('registers all 46 ciphers', () => {
+    expect(ciphers()).toHaveLength(46)
     for (const name of [
       'caesar',
       'rot13',
@@ -44,6 +44,7 @@ describe('registry', () => {
       'trithemius',
       'alberti',
       'rail-fence',
+      'route',
       'affine',
       'playfair',
       'polybius',
@@ -767,6 +768,114 @@ describe('bifid', () => {
   )
 })
 
+describe('route', () => {
+  const route = create('route')
+  const corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const
+  const paths = [
+    'spiral-clockwise',
+    'spiral-counterclockwise',
+    'snake-rows',
+    'snake-columns',
+    'columns',
+  ] as const
+
+  /** https://gsmg.io/puzzle, the 14x14 grid row by row with black and blue as 1. */
+  it('reads the GSMG.IO opening grid counterclockwise from the top left', () => {
+    const grid =
+      '0011010010110011110011101011110111010010010110100001110101100011000110100110001000111001110001000011100000001000000111011111011111110011000111010000011011111100101011000101110100011001101101101011'
+    const options = { width: 14, path: 'spiral-counterclockwise' }
+    const bits = route.decode(grid, options).text
+    const bytes = bits
+      .slice(0, 192)
+      .match(/[01]{8}/g)!
+      .map((byte) => Number.parseInt(byte, 2))
+    expect(String.fromCodePoint(...bytes)).toBe('gsmg.io/theseedisplanted')
+    expect(route.encode(bits, options).text).toBe(grid)
+  })
+
+  /** https://en.wikipedia.org/wiki/Transposition_cipher#Route_cipher */
+  it('reads the Wikipedia grid clockwise from the top right', () => {
+    const options = { width: 9, corner: 'top-right' }
+    expect(route.decode('WRIORFEOEEESVELANJADCEDETCX', options).text).toBe(
+      'EJXCTEDECDAEWRIORFEONALEVSE',
+    )
+    expect(route.encode('EJXCTEDECDAEWRIORFEONALEVSE', options).text).toBe(
+      'WRIORFEOEEESVELANJADCEDETCX',
+    )
+  })
+
+  it('walks every path from every corner of a 3x4 grid', () => {
+    const expected = {
+      'top-left': ['ABCDHLKJIEFG', 'AEIJKLHDCBFG', 'ABCDHGFEIJKL', 'AEIJFBCGKLHD', 'AEIBFJCGKDHL'],
+      'top-right': ['DHLKJIEABCGF', 'DCBAEIJKLHGF', 'DCBAEFGHLKJI', 'DHLKGCBFJIEA', 'DHLCGKBFJAEI'],
+      'bottom-left': [
+        'IEABCDHLKJFG',
+        'IJKLHDCBAEFG',
+        'IJKLHGFEABCD',
+        'IEABFJKGCDHL',
+        'IEAJFBKGCLHD',
+      ],
+      'bottom-right': [
+        'LKJIEABCDHGF',
+        'LHDCBAEIJKGF',
+        'LKJIEFGHDCBA',
+        'LHDCGKJFBAEI',
+        'LHDKGCJFBIEA',
+      ],
+    }
+    for (const corner of corners) {
+      paths.forEach((path, i) => {
+        const text = expected[corner][i]!
+        expect(
+          route.decode('ABCDEFGHIJKL', { width: 4, corner, path }).text,
+          `${corner} ${path}`,
+        ).toBe(text)
+        expect(route.encode(text, { width: 4, corner, path }).text, `${corner} ${path}`).toBe(
+          'ABCDEFGHIJKL',
+        )
+      })
+    }
+  })
+
+  it('skips the empty cells of a short last row', () => {
+    expect(route.decode('ABCDEFGHIJ', { width: 4 }).text).toBe('ABCDHJIEFG')
+    expect(route.decode('ABCDEFGHIJ', { width: 4, corner: 'bottom-right' }).text).toBe('JIEABCDHGF')
+    for (const corner of corners) {
+      for (const path of paths) {
+        for (let length = 0; length <= 30; length++) {
+          const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123'.slice(0, length)
+          const encoded = route.encode(text, { width: 7, corner, path }).text
+          expect(route.decode(encoded, { width: 7, corner, path }).text).toBe(text)
+        }
+      }
+    }
+  })
+
+  it('walks one row wider than the text as one exactly as wide', () => {
+    for (const corner of corners) {
+      for (const path of paths) {
+        const wide = route.decode('ABCDE', { width: 1_000_000_000, corner, path }).text
+        expect(wide, `${corner} ${path}`).toBe(
+          route.decode('ABCDE', { width: 5, corner, path }).text,
+        )
+      }
+    }
+  })
+
+  it('keeps spaces as cells and drops line breaks', () => {
+    expect(route.decode('AB\nCD\r\nEF', { width: 2, path: 'columns' }).text).toBe('ACEBDF')
+    expect(route.decode('A B', { width: 2, path: 'columns' }).text).toBe('AB ')
+  })
+
+  it('needs width and rejects an unknown corner or path', () => {
+    expect(() => route.encode('ABC')).toThrow(MissingOptionError)
+    expect(() => route.encode('ABC', { width: 1 })).toThrow(InvalidOptionError)
+    expect(() => route.encode('ABC', { width: 2.5 })).toThrow(InvalidOptionError)
+    expect(() => route.encode('ABC', { width: 2, corner: 'middle' })).toThrow(/corner/)
+    expect(() => route.decode('ABC', { width: 2, path: 'diagonal' })).toThrow(/path/)
+  })
+})
+
 describe('straddling-checkerboard', () => {
   const board = create('straddling-checkerboard')
   const gsmg = { key: 'FUBCDORA.LETHINGKYMVPS/JQZXW', blanks: '14' }
@@ -926,6 +1035,7 @@ describe('edge cases', () => {
     alberti: { key: 'TEST', period: 4 },
     playfair: { key: 'TEST' },
     columnar: { key: 'TEST' },
+    route: { width: 3 },
     bifid: { key: 'TEST' },
     aes: { key: '000102030405060708090a0b0c0d0e0f' },
     'aes-cbc': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
@@ -994,6 +1104,7 @@ describe('edge cases', () => {
       'rail-fence',
       'affine',
       'columnar',
+      'route',
       'enigma',
     ]
     for (const name of latin) {

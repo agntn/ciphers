@@ -11,6 +11,9 @@ export interface TransformOptionArgs {
   readonly nonce?: string
   readonly aad?: string
   readonly rails?: string
+  readonly width?: string
+  readonly corner?: string
+  readonly path?: string
   readonly period?: string
   readonly letters?: string
   readonly segment?: string
@@ -50,6 +53,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
   const integers = [
     ['shift', args.shift],
     ['rails', args.rails],
+    ['width', args.width],
     ['period', args.period],
     ['letters', args.letters],
     ['segment', args.segment],
@@ -76,6 +80,8 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['endian', args.endian],
     ['bytes', args.bytes],
     ['blanks', args.blanks],
+    ['corner', args.corner],
+    ['path', args.path],
     ['digest', args.digest],
     ['salt', args.salt],
   ] as const

@@ -445,6 +445,31 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(decoded.content)).toBe('INCASEYOU')
   })
 
+  it('discovers and executes the route transposition along its path through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'route' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(route) — classical, transposition')
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: {
+        cipher: 'route',
+        text: 'WRIORFEOE\nEESVELANJ\nADCEDETCX',
+        width: 9,
+        corner: 'top-right',
+        path: 'spiral-clockwise',
+      },
+    })
+    expect(decoded.isError).not.toBe(true)
+    expect(onlyText(decoded.content)).toBe('EJXCTEDECDAEWRIORFEONALEVSE')
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'route', text: 'ABCDHLKJIEFG', width: 4 },
+    })
+    expect(encoded.isError).not.toBe(true)
+    expect(onlyText(encoded.content)).toBe('ABCDEFGHIJKL')
+  })
+
   it('discovers and executes Triple DES CBC with an IV through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -880,6 +905,10 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'xor', text: 'abc', key: '494' }],
       ['bytes', { cipher: 'xor', text: 'abc', key: '49', bytes: 'raw' }],
       ['blanks', { cipher: 'straddling-checkerboard', text: 'abc', blanks: '1' }],
+      ['width', { cipher: 'route', text: 'abc' }],
+      ['width', { cipher: 'route', text: 'abc', width: 1 }],
+      ['corner', { cipher: 'route', text: 'abc', width: 2, corner: 'middle' }],
+      ['path', { cipher: 'route', text: 'abc', width: 2, path: 'diagonal' }],
     ] as const) {
       const response = await client.callTool({
         name: 'ciphers_encode',

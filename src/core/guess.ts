@@ -560,7 +560,7 @@ function alphabets(reading: Readonly<Reading>): FamilyCandidate[] {
   if (gap > READS_LIKE_LANGUAGE) {
     return [
       candidate(
-        ['rail-fence', 'columnar'],
+        ['rail-fence', 'columnar', 'route'],
         byLetters(letters, 100, 30),
         `The letters fit ${language} as they stand. Moved, not replaced, or not enciphered at all.`,
       ),

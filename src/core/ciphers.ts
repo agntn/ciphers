@@ -17,6 +17,7 @@ export const builtinCiphers = [
   'bacon',
   'tap-code',
   'columnar',
+  'route',
   'adfgvx',
   'bifid',
   'straddling-checkerboard',

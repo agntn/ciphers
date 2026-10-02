@@ -15,6 +15,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "affine",
   "bifid",
   "aes-cbc-mac",
+  "route",
   "morse",
   "alberti",
   "adfgvx",

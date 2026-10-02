@@ -72,6 +72,16 @@ export interface RailFenceOptions extends CipherBaseOptions {
   rails?: number
 }
 
+/** Route transposition options. */
+export interface RouteOptions extends CipherBaseOptions {
+  /** Cells per row (2 or more). */
+  width: number
+  /** Corner the path starts from. Default: `top-left`. */
+  corner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  /** Path through the grid. Default: `spiral-clockwise`. */
+  path?: 'spiral-clockwise' | 'spiral-counterclockwise' | 'snake-rows' | 'snake-columns' | 'columns'
+}
+
 /** Affine cipher options. */
 export interface AffineOptions extends CipherBaseOptions {
   /** Multiplier (must be coprime with 26). Default: 5. */

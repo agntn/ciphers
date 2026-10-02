@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { decodeColumnar, encodeColumnar, getOpt, upperAscii } from '../../core/utils.ts'
+import { decodeColumnar, encodeColumnar, getOpt, upperCase } from '../../core/utils.ts'
 import { CipherError, normalizeError } from '../../core/errors.ts'
 
 const ADFGVX_LETTERS = 'ADFGVX'
@@ -31,7 +31,7 @@ function buildAdfgvxGrid(key?: string): { grid: string[][]; pos: Map<string, [nu
 
 function encodeAdfgvx(text: string, key: string, transposition: string): string {
   const { pos } = buildAdfgvxGrid(key)
-  const normalized = upperAscii(text).replaceAll(/[^A-Z0-9]/g, '')
+  const normalized = upperCase(text).replaceAll(/[^A-Z0-9]/g, '')
   let result = ''
   for (const c of normalized) {
     const p = pos.get(c)
@@ -52,7 +52,7 @@ function encodeAdfgvx(text: string, key: string, transposition: string): string 
  */
 function decodeAdfgvx(text: string, key: string, transposition: string): string {
   const { grid } = buildAdfgvxGrid(key)
-  const letters = upperAscii(text).replaceAll(/[^ADFGVX]/g, '')
+  const letters = upperCase(text).replaceAll(/[^ADFGVX]/g, '')
   if (letters === '' && text.trim() !== '') {
     throw new CipherError('Invalid ADFGVX code: no A, D, F, G, V or X to decode')
   }

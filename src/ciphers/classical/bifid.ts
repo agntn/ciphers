@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
-import { buildPolybiusSquare, getOpt, upperAscii } from '../../core/utils.ts'
+import { buildPolybiusSquare, getOpt, upperCase } from '../../core/utils.ts'
 
 // Bifid cipher: combines Polybius fractionation with transposition
 // Encode: get row/col for each letter, concatenate all rows then all cols
@@ -9,7 +9,7 @@ import { buildPolybiusSquare, getOpt, upperAscii } from '../../core/utils.ts'
 
 function encodeBifid(text: string, key: string, period: number): string {
   const { pos, square } = buildPolybiusSquare(key)
-  const clean = upperAscii(text)
+  const clean = upperCase(text)
     .replaceAll(/[^A-Z]/g, '')
     .replaceAll('J', 'I')
   let result = ''
@@ -36,7 +36,7 @@ function encodeBifid(text: string, key: string, period: number): string {
 
 function decodeBifid(text: string, key: string, period: number): string {
   const { pos, square } = buildPolybiusSquare(key)
-  const clean = upperAscii(text)
+  const clean = upperCase(text)
     .replaceAll(/[^A-Z]/g, '')
     .replaceAll('J', 'I')
   let result = ''

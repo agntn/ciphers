@@ -1,12 +1,12 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { buildPolybiusSquare, getOpt, upperAscii } from '../../core/utils.ts'
+import { buildPolybiusSquare, getOpt, upperCase } from '../../core/utils.ts'
 import { InvalidOptionError, MissingOptionError, normalizeError } from '../../core/errors.ts'
 
 // Uses shared buildPolybiusSquare (1-indexed positions)
 
 function prepareText(text: string): string[] {
-  const clean = upperAscii(text)
+  const clean = upperCase(text)
     .replaceAll(/[^A-Z]/g, '')
     .replaceAll('J', 'I')
   const bigrams: string[] = []
@@ -30,7 +30,7 @@ function prepareText(text: string): string[] {
 }
 
 function pairCiphertext(text: string): string[] {
-  const clean = upperAscii(text)
+  const clean = upperCase(text)
     .replaceAll(/[^A-Z]/g, '')
     .replaceAll('J', 'I')
   const bigrams: string[] = []

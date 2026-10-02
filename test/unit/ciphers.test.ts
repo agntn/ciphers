@@ -4704,4 +4704,15 @@ describe('info().worksOn', () => {
       expect(encode(name, 'AB €ß 1,').split('').sort()).toEqual('AB €ß 1,'.split('').sort())
     }
   })
+
+  it('keeps a board filler outside A-Z in either case', () => {
+    const key = 'ETAONRISBCDFGHJKLMPQéUVWXYZé'
+    const board = create('straddling-checkerboard')
+    expect(board.encode('Aé', { key }).text).toBe(board.encode('AÉ', { key }).text)
+    expect(board.encode('Aé', { key }).text).not.toBe(board.encode('A', { key }).text)
+  })
+
+  it('leaves every line break out of the route grid', () => {
+    expect(encode('route', 'AB\rC\u2028D\r\nE')).toBe(encode('route', 'ABCDE'))
+  })
 })

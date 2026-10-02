@@ -18,6 +18,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "morse",
   "alberti",
   "adfgvx",
+  "straddling-checkerboard",
   "bacon",
   "aes",
   "trithemius",

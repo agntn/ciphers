@@ -323,6 +323,9 @@ const cipherInput = Type.Object(
       Type.Enum(['big', 'little'], { description: OPTION_DESCRIPTIONS.endian }),
     ),
     bytes: Type.Optional(Type.Enum(['text', 'hex'], { description: OPTION_DESCRIPTIONS.bytes })),
+    blanks: Type.Optional(
+      Type.String({ pattern: '^\\s*[0-9]\\s*[0-9]\\s*$', description: OPTION_DESCRIPTIONS.blanks }),
+    ),
     preserveCase: Type.Optional(
       Type.Boolean({ description: 'Preserve letter case (default true)' }),
     ),
@@ -367,6 +370,7 @@ export const encodeTool = defineTool({
   snippet: 'Use ciphers_encode to encode text with local educational and puzzle ciphers.',
   guidelines: [
     'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
+    'Straddling checkerboard (straddling-checkerboard) turns letters into digits, one for the eight on the top row and two for the rest. key is the board of 28 cells and blanks its two blank digits.',
     'AES (aes) needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
     'AES-CBC (aes-cbc) takes the same key plus iv, 32 hex digits.',
     'AES-CFB (aes-cfb) takes the key and iv too, plus segment in bits (1, 8 or 128, default 128); nothing is padded, so the ciphertext has as many bytes as the text.',

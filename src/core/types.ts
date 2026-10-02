@@ -100,6 +100,14 @@ export interface AdfgvxOptions extends CipherBaseOptions {
   transposition?: string
 }
 
+/** Straddling checkerboard options. */
+export interface StraddlingCheckerboardOptions extends CipherBaseOptions {
+  /** The 28 cells row by row, each letter A-Z once and two fillers. Default: `ETAONRISBCDFGHJKLMPQ/UVWXYZ.`. */
+  key?: string
+  /** The two blank digits of the top row. Default: `26`. */
+  blanks?: string
+}
+
 /** Bacon's cipher options. */
 export interface BaconOptions extends CipherBaseOptions {
   /** Table size: 26 codes every letter, 24 shares I/J and U/V. Default: 26. */

@@ -31,8 +31,8 @@ import { rc4 } from '../../src/ciphers/stream/rc4.ts'
 import { xor } from '../../src/ciphers/stream/xor.ts'
 
 describe('registry', () => {
-  it('registers all 44 ciphers', () => {
-    expect(ciphers()).toHaveLength(44)
+  it('registers all 45 ciphers', () => {
+    expect(ciphers()).toHaveLength(45)
     for (const name of [
       'caesar',
       'rot13',
@@ -47,6 +47,7 @@ describe('registry', () => {
       'affine',
       'playfair',
       'polybius',
+      'straddling-checkerboard',
       'enigma',
       'aes',
       'aes-cbc',
@@ -764,6 +765,82 @@ describe('bifid', () => {
       expect(() => bifid.decode('HELLO', { period })).toThrow(/must be a positive integer/)
     },
   )
+})
+
+describe('straddling-checkerboard', () => {
+  const board = create('straddling-checkerboard')
+  const gsmg = { key: 'FUBCDORA.LETHINGKYMVPS/JQZXW', blanks: '14' }
+  const gsmgCode =
+    '15165943121972409169171213758951813141543131412428154191312181219433121171617137149110916631213131281491109166131412199114371612126021664313711154112'
+  const gsmgText =
+    'INCASEYOUMANAGETOCRACKTHISTHEPRIVATEKEYSBELONGTOHALFANDBETTERHALFANDTHEYALSONEEDFUNDSTOLIVE'
+
+  it('matches the Wikipedia ATTACK AT DAWN vector on its default board', () => {
+    const encoded = board.encode('ATTACK AT DAWN')
+    expect(encoded.text).toBe('3113212731223655')
+    expect(encoded.options).toEqual({ key: 'ETAONRISBCDFGHJKLMPQ/UVWXYZ.', blanks: '26' })
+    expect(board.decode('3113212731223655').text).toBe('ATTACKATDAWN')
+  })
+
+  it('reads the Wikipedia cipher digits back as letters', () => {
+    expect(board.decode('3565257935743007').text).toBe('ANWHRSANROAEER')
+  })
+
+  it('decodes GSMG.IO phase 3.2.2 with the board from its writeup', () => {
+    expect(board.decode(gsmgCode, gsmg).text).toBe(gsmgText)
+    expect(board.encode(gsmgText, gsmg).text).toBe(gsmgCode)
+  })
+
+  it('takes a filler twice, as dcode does with the GSMG.IO board', () => {
+    const dots = { key: 'FUBCDORA.LETHINGKYMVPS.JQZXW', blanks: '14' }
+    expect(board.decode(gsmgCode, dots).text).toBe(gsmgText)
+    expect(board.encode('.', dots).text).toBe('10')
+  })
+
+  it('ignores case, spaces and anything off the board', () => {
+    expect(board.encode('attack, at dawn!').text).toBe('3113212731223655')
+    expect(board.decode('31 13 21 27').text).toBe('ATTACK')
+    expect(board.encode('A1', { key: 'etaonrisbcdfghjklmpq/uvwxyz.', blanks: '2 6' }).text).toBe(
+      '3',
+    )
+  })
+
+  it('roundtrips with the blanks anywhere on the top row', () => {
+    for (const blanks of ['01', '09', '90', '58']) {
+      const options = { key: 'ETAONRISBCDFGHJKLMPQ/UVWXYZ.', blanks }
+      const encoded = board.encode('THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG.', options)
+      expect(board.decode(encoded.text, options).text).toBe('THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG.')
+    }
+  })
+
+  it.each([
+    ['ABC', '3 cells'],
+    ['ETAONRISBCDFGHJKLMPQ/UVWXYE.', 'E appears 2 times'],
+    ['ETAONRISBCDFGHJKLMPQ/UVWXYZ.E', '29 cells'],
+  ])('refuses the board %j', (key, message) => {
+    expect(() => board.encode('A', { key })).toThrow(InvalidOptionError)
+    expect(() => board.decode('3', { key })).toThrow(message)
+  })
+
+  it.each(['22', '2', '2x', '123', ''])('refuses the blanks %j', (blanks) => {
+    expect(() => board.encode('A', { blanks })).toThrow(InvalidOptionError)
+    expect(() => board.decode('3', { blanks })).toThrow('must be two different digits')
+  })
+
+  it('refuses a code that ends on a blank digit', () => {
+    expect(() => board.decode('3113212')).toThrow(CipherError)
+    expect(() => board.decode('3113212')).toThrow('ends on 2')
+  })
+
+  it('refuses text without a single digit', () => {
+    expect(() => board.decode('hello')).toThrow(CipherError)
+    expect(() => board.decode('hello')).toThrow('no digits')
+  })
+
+  it('decodes empty or blank text to nothing', () => {
+    expect(board.decode('').text).toBe('')
+    expect(board.decode('  ').text).toBe('')
+  })
 })
 
 describe('enigma', () => {

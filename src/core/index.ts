@@ -12,6 +12,7 @@ export type {
   PlayfairOptions,
   PolybiusOptions,
   AdfgvxOptions,
+  StraddlingCheckerboardOptions,
   BaconOptions,
   AesOptions,
   AesCbcOptions,

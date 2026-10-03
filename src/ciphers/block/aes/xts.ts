@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherBaseOptions } from '../../../core/types.ts'
 import { CipherError, InvalidOptionError } from '../../../core/errors.ts'
-import { type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
+import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
 import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
@@ -139,7 +139,7 @@ export class AesXts extends BlockCipher {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -155,6 +155,7 @@ export class AesXts extends BlockCipher {
           default: '0',
           description: 'Data unit (sector) number, up to 32 hex digits',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^256 or 2^512 keys (two AES keys)',
     }

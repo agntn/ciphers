@@ -1,5 +1,5 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
 const ROUNDS = 16
@@ -99,7 +99,7 @@ export class Lucifer extends BlockCipher {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -107,6 +107,7 @@ export class Lucifer extends BlockCipher {
           required: true,
           description: '32 hex digits (a 128-bit key)',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^128 keys',
     }

@@ -82,7 +82,7 @@ export const OPTION_DESCRIPTIONS = {
   endian:
     'Rabbit only: byte order of key, IV and keystream, big as in RFC 4503 and CyberChef (default) or little as in Crypto++',
   bytes:
-    'XOR only: text for UTF-8 text on the plain side (default), or hex to read and write hex both ways, for bytes that are not text',
+    'Block and stream ciphers only: text for UTF-8 text on the plain side (default), or hex to read and write hex there, for bytes that are not text',
   blanks:
     'Straddling checkerboard only: the two blank digits of the top row, each of which starts a code of two digits (default 26)',
   width:

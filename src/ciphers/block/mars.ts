@@ -1,6 +1,6 @@
 import { sha1 } from '@agntn/hashes'
 import type { CipherInfo } from '../../core/types.ts'
-import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
 
@@ -264,7 +264,7 @@ export class Mars extends BlockCipher {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -272,6 +272,7 @@ export class Mars extends BlockCipher {
           required: true,
           description: '32 to 112 hex digits in steps of 8, a 128 to 448-bit key',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^128 to 2^448 keys',
     }

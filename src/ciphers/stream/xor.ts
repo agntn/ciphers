@@ -1,13 +1,13 @@
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types.ts'
-import { getOpt } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { InvalidOptionError } from '../../core/errors.ts'
 import {
+  BYTES_OPTION,
   type BlockMode,
   type Bytes,
+  type PlainBytes,
   decodeBlocks,
   encodeBlocks,
-  transformHex,
+  readBytes,
 } from '../../core/block-mode.ts'
 
 /**
@@ -21,19 +21,7 @@ export function xor(data: Bytes, key: Bytes): number[] {
   return data.map((byte, i) => byte ^ key[i % key.length]!)
 }
 
-const BYTES = ['text', 'hex'] as const
-
-type XorBytes = (typeof BYTES)[number]
-
-type XorSettings = { bytes: XorBytes }
-
-function readSettings(options: Readonly<CipherBaseOptions>): XorSettings {
-  const bytes = getOpt<unknown>(options, 'bytes', 'text')
-  if (!BYTES.includes(bytes as XorBytes)) {
-    throw new InvalidOptionError('bytes', bytes, 'must be text or hex')
-  }
-  return { bytes: bytes as XorBytes }
-}
+type XorSettings = { bytes: PlainBytes }
 
 const XOR: BlockMode<XorSettings> = {
   name: 'xor',
@@ -42,8 +30,7 @@ const XOR: BlockMode<XorSettings> = {
   padding: false,
   keyDigits: (digits) => digits > 0 && digits % 2 === 0,
   keyError: 'must be a nonzero even number of hex digits (a key of whole bytes)',
-  textHint: 'pass bytes: hex to get them as hex',
-  settings: readSettings,
+  settings: (options) => ({ bytes: readBytes(options) }),
   run: (data, key) => xor(data, key),
 }
 
@@ -69,26 +56,17 @@ export class Xor extends Cipher {
           required: true,
           description: 'Any nonzero even number of hex digits, a key of whole bytes',
         },
-        {
-          name: 'bytes',
-          type: 'string',
-          required: false,
-          default: 'text',
-          description:
-            'What the plain side is: text for UTF-8 text, or hex to read and write hex both ways, for bytes that are not text',
-        },
+        BYTES_OPTION,
       ],
       keyspace: '256^n keys for an n-byte key',
     }
   }
 
   encode(text: string, options: Readonly<CipherBaseOptions> = {}): CipherResult {
-    if (options.bytes === 'hex') return transformHex(XOR, text, options, 'encode')
     return encodeBlocks(XOR, text, options)
   }
 
   decode(text: string, options: Readonly<CipherBaseOptions> = {}): CipherResult {
-    if (options.bytes === 'hex') return transformHex(XOR, text, options, 'decode')
     return decodeBlocks(XOR, text, options)
   }
 }

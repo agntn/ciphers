@@ -1,5 +1,5 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 8
 const ROUNDS = 8
@@ -154,7 +154,7 @@ export class Idea extends BlockCipher {
       category: 'block',
       family: 'lai-massey',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -162,6 +162,7 @@ export class Idea extends BlockCipher {
           required: true,
           description: '32 hex digits (a 128-bit key)',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^128 keys',
     }

@@ -1,5 +1,6 @@
 import type { CipherInfo } from '../../../core/types.ts'
 import {
+  BYTES_OPTION,
   type BlockMode,
   type Bytes,
   BlockCipher,
@@ -72,7 +73,7 @@ export class AesCbc extends BlockCipher {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -86,6 +87,7 @@ export class AesCbc extends BlockCipher {
           required: true,
           description: 'Initialization vector, 32 hex digits',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^128, 2^192 or 2^256 keys',
     }

@@ -2,6 +2,7 @@ import type { CipherInfo, CipherBaseOptions } from '../../../core/types.ts'
 import { getOpt } from '../../../core/types.ts'
 import { CipherError, InvalidOptionError, MissingOptionError } from '../../../core/errors.ts'
 import {
+  BYTES_OPTION,
   type BlockMode,
   type Bytes,
   BlockCipher,
@@ -253,7 +254,7 @@ export class AesOcb extends BlockCipher<OcbSettings> {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -281,6 +282,7 @@ export class AesOcb extends BlockCipher<OcbSettings> {
           default: 128,
           description: 'Tag length in bits: 64, 96 or 128',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^128, 2^192 or 2^256 keys',
     }

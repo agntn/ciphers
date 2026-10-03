@@ -1,3 +1,4 @@
+import { base64 } from '@agntn/encodings/base64'
 import { Md5Hasher, Sha1Hasher, Sha256Hasher, evpBytesToKey } from '@agntn/hashes'
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../../core/types.ts'
 import { getOpt } from '../../../core/types.ts'
@@ -122,9 +123,10 @@ function deriveKey(
 function readCiphertext(text: string): { salt: Bytes; body: Bytes } {
   let bytes: Bytes
   try {
-    bytes = Array.from(atob(text), (char) => char.codePointAt(0)!)
-  } catch {
-    throw new CipherError('[aes-passphrase] Ciphertext must be base64')
+    bytes = Array.from(base64.decode(text))
+  } catch (e) {
+    const reason = e instanceof Error ? e.message.replace(/^base64: /, '') : String(e)
+    throw new CipherError(`[aes-passphrase] Ciphertext must be base64: ${reason}`)
   }
   const salted = MAGIC.every((byte, i) => bytes[i] === byte)
   const body = bytes.slice(MAGIC.length + SALT_SIZE)
@@ -233,9 +235,7 @@ export class AesPassphrase extends Cipher {
       const plaintext = pad(readPlaintext('aes-passphrase', text, bytes), BLOCK_SIZE)
       const ciphertext = aesCbc(plaintext, key, 'encrypt', iv)
       return {
-        text: btoa(
-          [...MAGIC, ...salt, ...ciphertext].map((byte) => String.fromCodePoint(byte)).join(''),
-        ),
+        text: base64.encode(Uint8Array.from([...MAGIC, ...salt, ...ciphertext])),
         cipher: 'aes-passphrase',
         operation: 'encode',
         options: resultOptions(passphrase, salt, bytes, settings),

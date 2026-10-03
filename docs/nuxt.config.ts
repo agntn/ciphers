@@ -14,6 +14,15 @@ export default defineNuxtConfig({
     "#tool-operations": resolve(librarySource, "tool-operations.ts"),
     /** MARS imports SHA-1 from it, and a deploy installs only this directory. */
     "@agntn/hashes": resolve(import.meta.dirname, "node_modules/@agntn/hashes"),
+    /** An alias to the directory would skip its `exports`, so each subpath gets its file. */
+    "@agntn/encodings/hex": resolve(
+      import.meta.dirname,
+      "node_modules/@agntn/encodings/dist/hex.mjs",
+    ),
+    "@agntn/encodings/base64": resolve(
+      import.meta.dirname,
+      "node_modules/@agntn/encodings/dist/base64.mjs",
+    ),
   },
   vite: {
     build: { target: "es2024" },

@@ -2946,12 +2946,26 @@ describe('aes-passphrase', () => {
     expect(aes.decode(first.text, { key: 'secret' }).text).toBe('ATTACK AT DAWN')
   })
 
+  /** `openssl enc -a` breaks lines at 64 characters, and a pasted ciphertext can lose its `=`. */
+  it('reads base64 across line breaks and without padding', () => {
+    expect(aes.decode(dawn.slice(0, -1), { key: 'secret' }).text).toBe('ATTACK AT DAWN')
+    expect(
+      aes.decode(`${wide.slice(0, 32)}\r\n${wide.slice(32)}\n`, {
+        key: 'secret',
+        keyLength: 1024,
+        iterations: 10_000,
+      }).text,
+    ).toBe('Zażółć gęślą jaźń')
+  })
+
   it('names what is wrong with a ciphertext it cannot open', () => {
     expect(() => aes.decode(dawn, { key: 'wrong' })).toThrow(
       /padding: wrong passphrase, digest, keyLength or iterations/,
     )
     expect(() => aes.decode(wide, { key: 'secret', keyLength: 1024 })).toThrow(CipherError)
-    expect(() => aes.decode('not base64!', { key: 'secret' })).toThrow(/must be base64/)
+    expect(() => aes.decode('U2FsdGVkX1-BI0Vn', { key: 'secret' })).toThrow(
+      'Ciphertext must be base64: "-" (U+002D) at index 10 is not in the alphabet',
+    )
     expect(() => aes.decode('AAAAAAAAAAAAAAAAAAAAAA==', { key: 'secret' })).toThrow(/Salted__/)
     expect(() => aes.decode('U2FsdGVkX18BI0VniavN7w==', { key: 'secret' })).toThrow(
       /whole 16-byte blocks, got 0 bytes/,

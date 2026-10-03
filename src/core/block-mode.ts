@@ -1,3 +1,4 @@
+import { hex } from '@agntn/encodings/hex'
 import type { CipherBaseOptions, CipherOption, CipherResult } from './types.ts'
 import { getOpt } from './types.ts'
 import { Cipher } from './cipher.ts'
@@ -73,17 +74,17 @@ type BlockShape = Pick<
  * @returns {string} The hex.
  */
 export function toHex(bytes: Bytes): string {
-  return bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  return hex.encode(Uint8Array.from(bytes))
 }
 
 /**
  * Hex digits to bytes, two digits each. The caller has already checked the digits and the length.
  *
- * @param hex - An even number of hex digits.
+ * @param digits - An even number of hex digits.
  * @returns {number[]} One byte per pair.
  */
-export function fromHex(hex: string): number[] {
-  return Array.from(hex.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+export function fromHex(digits: string): number[] {
+  return Array.from(hex.decode(digits))
 }
 
 /**

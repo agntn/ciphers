@@ -3,6 +3,7 @@ import { getOpt } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { InvalidOptionError } from '../../core/errors.ts'
 import {
+  BYTES_OPTION,
   type BlockMode,
   type Bytes,
   decodeBlocks,
@@ -219,7 +220,7 @@ export class Rabbit extends Cipher {
       category: 'stream',
       family: 'arx',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -241,6 +242,7 @@ export class Rabbit extends Cipher {
           description:
             'Byte order of key, IV and keystream: big as in RFC 4503 and CyberChef, little as in Crypto++',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^128 keys',
     }

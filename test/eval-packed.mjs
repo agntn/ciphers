@@ -543,6 +543,10 @@ try {
     'ff007f',
   )
   assert.equal(
+    run(binPath, ['decode', 'rc4', '00ff80aa', '--key', '0102030405', '--bytes', 'hex']).trim(),
+    'b2c6e3af',
+  )
+  assert.equal(
     run(binPath, ['encode', 'bacon', 'KNIGHT', '--letters', '24']).trim(),
     'ABAABABBAAABAAAAABBAAABBBBAABA',
   )

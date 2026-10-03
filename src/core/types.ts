@@ -124,14 +124,20 @@ export interface BaconOptions extends CipherBaseOptions {
   letters?: 24 | 26
 }
 
+/** Options every block and stream cipher shares. */
+export interface ByteCipherOptions extends CipherBaseOptions {
+  /** `text` for UTF-8 text on the plain side, `hex` for hex bytes there. Default: `text`. */
+  bytes?: 'text' | 'hex'
+}
+
 /** AES-ECB options. */
-export interface AesOptions extends CipherBaseOptions {
+export interface AesOptions extends ByteCipherOptions {
   /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
   key: string
 }
 
 /** AES-CBC options. */
-export interface AesCbcOptions extends CipherBaseOptions {
+export interface AesCbcOptions extends ByteCipherOptions {
   /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
   key: string
   /** Initialization vector, 32 hex digits; case and spaces are ignored. */
@@ -139,7 +145,7 @@ export interface AesCbcOptions extends CipherBaseOptions {
 }
 
 /** AES-CFB options. */
-export interface AesCfbOptions extends CipherBaseOptions {
+export interface AesCfbOptions extends ByteCipherOptions {
   /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
   key: string
   /** Initialization vector, 32 hex digits; case and spaces are ignored. */
@@ -149,7 +155,7 @@ export interface AesCfbOptions extends CipherBaseOptions {
 }
 
 /** AES-OFB options. */
-export interface AesOfbOptions extends CipherBaseOptions {
+export interface AesOfbOptions extends ByteCipherOptions {
   /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
   key: string
   /** Initialization vector, 32 hex digits; case and spaces are ignored. */
@@ -157,7 +163,7 @@ export interface AesOfbOptions extends CipherBaseOptions {
 }
 
 /** AES-CTR options. */
-export interface AesCtrOptions extends CipherBaseOptions {
+export interface AesCtrOptions extends ByteCipherOptions {
   /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
   key: string
   /** Initial counter block, 32 hex digits; case and spaces are ignored. */
@@ -165,7 +171,7 @@ export interface AesCtrOptions extends CipherBaseOptions {
 }
 
 /** AES-CCM options. */
-export interface AesCcmOptions extends CipherBaseOptions {
+export interface AesCcmOptions extends ByteCipherOptions {
   /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
   key: string
   /** 14 to 26 hex digits, a 7 to 13-byte nonce; case and spaces are ignored. */
@@ -177,7 +183,7 @@ export interface AesCcmOptions extends CipherBaseOptions {
 }
 
 /** AES-OCB options. */
-export interface AesOcbOptions extends CipherBaseOptions {
+export interface AesOcbOptions extends ByteCipherOptions {
   /** 32, 48 or 64 hex digits for AES-128, AES-192 or AES-256; case and spaces are ignored. */
   key: string
   /** 2 to 30 hex digits, a 1 to 15-byte nonce; case and spaces are ignored. */
@@ -189,7 +195,7 @@ export interface AesOcbOptions extends CipherBaseOptions {
 }
 
 /** AES-LRW options. */
-export interface AesLrwOptions extends CipherBaseOptions {
+export interface AesLrwOptions extends ByteCipherOptions {
   /** 64, 80 or 96 hex digits: the AES key, then 32 for the tweak key; case and spaces are ignored. */
   key: string
   /** Index of the first block in hex, up to 32 digits. Default: 1. */
@@ -197,7 +203,7 @@ export interface AesLrwOptions extends CipherBaseOptions {
 }
 
 /** AES-XTS options. */
-export interface AesXtsOptions extends CipherBaseOptions {
+export interface AesXtsOptions extends ByteCipherOptions {
   /**
    * 64 or 128 hex digits: the data key, then the tweak key, both AES-128 or both AES-256; case
    * and spaces are ignored.
@@ -208,7 +214,7 @@ export interface AesXtsOptions extends CipherBaseOptions {
 }
 
 /** AES passphrase options, as CryptoJS.AES.encrypt(message, passphrase) takes them. */
-export interface AesPassphraseOptions extends CipherBaseOptions {
+export interface AesPassphraseOptions extends ByteCipherOptions {
   /** The passphrase, any text, read as UTF-8. */
   key: string
   /** Key length in bits, 128 to 1024 in steps of 32. Default: 256. */
@@ -220,7 +226,7 @@ export interface AesPassphraseOptions extends CipherBaseOptions {
 }
 
 /** Rijndael options. */
-export interface RijndaelOptions extends CipherBaseOptions {
+export interface RijndaelOptions extends ByteCipherOptions {
   /** 32, 40, 48, 56 or 64 hex digits for a 128 to 256-bit key; case and spaces are ignored. */
   key: string
   /** Block length in bits: 128, 160, 192, 224 or 256. Default: 128, which is AES. */
@@ -228,13 +234,13 @@ export interface RijndaelOptions extends CipherBaseOptions {
 }
 
 /** DES ECB options. */
-export interface DesOptions extends CipherBaseOptions {
+export interface DesOptions extends ByteCipherOptions {
   /** 16 hex digits for a 64-bit key, parity bits included; case and spaces are ignored. */
   key: string
 }
 
 /** DESX ECB options. */
-export interface DesxOptions extends CipherBaseOptions {
+export interface DesxOptions extends ByteCipherOptions {
   /**
    * 48 hex digits: the DES key, then the input and the output whitening key, as OpenSSL's `desx`
    * takes them; case and spaces are ignored.
@@ -243,13 +249,13 @@ export interface DesxOptions extends CipherBaseOptions {
 }
 
 /** Triple DES ECB options. */
-export interface TripleDesOptions extends CipherBaseOptions {
+export interface TripleDesOptions extends ByteCipherOptions {
   /** 32 hex digits for two keys (K3 = K1) or 48 for three; case and spaces are ignored. */
   key: string
 }
 
 /** Triple DES CBC options. */
-export interface TripleDesCbcOptions extends CipherBaseOptions {
+export interface TripleDesCbcOptions extends ByteCipherOptions {
   /** 32 hex digits for two keys (K3 = K1) or 48 for three; case and spaces are ignored. */
   key: string
   /** Initialization vector, 16 hex digits; case and spaces are ignored. */
@@ -257,37 +263,37 @@ export interface TripleDesCbcOptions extends CipherBaseOptions {
 }
 
 /** Blowfish ECB options. */
-export interface BlowfishOptions extends CipherBaseOptions {
+export interface BlowfishOptions extends ByteCipherOptions {
   /** An even number of hex digits from 8 to 112, a 32 to 448-bit key; case and spaces are ignored. */
   key: string
 }
 
 /** IDEA ECB options. */
-export interface IdeaOptions extends CipherBaseOptions {
+export interface IdeaOptions extends ByteCipherOptions {
   /** 32 hex digits, a 128-bit key; case and spaces are ignored. */
   key: string
 }
 
 /** Lucifer ECB options. */
-export interface LuciferOptions extends CipherBaseOptions {
+export interface LuciferOptions extends ByteCipherOptions {
   /** 32 hex digits, a 128-bit key; case and spaces are ignored. */
   key: string
 }
 
 /** MARS ECB options. */
-export interface MarsOptions extends CipherBaseOptions {
+export interface MarsOptions extends ByteCipherOptions {
   /** 32 to 112 hex digits in steps of 8, a key of 4 to 14 words; case and spaces are ignored. */
   key: string
 }
 
 /** Serpent ECB options. */
-export interface SerpentOptions extends CipherBaseOptions {
+export interface SerpentOptions extends ByteCipherOptions {
   /** 32, 48 or 64 hex digits, a 128, 192 or 256-bit key; case and spaces are ignored. */
   key: string
 }
 
 /** Rabbit options. */
-export interface RabbitOptions extends CipherBaseOptions {
+export interface RabbitOptions extends ByteCipherOptions {
   /** 32 hex digits, a 128-bit key; case and spaces are ignored. */
   key: string
   /** 16 hex digits, a 64-bit IV; case and spaces are ignored. Without it the IV setup is skipped. */
@@ -297,17 +303,15 @@ export interface RabbitOptions extends CipherBaseOptions {
 }
 
 /** RC4 options. */
-export interface Rc4Options extends CipherBaseOptions {
+export interface Rc4Options extends ByteCipherOptions {
   /** 2 to 512 hex digits in whole bytes, a 1 to 256-byte key; case and spaces are ignored. */
   key: string
 }
 
 /** Repeating-key XOR options. */
-export interface XorOptions extends CipherBaseOptions {
+export interface XorOptions extends ByteCipherOptions {
   /** Any nonzero even number of hex digits, a key of whole bytes; case and spaces are ignored. */
   key: string
-  /** `text` for UTF-8 text in and out, `hex` for hex on both sides. Default: `text`. */
-  bytes?: 'text' | 'hex'
 }
 
 /**

@@ -417,6 +417,27 @@ describe('Ciphers MCP server', () => {
     })
     expect(decoded.isError).not.toBe(true)
     expect(onlyText(decoded.content)).toBe('ff007f')
+    const cbc = { key: '2b7e151628aed2a6abf7158809cf4f3c', iv: '00'.repeat(16) }
+    const sealed = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'aes-cbc', ...cbc, bytes: 'hex', text: '00ff80aa' },
+    })
+    expect(sealed.isError).not.toBe(true)
+    for (const [args, plain] of [
+      [{ cipher: 'rc4', key: '0102030405', text: '00ff80aa' }, 'b2c6e3af'],
+      [{ cipher: 'rabbit', key: '00'.repeat(16), text: '00ff80aa' }, '1cb577a8'],
+      [{ cipher: 'aes-cbc', ...cbc, text: onlyText(sealed.content) }, '00ff80aa'],
+    ] as const) {
+      const opened = await client.callTool({
+        name: 'ciphers_decode',
+        arguments: { ...args, bytes: 'hex' },
+      })
+      expect(opened.isError).not.toBe(true)
+      expect(onlyText(opened.content)).toBe(plain)
+      const refused = await client.callTool({ name: 'ciphers_decode', arguments: args })
+      expect(refused.isError).toBe(true)
+      expect(onlyText(refused.content)).toContain('pass bytes: hex to get them as hex')
+    }
   })
 
   it('discovers and executes the straddling checkerboard with its blanks through the protocol', async () => {

@@ -8,7 +8,19 @@ import {
   MissingOptionError,
   normalizeError,
 } from '../../../core/errors.ts'
-import { type Bytes, fromHex, pad, readHex, toHex, unpad } from '../../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type Bytes,
+  type PlainBytes,
+  fromHex,
+  pad,
+  readBytes,
+  readHex,
+  readPlaintext,
+  toHex,
+  unpad,
+  writePlaintext,
+} from '../../../core/block-mode.ts'
 import { aesCbc } from './cbc.ts'
 
 const BLOCK_SIZE = 16
@@ -129,6 +141,30 @@ function readCiphertext(text: string): { salt: Bytes; body: Bytes } {
   return { salt: bytes.slice(MAGIC.length, MAGIC.length + SALT_SIZE), body }
 }
 
+/**
+ * The options a result reports: passphrase, mode, salt, `bytes` only when it is hex, then the KDF.
+ *
+ * @param passphrase - The passphrase as passed.
+ * @param salt - The 8-byte salt.
+ * @param bytes - What the plain side was.
+ * @param settings - Digest, key length and iterations.
+ * @returns {Record<string, unknown>} The result options.
+ */
+function resultOptions(
+  passphrase: string,
+  salt: Bytes,
+  bytes: PlainBytes,
+  settings: Readonly<PassphraseSettings>,
+): Record<string, unknown> {
+  return {
+    key: passphrase,
+    mode: 'cbc',
+    salt: toHex(salt),
+    ...(bytes === 'hex' && { bytes }),
+    ...settings,
+  }
+}
+
 /** What `CryptoJS.AES.encrypt(message, passphrase)` writes: `Salted__`, the salt and AES-CBC in base64. */
 export class AesPassphrase extends Cipher {
   name(): string {
@@ -144,7 +180,7 @@ export class AesPassphrase extends Cipher {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, base64 out',
+      worksOn: 'UTF-8 or hex, base64 out',
       options: [
         {
           name: 'key',
@@ -181,6 +217,7 @@ export class AesPassphrase extends Cipher {
           description:
             'Encoding only: 16 hex digits. Random when left out; decoding reads it from the ciphertext',
         },
+        BYTES_OPTION,
       ],
       keyspace: 'set by the passphrase, not by keyLength',
     }
@@ -190,9 +227,10 @@ export class AesPassphrase extends Cipher {
     try {
       const passphrase = readPassphrase(options)
       const settings = readSettings(options)
+      const bytes = readBytes(options)
       const salt = readSalt(options)
       const { key, iv } = deriveKey(passphrase, salt, settings)
-      const plaintext = pad([...new TextEncoder().encode(text)], BLOCK_SIZE)
+      const plaintext = pad(readPlaintext('aes-passphrase', text, bytes), BLOCK_SIZE)
       const ciphertext = aesCbc(plaintext, key, 'encrypt', iv)
       return {
         text: btoa(
@@ -200,7 +238,7 @@ export class AesPassphrase extends Cipher {
         ),
         cipher: 'aes-passphrase',
         operation: 'encode',
-        options: { key: passphrase, mode: 'cbc', salt: toHex(salt), ...settings },
+        options: resultOptions(passphrase, salt, bytes, settings),
       }
     } catch (e) {
       throw normalizeError(e, 'aes-passphrase')
@@ -211,6 +249,7 @@ export class AesPassphrase extends Cipher {
     try {
       const passphrase = readPassphrase(options)
       const settings = readSettings(options)
+      const bytes = readBytes(options)
       const { salt, body } = readCiphertext(text)
       const { key, iv } = deriveKey(passphrase, salt, settings)
       const decrypted = aesCbc(body, key, 'decrypt', iv)
@@ -225,17 +264,11 @@ export class AesPassphrase extends Cipher {
           '[aes-passphrase] Decrypted blocks do not end in PKCS#7 padding: wrong passphrase, digest, keyLength or iterations',
         )
       }
-      let decoded: string
-      try {
-        decoded = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(plaintext))
-      } catch {
-        throw new CipherError('[aes-passphrase] Decrypted bytes are not UTF-8 text')
-      }
       return {
-        text: decoded,
+        text: writePlaintext('aes-passphrase', plaintext, bytes),
         cipher: 'aes-passphrase',
         operation: 'decode',
-        options: { key: passphrase, mode: 'cbc', salt: toHex(salt), ...settings },
+        options: resultOptions(passphrase, salt, bytes, settings),
       }
     } catch (e) {
       throw normalizeError(e, 'aes-passphrase')

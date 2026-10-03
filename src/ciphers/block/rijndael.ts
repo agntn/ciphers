@@ -1,7 +1,7 @@
 import type { CipherInfo, CipherBaseOptions } from '../../core/types.ts'
 import { getOpt } from '../../core/types.ts'
 import { InvalidOptionError } from '../../core/errors.ts'
-import { type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
 import { rijndaelBlock } from './aes/block.ts'
 
 /** Block lengths in bits the Rijndael proposal defines: 128 is AES, the rest never made the standard. */
@@ -76,7 +76,7 @@ export class Rijndael extends BlockCipher<RijndaelSettings> {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -91,6 +91,7 @@ export class Rijndael extends BlockCipher<RijndaelSettings> {
           default: 128,
           description: 'Block length in bits: 128, 160, 192, 224 or 256',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^128 to 2^256 keys',
     }

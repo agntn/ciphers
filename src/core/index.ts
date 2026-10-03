@@ -15,6 +15,7 @@ export type {
   AdfgvxOptions,
   StraddlingCheckerboardOptions,
   BaconOptions,
+  ByteCipherOptions,
   AesOptions,
   AesCbcOptions,
   AesCfbOptions,

@@ -43,7 +43,7 @@ export default defineCommand({
     bytes: {
       type: 'string',
       description:
-        'text for UTF-8 text, or hex to read and write hex both ways (XOR; default text)',
+        'text for UTF-8 text, or hex to read and write the plain side as hex (block and stream ciphers; default text)',
     },
     tweak: {
       type: 'string',

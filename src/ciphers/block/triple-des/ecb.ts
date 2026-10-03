@@ -1,5 +1,5 @@
 import type { CipherInfo } from '../../../core/types.ts'
-import { type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
+import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
 import { tripleDesBlock } from './block.ts'
 
 const BLOCK_SIZE = 8
@@ -46,7 +46,7 @@ export class TripleDes extends BlockCipher {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -54,6 +54,7 @@ export class TripleDes extends BlockCipher {
           required: true,
           description: '32 hex digits for two keys (K3 = K1) or 48 for three; parity bits ignored',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^112 or 2^168 keys (56 bits of every 64-bit DES key)',
     }

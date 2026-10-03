@@ -1079,6 +1079,23 @@ describe('edge cases', () => {
     }
   })
 
+  it('every byte cipher takes bytes that are not UTF-8 with bytes: hex', () => {
+    const plain = '00ff80c0'.repeat(4)
+    const byteCiphers = ciphers().filter((name) => create(name).info().category !== 'classical')
+    for (const name of byteCiphers) {
+      const cipher = create(name)
+      const opts = { ...keyOpts[name], bytes: 'hex' }
+      const encoded = cipher.encode(plain, opts)
+      expect(encoded.options).toMatchObject({ bytes: 'hex' })
+      expect(cipher.decode(encoded.text, opts).text).toBe(plain)
+      expect(() => cipher.decode(encoded.text, keyOpts[name])).toThrow(
+        new CipherError(
+          `[${name}] Decrypted bytes are not UTF-8 text; pass bytes: hex to get them as hex`,
+        ),
+      )
+    }
+  }, 30_000)
+
   it('all ciphers handle non-alpha only input', () => {
     for (const name of ciphers()) {
       const cipher = create(name)
@@ -1493,7 +1510,10 @@ describe('aes', () => {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -1610,6 +1630,7 @@ describe('aes-cbc', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -1759,6 +1780,7 @@ describe('aes-cfb', () => {
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
         { name: 'segment', type: 'number', required: false, default: 128 },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -1892,6 +1914,7 @@ describe('aes-ofb', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -2010,6 +2033,7 @@ describe('aes-ctr', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -2180,6 +2204,7 @@ describe('aes-ccm', () => {
         { name: 'nonce', type: 'string', required: true },
         { name: 'aad', type: 'string', required: false, default: '' },
         { name: 'tagLength', type: 'number', required: false, default: 128 },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -2376,6 +2401,7 @@ describe('aes-ocb', () => {
         { name: 'nonce', type: 'string', required: true },
         { name: 'aad', type: 'string', required: false, default: '' },
         { name: 'tagLength', type: 'number', required: false, default: 128 },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -2525,6 +2551,7 @@ describe('aes-lrw', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'tweak', type: 'string', required: false, default: '1' },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -2732,6 +2759,7 @@ describe('aes-xts', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'tweak', type: 'string', required: false, default: '0' },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -3132,6 +3160,7 @@ describe('rijndael', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'blockSize', type: 'number', required: false, default: 128 },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -3252,7 +3281,10 @@ describe('des', () => {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -3371,7 +3403,10 @@ describe('desx', () => {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -3493,7 +3528,10 @@ describe('triple-des', () => {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -3614,6 +3652,7 @@ describe('triple-des-cbc', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -3785,7 +3824,10 @@ describe('blowfish', () => {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -3888,7 +3930,10 @@ describe('idea', () => {
       category: 'block',
       family: 'lai-massey',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -3991,7 +4036,10 @@ describe('lucifer', () => {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -4149,7 +4197,10 @@ describe('mars', () => {
       category: 'block',
       family: 'feistel',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -4308,7 +4359,10 @@ describe('serpent', () => {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -4488,6 +4542,7 @@ describe('rabbit', () => {
         { name: 'key', type: 'string', required: true },
         { name: 'iv', type: 'string', required: false },
         { name: 'endian', type: 'string', required: false, default: 'big' },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
   })
@@ -4587,7 +4642,10 @@ describe('rc4', () => {
       category: 'stream',
       family: 'permutation',
       selfInverse: false,
-      options: [{ name: 'key', type: 'string', required: true }],
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
     })
   })
 })
@@ -4633,7 +4691,9 @@ describe('xor', () => {
       ),
     )
     expect(() => create('rc4').decode('bbf316e8d940af0ad3', { key: '4b6578' })).toThrow(
-      new CipherError('[rc4] Decrypted bytes are not UTF-8 text'),
+      new CipherError(
+        '[rc4] Decrypted bytes are not UTF-8 text; pass bytes: hex to get them as hex',
+      ),
     )
   })
 
@@ -4674,6 +4734,94 @@ describe('xor', () => {
         { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
+  })
+})
+
+describe('bytes: hex', () => {
+  const aesKey = '2b7e151628aed2a6abf7158809cf4f3c'
+  const iv = '000102030405060708090a0b0c0d0e0f'
+
+  /** The example from issue #191, and RFC 6229 section 2 for the 40-bit key at offset 0. */
+  it('returns RC4 plaintext that is not UTF-8 as hex', () => {
+    const rc4Cipher = create('rc4')
+    expect(rc4Cipher.decode('00ff80aa', { key: '0102030405', bytes: 'hex' })).toEqual({
+      text: 'b2c6e3af',
+      cipher: 'rc4',
+      operation: 'decode',
+      options: { key: '0102030405', bytes: 'hex' },
+    })
+    expect(rc4Cipher.decode('00'.repeat(16), { key: '0102030405', bytes: 'hex' }).text).toBe(
+      'b2396305f03dc027ccc3524a0a1118a8',
+    )
+    expect(() => rc4Cipher.decode('00ff80aa', { key: '0102030405' })).toThrow(/bytes: hex/)
+  })
+
+  /** RFC 4503 Appendix A.1: S[0] for the all-zero key, no IV. */
+  it('returns the Rabbit keystream as hex for zero bytes', () => {
+    expect(
+      create('rabbit').decode('00'.repeat(16), { key: '00'.repeat(16), bytes: 'hex' }).text,
+    ).toBe('b15754f036a5d6ecf56b45261c4af702')
+  })
+
+  /** NIST SP 800-38A F.2.1: the first CBC-AES128 block, then a PKCS#7 block of its own. */
+  it('encrypts hex plaintext with AES-CBC and gives it back as hex', () => {
+    const cbc = create('aes-cbc')
+    const plaintext = '6bc1bee22e409f96e93d7e117393172a'
+    const encoded = cbc.encode(plaintext.toUpperCase(), { key: aesKey, iv, bytes: 'hex' })
+    expect(encoded.text).toHaveLength(64)
+    expect(encoded.text.slice(0, 32)).toBe('7649abac8119b246cee98e9b12e9197d')
+    expect(encoded.options).toEqual({ key: aesKey, mode: 'cbc', iv, bytes: 'hex' })
+    expect(cbc.decode(encoded.text, { key: aesKey, iv, bytes: 'hex' }).text).toBe(plaintext)
+  })
+
+  /** openssl enc -aes-256-cbc -md md5 -S 0011223344556677 -pass pass:pw over the bytes 00 ff. */
+  it('opens an aes-passphrase envelope around bytes that are not text', () => {
+    const passphrase = create('aes-passphrase')
+    const envelope = 'U2FsdGVkX18AESIzRFVmd8S/naEeWZgJMiYMWvAafTI='
+    expect(passphrase.decode(envelope, { key: 'pw', bytes: 'hex' }).text).toBe('00ff')
+    expect(
+      passphrase.encode('00 ff', { key: 'pw', salt: '0011223344556677', bytes: 'hex' }).text,
+    ).toBe(envelope)
+    expect(() => passphrase.decode(envelope, { key: 'pw' })).toThrow(
+      new CipherError(
+        '[aes-passphrase] Decrypted bytes are not UTF-8 text; pass bytes: hex to get them as hex',
+      ),
+    )
+  })
+
+  it('leaves the result as it was without bytes', () => {
+    expect(create('aes').encode('A', { key: aesKey })).toEqual({
+      text: create('aes').encode('41', { key: aesKey, bytes: 'hex' }).text,
+      cipher: 'aes',
+      operation: 'encode',
+      options: { key: aesKey, mode: 'ecb' },
+    })
+    expect(create('aes').encode('A', { key: aesKey, bytes: 'text' }).options).toEqual({
+      key: aesKey,
+      mode: 'ecb',
+    })
+  })
+
+  it('refuses hex it cannot read and any other bytes value', () => {
+    const aes = create('aes')
+    expect(() => aes.encode('zz', { key: aesKey, bytes: 'hex' })).toThrow(
+      new CipherError('[aes] Text must be hex digits when bytes is hex'),
+    )
+    expect(() => aes.encode('abc', { key: aesKey, bytes: 'hex' })).toThrow(
+      new CipherError(
+        '[aes] Text must be whole bytes (an even number of hex digits) when bytes is hex, got 3 hex digits',
+      ),
+    )
+    for (const [name, key] of [
+      ['aes', aesKey],
+      ['rc4', '0102030405'],
+      ['aes-passphrase', 'pw'],
+    ] as const) {
+      for (const bad of ['raw', 'HEX', 1]) {
+        expect(() => create(name).encode('', { key, bytes: bad })).toThrow(InvalidOptionError)
+        expect(() => create(name).decode('', { key, bytes: bad })).toThrow(InvalidOptionError)
+      }
+    }
   })
 })
 

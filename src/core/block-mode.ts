@@ -1,4 +1,5 @@
-import type { CipherBaseOptions, CipherResult } from './types.ts'
+import type { CipherBaseOptions, CipherOption, CipherResult } from './types.ts'
+import { getOpt } from './types.ts'
 import { Cipher } from './cipher.ts'
 import { CipherError, InvalidOptionError, MissingOptionError, normalizeError } from './errors.ts'
 
@@ -27,8 +28,6 @@ export interface BlockMode<Settings extends BlockSettings = Readonly<Record<stri
   readonly keyDigits: readonly number[] | ((digits: number) => boolean)
   /** Why a key of another shape is refused. */
   readonly keyError: string
-  /** What to try when decrypted bytes are not UTF-8 text, added to that error. */
-  readonly textHint?: string
   /**
    * Read the options the mode takes besides the key, throwing on a bad one. What it returns goes
    * to `run` and back in the result options.
@@ -44,6 +43,21 @@ export interface BlockMode<Settings extends BlockSettings = Readonly<Record<stri
     operation: 'encrypt' | 'decrypt',
     settings: Settings,
   ) => number[]
+}
+
+/** What the plain side of a byte cipher is: UTF-8 text, or hex for bytes that are not text. */
+export type PlainBytes = 'text' | 'hex'
+
+const PLAIN_BYTES: readonly unknown[] = ['text', 'hex']
+
+/** The `bytes` option every byte cipher lists in its `info()`. */
+export const BYTES_OPTION: CipherOption = {
+  name: 'bytes',
+  type: 'string',
+  required: false,
+  default: 'text',
+  description:
+    'What the plain side is: text for UTF-8 text, or hex to read and write hex there, for bytes that are not text',
 }
 
 /** The parts of a mode the checks on key, padding and ciphertext read, whatever its settings. */
@@ -116,6 +130,60 @@ export function readHex(
     throw new InvalidOptionError(name, value, rule)
   }
   return hex
+}
+
+/**
+ * Read the `bytes` option.
+ *
+ * @param options - The options passed to the cipher.
+ * @returns {PlainBytes} `text` unless `hex` was asked for.
+ */
+export function readBytes(options: Readonly<CipherBaseOptions>): PlainBytes {
+  const bytes = getOpt<unknown>(options, 'bytes', 'text')
+  if (!PLAIN_BYTES.includes(bytes))
+    throw new InvalidOptionError('bytes', bytes, 'must be text or hex')
+  return bytes as PlainBytes
+}
+
+/**
+ * The plain side as bytes: the UTF-8 of a text, or hex read as whole bytes.
+ *
+ * @param name - Cipher name for the error prefix.
+ * @param text - The plaintext as passed.
+ * @param bytes - What `text` is.
+ * @returns {number[]} The bytes to encrypt.
+ */
+export function readPlaintext(name: string, text: string, bytes: PlainBytes): number[] {
+  if (bytes === 'text') return [...new TextEncoder().encode(text)]
+  const hex = text.replaceAll(/\s/g, '')
+  if (!/^[0-9a-f]*$/i.test(hex)) {
+    throw new CipherError(`[${name}] Text must be hex digits when bytes is hex`)
+  }
+  if (hex.length % 2 !== 0) {
+    throw new CipherError(
+      `[${name}] Text must be whole bytes (an even number of hex digits) when bytes is hex, got ${hex.length} hex digits`,
+    )
+  }
+  return fromHex(hex)
+}
+
+/**
+ * Decrypted bytes as the plain side: lowercase hex, or UTF-8 text that must decode without a fault.
+ *
+ * @param name - Cipher name for the error prefix.
+ * @param plaintext - The decrypted bytes.
+ * @param bytes - What to return.
+ * @returns {string} The text or the hex.
+ */
+export function writePlaintext(name: string, plaintext: Bytes, bytes: PlainBytes): string {
+  if (bytes === 'hex') return toHex(plaintext)
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(plaintext))
+  } catch {
+    throw new CipherError(
+      `[${name}] Decrypted bytes are not UTF-8 text; pass bytes: hex to get them as hex`,
+    )
+  }
 }
 
 function readKey(
@@ -193,12 +261,35 @@ function readCiphertext(cipher: BlockShape, text: string): Bytes {
 }
 
 /**
- * Encrypt the UTF-8 bytes of a text: PKCS#7 padding unless the mode has none, the bytes through
- * the mode, hex out. Anything thrown on the way comes out as a `CipherError`, with the mode's name
- * in front when it was not one already.
+ * The options a result reports: the key, the mode, `bytes` only when it is hex, then the settings.
+ *
+ * @param cipher - The mode, if the cipher has one.
+ * @param key - The key as lowercase hex.
+ * @param bytes - What the plain side was.
+ * @param settings - What the mode read besides the key.
+ * @returns {Record<string, unknown>} The result options.
+ */
+function resultOptions(
+  cipher: Pick<BlockMode, 'mode'>,
+  key: string,
+  bytes: PlainBytes,
+  settings: BlockSettings,
+): Record<string, unknown> {
+  return {
+    key,
+    ...(cipher.mode && { mode: cipher.mode }),
+    ...(bytes === 'hex' && { bytes }),
+    ...settings,
+  }
+}
+
+/**
+ * Encrypt the UTF-8 bytes of a text, or hex bytes under `bytes: hex`: PKCS#7 padding unless the
+ * mode has none, the bytes through the mode, hex out. Anything thrown on the way comes out as a
+ * `CipherError`, with the mode's name in front when it was not one already.
  *
  * @param cipher - The block cipher and mode to run.
- * @param text - Any text.
+ * @param text - Any text, or hex under `bytes: hex`.
  * @param options - Carries the hex `key` and whatever else the mode reads; none when left out.
  * @returns {CipherResult} Lowercase hex, with the key and settings as they were read.
  */
@@ -210,13 +301,14 @@ export function encodeBlocks<Settings extends BlockSettings>(
   try {
     const key = readKey(cipher, options)
     const settings = cipher.settings?.(options) ?? ({} as Settings)
-    const bytes = [...new TextEncoder().encode(text)]
-    const plaintext = cipher.padding === false ? bytes : pad(bytes, cipher.blockSize)
+    const bytes = readBytes(options)
+    const data = readPlaintext(cipher.name, text, bytes)
+    const plaintext = cipher.padding === false ? data : pad(data, cipher.blockSize)
     return {
       text: toHex(cipher.run(plaintext, key.bytes, 'encrypt', settings)),
       cipher: cipher.name,
       operation: 'encode',
-      options: { key: key.hex, ...(cipher.mode && { mode: cipher.mode }), ...settings },
+      options: resultOptions(cipher, key.hex, bytes, settings),
     }
   } catch (e) {
     throw normalizeError(e, cipher.name)
@@ -224,14 +316,14 @@ export function encodeBlocks<Settings extends BlockSettings>(
 }
 
 /**
- * Decrypt hex ciphertext back to text. Fails when the padding or the UTF-8 does not hold, which
- * is how a wrong key shows. A mode without padding has only the UTF-8 check. Errors come out as
- * for `encodeBlocks`.
+ * Decrypt hex ciphertext back to text, or to hex under `bytes: hex`. Fails when the padding or
+ * the UTF-8 does not hold, which is how a wrong key shows. A mode without padding has only the
+ * UTF-8 check, and `bytes: hex` drops it. Errors come out as for `encodeBlocks`.
  *
  * @param cipher - The block cipher and mode to run.
  * @param text - Hex, whole blocks unless the mode has no padding; case and whitespace are ignored.
  * @param options - Carries the hex `key` and whatever else the mode reads; none when left out.
- * @returns {CipherResult} The decoded text.
+ * @returns {CipherResult} The decoded text or hex.
  */
 export function decodeBlocks<Settings extends BlockSettings>(
   cipher: BlockMode<Settings>,
@@ -241,57 +333,15 @@ export function decodeBlocks<Settings extends BlockSettings>(
   try {
     const key = readKey(cipher, options)
     const settings = cipher.settings?.(options) ?? ({} as Settings)
+    const bytes = readBytes(options)
     const ciphertext = readCiphertext(cipher, text)
     const decrypted = cipher.run(ciphertext, key.bytes, 'decrypt', settings)
     const plaintext = cipher.padding === false ? decrypted : unpad(cipher, decrypted)
-    let decoded: string
-    try {
-      decoded = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(plaintext))
-    } catch {
-      const hint = cipher.textHint ? `; ${cipher.textHint}` : ''
-      throw new CipherError(`[${cipher.name}] Decrypted bytes are not UTF-8 text${hint}`)
-    }
     return {
-      text: decoded,
+      text: writePlaintext(cipher.name, plaintext, bytes),
       cipher: cipher.name,
       operation: 'decode',
-      options: { key: key.hex, ...(cipher.mode && { mode: cipher.mode }), ...settings },
-    }
-  } catch (e) {
-    throw normalizeError(e, cipher.name)
-  }
-}
-
-/**
- * Run a mode without padding from hex to hex, so bytes that aren't UTF-8 pass both ways.
- *
- * @param cipher - A mode with `padding: false`.
- * @param text - Hex, whole bytes; case and whitespace are ignored.
- * @param options - Carries the hex `key` and whatever else the mode reads; none when left out.
- * @param operation - Which direction to run and to report.
- * @returns {CipherResult} Lowercase hex, with the key and settings as they were read.
- */
-export function transformHex<Settings extends BlockSettings>(
-  cipher: BlockMode<Settings>,
-  text: string,
-  options: Readonly<CipherBaseOptions>,
-  operation: 'encode' | 'decode',
-): CipherResult {
-  try {
-    const key = readKey(cipher, options)
-    const settings = cipher.settings?.(options) ?? ({} as Settings)
-    const bytes = readCiphertext(cipher, text)
-    const run = cipher.run(
-      bytes,
-      key.bytes,
-      operation === 'encode' ? 'encrypt' : 'decrypt',
-      settings,
-    )
-    return {
-      text: toHex(run),
-      cipher: cipher.name,
-      operation,
-      options: { key: key.hex, ...settings },
+      options: resultOptions(cipher, key.hex, bytes, settings),
     }
   } catch (e) {
     throw normalizeError(e, cipher.name)

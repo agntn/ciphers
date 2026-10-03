@@ -1,6 +1,6 @@
 import type { CipherInfo, CipherBaseOptions } from '../../../core/types.ts'
 import { InvalidOptionError } from '../../../core/errors.ts'
-import { type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
+import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
 import { aesEcb } from './ecb.ts'
 
 const BLOCK_SIZE = 16
@@ -96,7 +96,7 @@ export class AesLrw extends BlockCipher {
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -112,6 +112,7 @@ export class AesLrw extends BlockCipher {
           default: '1',
           description: 'Index of the first block, up to 32 hex digits; each next block adds one',
         },
+        BYTES_OPTION,
       ],
       keyspace: '2^256, 2^320 or 2^384 keys (the AES key plus a 128-bit tweak key)',
     }

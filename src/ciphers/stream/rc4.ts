@@ -1,6 +1,12 @@
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
-import { type BlockMode, type Bytes, decodeBlocks, encodeBlocks } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  decodeBlocks,
+  encodeBlocks,
+} from '../../core/block-mode.ts'
 
 /**
  * RC4 as RFC 6229 tests it, the keystream XORed into the data from its first byte, nothing dropped.
@@ -50,7 +56,7 @@ export class Rc4 extends Cipher {
       category: 'stream',
       family: 'permutation',
       selfInverse: false,
-      worksOn: 'UTF-8 bytes, hex out',
+      worksOn: 'UTF-8 or hex, hex out',
       options: [
         {
           name: 'key',
@@ -58,6 +64,7 @@ export class Rc4 extends Cipher {
           required: true,
           description: 'An even number of hex digits from 2 to 512, a 1 to 256-byte key',
         },
+        BYTES_OPTION,
       ],
       keyspace: 'up to 2^2048 keys',
     }

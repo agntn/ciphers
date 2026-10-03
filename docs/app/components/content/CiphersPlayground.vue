@@ -92,11 +92,11 @@ const router = useRouter();
 const operation = ref<Operation>("encode");
 const cipherName = ref<string>("vigenere");
 const text = ref("ATTACK AT DAWN");
-const values = reactive<Record<string, string>>({ key: "LEMON" });
+const values = reactive<Record<string, string | number>>({ key: "LEMON" });
 const preserveCase = ref(true);
 const stripNonAlpha = ref(false);
 const language = ref<FrequencyLanguage>("en");
-const maxPeriod = ref("");
+const maxPeriod = ref<string | number>("");
 
 const entry = computed(() => cipherEntry(cipherName.value) ?? CIPHERS[0]!);
 const optionFields = computed(() => entry.value.info.options);
@@ -108,9 +108,13 @@ const needsLanguage = computed(
   () =>
     operation.value === "brute" || operation.value === "frequency" || operation.value === "period",
 );
+/** A number field's model turns into a number once something is typed into it. */
+function fieldText(value: string | number | undefined): string {
+  return String(value ?? "").trim();
+}
 /** Left empty, the library tries lengths up to its own default. */
 const maxPeriodValue = computed(() =>
-  maxPeriod.value.trim() === "" ? undefined : Number(maxPeriod.value),
+  fieldText(maxPeriod.value) === "" ? undefined : Number(maxPeriod.value),
 );
 /** The block and stream ciphers encrypt bytes; case and stripping don't apply to them. */
 const lettersOnly = computed(() => entry.value.info.category === "classical");
@@ -125,7 +129,7 @@ const cipherItems = CIPHERS.map((cipher) => ({
 const options = computed<Record<string, string | number | boolean>>(() => {
   const out: Record<string, string | number | boolean> = {};
   for (const field of optionFields.value) {
-    const raw = values[field.name]?.trim() ?? "";
+    const raw = fieldText(values[field.name]);
     if (raw === "") continue;
     out[field.name] = field.type === "number" ? Number(raw) : raw;
   }
@@ -238,7 +242,7 @@ const cliLine = computed(() => {
   if (needsLanguage.value) {
     const limit =
       operation.value === "period" && maxPeriodValue.value !== undefined
-        ? ` --max-period ${maxPeriod.value.trim()}`
+        ? ` --max-period ${fieldText(maxPeriod.value)}`
         : "";
     return `ciphers ${current.value.command} ${shellArg(text.value)} --lang ${language.value}${limit}`;
   }
@@ -362,15 +366,15 @@ const shareQuery = computed(() => {
   if (needsCipher.value) query.cipher = entry.value.slug;
   if (isTransform.value) {
     for (const field of optionFields.value) {
-      const value = values[field.name]?.trim();
+      const value = fieldText(values[field.name]);
       if (value) query[field.name] = value;
     }
     if (lettersOnly.value && !preserveCase.value) query.preserveCase = "0";
     if (lettersOnly.value && stripNonAlpha.value) query.stripNonAlpha = "1";
   }
   if (needsLanguage.value) query.lang = language.value;
-  if (operation.value === "period" && maxPeriod.value.trim()) {
-    query.maxPeriod = maxPeriod.value.trim();
+  if (operation.value === "period" && fieldText(maxPeriod.value)) {
+    query.maxPeriod = fieldText(maxPeriod.value);
   }
   return query;
 });
@@ -560,7 +564,7 @@ const shareLink = computed(() => {
                 <dd>
                   <UInput
                     id="playground-max-period"
-                    v-model="maxPeriod"
+                    v-model.number="maxPeriod"
                     variant="none"
                     type="number"
                     :placeholder="OPTION_DESCRIPTIONS.maxPeriod"

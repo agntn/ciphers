@@ -467,6 +467,31 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(decoded.content)).toBe('INCASEYOU')
   })
 
+  it('discovers and executes A1Z26 in both forms through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'a1z26' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(a1z26) — classical, fractionation')
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'a1z26', text: '1.12.16.8.1.2.5.20', separator: '.' },
+    })
+    expect(decoded.isError).not.toBe(true)
+    expect(onlyText(decoded.content)).toBe('ALPHABET')
+    const digits = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'a1z26', text: 'bef', zero: 'o' },
+    })
+    expect(digits.isError).not.toBe(true)
+    expect(onlyText(digits.content)).toBe('256')
+    const outside = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'a1z26', text: '8-27' },
+    })
+    expect(outside.isError).toBe(true)
+    expect(onlyText(outside.content)).toContain('Invalid A1Z26 number 27 at character 3')
+  })
+
   it('discovers and executes the route transposition along its path through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'route' } })
@@ -927,6 +952,11 @@ describe('Ciphers MCP server', () => {
       ['key', { cipher: 'xor', text: 'abc', key: '494' }],
       ['bytes', { cipher: 'xor', text: 'abc', key: '49', bytes: 'raw' }],
       ['blanks', { cipher: 'straddling-checkerboard', text: 'abc', blanks: '1' }],
+      ['separator', { cipher: 'a1z26', text: 'abc', separator: '' }],
+      ['separator', { cipher: 'a1z26', text: 'abc', separator: '-1-' }],
+      ['separator', { cipher: 'a1z26', text: 'abc', separator: '-'.repeat(11) }],
+      ['zero', { cipher: 'a1z26', text: 'abc', zero: 'a' }],
+      ['zero', { cipher: 'a1z26', text: 'abc', zero: 'oo' }],
       ['width', { cipher: 'route', text: 'abc' }],
       ['width', { cipher: 'route', text: 'abc', width: 1 }],
       ['corner', { cipher: 'route', text: 'abc', width: 2, corner: 'middle' }],

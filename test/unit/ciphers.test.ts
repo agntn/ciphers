@@ -33,8 +33,8 @@ import { rc4 } from '../../src/ciphers/stream/rc4.ts'
 import { xor } from '../../src/ciphers/stream/xor.ts'
 
 describe('registry', () => {
-  it('registers all 46 ciphers', () => {
-    expect(ciphers()).toHaveLength(46)
+  it('registers all 47 ciphers', () => {
+    expect(ciphers()).toHaveLength(47)
     for (const name of [
       'caesar',
       'rot13',
@@ -50,6 +50,7 @@ describe('registry', () => {
       'affine',
       'playfair',
       'polybius',
+      'a1z26',
       'straddling-checkerboard',
       'enigma',
       'aes',
@@ -617,6 +618,63 @@ describe('tap-code', () => {
 
   it('keeps whitespace-only input empty', () => {
     expect(tap.decode('   ').text).toBe('')
+  })
+})
+
+describe('a1z26', () => {
+  const a1z26 = create('a1z26')
+
+  it('numbers DCODE as dCode does', () => {
+    expect(a1z26.encode('DCODE').text).toBe('4-3-15-4-5')
+    expect(a1z26.decode('4-3-15-4-5').text).toBe('DCODE')
+  })
+
+  it('reads the dCode example split by dots', () => {
+    expect(a1z26.decode('1.12.16.8.1.2.5.20', { separator: '.' }).text).toBe('ALPHABET')
+  })
+
+  it('keeps word gaps and punctuation and ignores case', () => {
+    const encoded = a1z26.encode('Hello, world!')
+    expect(encoded.text).toBe('8-5-12-12-15, 23-15-18-12-4!')
+    expect(encoded.options).toEqual({ separator: '-' })
+    expect(a1z26.decode(encoded.text).text).toBe('HELLO, WORLD!')
+  })
+
+  it('drops the separator only between two numbers', () => {
+    expect(a1z26.decode('1 2 3  4 5', { separator: ' ' }).text).toBe('ABC  DE')
+    expect(a1z26.decode('1--2').text).toBe('A--B')
+    expect(a1z26.decode('-01-26-').text).toBe('-AZ-')
+    expect(a1z26.encode('AB', { separator: '😀'.repeat(10) }).text).toBe(`1${'😀'.repeat(10)}2`)
+  })
+
+  it.each([
+    ['8-27', 'Invalid A1Z26 number 27 at character 3'],
+    ['HI 0', 'Invalid A1Z26 number 0 at character 4'],
+    ['😀 27', 'Invalid A1Z26 number 27 at character 3'],
+    ['9'.repeat(40), 'Invalid A1Z26 number of 40 digits at character 1'],
+  ])('rejects a number outside 1 to 26 in %s', (input, message) => {
+    expect(() => a1z26.decode(input)).toThrow(CipherError)
+    expect(() => a1z26.decode(input)).toThrow(message)
+  })
+
+  it('reads the single digit form, BEF as 256', () => {
+    expect(a1z26.decode('bef', { zero: 'o' }).text).toBe('256')
+    const encoded = a1z26.encode('20 1990', { zero: 'o' })
+    expect(encoded.text).toBe('BO AIIO')
+    expect(encoded.options).toEqual({ zero: 'O' })
+    expect(a1z26.decode('BOxz aiij', { zero: 'J' }).text).toBe('2Oxz 1990')
+  })
+
+  it.each([
+    [{ zero: 'a' }, 'zero'],
+    [{ zero: 'ox' }, 'zero'],
+    [{ zero: 'o', separator: '-' }, 'separator'],
+    [{ separator: '' }, 'separator'],
+    [{ separator: '1' }, 'separator'],
+    [{ separator: '-'.repeat(11) }, 'separator=11 characters'],
+  ])('rejects %o', (options, option) => {
+    expect(() => a1z26.encode('A', options)).toThrow(InvalidOptionError)
+    expect(() => a1z26.encode('A', options)).toThrow(option)
   })
 })
 

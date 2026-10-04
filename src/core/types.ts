@@ -124,6 +124,14 @@ export interface BaconOptions extends CipherBaseOptions {
   letters?: 24 | 26
 }
 
+/** A1Z26 options. */
+export interface A1z26Options extends CipherBaseOptions {
+  /** Text between the numbers of one word, up to 10 characters without digits. Default: `-`. */
+  separator?: string
+  /** Letter from J to Z for 0, which switches to the single digit form: A to I for 1 to 9. */
+  zero?: string
+}
+
 /** Options every block and stream cipher shares. */
 export interface ByteCipherOptions extends CipherBaseOptions {
   /** `text` for UTF-8 text on the plain side, `hex` for hex bytes there. Default: `text`. */

@@ -368,8 +368,43 @@ function hexBytes(reading: Readonly<Reading>): FamilyCandidate[] {
   }))
 }
 
+/**
+ * A1Z26: numbers 1 to 26 with something between them, which tells them from hex and plain numbers.
+ *
+ * @param reading - The text.
+ * @returns {FamilyCandidate[]} A1Z26, or nothing.
+ */
+function alphabetNumbers(reading: Readonly<Reading>): FamilyCandidate[] {
+  const { text, symbols } = reading
+  if (!/^[\d\s\-.,:;/|]+$/.test(text)) return []
+  const numbers = text.match(/\d+/g) ?? []
+  if (numbers.length < 2 || numbers.some((token) => Number(token) < 1 || Number(token) > 26)) {
+    return []
+  }
+  const separator = mostCommon(text.trim().split(/\d+/).slice(1, -1))
+  const signal =
+    separator === '-' || separator.length > 10
+      ? 'Numbers 1 to 26, one letter each.'
+      : `Numbers 1 to 26, one letter each, mostly split by ${JSON.stringify(separator)}: pass that as separator to join the words.`
+  return [candidate(['a1z26'], byLayout(symbols), signal)]
+}
+
+/**
+ * The value that occurs most often, the first one seen on a tie.
+ *
+ * @param values - Values to count, at least one.
+ * @returns {string} The most frequent value.
+ */
+function mostCommon(values: readonly string[]): string {
+  const counts = new Map<string, number>()
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1)
+  let best = values[0]!
+  for (const [value, count] of counts) if (count > counts.get(best)!) best = value
+  return best
+}
+
 /** Layout rules in order. The first that answers decides, so Bacon's A and B never read as hex. */
-const LAYOUTS = [morse, gridDigits, adfgvx, bacon, salted, hexBytes] as const
+const LAYOUTS = [morse, gridDigits, adfgvx, bacon, salted, alphabetNumbers, hexBytes] as const
 
 /**
  * ROT47: punctuation where letters belong, and letters that fit the language once shifted back.

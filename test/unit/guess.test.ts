@@ -107,6 +107,10 @@ describe('guessFamily', () => {
       'polybius:low',
     ])
     expect(ranking(guessFamily('1144441113251144'))[0]).toBe('polybius:medium')
+    expect(ranking(guessFamily(create('a1z26').encode(word).text))).toEqual(['a1z26:high'])
+    const [dotted] = guessFamily('1.12.16.8.1.2.5.20').candidates
+    expect(dotted?.signal).toContain('split by "."')
+    expect(ranking(guessFamily('12 34 56 78')).join()).not.toContain('a1z26')
     expect(ranking(guessFamily(create('adfgvx').encode(word).text))).toEqual(['adfgvx:high'])
     expect(
       ranking(guessFamily(create('adfgvx').encode(word, { transposition: 'CARGO' }).text)),

@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto'
-import { deflateRawSync, deflateSync } from 'node:zlib'
+import { createCipheriv, createHash } from 'node:crypto'
 import { describe, it, expect } from 'vite-plus/test'
 import { create, ciphers, has } from '../../src/core/registry.ts'
 import { resolveCipher } from '../../src/core/resolve.ts'
@@ -37,7 +36,6 @@ import { luciferEcb } from '../../src/ciphers/block/lucifer.ts'
 import { marsEcb } from '../../src/ciphers/block/mars.ts'
 import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 import { cast5Ecb } from '../../src/ciphers/block/cast5.ts'
-import { inflateRaw, inflateZlib } from '../../src/ciphers/block/openpgp/inflate.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 import { rc4 } from '../../src/ciphers/stream/rc4.ts'
 import { xor } from '../../src/ciphers/stream/xor.ts'
@@ -4861,6 +4859,15 @@ DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
 6VvdbUYmF1l4yF2Z+UjlL5k=
 =cflf
 -----END PGP MESSAGE-----`,
+    /** 5 MiB of zero bytes, BZip2 inside a 137-byte encrypted packet. */
+    bomb: `-----BEGIN PGP MESSAGE-----
+
+jA0ECQMKqCm05/WpTxNg0okBD27EO2IbWIu+X6VcHvWD5yPrUdZRhoyHzg3L/n/4
+QbQrrEvbv473QfGop99tCozNsgS7jeJvCf4BPB5VqERdW3RcUQFT/3/58rQKYD6t
+u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
+6CxR1pknBWeSNA==
+=ajd5
+-----END PGP MESSAGE-----`,
   }
 
   const body = (armor: string) =>
@@ -4896,6 +4903,7 @@ DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
       [gpg.blowfishZip, { algorithm: 'blowfish', digest: 'ripemd160', compression: 'zip' }],
       [gpg.aes128, { algorithm: 'aes128', digest: 'sha256', count: 65_536 }],
       [gpg.aes192Zip, { algorithm: 'aes192', digest: 'sha384', compression: 'zip' }],
+      [gpg.bzip2, { algorithm: 'aes256', digest: 'sha512', compression: 'bzip2' }],
     ] as const) {
       const decoded = pgp.decode(armor, { key: 'hunter2' })
       expect(decoded.text).toBe('Attack at dawn')
@@ -5052,7 +5060,6 @@ DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
   it('names what GnuPG can write that it does not run', () => {
     for (const [armor, reason] of [
       [gpg.twofish, 'Cipher algorithm 10 (Twofish) is not supported'],
-      [gpg.bzip2, 'Compression 3 (bzip2) is not supported'],
       [gpg.sha224, 'S2K hash 11 (SHA-224) is not supported'],
       [gpg.ocb, 'AEAD encrypted data (packet tag 20, as GnuPG writes OCB) is not supported'],
     ] as const) {
@@ -5100,31 +5107,34 @@ DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
     }
   })
 
-  /** Every stream and strategy zlib writes, raw and wrapped, checked against node:zlib. */
-  it('inflates what zlib deflates, and stops a stream that grows too large', () => {
-    const inputs = [
-      Buffer.alloc(0),
-      Buffer.from('a'),
-      Buffer.alloc(70_000, 7),
-      createHash('sha512').update('seed').digest(),
-      Buffer.from('abcabcabd'.repeat(5000)),
-    ]
-    for (const input of inputs) {
-      for (const level of [0, 1, 9]) {
-        for (const strategy of [0, 1, 2, 3, 4]) {
-          const raw = inflateRaw([...deflateRawSync(input, { level, strategy })], 1 << 20)
-          const zlib = inflateZlib([...deflateSync(input, { level, strategy })], 1 << 20)
-          expect(input.equals(Buffer.from(raw)) && input.equals(Buffer.from(zlib))).toBe(true)
-        }
-      }
-    }
-    expect(() => inflateRaw([...deflateRawSync(Buffer.alloc(100_000))], 50_000)).toThrow(
-      /inflates past 50000 bytes/,
+  it('stops compressed data that grows past 4 MiB', () => {
+    expect(() => pgp.decode(gpg.bomb, { key: 'hunter2', bytes: 'hex' })).toThrow(
+      '[openpgp] Compressed data inflates past 4194304 bytes',
     )
-    const wrapped = [...deflateSync(Buffer.from('hello'))]
-    const last = wrapped.length - 1
-    wrapped[last]! ^= 1
-    expect(() => inflateZlib(wrapped, 100)).toThrow(/Adler-32/)
+  })
+
+  const packet = (tag: number, body: readonly number[]) => [0xc0 | tag, body.length, ...body]
+  /* Packets sealed under passphrase k: simple SHA-256 S2K, AES-256 CFB and a valid MDC. */
+  const sealed = (inner: readonly number[]) => {
+    const plain = [...Array.from({ length: 16 }, (_, i) => i), 14, 15, ...inner, 0xd3, 0x14]
+    const mdc = createHash('sha1').update(Uint8Array.from(plain)).digest()
+    const key = createHash('sha256').update('k').digest()
+    const cfb = createCipheriv('aes-256-cfb', key, Buffer.alloc(16))
+    const data = cfb.update(Uint8Array.from([...plain, ...mdc]))
+    const bytes = [...packet(3, [4, 9, 0, 8]), ...packet(18, [1, ...data])]
+    return Buffer.from(bytes).toString('hex')
+  }
+
+  it('names a broken compressed stream and an unknown compression', () => {
+    expect(
+      pgp.decode(sealed(packet(11, [0x62, 0, 0, 0, 0, 0, 0x68, 0x69])), { key: 'k' }).text,
+    ).toBe('hi')
+    expect(() => pgp.decode(sealed(packet(8, [2, 0x78, 0x9c, 0xff, 0xff])), { key: 'k' })).toThrow(
+      /^\[openpgp\] Compressed data is broken: deflate: /,
+    )
+    expect(() => pgp.decode(sealed(packet(8, [110, 0])), { key: 'k' })).toThrow(
+      '[openpgp] Compression 110 is not supported: only zip, zlib and bzip2',
+    )
   })
 
   it('reports the block category', () => {

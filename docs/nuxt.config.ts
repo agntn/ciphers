@@ -17,6 +17,12 @@ export default defineNuxtConfig({
     /** The tool layer under src/tools.ts and src/mcp.ts, from the copy this directory installs. */
     "@agntn/tools/mcp": resolve(import.meta.dirname, "node_modules/@agntn/tools/dist/mcp.mjs"),
     "@agntn/tools": resolve(import.meta.dirname, "node_modules/@agntn/tools/dist/index.mjs"),
+    /** The checksums @agntn/compressions imports. The package alias below would swallow them. */
+    "@agntn/hashes/adler32": resolve(
+      import.meta.dirname,
+      "node_modules/@agntn/hashes/dist/adler32.mjs",
+    ),
+    "@agntn/hashes/crc": resolve(import.meta.dirname, "node_modules/@agntn/hashes/dist/crc.mjs"),
     /** MARS and aes-passphrase hash with it. The file, since /mcp leaves the import to the worker. */
     "@agntn/hashes": resolve(import.meta.dirname, "node_modules/@agntn/hashes/dist/index.mjs"),
     /** An alias to the directory would skip its `exports`, so each subpath gets its file. */
@@ -27,6 +33,15 @@ export default defineNuxtConfig({
     "@agntn/encodings/base64": resolve(
       import.meta.dirname,
       "node_modules/@agntn/encodings/dist/base64.mjs",
+    ),
+    /** OpenPGP's ZIP, ZLIB and BZip2, one file per subpath like the encodings. */
+    "@agntn/compressions/deflate": resolve(
+      import.meta.dirname,
+      "node_modules/@agntn/compressions/dist/deflate.mjs",
+    ),
+    "@agntn/compressions/bzip2": resolve(
+      import.meta.dirname,
+      "node_modules/@agntn/compressions/dist/bzip2.mjs",
     ),
   },
   vite: {

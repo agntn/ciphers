@@ -8,12 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@agntn/compressions':
+        specifier: 0.1.0
+        version: 0.1.0(ai@7.0.92(zod@4.6.5))
       '@agntn/encodings':
         specifier: 0.1.0
         version: 0.1.0(ai@7.0.92(zod@4.6.5))
       '@agntn/hashes':
-        specifier: 0.6.1
-        version: 0.6.1(ai@7.0.92(zod@4.6.5))
+        specifier: 0.6.4
+        version: 0.6.4(ai@7.0.92(zod@4.6.5))
       '@agntn/tools':
         specifier: 0.0.0
         version: 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
@@ -54,6 +57,22 @@ importers:
 
 packages:
 
+  '@agntn/compressions@0.1.0':
+    resolution: {integrity: sha512-a79jmu7zZxzMIa5V/t4PqOuinx9eQDh05ix+agnxw1mXv1MhC5SKxCTVDQcyuqMz0tuHk5/0X5Wf8B9zdyoH4Q==}
+    engines: {node: '>=26'}
+    hasBin: true
+    peerDependencies:
+      '@earendil-works/pi-coding-agent': '>=0.84.2 <1'
+      '@oh-my-pi/pi-coding-agent': '>=18.0.0 <19'
+      ai: '>=7.0.0'
+    peerDependenciesMeta:
+      '@earendil-works/pi-coding-agent':
+        optional: true
+      '@oh-my-pi/pi-coding-agent':
+        optional: true
+      ai:
+        optional: true
+
   '@agntn/encodings@0.1.0':
     resolution: {integrity: sha512-kPCR2TxPtpt+2CIRlAYHq8V7LwneVBMAp/0geftLkgKcselVI+EYm6dsL1YnZbqw6Cqtl+vHO6u7T5eZ9TTNDQ==}
     engines: {node: '>=26'}
@@ -72,6 +91,22 @@ packages:
 
   '@agntn/hashes@0.6.1':
     resolution: {integrity: sha512-pakVYxcaOtVUTU9cfssc8S3c5kr7R5w7EhIBKJdhdNkvMeMOs4gU9zCJUamyXbKSvZcI9EYHUFcXWqapVNyW1A==}
+    engines: {node: '>=26'}
+    hasBin: true
+    peerDependencies:
+      '@earendil-works/pi-coding-agent': '>=0.87.1 <1'
+      '@oh-my-pi/pi-coding-agent': '>=18.4.2 <19'
+      ai: '>=7.0.0'
+    peerDependenciesMeta:
+      '@earendil-works/pi-coding-agent':
+        optional: true
+      '@oh-my-pi/pi-coding-agent':
+        optional: true
+      ai:
+        optional: true
+
+  '@agntn/hashes@0.6.4':
+    resolution: {integrity: sha512-eEqgph5RKF6nJfGnzdOlYpQb2vx8o3cqA17g+mqg0znmjGvYT3eF0tqJXFQctW4qw/lKQFXN+Zmrl7KTAbgdxw==}
     engines: {node: '>=26'}
     hasBin: true
     peerDependencies:
@@ -7586,6 +7621,17 @@ packages:
 
 snapshots:
 
+  '@agntn/compressions@0.1.0(ai@7.0.92(zod@4.6.5))':
+    dependencies:
+      '@agntn/encodings': 0.1.0(ai@7.0.92(zod@4.6.5))
+      '@agntn/hashes': 0.6.4(ai@7.0.92(zod@4.6.5))
+      '@agntn/tools': 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
+      '@modelcontextprotocol/server': 2.2.0
+      citty: 0.2.2
+      consola: 3.4.2
+    optionalDependencies:
+      ai: 7.0.92(zod@4.5.4)
+
   '@agntn/encodings@0.1.0(ai@7.0.92(zod@4.6.5))':
     dependencies:
       '@agntn/hashes': 0.6.1(ai@7.0.92(zod@4.6.5))
@@ -7597,6 +7643,14 @@ snapshots:
       ai: 7.0.92(zod@4.5.4)
 
   '@agntn/hashes@0.6.1(ai@7.0.92(zod@4.6.5))':
+    dependencies:
+      '@agntn/tools': 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
+      '@modelcontextprotocol/server': 2.2.0
+      citty: 0.2.2
+    optionalDependencies:
+      ai: 7.0.92(zod@4.5.4)
+
+  '@agntn/hashes@0.6.4(ai@7.0.92(zod@4.6.5))':
     dependencies:
       '@agntn/tools': 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
       '@modelcontextprotocol/server': 2.2.0

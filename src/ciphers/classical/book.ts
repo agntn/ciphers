@@ -78,7 +78,7 @@ function splitBook(text: string): SplitBook {
         pageLine: pageLines.length,
         word: wordIndex,
       }))
-      words.push(...lineWords)
+      for (const word of lineWords) words.push(word)
       lines.push(lineWords)
       pageLines.push(lineWords)
     }

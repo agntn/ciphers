@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vite-plus/test'
 import { create, ciphers, has } from '../../src/core/registry.ts'
 import { resolveCipher } from '../../src/core/resolve.ts'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
+import { MAX_BOOK_LENGTH } from '../../src/tool-operations.ts'
 import type { CipherBaseOptions } from '../../src/core/types.ts'
 import { Cipher } from '../../src/core/cipher.ts'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors.ts'
@@ -759,6 +760,13 @@ describe('book', () => {
 
   it('wraps round to the first word once every match is used', () => {
     expect(book.encode('one one', { book: 'one two' }).text).toBe('1 1')
+  })
+
+  it('reads a book on one line as long as the tool takes', () => {
+    const line = { book: 'a '.repeat(MAX_BOOK_LENGTH / 2) }
+    expect(book.decode('1 500000', line).text).toBe('a a')
+    expect(book.encode('a a', line).text).toBe('1 2')
+    expect(book.decode('1', line).options).toMatchObject({ words: 500_000, lines: 1 })
   })
 
   it('counts lines and pages, a form feed between pages and blank lines left out', () => {

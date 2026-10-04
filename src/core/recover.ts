@@ -435,6 +435,7 @@ function periodicKeys(
   options: Readonly<KeyRecoveryOptions>,
   score: Readonly<Scorer>,
 ): Found[] {
+  if (score.levels !== undefined && codes.length < 4) return []
   const language = options.language ?? 'en'
   const signs = periodicSigns[options.cipher]!
   const periods =
@@ -761,12 +762,12 @@ export function recoverKey(text: string, options: Readonly<KeyRecoveryOptions>):
       : candidate.fit * codes.length - candidate.key.length * Math.log(26)
   const candidates = found
     .sort((left, right) => rank(right) - rank(left))
-    .slice(0, options.limit ?? DEFAULT_KEY_CANDIDATES)
     .map(({ key }) => {
       const plain = decodeWith(text, cipher, key)
       return { key, fit: score.fit(letterCodes(plain)), text: plain }
     })
     .sort((left, right) => rank(right) - rank(left))
+    .slice(0, options.limit ?? DEFAULT_KEY_CANDIDATES)
   return {
     cipher,
     language,

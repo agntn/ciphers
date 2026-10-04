@@ -162,7 +162,24 @@ describe('recoverKey', () => {
     expect(recoverKey(ciphertext, { cipher: 'substitution', limit: 3 })).toEqual(first)
   })
 
+  it('ranks every key on the whole text before the limit cuts', () => {
+    let seed = 3
+    const junk = Array.from({ length: 600 }, () => {
+      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648
+      return 'QXZJVKWY'[Math.floor((seed / 2_147_483_648) * 8)]
+    }).join('')
+    const ciphertext = create('vigenere').encode(`${junk} ${TADEUSZ.repeat(3)}`, {
+      key: 'POLSKA',
+    }).text
+    const options = { cipher: 'vigenere', language: 'pl' } as const
+
+    expect(recoverKey(ciphertext, { ...options, limit: 1 }).candidates[0]).toEqual(
+      recoverKey(ciphertext, { ...options, limit: 5 }).candidates[0],
+    )
+  })
+
   it('returns no candidates for a text without enough letters', () => {
+    expect(recoverKey('ABC', { cipher: 'vigenere', period: 1 }).candidates).toEqual([])
     expect(recoverKey('', { cipher: 'vigenere' }).candidates).toEqual([])
     expect(recoverKey('123 456', { cipher: 'columnar' }).candidates).toEqual([])
     expect(recoverKey('ABC', { cipher: 'substitution' }).candidates).toEqual([])

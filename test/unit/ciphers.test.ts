@@ -5055,7 +5055,9 @@ DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
     expect(pgp.decode(skesk.repeat(2) + data, { key: 'hunter2' }).text).toBe('Attack at dawn')
     const cut = `c30c${skesk.slice(4, 28)}`
     expect(() => pgp.decode(cut + data, { key: 'hunter2' })).toThrow(/ends before the S2K count/)
-    expect(() => pgp.decode(`c30b${skesk.slice(4, 26)}` + data, { key: 'k' })).toThrow(/inside the S2K salt/)
+    expect(() => pgp.decode(`c30b${skesk.slice(4, 26)}` + data, { key: 'k' })).toThrow(
+      /inside the S2K salt/,
+    )
   })
 
   it('refuses encoding options outside what it writes', () => {

@@ -10,10 +10,10 @@ importers:
     dependencies:
       '@agntn/encodings':
         specifier: 0.1.0
-        version: 0.1.0(ai@7.0.92(zod@4.5.4))
+        version: 0.1.0(ai@7.0.92(zod@4.6.5))
       '@agntn/hashes':
-        specifier: 0.6.0
-        version: 0.6.0(ai@7.0.92(zod@4.5.4))
+        specifier: 0.6.1
+        version: 0.6.1(ai@7.0.92(zod@4.6.5))
       '@agntn/tools':
         specifier: 0.0.0
         version: 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
@@ -61,22 +61,6 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.84.2 <1'
       '@oh-my-pi/pi-coding-agent': '>=18.0.0 <19'
-      ai: '>=7.0.0'
-    peerDependenciesMeta:
-      '@earendil-works/pi-coding-agent':
-        optional: true
-      '@oh-my-pi/pi-coding-agent':
-        optional: true
-      ai:
-        optional: true
-
-  '@agntn/hashes@0.6.0':
-    resolution: {integrity: sha512-6jRBp9LUA1jfL8jJ58777NtzEWKPdZesu70tBLplbP5W0mt0NrQaYMnWHtt86O2HPwcHz1Msu+6D49JIwoDu3w==}
-    engines: {node: '>=26'}
-    hasBin: true
-    peerDependencies:
-      '@earendil-works/pi-coding-agent': '>=0.87.1 <1'
-      '@oh-my-pi/pi-coding-agent': '>=18.4.2 <19'
       ai: '>=7.0.0'
     peerDependenciesMeta:
       '@earendil-works/pi-coding-agent':
@@ -7602,9 +7586,9 @@ packages:
 
 snapshots:
 
-  '@agntn/encodings@0.1.0(ai@7.0.92(zod@4.5.4))':
+  '@agntn/encodings@0.1.0(ai@7.0.92(zod@4.6.5))':
     dependencies:
-      '@agntn/hashes': 0.6.1(ai@7.0.92(zod@4.5.4))
+      '@agntn/hashes': 0.6.1(ai@7.0.92(zod@4.6.5))
       '@agntn/tools': 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
       '@modelcontextprotocol/server': 2.2.0
       citty: 0.2.2
@@ -7612,15 +7596,7 @@ snapshots:
     optionalDependencies:
       ai: 7.0.92(zod@4.5.4)
 
-  '@agntn/hashes@0.6.0(ai@7.0.92(zod@4.5.4))':
-    dependencies:
-      '@agntn/tools': 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
-      '@modelcontextprotocol/server': 2.2.0
-      citty: 0.2.2
-    optionalDependencies:
-      ai: 7.0.92(zod@4.5.4)
-
-  '@agntn/hashes@0.6.1(ai@7.0.92(zod@4.5.4))':
+  '@agntn/hashes@0.6.1(ai@7.0.92(zod@4.6.5))':
     dependencies:
       '@agntn/tools': 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
       '@modelcontextprotocol/server': 2.2.0
@@ -8879,11 +8855,11 @@ snapshots:
       eventsource-parser: 3.1.1
       jose: 6.2.11
       pkce-challenge: 5.0.1
-      zod: 4.5.4
+      zod: 4.6.5
 
   '@modelcontextprotocol/core@2.0.0':
     dependencies:
-      zod: 4.5.4
+      zod: 4.6.5
 
   '@modelcontextprotocol/core@2.2.0':
     dependencies:

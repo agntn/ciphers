@@ -73,15 +73,15 @@ function readNewLength(
 
 function readNewPacket(bytes: Bytes, at: number): Read {
   const tag = bytes[at]! & 0x3f
-  const body: number[] = []
+  const chunks: number[][] = []
   let position = at + 1
   for (let partial = true; partial;) {
     const chunk = readNewLength(bytes, position)
-    body.push(...slice(bytes, chunk.next, chunk.length, at))
+    chunks.push(slice(bytes, chunk.next, chunk.length, at))
     position = chunk.next + chunk.length
     partial = chunk.partial
   }
-  return { packet: { tag, body }, next: position }
+  return { packet: { tag, body: chunks.flat() }, next: position }
 }
 
 /**

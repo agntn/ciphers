@@ -122,7 +122,7 @@ class Inflater {
     if (this.output.length + bytes.length > this.limit) {
       throw new CipherError(`Compressed data inflates past ${this.limit} bytes`)
     }
-    this.output.push(...bytes)
+    for (const byte of bytes) this.output.push(byte)
   }
 
   private decode(code: Huffman): number {

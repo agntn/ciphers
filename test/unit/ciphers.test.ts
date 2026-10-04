@@ -4986,6 +4986,13 @@ DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
     }
   })
 
+  /** A definite length past about 125 KB once overflowed the call stack when the packet was read. */
+  it('reads back a message too long to spread into one call', () => {
+    const text = 'x'.repeat(200_000)
+    const encoded = pgp.encode(text, { key: 'k', count: 1024 })
+    expect(pgp.decode(encoded.text, { key: 'k' }).text).toBe(text)
+  })
+
   it('rounds count up to a value the count byte can hold', () => {
     const encoded = pgp.encode('x', { key: 'k', count: 65_537 })
     expect(encoded.options.count).toBe(69_632)

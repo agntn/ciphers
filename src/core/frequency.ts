@@ -266,6 +266,52 @@ function meanPairLog(upper: string, language: FrequencyLanguage): number | undef
 }
 
 /**
+ * How much likelier each pair is than its two letters drawn apart: log P(ab) - log P(a·) - log P(·b),
+ * with both marginals summed from the same table.
+ *
+ * @param pairLogs - Log probability of every pair.
+ * @returns {Map<string, number>} The lift of every pair.
+ */
+function pairLifts(pairLogs: Readonly<Record<string, number>>): Map<string, number> {
+  const firsts = new Map<string, number>()
+  const seconds = new Map<string, number>()
+  for (const [pair, log] of Object.entries(pairLogs)) {
+    firsts.set(pair[0]!, (firsts.get(pair[0]!) ?? 0) + Math.exp(log))
+    seconds.set(pair[1]!, (seconds.get(pair[1]!) ?? 0) + Math.exp(log))
+  }
+  return new Map(
+    Object.entries(pairLogs).map(([pair, log]) => [
+      pair,
+      log - Math.log(firsts.get(pair[0]!)!) - Math.log(seconds.get(pair[1]!)!),
+    ]),
+  )
+}
+
+const letterPairLifts: Partial<Record<FrequencyLanguage, ReadonlyMap<string, number>>> = {
+  en: pairLifts(Object.fromEntries(letterPairLogProbabilities.en!)),
+}
+
+/**
+ * Mean lift of the neighbouring A-Z letters of a text, across spaces and anything else between
+ * them. Letters picked at random from running text in the language land near zero or below, since
+ * their pairs are as likely as their letters apart; a message in the language lands above zero.
+ *
+ * @param text - Text to score; case does not matter.
+ * @param language - Language whose pair table scores the pairs.
+ * @returns {number | undefined} The mean, or `undefined` without a pair table or two letters.
+ */
+export function meanPairLift(text: string, language: FrequencyLanguage): number | undefined {
+  const lifts = letterPairLifts[language]
+  const upper = text.toUpperCase().replaceAll(/[^A-Z]/g, '')
+  if (lifts === undefined || upper.length < 2) return undefined
+  let lift = 0
+  for (let index = 1; index < upper.length; index++) {
+    lift += lifts.get(upper.slice(index - 1, index + 1))!
+  }
+  return lift / (upper.length - 1)
+}
+
+/**
  * Refuse a language without a frequency table.
  *
  * @param language - Language to check.

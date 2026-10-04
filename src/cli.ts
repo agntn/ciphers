@@ -97,6 +97,7 @@ const main = defineCommand({
     guess: () => loadCommand(() => import('./commands/guess.ts')),
     probe: () => loadCommand(() => import('./commands/probe.ts')),
     crib: () => loadCommand(() => import('./commands/crib.ts')),
+    hidden: () => loadCommand(() => import('./commands/hidden.ts')),
   },
 })
 

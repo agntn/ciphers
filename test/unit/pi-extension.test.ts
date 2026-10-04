@@ -66,6 +66,7 @@ describe('Pi extension', () => {
       'ciphers_family_guess',
       'ciphers_passphrase_probe',
       'ciphers_crib_drag',
+      'ciphers_hidden_text_read',
       'ciphers_info',
     ])
   })
@@ -84,6 +85,7 @@ describe('Pi extension', () => {
       'ciphers_decode',
       'ciphers_caesar_brute',
       'ciphers_crib_drag',
+      'ciphers_hidden_text_read',
     ]) {
       expect(getTool(name).renderResult).toBeTypeOf('function')
     }
@@ -260,6 +262,12 @@ describe('Pi extension', () => {
     expect(Value.Check(guess, { text: 'TEST', lang: 'pl' })).toBe(true)
     expect(Value.Check(guess, { text: 'TEST', lang: 'de' })).toBe(false)
     expect(Value.Check(guess, { text: 'X'.repeat(100_001) })).toBe(false)
+
+    const hidden = getTool('ciphers_hidden_text_read').parameters
+    expect(Value.Check(hidden, { text: 'TEST', pick: 'every-word', every: 5, start: 5 })).toBe(true)
+    expect(Value.Check(hidden, { text: 'TEST', pick: 'column' })).toBe(false)
+    expect(Value.Check(hidden, { text: 'TEST', start: 0 })).toBe(false)
+    expect(Value.Check(hidden, { text: 'TEST', lang: 'de' })).toBe(false)
   })
 
   it('answers through the shared executors and lets their errors reach the harness', async () => {
@@ -318,6 +326,18 @@ describe('Pi extension', () => {
     await expect(getTool('ciphers_info').execute('failure', { cipher: 'cae' })).rejects.toThrow(
       'Unknown cipher: "cae". Registered ciphers: caesar,',
     )
+  })
+
+  it('reads hidden text through the shared executor', async () => {
+    const hidden = await getTool('ciphers_hidden_text_read').execute('hidden', {
+      text: 'one two three',
+      pick: 'word',
+      letter: -1,
+    })
+    expect(hidden.content[0]?.text).toBe('eoe')
+    await expect(
+      getTool('ciphers_hidden_text_read').execute('hidden', { text: 'abc', letter: 2 }),
+    ).rejects.toThrow('Missing required option: pick')
   })
 
   it('checks the arguments the way MCP does', async () => {

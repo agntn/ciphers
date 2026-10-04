@@ -36,6 +36,7 @@ export const TOOLS = [
   "ciphers_family_guess",
   "ciphers_passphrase_probe",
   "ciphers_crib_drag",
+  "ciphers_hidden_text_read",
   "ciphers_info",
 ] as const;
 

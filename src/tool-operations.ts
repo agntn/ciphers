@@ -86,6 +86,8 @@ export const MAX_CRIB_LIMIT = 50
 export const PROBE_LIST_LIMITS = { digests: 3, keyLengths: 29, iterations: 32 } as const
 /** Hex digits a probe hit shows of plaintext that is not UTF-8. */
 const PROBE_HEX_PREVIEW = 32
+/** Hidden text readings the ranking prints, most like the language first. */
+export const HIDDEN_TEXT_LINES = 10
 
 /**
  * Characters a brute-force line keeps below the top one. From this length on, scored against the
@@ -286,6 +288,19 @@ export function rankCaesarShifts(
 }
 
 /**
+ * A ranked line below the top one: the first `BRUTE_PREVIEW_LENGTH` characters and `…`, without
+ * cutting a surrogate pair in half.
+ *
+ * @param text - The whole line.
+ * @returns {string} The line, or its start when it is longer.
+ */
+export function preview(text: string): string {
+  if (text.length <= BRUTE_PREVIEW_LENGTH) return text
+  const splitsPair = /[\uD800-\uDBFF]/.test(text[BRUTE_PREVIEW_LENGTH - 1]!)
+  return `${text.slice(0, BRUTE_PREVIEW_LENGTH - (splitsPair ? 1 : 0))}…`
+}
+
+/**
  * Brute-force a Caesar ciphertext for a model, best fit first as `rankCaesarShifts` orders it, so
  * the likely plaintext leads both the model's reading and the collapsed preview. Only the top line
  * carries the whole decoding; the others stop at `BRUTE_PREVIEW_LENGTH` characters and end in `…`,
@@ -301,14 +316,10 @@ export function bruteForceCaesar(
   text: string,
   language?: 'en' | 'pl' | 'ja',
 ): CipherToolResult {
-  const lines = rankCaesarShifts(library, text, language).map(({ shift, text: decoded }, rank) => {
-    let shown = decoded
-    if (rank > 0 && decoded.length > BRUTE_PREVIEW_LENGTH) {
-      const splitsPair = /[\uD800-\uDBFF]/.test(decoded[BRUTE_PREVIEW_LENGTH - 1]!)
-      shown = `${decoded.slice(0, BRUTE_PREVIEW_LENGTH - (splitsPair ? 1 : 0))}…`
-    }
-    return `shift=${String(shift).padStart(2)} -> ${shown}`
-  })
+  const lines = rankCaesarShifts(library, text, language).map(
+    ({ shift, text: decoded }, rank) =>
+      `shift=${String(shift).padStart(2)} -> ${rank === 0 ? decoded : preview(decoded)}`,
+  )
   return { content: [{ type: 'text', text: lines.join('\n') }] }
 }
 
@@ -723,4 +734,120 @@ export function formatCribDrag(
       : [...cribPlaceLines(library, drag, params.crib, params.ciphertexts.length), '']
   lines.push(...cribKnownLines(library, drag))
   return { content: [{ type: 'text', text: lines.join('\n') }] }
+}
+
+export type HiddenTextToolParams = {
+  text: string
+  pick?: CiphersModule.HiddenTextPick
+  letter?: number
+  every?: number
+  start?: number
+  direction?: CiphersModule.HiddenTextDirection
+  lang?: 'en' | 'pl' | 'ja'
+}
+
+/**
+ * The arguments that read one candidate again.
+ *
+ * @param options - A reading of `rankHiddenText`.
+ * @returns {string} `pick=... name=value`, in the order the options were set.
+ */
+function readingArguments(options: Readonly<CiphersModule.HiddenTextOptions>): string {
+  return Object.entries(options)
+    .map(([name, value]) => `${name}=${String(value)}`)
+    .join(' ')
+}
+
+/**
+ * Rank the usual hiding places of a text for a model, best first, with the arguments that read
+ * each one again; only the top line is whole.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - Text that may hide a message.
+ * @param language - Language the message should read in; English by default.
+ * @returns {CipherToolResult} One line per reading, at most `HIDDEN_TEXT_LINES`.
+ */
+function formatHiddenTextRanking(
+  library: Readonly<Pick<typeof CiphersModule, 'rankHiddenText'>>,
+  text: string,
+  language?: 'en' | 'pl' | 'ja',
+): CipherToolResult {
+  const ranking = library.rankHiddenText(text, language)
+  const { candidates } = ranking
+  if (candidates.length === 0) {
+    return {
+      content: [{ type: 'text', text: 'No reading has 5 or more A-Z letters.' }],
+    }
+  }
+  const lift = candidates[0]!.lift
+  const lines = [
+    `Hidden text readings (${ranking.tried} tried, ${candidates.length} with 5 or more A-Z letters, lang=${ranking.language}), most like the language first:`,
+    '',
+    ...candidates.slice(0, HIDDEN_TEXT_LINES).map(({ options, text: reading, score }, rank) => {
+      const scored = lift ? `${score.toFixed(2).padStart(5)}  ` : ''
+      return `  ${scored}${readingArguments(options)} -> ${rank === 0 ? reading : preview(reading)}`
+    }),
+  ]
+  if (candidates.length > HIDDEN_TEXT_LINES) {
+    lines.push(`  (${candidates.length - HIDDEN_TEXT_LINES} more readings ranked lower)`)
+  }
+  lines.push(
+    '',
+    lift
+      ? 'The number is how much likelier the letter pairs are than the same letters apart: above 0 reads like English, near 0 or below like letters picked at random. A short reading can rank high by chance, so read the top lines.'
+      : `Without a pair table for ${ranking.language} the letters alone rank the readings, and a sample of the text fits as well as a message, so read past the top line.`,
+    'Every nth word is not ranked, since words picked from a text read as the language anyway; pick every-word with every reads them.',
+  )
+  return {
+    content: [{ type: 'text', text: lines.join('\n') }],
+    details: { language: ranking.language, tried: ranking.tried, candidates },
+  }
+}
+
+/**
+ * Read the letters or words at the positions a model names, or rank the usual hiding places
+ * when it names none. The error classes come from `library`, as in `formatPeriodEstimate`.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments.
+ * @returns {CipherToolResult} The reading, or the ranking without `pick`.
+ * @throws {MissingOptionError} When a reading option comes without `pick`, or `every` is missing.
+ * @throws {InvalidOptionError} When an option, `lang` included, does not apply to `pick` or is out
+ * of range.
+ */
+export function formatHiddenText(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<
+    Pick<
+      typeof CiphersModule,
+      'readHiddenText' | 'rankHiddenText' | 'InvalidOptionError' | 'MissingOptionError'
+    >
+  >,
+  params: Readonly<HiddenTextToolParams>,
+): CipherToolResult {
+  const { text, pick, letter, every, start, direction, lang } = params
+  if (pick === undefined) {
+    const stray = Object.entries({ letter, every, start, direction }).find(
+      ([, value]) => value !== undefined,
+    )
+    if (stray !== undefined) throw new library.MissingOptionError('pick')
+    return formatHiddenTextRanking(library, text, lang)
+  }
+  if (lang !== undefined) {
+    throw new library.InvalidOptionError(
+      'lang',
+      lang,
+      'ranks the readings, so it does not apply with pick',
+    )
+  }
+  const options = { pick, letter, every, start, direction }
+  const reading = library.readHiddenText(text, options)
+  return {
+    content: [{ type: 'text', text: reading === '' ? 'Nothing at those positions.' : reading }],
+    details: {
+      options: Object.fromEntries(
+        Object.entries(options).filter(([, value]) => value !== undefined),
+      ),
+    },
+  }
 }

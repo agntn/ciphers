@@ -5,7 +5,7 @@
 [![license](https://npmx.dev/api/registry/badge/license/@agntn/ciphers)](https://npmx.dev/package/@agntn/ciphers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agntn/ciphers)
 
-🔐 Forty-seven ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
+🔐 Fifty-two ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
 
 ## Why?
 
@@ -18,7 +18,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Forty-seven ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, A1Z26 with its single digit cousin, columnar, the route transposition with its spirals, ADFGVX, bifid, the VIC straddling checkerboard and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, the passphrase format CryptoJS writes, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, and two AES finalists, IBM's MARS and Serpent. Then the stream ones, Rabbit from RFC 4503, RC4, the 1987 trade secret that leaked in 1994, and plain repeating-key XOR.
+- 🔡 **Fifty-two ciphers.** Caesar, ROT13, ROT47, Atbash, Vigenère, Beaufort, Autokey, Trithemius, Alberti, rail fence, affine, Playfair, Polybius, Morse, Bacon, tap code, A1Z26 with its single digit cousin, columnar, the route transposition with its spirals, ADFGVX, bifid, the VIC straddling checkerboard and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, the passphrase format CryptoJS writes, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, and two AES finalists, IBM's MARS and Serpent. Then the stream ones, Rabbit from RFC 4503, RC4, the 1987 trade secret that leaked in 1994, plain repeating-key XOR, and Bernstein's dancers: Salsa20, XSalsa20, ChaCha20, XChaCha20 and ChaCha20-Poly1305.
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -193,6 +193,11 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **rabbit**                  | arx                         |      ✗       | `--key` (hex, required), `--iv`, `--endian`                |
 | **rc4**                     | permutation                 |      ✗       | `--key` (hex, required)                                    |
 | **xor**                     | polyalphabetic              |      ✗       | `--key` (hex, required), `--bytes`                         |
+| **salsa20**                 | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`       |
+| **xsalsa20**                | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`       |
+| **chacha20**                | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`       |
+| **xchacha20**               | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`       |
+| **chacha20-poly1305**       | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--aad`           |
 
 Playfair and Polybius fold J into I, tap code shares C and K, Bacon is the 26-letter variant unless `letters` says 24, and Alberti is a keyed disk that turns every `period` letters, not a reenactment of the original. One page per cipher, rules and vectors included: [Ciphers](https://ciphers.agntn.dev/ciphers).
 
@@ -203,6 +208,8 @@ The block ciphers start with AES and Triple DES. They take UTF-8 text, pad it wi
 `rc4` is older and much simpler. Ron Rivest wrote it in 1987 as an RSA trade secret, and in 1994 someone posted it to the Cypherpunks list. The key is any whole number of bytes from 1 to 256, in hex, and there's no IV. A password like `Secret` goes in as `536563726574`. The key shuffles a table of all 256 byte values, and every keystream byte is one more swap in that table. Nothing gets dropped from the start, so the output matches RFC 6229 and OpenSSL. Hex in a CTF and a short password next to it? Try this one first.
 
 `xor` is the one every CTF starts with. The key bytes repeat under the text and get XORed in, Vigenère on bytes. Any whole number of bytes works as a key. Got hex that isn't text on either side? `--bytes hex` reads and writes hex both ways, like for every other byte cipher.
+
+`chacha20` is what modern code actually runs, and `salsa20` is the cipher it grew out of. Both are Bernstein's, both XOR a keystream in 64-byte blocks, and both want `--nonce` next to the key. 16 hex digits for Salsa20, 24 for ChaCha20, as RFC 8439 has it. `--counter` picks the first block, 0 by default. The RFC's own examples start at 1, so try both when a vector won't match. `xsalsa20` and `xchacha20` take a 48-digit nonce, long enough to pick at random. `chacha20-poly1305` is the TLS 1.3 and WireGuard one. It puts a 16-byte tag after the ciphertext, takes `--aad`, and refuses to decode anything that was changed. Raw `Uint8Array` versions live in `@agntn/ciphers/chacha` and `@agntn/ciphers/salsa`.
 
 ## 🤖 Agents
 

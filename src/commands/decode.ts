@@ -60,11 +60,17 @@ export default defineCommand({
     },
     nonce: {
       type: 'string',
-      description: 'Nonce in hex, 14 to 26 digits for AES-CCM, 2 to 30 for AES-OCB',
+      description:
+        'Nonce in hex, 14 to 26 digits for AES-CCM, 2 to 30 for AES-OCB, 16 for Salsa20, 24 for ChaCha20 and ChaCha20-Poly1305, 48 for XSalsa20 and XChaCha20',
     },
     aad: {
       type: 'string',
-      description: 'Associated data in hex, not encrypted (AES-CCM, AES-OCB)',
+      description: 'Associated data in hex, not encrypted (AES-CCM, AES-OCB, ChaCha20-Poly1305)',
+    },
+    counter: {
+      type: 'string',
+      description:
+        'Block counter of the first 64 bytes (Salsa20, XSalsa20, ChaCha20, XChaCha20; default 0)',
     },
     tagLength: {
       type: 'string',

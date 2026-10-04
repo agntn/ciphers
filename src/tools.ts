@@ -190,6 +190,22 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
+    ciphers: ['salsa20'],
+    required: ['key', 'nonce'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}(?:(?:[0-9A-Fa-f]\s*){32})?$/,
+      error: 'must be 32 or 64 hex digits (a 128 or 256-bit Salsa20 key)',
+    },
+  },
+  {
+    ciphers: ['xsalsa20', 'chacha20', 'xchacha20', 'chacha20-poly1305'],
+    required: ['key', 'nonce'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){64}$/,
+      error: 'must be 64 hex digits (a 256-bit key)',
+    },
+  },
+  {
     ciphers: ['xor'],
     required: ['key'],
     key: {
@@ -264,6 +280,13 @@ const cipherInput = Type.Object(
     ),
     aad: Type.Optional(
       Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.aad }),
+    ),
+    counter: Type.Optional(
+      Type.Integer({
+        minimum: 0,
+        maximum: Number.MAX_SAFE_INTEGER,
+        description: OPTION_DESCRIPTIONS.counter,
+      }),
     ),
     rails: Type.Optional(
       Type.Integer({
@@ -427,6 +450,9 @@ export const encodeTool = defineTool({
     'Rabbit (rabbit) is a stream cipher with a key of 32 hex digits and an optional iv of 16; it pads nothing, and endian picks the byte order (big as in RFC 4503, the default, or little as in Crypto++).',
     'RC4 (rc4) is a stream cipher with a key of any even number of hex digits from 2 to 512 and no IV; it pads nothing.',
     'XOR (xor) repeats a key of any nonzero even number of hex digits over the bytes.',
+    'Salsa20 (salsa20) is a stream cipher with a key of 32 or 64 hex digits and a nonce of 16, XSalsa20 (xsalsa20) one with a key of 64 and a nonce of 48; they pad nothing, and counter numbers the first 64-byte block (default 0).',
+    'ChaCha20 (chacha20) takes a key of 64 hex digits and a nonce of 24, XChaCha20 (xchacha20) the same key and a nonce of 48; both take counter like Salsa20.',
+    'ChaCha20-Poly1305 (chacha20-poly1305) takes the ChaCha20 key and nonce and optional aad in hex; the hex out is the text bytes plus a 16-byte tag, and decoding fails unless key, nonce and aad all match.',
     'Every block and stream cipher, aes-passphrase too, takes bytes: hex to read and write the plain side as hex, for bytes that are not UTF-8 text.',
     'ciphers_info lists every option with its default.',
   ],

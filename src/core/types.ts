@@ -322,6 +322,56 @@ export interface XorOptions extends ByteCipherOptions {
   key: string
 }
 
+/** Salsa20 options. */
+export interface Salsa20Options extends ByteCipherOptions {
+  /** 32 or 64 hex digits, a 128 or 256-bit key; case and spaces are ignored. */
+  key: string
+  /** 16 hex digits, a 64-bit nonce; case and spaces are ignored. */
+  nonce: string
+  /** Block counter of the first 64 bytes, 0 to 2^53 - 1. Default: 0. */
+  counter?: number
+}
+
+/** XSalsa20 options. */
+export interface XSalsa20Options extends ByteCipherOptions {
+  /** 64 hex digits, a 256-bit key; case and spaces are ignored. */
+  key: string
+  /** 48 hex digits, a 192-bit nonce; case and spaces are ignored. */
+  nonce: string
+  /** Block counter of the first 64 bytes, 0 to 2^53 - 1. Default: 0. */
+  counter?: number
+}
+
+/** ChaCha20 options. */
+export interface ChaCha20Options extends ByteCipherOptions {
+  /** 64 hex digits, a 256-bit key; case and spaces are ignored. */
+  key: string
+  /** 24 hex digits, a 96-bit nonce; case and spaces are ignored. */
+  nonce: string
+  /** Block counter of the first 64 bytes, 0 to 2^32 - 1. Default: 0. */
+  counter?: number
+}
+
+/** XChaCha20 options. */
+export interface XChaCha20Options extends ByteCipherOptions {
+  /** 64 hex digits, a 256-bit key; case and spaces are ignored. */
+  key: string
+  /** 48 hex digits, a 192-bit nonce; case and spaces are ignored. */
+  nonce: string
+  /** Block counter of the first 64 bytes, 0 to 2^32 - 1. Default: 0. */
+  counter?: number
+}
+
+/** ChaCha20-Poly1305 options. */
+export interface ChaCha20Poly1305Options extends ByteCipherOptions {
+  /** 64 hex digits, a 256-bit key; case and spaces are ignored. */
+  key: string
+  /** 24 hex digits, a 96-bit nonce; case and spaces are ignored. */
+  nonce: string
+  /** Associated data in hex, covered by the tag and not encrypted. Default: none. */
+  aad?: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *

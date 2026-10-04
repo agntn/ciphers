@@ -11,7 +11,7 @@ import { TOOLS } from "../../utils/tools";
 defineProps<{ title?: string; description?: string }>();
 
 const TAGLINE =
-  "Caesar to Rabbit behind the same two methods. Encode, decode, brute force a Caesar, count letters. All in your process.";
+  "Caesar to ChaCha20 behind the same two methods. Encode, decode, brute force a Caesar, count letters. All in your process.";
 
 /** The same three readouts as the hero, counted from the same registry. */
 const METRICS = [

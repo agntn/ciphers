@@ -6,7 +6,13 @@ import { builtinCiphers } from '../../src/core/ciphers.ts'
 import type { CipherBaseOptions } from '../../src/core/types.ts'
 import { Cipher } from '../../src/core/cipher.ts'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors.ts'
-import { type BlockMode, decodeBlocks, encodeBlocks } from '../../src/core/block-mode.ts'
+import {
+  type BlockMode,
+  decodeBlocks,
+  encodeBlocks,
+  fromHex,
+  toHex,
+} from '../../src/core/block-mode.ts'
 import { aesEcb } from '../../src/ciphers/block/aes/ecb.ts'
 import { ctr, ecb } from '../../src/aes.ts'
 import { aesLrw } from '../../src/ciphers/block/aes/lrw.ts'
@@ -31,10 +37,14 @@ import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 import { rc4 } from '../../src/ciphers/stream/rc4.ts'
 import { xor } from '../../src/ciphers/stream/xor.ts'
+import { chachaBlock, hchacha20 } from '../../src/ciphers/stream/chacha/block.ts'
+import { poly1305 } from '../../src/ciphers/stream/chacha/poly1305.ts'
+import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
+import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 47 ciphers', () => {
-    expect(ciphers()).toHaveLength(47)
+  it('registers all 52 ciphers', () => {
+    expect(ciphers()).toHaveLength(52)
     for (const name of [
       'caesar',
       'rot13',
@@ -77,6 +87,11 @@ describe('registry', () => {
       'rabbit',
       'rc4',
       'xor',
+      'salsa20',
+      'xsalsa20',
+      'chacha20',
+      'xchacha20',
+      'chacha20-poly1305',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -1121,6 +1136,11 @@ describe('edge cases', () => {
     rabbit: { key: '0123456789abcdeffedcba9876543210' },
     rc4: { key: '0102030405' },
     xor: { key: '494345' },
+    salsa20: { key: '00'.repeat(16), nonce: '00'.repeat(8) },
+    xsalsa20: { key: '00'.repeat(32), nonce: '00'.repeat(24) },
+    chacha20: { key: '00'.repeat(32), nonce: '00'.repeat(12) },
+    xchacha20: { key: '00'.repeat(32), nonce: '00'.repeat(24) },
+    'chacha20-poly1305': { key: '00'.repeat(32), nonce: '00'.repeat(12) },
   }
 
   it('all ciphers handle empty string', () => {
@@ -4806,6 +4826,402 @@ describe('xor', () => {
         { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
+  })
+})
+
+describe('salsa20', () => {
+  const salsa = create('salsa20')
+  const zeros = (bytes: number) => '00'.repeat(bytes)
+
+  /** eSTREAM verified test vectors, set 1 vector 0 (128-bit key) and set 3 vector 243 (256-bit). */
+  it('matches the eSTREAM test vectors for both key lengths', () => {
+    for (const [key, keystream] of [
+      [
+        '80000000000000000000000000000000',
+        '4dfa5e481da23ea09a31022050859936da52fcee218005164f267cb65f5cfd7f2b4f97e0ff16924a52df269515110a07f9e460bc65ef95da58f740b7d1dbb0aa',
+      ],
+      [
+        'f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f101112',
+        'b4c0afa503be7fc29a62058166d56f8f5d27dc246f75b9ad8760c8c39dfd87492d3b76d5d9637f009eada14458a52dfb09815337e72672681dddc24633750d83',
+      ],
+    ] as const) {
+      const options = { key, nonce: zeros(8), bytes: 'hex' }
+      expect(salsa.encode(zeros(64), options).text).toBe(keystream)
+      expect(salsa.decode(keystream, options).text).toBe(zeros(64))
+    }
+  })
+
+  /** Crypto++ salsa.txt: from block 2^32 - 1 the 64-bit counter carries into its high word. */
+  it('carries the block counter past 32 bits', () => {
+    const options = { key: zeros(32), nonce: zeros(8), counter: 0xffffffff, bytes: 'hex' }
+    const result = salsa.encode(zeros(1024), options)
+    expect(result.text.slice(0, 256)).toBe(
+      '59fc4dd73f4b7b28ce1b0ef562bab604824076898a800797b59902a99f3122545231e85b887ffa19f71f24aaf352dc6afe47281d8f546c9d419194479a369392b65fc777c4f950ec0274ff0ffbb0a6e3ededf78477e94945e87f26e3162bf6a1050933421833f249da1162db6e92a7678505190c80dc46350b81e831f974b28c',
+    )
+    expect(createHash('sha256').update(Buffer.from(result.text, 'hex')).digest('hex')).toBe(
+      '81cf4342209a91783f1c2286b09a60ef8e1f318be782b143bd17facdee6f002f',
+    )
+    expect(result.options).toEqual({
+      key: zeros(32),
+      nonce: zeros(8),
+      counter: 0xffffffff,
+      bytes: 'hex',
+    })
+  })
+
+  it('round-trips UTF-8 text and reports nonce and counter', () => {
+    const key = '0f62b5085bae0154a7fa4da0f34699ec3f92e5388bde3184d72a7dd02376c91c'
+    const nonce = '288ff65dc42b92f9'
+    const encoded = salsa.encode('Zażółć gęślą jaźń', { key, nonce })
+    expect(encoded.text).toHaveLength(2 * new TextEncoder().encode('Zażółć gęślą jaźń').length)
+    expect(encoded.options).toEqual({ key, nonce, counter: 0 })
+    expect(salsa.decode(encoded.text.toUpperCase(), { key, nonce: nonce.toUpperCase() }).text).toBe(
+      'Zażółć gęślą jaźń',
+    )
+    expect(salsa.encode('', { key, nonce }).text).toBe('')
+  })
+
+  it('names a missing or malformed key, nonce and counter', () => {
+    const key = zeros(16)
+    const nonce = zeros(8)
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => salsa[operation]('', { nonce })).toThrow(MissingOptionError)
+      expect(() => salsa[operation]('', { key })).toThrow(new MissingOptionError('nonce'))
+      for (const bad of [zeros(24), zeros(15), 'g'.repeat(32)]) {
+        expect(() => salsa[operation]('', { key: bad, nonce })).toThrow(/32 or 64 hex digits/)
+      }
+      for (const bad of [zeros(7), zeros(12), 8]) {
+        expect(() => salsa[operation]('', { key, nonce: bad })).toThrow(InvalidOptionError)
+      }
+      for (const bad of [-1, 1.5, '1', 2 ** 53]) {
+        expect(() => salsa[operation]('', { key, nonce, counter: bad })).toThrow(/counter/)
+      }
+    }
+  })
+})
+
+describe('xsalsa20', () => {
+  const xsalsa = create('xsalsa20')
+
+  /** Crypto++ salsa.txt XSalsa20 vectors, which Wei Dai made with naclcrypto-20090308. */
+  it('matches the NaCl XSalsa20 vectors', () => {
+    const key = '1b27556473e985d462cd51197a9a46c76009549eac6474f206c4ee0844f68389'
+    const nonce = '69696ee955b62b73cd62bda875fc73d68219e0036b7a0b37'
+    const stream = xsalsa.encode('00'.repeat(139), { key, nonce, bytes: 'hex' }).text
+    expect(stream.slice(0, 64)).toBe(
+      'eea6a7251c1e72916d11c2cb214d3c252539121d8e234e652d651fa4c8cff880',
+    )
+    expect(createHash('sha256').update(Buffer.from(stream, 'hex')).digest('hex')).toBe(
+      '49f52f990b99a4d5f34f4bb0e3015f9248e979599b0a9cf1fa22494fcc16c35a',
+    )
+    const options = {
+      key: 'd5c7f6797b7e7e9c1d7fd2610b2abf2bc5a7885fb3ff78092fb3abe8986d35e2',
+      nonce: '744e17312b27969d826444640e9c4a378ae334f185369c95',
+      bytes: 'hex',
+    }
+    const plaintext =
+      '7758298c628eb3a4b6963c5445ef66971222be5d1a4ad839715d1188071739b77cc6e05d5410f963a64167629757'
+    const ciphertext =
+      '27b8cfe81416a76301fd1eec6a4d99675069b2da2776c360db1bdfea7c0aa613913e10f7a60fec04d11e65f2d64e'
+    expect(xsalsa.encode(plaintext, options).text).toBe(ciphertext)
+    expect(xsalsa.decode(ciphertext, options).text).toBe(plaintext)
+  })
+
+  it('takes only a 256-bit key and a 192-bit nonce', () => {
+    const nonce = '00'.repeat(24)
+    expect(() => xsalsa.encode('', { key: '00'.repeat(16), nonce })).toThrow(/64 hex digits/)
+    expect(() => xsalsa.encode('', { key: '00'.repeat(32), nonce: '00'.repeat(8) })).toThrow(
+      /48 hex digits/,
+    )
+  })
+})
+
+describe('chacha20', () => {
+  const chacha = create('chacha20')
+  const key = '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+  const sunscreen =
+    "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."
+
+  /** RFC 8439 §2.3.2: the block function for counter 1. */
+  it('matches the RFC 8439 block function vector', () => {
+    expect(toHex(chachaBlock(fromHex(key), 1, fromHex('000000090000004a00000000')))).toBe(
+      '10f1e7e4d13b5915500fdd1fa32071c4c7d1f4c733c068030422aa9ac3d46c4ed2826446079faa0914c2d705d98b02a2b5129cd1de164eb9cbd083e8a2503c4e',
+    )
+  })
+
+  /** RFC 8439 §2.4.2: the sunscreen text from counter 1. */
+  it('encrypts the RFC 8439 sunscreen example', () => {
+    const nonce = '000000000000004a00000000'
+    const ciphertext =
+      '6e2e359a2568f98041ba0728dd0d6981e97e7aec1d4360c20a27afccfd9fae0bf91b65c5524733ab8f593dabcd62b3571639d624e65152ab8f530c359f0861d807ca0dbf500d6a6156a38e088a22b65e52bc514d16ccf806818ce91ab77937365af90bbf74a35be6b40b8eedf2785e42874d'
+    expect(chacha.encode(sunscreen, { key, nonce, counter: 1 })).toEqual({
+      text: ciphertext,
+      cipher: 'chacha20',
+      operation: 'encode',
+      options: { key, nonce, counter: 1 },
+    })
+    expect(chacha.decode(ciphertext, { key, nonce, counter: 1 }).text).toBe(sunscreen)
+    expect(chacha.encode(sunscreen, { key, nonce }).text).not.toBe(ciphertext)
+  })
+
+  /** RFC 8439 A.2 test vectors #1 (zero key, counter 0) and #3 (Jabberwocky, counter 42). */
+  it('matches the RFC 8439 encryption test vectors', () => {
+    expect(
+      chacha.encode('00'.repeat(64), { key: '00'.repeat(32), nonce: '00'.repeat(12), bytes: 'hex' })
+        .text,
+    ).toBe(
+      '76b8e0ada0f13d90405d6ae55386bd28bdd219b8a08ded1aa836efcc8b770dc7da41597c5157488d7724e03fb8d84a376a43b8f41518a11cc387b669b2ee6586',
+    )
+    const jabberwocky =
+      "'Twas brillig, and the slithy toves\nDid gyre and gimble in the wabe:\nAll mimsy were the borogoves,\nAnd the mome raths outgrabe."
+    const options = {
+      key: '1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0',
+      nonce: '000000000000000000000002',
+      counter: 42,
+    }
+    const ciphertext =
+      '62e6347f95ed87a45ffae7426f27a1df5fb69110044c0d73118effa95b01e5cf166d3df2d721caf9b21e5fb14c616871fd84c54f9d65b283196c7fe4f60553ebf39c6402c42234e32a356b3e764312a61a5532055716ead6962568f87d3f3f7704c6a8d1bcd1bf4d50d6154b6da731b187b58dfd728afa36757a797ac188d1'
+    expect(chacha.encode(jabberwocky, options).text).toBe(ciphertext)
+    expect(chacha.decode(ciphertext, options).text).toBe(jabberwocky)
+  })
+
+  it('refuses a counter the text runs past', () => {
+    const options = { key, nonce: '00'.repeat(12), counter: 0xffffffff }
+    expect(chacha.encode('x'.repeat(64), options).text).toHaveLength(128)
+    expect(() => chacha.encode('x'.repeat(65), options)).toThrow(
+      new InvalidOptionError(
+        'counter',
+        0xffffffff,
+        'runs past 4294967295 before the last 64-byte block of 65 bytes',
+      ),
+    )
+    expect(() => chacha.encode('', { ...options, counter: 2 ** 32 })).toThrow(/32-bit/)
+  })
+
+  it('names a missing or malformed key and nonce', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => chacha[operation]('', { nonce: '00'.repeat(12) })).toThrow(MissingOptionError)
+      expect(() => chacha[operation]('', { key })).toThrow(new MissingOptionError('nonce'))
+      expect(() => chacha[operation]('', { key: key.slice(32), nonce: '00'.repeat(12) })).toThrow(
+        /64 hex digits/,
+      )
+      expect(() => chacha[operation]('', { key, nonce: '00'.repeat(8) })).toThrow(
+        /24 hex digits \(a 96-bit nonce\)/,
+      )
+    }
+    expect(() => chacha.decode('6e2', { key, nonce: '00'.repeat(12) })).toThrow(/whole bytes/)
+  })
+})
+
+describe('xchacha20', () => {
+  const xchacha = create('xchacha20')
+  const key = '808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f'
+  const nonce = '404142434445464748494a4b4c4d4e4f5051525354555658'
+  const dhole =
+    'The dhole (pronounced "dole") is also known as the Asiatic wild dog, red dog, and whistling dog. It is about the size of a German shepherd but looks more like a long-legged fox. This highly elusive and skilled jumper is classified with wolves, coyotes, jackals, and foxes in the taxonomic family Canidae.'
+
+  /** draft-irtf-cfrg-xchacha-03 §2.2.1: HChaCha20 of the RFC 8439 key and nonce. */
+  it('matches the HChaCha20 test vector', () => {
+    expect(
+      toHex(
+        hchacha20(
+          fromHex('000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'),
+          fromHex('000000090000004a0000000031415927'),
+        ),
+      ),
+    ).toBe('82413b4227b27bfed30e42508a877d73a0f9e4d58a74a853c12ec41326d3ecdc')
+  })
+
+  /** draft-irtf-cfrg-xchacha-03 A.2.1 and A.2.2: the dhole text from counter 0 and from 1. */
+  it('matches the XChaCha20 vectors for both counters', () => {
+    for (const [counter, start, digest] of [
+      [
+        0,
+        '4559abba4e48c16102e8bb2c05e6947f50a786de162f9b0b7e592a9b53d0d4e9',
+        'e860577d95d918bb6d3627cb17fbfe8929764d292b75719a7fd933f63ba28e6a',
+      ],
+      [
+        1,
+        '7d0a2e6b7f7c65a236542630294e063b7ab9b555a5d5149aa21e4ae1e4fbce87',
+        'b1cf1640535e383078566361b331b5e2e2c1f5e012e753e7ce3aefdb42705d10',
+      ],
+    ] as const) {
+      const ciphertext = xchacha.encode(dhole, { key, nonce, counter }).text
+      expect(ciphertext.slice(0, 64)).toBe(start)
+      expect(createHash('sha256').update(Buffer.from(ciphertext, 'hex')).digest('hex')).toBe(digest)
+      expect(xchacha.decode(ciphertext, { key, nonce, counter }).text).toBe(dhole)
+    }
+    expect(xchacha.decode('00'.repeat(32), { key, nonce, bytes: 'hex' }).text).toBe(
+      '1131ce9a2a20ae0d67c8935c7789fa1025c9e5bb720fb96f11354fb97af0bd9a',
+    )
+  })
+
+  it('takes a 192-bit nonce only', () => {
+    expect(() => xchacha.encode('', { key, nonce: '00'.repeat(12) })).toThrow(/48 hex digits/)
+  })
+})
+
+describe('chacha20-poly1305', () => {
+  const aead = create('chacha20-poly1305')
+  const key = '808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f'
+  const nonce = '070000004041424344454647'
+  const aad = '50515253c0c1c2c3c4c5c6c7'
+  const sunscreen =
+    "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."
+  const sealed =
+    'd31a8d34648e60db7b86afbc53ef7ec2a4aded51296e08fea9e2b5a736ee62d63dbea45e8ca9671282fafb69da92728b1a71de0a9e060b2905d6a5b67ecd3b3692ddbd7f2d778b8c9803aee328091b58fab324e4fad675945585808b4831d7bc3ff4def08e4b7a9de576d26586cec64b6116' +
+    '1ae10b594f09e26a7e902ecbd0600691'
+
+  /** RFC 8439 §2.5.2 and A.3 test vectors #5 to #11, the ones aimed at reduction and carries. */
+  it('matches the RFC 8439 Poly1305 vectors', () => {
+    expect(
+      toHex(
+        poly1305(
+          [...new TextEncoder().encode('Cryptographic Forum Research Group')],
+          fromHex('85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b'),
+        ),
+      ),
+    ).toBe('a8061dc1305136c6c22b8baf0c0127a9')
+    const ones = 'ff'.repeat(16)
+    const zero = '00'.repeat(16)
+    for (const [r, s, data, tag] of [
+      ['02' + '00'.repeat(15), zero, ones, '03' + '00'.repeat(15)],
+      ['02' + '00'.repeat(15), ones, '02' + '00'.repeat(15), '03' + '00'.repeat(15)],
+      [
+        '01' + '00'.repeat(15),
+        zero,
+        ones + 'f0' + 'ff'.repeat(15) + '11' + '00'.repeat(15),
+        '05' + '00'.repeat(15),
+      ],
+      ['01' + '00'.repeat(15), zero, ones + 'fb' + 'fe'.repeat(15) + '01'.repeat(16), zero],
+      ['02' + '00'.repeat(15), zero, 'fd' + 'ff'.repeat(15), 'fa' + 'ff'.repeat(15)],
+      [
+        '0100000000000000' + '0400000000000000',
+        zero,
+        'e33594d7505e43b9' +
+          '00'.repeat(8) +
+          '3394d7505e4379cd01' +
+          '00'.repeat(7) +
+          zero +
+          '01' +
+          '00'.repeat(15),
+        '14000000000000005500000000000000',
+      ],
+      [
+        '0100000000000000' + '0400000000000000',
+        zero,
+        'e33594d7505e43b9' + '00'.repeat(8) + '3394d7505e4379cd01' + '00'.repeat(7) + zero,
+        '13' + '00'.repeat(15),
+      ],
+    ] as const) {
+      expect(toHex(poly1305(fromHex(data), fromHex(r + s)))).toBe(tag)
+    }
+  })
+
+  /** RFC 8439 §2.8.2: the sunscreen text sealed, ciphertext then tag. */
+  it('seals the RFC 8439 AEAD example', () => {
+    expect(aead.encode(sunscreen, { key, nonce, aad })).toEqual({
+      text: sealed,
+      cipher: 'chacha20-poly1305',
+      operation: 'encode',
+      options: { key, nonce, aad },
+    })
+    expect(aead.decode(sealed, { key, nonce, aad }).text).toBe(sunscreen)
+  })
+
+  /** RFC 8439 A.5: a received ciphertext and tag that open to text with curly quotes. */
+  it('opens the RFC 8439 A.5 message', () => {
+    const ciphertext =
+      '64a0861575861af460f062c79be643bd5e805cfd345cf389f108670ac76c8cb24c6cfc18755d43eea09ee94e382d26b0bdb7b73c321b0100d4f03b7f355894cf332f830e710b97ce98c8a84abd0b948114ad176e008d33bd60f982b1ff37c8559797a06ef4f0ef61c186324e2b3506383606907b6a7c02b0f9f6157b53c867e4b9166c767b804d46a59b5216cde7a4e99040c5a40433225ee282a1b0a06c523eaf4534d7f83fa1155b0047718cbc546a0d072b04b3564eea1b422273f548271a0bb2316053fa76991955ebd63159434ecebb4e466dae5a1073a6727627097a1049e617d91d361094fa68f0ff77987130305beaba2eda04df997b714d6c6f2c29a6ad5cb4022b02709b'
+    const options = {
+      key: '1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0',
+      nonce: '000000000102030405060708',
+      aad: 'f33388860000000000004e91',
+    }
+    expect(aead.decode(`${ciphertext}eead9d67890cbb22392336fea1851f38`, options).text).toBe(
+      'Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time. It is inappropriate to use Internet-Drafts as reference material or to cite them other than as /“work in progress./”',
+    )
+  })
+
+  it('refuses a changed ciphertext, a wrong aad and a missing tag', () => {
+    const mismatch =
+      '[chacha20-poly1305] Tag does not match: wrong key, nonce or aad, or the ciphertext was changed'
+    const flipped = `${sealed.slice(0, 10)}${sealed[10] === '0' ? '1' : '0'}${sealed.slice(11)}`
+    expect(() => aead.decode(flipped, { key, nonce, aad })).toThrow(new CipherError(mismatch))
+    expect(() => aead.decode(sealed, { key, nonce })).toThrow(new CipherError(mismatch))
+    expect(() => aead.decode(sealed.slice(0, -2), { key, nonce, aad })).toThrow(
+      new CipherError(mismatch),
+    )
+    expect(() => aead.decode('00'.repeat(15), { key, nonce })).toThrow(
+      new CipherError('[chacha20-poly1305] Ciphertext must end in a 16-byte tag, got 15 bytes'),
+    )
+    expect(aead.encode('', { key, nonce }).text).toHaveLength(32)
+    expect(aead.decode(aead.encode('', { key, nonce }).text, { key, nonce }).text).toBe('')
+  })
+
+  it('names a missing or malformed nonce and aad', () => {
+    expect(() => aead.encode('', { key })).toThrow(new MissingOptionError('nonce'))
+    expect(() => aead.encode('', { key, nonce: '00'.repeat(24) })).toThrow(/24 hex digits/)
+    expect(() => aead.encode('', { key, nonce, aad: 'abc' })).toThrow(/whole bytes/)
+  })
+})
+
+describe('chacha and salsa subpaths', () => {
+  const bytes = (value: string) => Uint8Array.from(fromHex(value))
+  const key = bytes('1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0')
+
+  it('run the same streams on raw bytes', () => {
+    const data = new TextEncoder().encode("'Twas brillig")
+    const nonce = bytes('000000000000000000000002')
+    const encrypted = chacha20(data, key, nonce, 42)
+    expect(toHex([...encrypted])).toBe(
+      create('chacha20').encode("'Twas brillig", {
+        key: toHex([...key]),
+        nonce: '000000000000000000000002',
+        counter: 42,
+      }).text,
+    )
+    expect(chacha20(encrypted, key, nonce, 42)).toEqual(data)
+    expect(chacha20(new Uint8Array(), key, nonce)).toEqual(new Uint8Array())
+    const longNonce = bytes('00'.repeat(24))
+    expect(xchacha20(xchacha20(data, key, longNonce), key, longNonce)).toEqual(data)
+    expect(
+      salsa20(
+        salsa20(data, key.subarray(0, 16), bytes('00'.repeat(8))),
+        key.subarray(0, 16),
+        bytes('00'.repeat(8)),
+      ),
+    ).toEqual(data)
+    expect(xsalsa20(xsalsa20(data, key, longNonce, 7), key, longNonce, 7)).toEqual(data)
+  })
+
+  it('seals and opens with ChaCha20-Poly1305', () => {
+    const data = new TextEncoder().encode('sunscreen')
+    const nonce = bytes('070000004041424344454647')
+    const aad = bytes('50515253')
+    const sealedBytes = chacha20Poly1305(data, key, nonce, 'encrypt', aad)
+    expect(sealedBytes).toHaveLength(data.length + 16)
+    expect(chacha20Poly1305(sealedBytes, key, nonce, 'decrypt', aad)).toEqual(data)
+    expect(() => chacha20Poly1305(sealedBytes, key, nonce, 'decrypt')).toThrow(/Tag does not match/)
+    expect(() => chacha20Poly1305(data, key, nonce, 'sign' as 'encrypt')).toThrow(
+      InvalidOptionError,
+    )
+  })
+
+  it('name the length of a bad argument and never its bytes', () => {
+    const nonce = new Uint8Array(12)
+    expect(() => chacha20(new Uint8Array(), key.subarray(0, 31), nonce)).toThrow(
+      new InvalidOptionError('key', '31 bytes', 'must be a Uint8Array of 32 bytes'),
+    )
+    expect(() => salsa20(new Uint8Array(), key.subarray(0, 24), new Uint8Array(8))).toThrow(
+      new InvalidOptionError('key', '24 bytes', 'must be a Uint8Array of 16 or 32 bytes'),
+    )
+    expect(() => xchacha20(new Uint8Array(), key, nonce)).toThrow(/nonce=12 bytes/)
+    expect(() => chacha20(new Uint8Array(), key, nonce, -1)).toThrow(/counter/)
+    expect(() => chacha20(new Uint8Array(65), key, nonce, 0xffffffff)).toThrow(/runs past/)
+    expect(() => xsalsa20([1, 2] as unknown as Uint8Array, key, new Uint8Array(24))).toThrow(
+      new CipherError('[xsalsa20] Data must be a Uint8Array, got object'),
+    )
   })
 })
 

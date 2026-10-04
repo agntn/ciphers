@@ -12,7 +12,7 @@ The instruments ciphers owns:
 | [LandingBrute.vue](app/components/content/LandingBrute.vue) | "Twenty-five shifts, best fit on top" | verdict console: the sample as a Caesar, the key's rank among the 25 shifts |
 | [LandingFrequency.vue](app/components/content/LandingFrequency.vue) | "Count letters before guessing a key" | `analyzeFrequency` over the sample's ciphertext, IC and histogram |
 | [CipherHistogram.vue](app/components/CipherHistogram.vue) | frequency panel and playground | 26 columns A to Z, the language's top six in the accent |
-| [LandingRegistry.vue](app/components/content/LandingRegistry.vue) | "Forty-seven ciphers, thirteen families" | the registry as a grid of cells, one band per category, the walk's cipher and its family on the nodes |
+| [LandingRegistry.vue](app/components/content/LandingRegistry.vue) | "Fifty-two ciphers, thirteen families" | the registry as a grid of cells, one band per category, the walk's cipher and its family on the nodes |
 | [CipherRoster.vue](app/components/content/CipherRoster.vue) | `/ciphers`, `/ciphers/classical`, `/ciphers/block` | roster of the registry on `UTable`, sortable |
 | [LandingToolCall.vue](app/components/content/LandingToolCall.vue) | "`<count>` tools, three hosts" | one `ciphers_info` call, full text in the dialog |
 | [LandingCustom.vue](app/components/content/LandingCustom.vue) | "Extend Cipher, call register" | `reverse.ts`, a custom cipher as a file |

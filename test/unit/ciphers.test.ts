@@ -734,6 +734,13 @@ describe('book', () => {
     expect(book.encode('cafe\u0301', { book: 'un caf\u00E9' }).text).toBe('2')
   })
 
+  it('takes the first letter in NFC, so a decomposed book picks the same letters', () => {
+    const decomposed = { book: 'e\u0301clair e\u0301te\u0301', pick: 'letter' as const }
+    expect(book.encode('\u00E9', decomposed).text).toBe('1')
+    expect(book.encode('e\u0301e\u0301', decomposed).text).toBe('1 2')
+    expect(book.decode('2', decomposed).text).toBe('\u00C9')
+  })
+
   it('wraps round to the first word once every match is used', () => {
     expect(book.encode('one one', { book: 'one two' }).text).toBe('1 1')
   })

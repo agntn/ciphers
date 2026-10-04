@@ -154,13 +154,13 @@ function fold(unit: string): string {
 }
 
 /**
- * The first character of a word, the one `pick: letter` reads.
+ * The first character of a word in NFC, the one `pick: letter` reads, with a mark that composes.
  *
  * @param word - A word of the book.
- * @returns {string} Its first code point.
+ * @returns {string} Its first code point after NFC.
  */
 function initial(word: string): string {
-  return String.fromCodePoint(word.codePointAt(0)!)
+  return String.fromCodePoint(word.normalize('NFC').codePointAt(0)!)
 }
 
 /**
@@ -206,7 +206,7 @@ function indexBook(book: Readonly<SplitBook>, pick: BookPick): Map<string, BookW
  */
 function plainUnits(text: string, pick: BookPick): string[] {
   if (pick === 'word') return text.match(WORD) ?? []
-  return Array.from(text).filter((char) => LETTER.test(char))
+  return Array.from(text.normalize('NFC')).filter((char) => LETTER.test(char))
 }
 
 /**

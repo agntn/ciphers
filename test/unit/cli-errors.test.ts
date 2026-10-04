@@ -219,6 +219,41 @@ describe('CLI crib drag', () => {
   })
 })
 
+describe('CLI hidden text', () => {
+  it('ranks the readings with the flags that read each again', () => {
+    const telegram =
+      "PRESIDENT'S EMBARGO RULING SHOULD HAVE IMMEDIATE NOTICE. GRAVE SITUATION AFFECTING INTERNATIONAL LAW. STATEMENT FORESHADOWS RUIN OF MANY NEUTRALS. YELLOW JOURNALS UNIFYING NATIONAL EXCITEMENT IMMENSELY."
+    const result = runCli(['hidden', telegram], { ...process.env, CONSOLA_LEVEL: '3' })
+
+    expect(result.status).toBe(0)
+    const output = stripVTControlCharacters(`${result.stdout}${result.stderr}`)
+    expect(output).toContain(
+      'Hidden text (68 readings tried, lang=en), most like the language first:',
+    )
+    expect(output).toContain('   0.19  PERSHINGSAILSFROMNYJUNEI  --pick word --letter 1\n')
+  })
+
+  it('reads one pick and refuses flags that need another', () => {
+    expect(runCli(['hidden', 'one two three', '--pick', 'word', '--letter', '-1']).stdout).toBe(
+      'eoe\n',
+    )
+    const cases = [
+      [['--every', '2'], 'Missing required option: pick\n'],
+      [
+        ['--pick', 'line', '--lang', 'pl'],
+        'Invalid option lang=pl: ranks the readings, so it does not apply with --pick\n',
+      ],
+      [['--pick', 'word', '--letter', 'two'], 'Invalid option letter=two: must be an integer\n'],
+      [['--lang', 'de'], 'Invalid option lang=de: must be en, pl or ja\n'],
+    ] as const
+    for (const [flags, message] of cases) {
+      const result = runCli(['hidden', 'abc', ...flags])
+      expect(result.status).toBe(1)
+      expect(result.stderr).toBe(message)
+    }
+  })
+})
+
 describe('CLI Caesar brute force', () => {
   /**
    * Run `ciphers brute` and keep its shift lines without the terminal styling.

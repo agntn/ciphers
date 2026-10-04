@@ -99,3 +99,13 @@ export {
   type FamilyGuess,
   type GuessConfidence,
 } from './guess.ts'
+export {
+  readHiddenText,
+  rankHiddenText,
+  hiddenTextPicks,
+  type HiddenTextCandidate,
+  type HiddenTextDirection,
+  type HiddenTextOptions,
+  type HiddenTextPick,
+  type HiddenTextRanking,
+} from './hidden-text.ts'

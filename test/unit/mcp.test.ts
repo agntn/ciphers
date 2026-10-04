@@ -53,6 +53,7 @@ describe('Ciphers MCP server', () => {
       'ciphers_family_guess',
       'ciphers_passphrase_probe',
       'ciphers_crib_drag',
+      'ciphers_hidden_text_read',
       'ciphers_info',
     ])
     const encodeTool = response.tools.find((tool) => tool.name === 'ciphers_encode')
@@ -1356,6 +1357,42 @@ describe('Ciphers MCP server', () => {
       const refused = await drag(args)
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain('Invalid arguments at /')
+    }
+  })
+
+  it('reads and ranks hidden text over the protocol', async () => {
+    const client = await connectTestClient()
+    const call = async (args: Readonly<Record<string, unknown>>) =>
+      client.callTool({ name: 'ciphers_hidden_text_read', arguments: args })
+    const telegram =
+      "PRESIDENT'S EMBARGO RULING SHOULD HAVE IMMEDIATE NOTICE. GRAVE SITUATION AFFECTING INTERNATIONAL LAW. STATEMENT FORESHADOWS RUIN OF MANY NEUTRALS. YELLOW JOURNALS UNIFYING NATIONAL EXCITEMENT IMMENSELY."
+
+    const ranked = onlyText((await call({ text: telegram })).content).split('\n')
+    expect(ranked[0]).toBe(
+      'Hidden text readings (68 tried, 57 with 5 or more A-Z letters, lang=en), most like the language first:',
+    )
+    expect(ranked[2]).toBe('   0.19  pick=word letter=1 -> PERSHINGSAILSFROMNYJUNEI')
+    expect(ranked[12]).toBe('  (47 more readings ranked lower)')
+    expect(onlyText((await call({ text: telegram, pick: 'word' })).content)).toBe(
+      'PERSHINGSAILSFROMNYJUNEI',
+    )
+    expect(onlyText((await call({ text: 'ab cd' })).content)).toBe(
+      'No reading has 5 or more A-Z letters.',
+    )
+
+    for (const [args, message] of [
+      [{ text: 'abc', every: 2 }, 'Missing required option: pick'],
+      [{ text: 'abc', pick: 'word', lang: 'pl' }, 'Invalid option lang=pl: ranks the readings'],
+      [
+        { text: 'abc', pick: 'word', every: 2 },
+        'Invalid option every=2: does not apply to pick word',
+      ],
+      [{ text: 'abc', pick: 'every-word' }, 'Missing required option: every'],
+      [{ text: 'abc', pick: 'column' }, 'Invalid arguments at /pick'],
+    ] as const) {
+      const refused = await call(args)
+      expect(refused.isError).toBe(true)
+      expect(onlyText(refused.content)).toContain(message)
     }
   })
 

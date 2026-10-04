@@ -262,6 +262,19 @@ describe('OMP extension', () => {
       iterations: Array.from({ length: 33 }, (_, index) => index + 1),
     })
     await rejects('ciphers_passphrase_probe', { text: blob, key: 'secret', digest: 'md5' })
+    await accepts('ciphers_hidden_text_read', { text: 'TEST', pick: 'word', letter: -1 })
+    await accepts('ciphers_hidden_text_read', {
+      text: 'TEST',
+      pick: 'diagonal',
+      direction: 'down-left',
+    })
+    await rejects('ciphers_hidden_text_read', { text: 'TEST', pick: 'column' })
+    await rejects('ciphers_hidden_text_read', { text: 'TEST', pick: 'every-letter', every: 0 })
+    await rejects('ciphers_hidden_text_read', { text: 'TEST', letter: 1.5 })
+    await accepts('ciphers_hidden_text_read', { text: 'TEST', pick: 'word', letter: -1_001 })
+    await rejects('ciphers_hidden_text_read', { text: 'TEST', pick: 'word', letter: 100_001 })
+    await rejects('ciphers_hidden_text_read', { text: 'TEST', direction: 'up' })
+    await rejects('ciphers_hidden_text_read', { text: 'X'.repeat(100_001) })
 
     await accepts('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_000) })
     await rejects('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_001) })

@@ -11,6 +11,7 @@ import { builtinCiphers, cipherCategories } from './core/ciphers.ts'
 import {
   AFFINE_MULTIPLIERS,
   BRUTE_PREVIEW_LENGTH,
+  HIDDEN_TEXT_LINES,
   MAX_BRUTE_TEXT_LENGTH,
   MAX_CRIB_CIPHERTEXTS,
   MAX_CRIB_CIPHERTEXT_DIGITS,
@@ -32,6 +33,7 @@ import {
   formatFamilyGuess,
   formatFrequencyAnalysis,
   formatPassphraseProbe,
+  formatHiddenText,
   formatPeriodEstimate,
   transformCipher,
   type CipherToolParams,
@@ -730,6 +732,71 @@ export const cribDragTool = defineTool({
   execute: async (params) => answer(formatCribDrag(await loadLibrary(), params)),
 })
 
+export const hiddenTextReadTool = defineTool({
+  name: 'ciphers_hidden_text_read',
+  title: 'Read Hidden Text',
+  description: `Read a message hidden in plain text by position: a letter of each line, word, sentence or paragraph (acrostics, telestichs, null ciphers), every nth letter or word, or a diagonal down the lines. Without pick, try the usual places and rank the readings by how much they look like the language, the top ${HIDDEN_TEXT_LINES} with the arguments that read each again.`,
+  snippet:
+    'Use ciphers_hidden_text_read on a poem or a letter that may spell a message by position.',
+  guidelines: [
+    'Without pick it ranks the first, second and last letter of every line, word, sentence and paragraph, both diagonals and every nth letter up to 10, most like the language first; with English the number before each reading is above 0 for text that reads like it.',
+    'With pick it returns that reading alone. letter takes 1 for the first letter of each unit, 2 for the second, -1 for the last; every-letter and every-word need every and start at the start-th one (default 1); diagonal takes the start-th letter of the first line, the next of the second, counted from the end of each line with direction down-left.',
+    'Only letters count: spaces, digits and punctuation are never picked, lines without letters are skipped, and words are what lies between whitespace.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'Text that may hide a message, line breaks kept',
+      }),
+      pick: Type.Optional(
+        Type.Enum(
+          ['line', 'word', 'sentence', 'paragraph', 'every-letter', 'every-word', 'diagonal'],
+          {
+            description:
+              'Where the message sits: a letter of each line, word, sentence or paragraph, every nth letter or word, or a diagonal. Omit to rank them all',
+          },
+        ),
+      ),
+      letter: Type.Optional(
+        Type.Integer({
+          minimum: -MAX_FREQUENCY_TEXT_LENGTH,
+          maximum: MAX_FREQUENCY_TEXT_LENGTH,
+          description:
+            'line, word, sentence and paragraph only: the letter taken from each, 1 the first (default), 2 the second, -1 the last; never 0',
+        }),
+      ),
+      every: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: MAX_FREQUENCY_TEXT_LENGTH,
+          description: 'every-letter and every-word only, and required there: the step',
+        }),
+      ),
+      start: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: MAX_FREQUENCY_TEXT_LENGTH,
+          description:
+            'every-letter and every-word: position of the first one taken. diagonal: letter of the first line. Default 1',
+        }),
+      ),
+      direction: Type.Optional(
+        Type.Enum(['down-right', 'down-left'], {
+          description:
+            'diagonal only: down-right counts the letters of each line from its start (default), down-left from its end',
+        }),
+      ),
+      lang: language(
+        'Language the message should read in, ja for Hepburn romaji; ranks the readings without pick (default en)',
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  execute: async (params) => answer(formatHiddenText(await loadLibrary(), params)),
+})
+
 export const infoTool = defineTool({
   name: 'ciphers_info',
   title: 'Cipher Info',
@@ -770,6 +837,7 @@ export const ciphersTools: readonly ToolDefinition[] = [
   familyGuessTool,
   passphraseProbeTool,
   cribDragTool,
+  hiddenTextReadTool,
   infoTool,
 ]
 
@@ -811,5 +879,6 @@ export const callSummaries: Readonly<
   ciphers_family_guess: (args) => excerpt(args['text']),
   ciphers_passphrase_probe: (args) => excerpt(args['text']),
   ciphers_crib_drag: (args) => (typeof args['crib'] === 'string' ? excerpt(args['crib']) : 'known'),
+  ciphers_hidden_text_read: (args) => `${named(args['pick']) || 'all'} ${excerpt(args['text'])}`,
   ciphers_info: (args) => named(args['cipher']) || named(args['category']) || 'all',
 }

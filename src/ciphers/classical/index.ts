@@ -1,4 +1,5 @@
 import type { CipherConstructor } from '../../core/cipher.ts'
+import { A1z26 } from './a1z26.ts'
 import { Adfgvx } from './adfgvx.ts'
 import { Affine } from './affine.ts'
 import { Alberti } from './alberti.ts'
@@ -40,6 +41,7 @@ export const classical: readonly CipherConstructor[] = [
   Morse,
   Bacon,
   TapCode,
+  A1z26,
   Columnar,
   Route,
   Adfgvx,

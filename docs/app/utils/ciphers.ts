@@ -38,6 +38,7 @@ const PRESENTATION: Record<
   morse: { icon: "i-lucide-radio", blurb: "Dots, dashes and a slash between words", sample: "SOS" },
   bacon: { icon: "i-lucide-binary", blurb: "Five A or B per letter", sample: "SECRET" },
   "tap-code": { icon: "i-lucide-grid-3x3", blurb: "Knocks on a 5×5 grid, C and K share", sample: "HELP" },
+  a1z26: { icon: "i-lucide-arrow-down-a-z", blurb: "A is 1, Z is 26, dashes between", sample: "ATTACK AT DAWN" },
   columnar: { icon: "i-lucide-columns-3", blurb: "Rows in, columns out in keyword order", sample: "ATTACK AT DAWN", options: { key: "ZEBRA" } },
   route: { icon: "i-lucide-route", blurb: "Rows in, a spiral or a snake out", sample: "ATTACK AT DAWN", options: { width: 4 } },
   adfgvx: { icon: "i-lucide-table", blurb: "A 6×6 grid of letters and digits", sample: "ATTACK AT 1200" },

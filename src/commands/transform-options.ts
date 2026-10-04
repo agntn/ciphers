@@ -6,6 +6,8 @@ export interface TransformOptionArgs {
   readonly key?: string
   readonly transposition?: string
   readonly blanks?: string
+  readonly separator?: string
+  readonly zero?: string
   readonly iv?: string
   readonly tweak?: string
   readonly nonce?: string
@@ -80,6 +82,8 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['endian', args.endian],
     ['bytes', args.bytes],
     ['blanks', args.blanks],
+    ['separator', args.separator],
+    ['zero', args.zero],
     ['corner', args.corner],
     ['path', args.path],
     ['digest', args.digest],

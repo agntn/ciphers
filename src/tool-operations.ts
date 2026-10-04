@@ -31,6 +31,8 @@ export type CipherToolParams = {
   endian?: 'big' | 'little'
   bytes?: 'text' | 'hex'
   blanks?: string
+  separator?: string
+  zero?: string
   tagLength?: number
   digest?: 'md5' | 'sha1' | 'sha256'
   keyLength?: number
@@ -85,6 +87,9 @@ export const OPTION_DESCRIPTIONS = {
     'Block and stream ciphers only: text for UTF-8 text on the plain side (default), or hex to read and write hex there, for bytes that are not text',
   blanks:
     'Straddling checkerboard only: the two blank digits of the top row, each of which starts a code of two digits (default 26)',
+  separator:
+    'A1Z26 only: text between the numbers of one word, 1 to 10 characters without digits; decoding drops it only between two numbers (default -)',
+  zero: 'A1Z26 only: letter J to Z that stands for 0. Setting it switches to the single digit form, A to I for 1 to 9, where decoding turns those letters into digits',
   width:
     'Route only, and required there: cells per row of the grid the text fills row by row (at least 2)',
   corner: 'Route only: corner the path starts from (default top-left)',
@@ -134,6 +139,8 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'endian',
     'bytes',
     'blanks',
+    'separator',
+    'zero',
     'tagLength',
     'digest',
     'keyLength',

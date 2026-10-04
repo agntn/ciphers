@@ -36,6 +36,14 @@ export default defineCommand({
       type: 'string',
       description: 'Byte order, big as in RFC 4503 or little as in Crypto++ (Rabbit; default big)',
     },
+    separator: {
+      type: 'string',
+      description: 'Text between the numbers of one word (A1Z26; default -)',
+    },
+    zero: {
+      type: 'string',
+      description: 'Letter J to Z for 0, switches to the single digit form A to I (A1Z26)',
+    },
     blanks: {
       type: 'string',
       description: 'The two blank digits of the top row (straddling checkerboard; default 26)',

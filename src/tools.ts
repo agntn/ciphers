@@ -345,6 +345,17 @@ const cipherInput = Type.Object(
     blanks: Type.Optional(
       Type.String({ pattern: '^\\s*[0-9]\\s*[0-9]\\s*$', description: OPTION_DESCRIPTIONS.blanks }),
     ),
+    separator: Type.Optional(
+      Type.String({
+        minLength: 1,
+        maxLength: 10,
+        pattern: '^\\D+$',
+        description: OPTION_DESCRIPTIONS.separator,
+      }),
+    ),
+    zero: Type.Optional(
+      Type.String({ pattern: '^[J-Zj-z]$', description: OPTION_DESCRIPTIONS.zero }),
+    ),
     preserveCase: Type.Optional(
       Type.Boolean({ description: 'Preserve letter case (default true)' }),
     ),
@@ -390,6 +401,7 @@ export const encodeTool = defineTool({
   guidelines: [
     'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
     'Route (route) needs width, the cells per row. Decoding reads the grid along path from corner, so a grid copied row by row from a puzzle goes to ciphers_decode. Line breaks are not cells.',
+    'A1Z26 (a1z26) turns letters into their numbers, 1 to 26, joined by separator (default -). With zero it is the single digit form instead: A to I for 1 to 9 and zero for 0, so letters like BEF go to ciphers_decode and come back as 256.',
     'Straddling checkerboard (straddling-checkerboard) turns letters into digits, one for the eight on the top row and two for the rest. key is the board of 28 cells and blanks its two blank digits.',
     'AES (aes) needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
     'AES-CBC (aes-cbc) takes the same key plus iv, 32 hex digits.',

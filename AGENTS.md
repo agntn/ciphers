@@ -32,6 +32,7 @@ Applies to the whole repository. A nested `AGENTS.md`, if introduced, overrides 
 - Latin cipher alphabets use A-Z.
 - Playfair and Polybius map J to I.
 - Tap code shares C and K.
+- `a1z26` numbers A-Z from 1 to 26 and joins the numbers of one word with `separator` (default `-`, at most 10 code points); everything that is not a letter passes. Decoding drops the separator only between two numbers and throws `CipherError` on a number outside 1 to 26. `zero`, one letter from J to Z, switches to the single digit form: A to I for 1 to 9 and that letter for 0, encoding digits and decoding letters in either case, and it takes no `separator`. The fixed vectors are the two dCode examples and `bef` as `256` from issue #160.
 - Morse uses dots and dashes, spaces between letters, and `/` between words.
 - Bacon defaults to the 26-letter A-Z variant; `letters: 24` selects the historical table with I/J and U/V shared. Decoding throws `CipherError` when the A and B in the text don't split into groups of five, or when there are none.
 - ADFGVX runs its columnar transposition only when `transposition` is set; without it the output is the grid step alone. Decoding throws `CipherError` when the A, D, F, G, V and X in the text don't split into pairs, or when there are none.

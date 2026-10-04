@@ -26,6 +26,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "aes-lrw",
   "tap-code",
   "xor",
+  "a1z26",
   "rot13",
   "aes-passphrase",
   "beaufort",

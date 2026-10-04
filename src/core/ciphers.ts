@@ -16,6 +16,7 @@ export const builtinCiphers = [
   'morse',
   'bacon',
   'tap-code',
+  'a1z26',
   'columnar',
   'route',
   'adfgvx',

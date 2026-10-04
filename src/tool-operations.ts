@@ -62,6 +62,10 @@ export const MAX_PERIOD = 100
 export const PERIOD_LINES = 10
 /** Kasiski factors the period estimate prints. */
 export const KASISKI_FACTORS = 5
+/** Longest list of each kind a passphrase probe takes. */
+export const PROBE_LIST_LIMITS = { digests: 3, keyLengths: 29, iterations: 32 } as const
+/** Hex digits a probe hit shows of plaintext that is not UTF-8. */
+const PROBE_HEX_PREVIEW = 32
 
 /**
  * Characters a brute-force line keeps below the top one. From this length on, scored against the
@@ -115,6 +119,10 @@ export const OPTION_DESCRIPTIONS = {
     'AES-passphrase only: hash passes per derived block, 1 to 100000, CryptoJS EvpKDF iterations (default 1); decoding needs the same value',
   salt: 'AES-passphrase encoding only: 16 hex digits (default random); decoding reads it from the ciphertext',
   maxPeriod: `Longest key length to try, 2 to ${MAX_PERIOD} (default 20)`,
+  probeDigests: 'EVP_BytesToKey hashes to try: md5, sha1, sha256 (default all three)',
+  probeKeyLengths:
+    'Key lengths in bits to try, each 128 to 1024 in steps of 32, CryptoJS keySize times 32 (default 128, 192 and 256)',
+  probeIterations: `Hash passes per derived block to try, each 1 to 100000, up to ${PROBE_LIST_LIMITS.iterations} counts adding up to at most 1000000 across the digests (default 1)`,
   period:
     'Block length. Required by alberti (letters before the disk rotates); optional for bifid (default 5)',
 } as const
@@ -438,5 +446,80 @@ export function formatFamilyGuess(
     )
   })
   lines.push('', 'Candidates, not a verdict: only a decode that reads settles it.')
+  return { content: [{ type: 'text', text: lines.join('\n') }] }
+}
+
+/**
+ * Decrypted text on one line: JSON quotes, with DEL, C1, separators and format controls escaped.
+ *
+ * @param text - Decrypted text, which the ciphertext's author controls.
+ * @param length - Code points kept inside the quotes; `…` follows when the text is longer.
+ * @returns {string} The quoted preview.
+ */
+export function quotedPreview(text: string, length: number = BRUTE_PREVIEW_LENGTH): string {
+  const characters = Array.from(text)
+  const shown = JSON.stringify(characters.slice(0, length).join('')).replaceAll(
+    /[\u007F-\u009F\u2028\u2029\p{Cf}]/gu,
+    (character) => `\\u${character.codePointAt(0)!.toString(16).padStart(4, '0')}`,
+  )
+  return characters.length > length ? `${shown}…` : shown
+}
+
+/**
+ * One probe hit on one line: its settings, the padding, how much prints and the start of the text.
+ *
+ * @param hit - A setting whose padding held.
+ * @returns {string} The line, indented.
+ */
+function probeHitLine(hit: Readonly<CiphersModule.PassphraseProbeHit>): string {
+  const settings = `digest ${hit.digest}, keyLength ${hit.keyLength}, iterations ${hit.iterations}`
+  const reading =
+    hit.text === undefined
+      ? `not UTF-8, hex ${hit.hex.slice(0, PROBE_HEX_PREVIEW)}${hit.hex.length > PROBE_HEX_PREVIEW ? '…' : ''}`
+      : quotedPreview(hit.text)
+  return `  ${settings}: pad ${hit.padLength}, ${Math.round(hit.printable * 100)}% printable, ${reading}`
+}
+
+/**
+ * Probe a `Salted__` blob for a model, with the error class from `library`.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - Base64 starting `U2FsdGVkX1`.
+ * @param passphrase - The passphrase to try.
+ * @param grid - Digests, key lengths and iteration counts; each defaults as `probePassphrase` says.
+ * @returns {CipherToolResult} The hits, most printable first, against the count expected by chance.
+ * @throws {InvalidOptionError} When a list is longer than `PROBE_LIST_LIMITS` allows.
+ */
+export function formatPassphraseProbe(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'probePassphrase' | 'InvalidOptionError'>>,
+  text: string,
+  passphrase: string,
+  grid: Readonly<CiphersModule.PassphraseProbeGrid> = {},
+): CipherToolResult {
+  for (const [name, limit] of Object.entries(PROBE_LIST_LIMITS)) {
+    const list = grid[name as keyof typeof PROBE_LIST_LIMITS]
+    if (list !== undefined && list.length > limit) {
+      throw new library.InvalidOptionError(name, list.length, `must list at most ${limit} values`)
+    }
+  }
+  const probe = library.probePassphrase(text, passphrase, grid)
+  const expected = `about ${Number(probe.expected.toPrecision(2))} expected by chance`
+  const lines = [
+    `Passphrase probe (salt ${probe.salt}, ${probe.blocks} ${probe.blocks === 1 ? 'block' : 'blocks'}, ${probe.tries} tries: digests ${probe.digests.join(', ')} × keyLength ${probe.keyLengths.join(', ')} × iterations ${probe.iterations.join(', ')}):`,
+  ]
+  if (probe.hits.length === 0) {
+    lines.push(
+      `Padding held in none of ${probe.tries} tries (${expected}): a wrong passphrase, settings outside this grid, or not this format. openssl enc -pbkdf2 and -iter derive the key with PBKDF2, which aes-passphrase does not take.`,
+    )
+    return { content: [{ type: 'text', text: lines.join('\n') }] }
+  }
+  lines.push(
+    `Padding held in ${probe.hits.length} of ${probe.tries} tries, ${expected}. Most printable first:`,
+    '',
+    ...probe.hits.map((hit) => probeHitLine(hit)),
+    '',
+    'A wrong setting passes the padding check about once in 255 tries, nearly always with pad 1, and decrypts to bytes that are not text. ciphers_decode with cipher aes-passphrase, the same key and the digest, keyLength and iterations of a hit returns its whole text.',
+  )
   return { content: [{ type: 'text', text: lines.join('\n') }] }
 }

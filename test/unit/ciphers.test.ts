@@ -741,6 +741,12 @@ describe('book', () => {
     expect(book.decode('2', decomposed).text).toBe('\u00C9')
   })
 
+  it('decodes one letter per address when its capital would be longer', () => {
+    const letters = { book: '\u00DFeta \uFB03le', pick: 'letter' as const }
+    expect(book.decode('1 2', letters).text).toBe('\u00DF\uFB03')
+    expect(book.encode('\u00DF\uFB03', letters).text).toBe('1 2')
+  })
+
   it('wraps round to the first word once every match is used', () => {
     expect(book.encode('one one', { book: 'one two' }).text).toBe('1 1')
   })

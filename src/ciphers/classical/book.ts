@@ -198,6 +198,17 @@ function indexBook(book: Readonly<SplitBook>, pick: BookPick): Map<string, BookW
 }
 
 /**
+ * A capital that stays one letter: `ß` and `ﬃ` keep their form, not `SS` and `FFI`.
+ *
+ * @param letter - One code point.
+ * @returns {string} The capital, or the letter itself.
+ */
+function capital(letter: string): string {
+  const upper = letter.toUpperCase()
+  return Array.from(upper).length === 1 ? upper : letter
+}
+
+/**
  * The units of the plaintext: its words, or its letters and digits.
  *
  * @param text - Plaintext.
@@ -356,7 +367,7 @@ function decodeBook(
   )
   return settings.pick === 'word'
     ? found.map((word) => word.text).join(' ')
-    : found.map((word) => initial(word.text).toUpperCase()).join('')
+    : found.map((word) => capital(initial(word.text))).join('')
 }
 
 export class Book extends Cipher {

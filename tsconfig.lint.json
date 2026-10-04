@@ -7,7 +7,8 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "paths": { "#mcp": ["./src/mcp.ts"] }
   },
   "include": [
     "build.config.ts",

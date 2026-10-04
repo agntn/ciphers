@@ -21,6 +21,9 @@ jobs:
           package-manager-cache: false
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      # docs/ pins its own pnpm, and test/unit/docs-mcp.test.ts loads the /mcp helper from there.
+      - run: pnpm install --frozen-lockfile
+        working-directory: docs
       - run: pnpm test
       - run: pnpm test:packed
       - run: npm publish --access public

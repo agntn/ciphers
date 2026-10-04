@@ -1,7 +1,19 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
-import { afterEach, describe, expect, it } from 'vite-plus/test'
+import { Client as WorkerClient } from '../../docs/node_modules/@modelcontextprotocol/sdk/dist/esm/client/index.js'
+import { InMemoryTransport as WorkerTransport } from '../../docs/node_modules/@modelcontextprotocol/sdk/dist/esm/inMemory.js'
+import { McpServer } from '../../docs/node_modules/@modelcontextprotocol/sdk/dist/esm/server/mcp.js'
+import type { CallToolResult } from '../../docs/node_modules/@modelcontextprotocol/sdk/dist/esm/types.js'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 import { callTool, createMcpServer, toolListings } from '../../src/mcp.ts'
+
+/** The toolkit's entry needs Nitro, and `defineMcpTool` only hands its input back. */
+vi.mock(
+  '../../docs/node_modules/@nuxtjs/mcp-toolkit/dist/runtime/server/mcp/definitions/index.js',
+  () => ({
+    defineMcpTool: (definition: unknown) => definition,
+  }),
+)
 
 const toolsDir = new URL('../../docs/server/mcp/tools/', import.meta.url)
 
@@ -20,6 +32,24 @@ const CALLS: ReadonlyArray<[string, Record<string, unknown>]> = [
   ['ciphers_info', { cipher: 'vigenere' }],
   ['ciphers_nope', {}],
 ]
+
+/* An SDK client on every docs tool, served by the same SDK copy the worker runs. */
+async function docsClient(): Promise<WorkerClient> {
+  const { ciphersMcpTool } = await import('../../docs/server/utils/ciphers-mcp.ts')
+  const server = new McpServer({ name: 'ciphers-docs', version: '0.0.0' })
+  for (const listing of toolListings) {
+    const tool = ciphersMcpTool(listing.name)
+    const handler = tool.handler as (
+      args: Readonly<Record<string, unknown>>,
+    ) => Promise<CallToolResult>
+    server.registerTool(listing.name, tool, handler)
+  }
+  const [clientTransport, serverTransport] = WorkerTransport.createLinkedPair()
+  const client = new WorkerClient({ name: 'ciphers-docs-test', version: '1.0.0' })
+  openConnections.push(client, server)
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)])
+  return client
+}
 
 describe('docs MCP tools', () => {
   it('serves every tool `ciphers mcp` lists, one file each', () => {
@@ -46,5 +76,18 @@ describe('docs MCP tools', () => {
       const viaServer = await client.callTool({ name, arguments: args })
       expect(await callTool(name, args), name).toEqual(viaServer)
     }
+  })
+
+  it('reads a call without arguments as `{}`, like `ciphers mcp`', async () => {
+    const client = await docsClient()
+    const listed = await client.callTool({ name: 'ciphers_info' })
+    expect(listed.isError).toBeFalsy()
+    expect(listed.content).toEqual((await callTool('ciphers_info', {})).content)
+
+    const required = await client.callTool({ name: 'ciphers_frequency' })
+    expect(required.isError).toBe(true)
+    expect(required.content).toEqual(
+      (await client.callTool({ name: 'ciphers_frequency', arguments: {} })).content,
+    )
   })
 })

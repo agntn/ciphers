@@ -74,6 +74,17 @@ export {
   type PeriodCandidate,
 } from './period.ts'
 export {
+  DEFAULT_PROBE_DIGESTS,
+  DEFAULT_PROBE_ITERATIONS,
+  DEFAULT_PROBE_KEY_LENGTHS,
+  MAX_PROBE_ITERATIONS,
+  PADDING_CHANCE,
+  probePassphrase,
+  type PassphraseProbe,
+  type PassphraseProbeGrid,
+  type PassphraseProbeHit,
+} from './passphrase-probe.ts'
+export {
   guessFamily,
   type FamilyCandidate,
   type FamilyGuess,

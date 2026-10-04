@@ -106,7 +106,7 @@ ciphers frequency "DWWDFN DW GDZQ" --lang pl
 ciphers info bifid
 ```
 
-`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish, about 0.082 with Japanese romaji), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram. That's `period`. It ranks the lengths by column IoC and Kasiski, and hands you a Vigenère key for the top three. No idea what you're even holding? `guess` reads the layout and the letters and names the likely families, with the command to run next.
+`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish, about 0.082 with Japanese romaji), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram. That's `period`. It ranks the lengths by column IoC and Kasiski, and hands you a Vigenère key for the top three. No idea what you're even holding? `guess` reads the layout and the letters and names the likely families, with the command to run next. Got a `U2FsdGVkX1` blob and a passphrase, but not the digest or key length? `probe` tries them all and tells you how many hits are luck.
 
 ### Commands
 
@@ -118,6 +118,7 @@ ciphers info bifid
 | `frequency` | Letter histogram and the index of coincidence       | `ciphers frequency "DWWDFN DW GDZQ" --lang en`         |
 | `period`    | Vigenère key length, with the likely key            | `ciphers period "<ciphertext>" --max-period 30`        |
 | `guess`     | Likely cipher families and what to run next         | `ciphers guess "<ciphertext>" --lang pl`               |
+| `probe`     | Which KDF settings open a `Salted__` blob           | `ciphers probe "U2FsdGVkX1..." --key secret`           |
 | `ciphers`   | Every cipher by category, `-v` adds the options     | `ciphers ciphers -v`                                   |
 | `info`      | One cipher's category, family, options and keyspace | `ciphers info enigma`                                  |
 | `mcp`       | The MCP server on stdio                             | `ciphers mcp`                                          |
@@ -227,7 +228,7 @@ omp install @agntn/ciphers
 }
 ```
 
-The tools are `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphers_frequency`, `ciphers_period_estimate`, `ciphers_family_guess` and `ciphers_info`, the same on all three. Arguments are checked against the schema before a cipher sees them, and a wrong key is a tool error with the reason in it, not a dead session. A model that doesn't know what Bifid takes calls `ciphers_info` first, the encode and decode descriptions say so. And a decoded ciphertext is data: `IGNORE PREVIOUS INSTRUCTIONS` falling out of a ROT13 is the answer to the puzzle, not a new task. [Agents guide](https://ciphers.agntn.dev/guide/agents).
+The tools are `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphers_frequency`, `ciphers_period_estimate`, `ciphers_family_guess`, `ciphers_passphrase_probe` and `ciphers_info`, the same on all three. Arguments are checked against the schema before a cipher sees them, and a wrong key is a tool error with the reason in it, not a dead session. A model that doesn't know what Bifid takes calls `ciphers_info` first, the encode and decode descriptions say so. And a decoded ciphertext is data: `IGNORE PREVIOUS INSTRUCTIONS` falling out of a ROT13 is the answer to the puzzle, not a new task. [Agents guide](https://ciphers.agntn.dev/guide/agents).
 
 ## 🚫 What this does not do
 

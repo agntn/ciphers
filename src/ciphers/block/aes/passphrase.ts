@@ -39,9 +39,11 @@ export const MAX_PASSPHRASE_ITERATIONS = 100_000
 /** EVP_BytesToKey hashes: MD5 for CryptoJS, SHA-256 for `openssl enc` since 1.1.0. */
 const DIGESTS = { md5: Md5Hasher, sha1: Sha1Hasher, sha256: Sha256Hasher }
 
-type PassphraseDigest = keyof typeof DIGESTS
+/** A hash `digest` names. */
+export type PassphraseDigest = keyof typeof DIGESTS
 
-type PassphraseSettings = { digest: PassphraseDigest; keyLength: number; iterations: number }
+/** The KDF settings a passphrase blob does not record. */
+export type PassphraseSettings = { digest: PassphraseDigest; keyLength: number; iterations: number }
 
 function readPassphrase(options: Readonly<CipherBaseOptions>): string {
   const key = options.key
@@ -58,7 +60,14 @@ function readDigest(options: Readonly<CipherBaseOptions>): PassphraseDigest {
   return digest as PassphraseDigest
 }
 
-function readSettings(options: Readonly<CipherBaseOptions>): PassphraseSettings {
+/**
+ * Digest, key length and iterations from the options, each checked against what the format takes.
+ *
+ * @param options - Cipher options; left out, each takes its default.
+ * @returns {PassphraseSettings} The settings.
+ * @throws {InvalidOptionError} For a digest, key length or iteration count out of range.
+ */
+export function readPassphraseSettings(options: Readonly<CipherBaseOptions>): PassphraseSettings {
   const digest = readDigest(options)
   const keyLength = getOpt<unknown>(options, 'keyLength', 256)
   if (
@@ -101,26 +110,51 @@ function readSalt(options: Readonly<CipherBaseOptions>): Bytes {
   )
 }
 
+/**
+ * EVP_BytesToKey output, which a key of any length and the IV after it take from the front.
+ *
+ * @param passphrase - The passphrase, hashed as UTF-8.
+ * @param salt - The 8-byte salt.
+ * @param settings - Digest and iterations.
+ * @param length - Bytes to derive.
+ * @returns {Bytes} The derived bytes.
+ */
+export function deriveKeyStream(
+  passphrase: string,
+  salt: Bytes,
+  settings: Readonly<Pick<PassphraseSettings, 'digest' | 'iterations'>>,
+  length: number,
+): Bytes {
+  const Hasher = DIGESTS[settings.digest]
+  return [
+    ...evpBytesToKey(
+      () => new Hasher(),
+      new TextEncoder().encode(passphrase),
+      Uint8Array.from(salt),
+      settings.iterations,
+      length,
+    ),
+  ]
+}
+
 function deriveKey(
   passphrase: string,
   salt: Bytes,
   settings: Readonly<PassphraseSettings>,
 ): { key: Bytes; iv: Bytes } {
   const keyBytes = settings.keyLength / 8
-  const Hasher = DIGESTS[settings.digest]
-  const derived = [
-    ...evpBytesToKey(
-      () => new Hasher(),
-      new TextEncoder().encode(passphrase),
-      Uint8Array.from(salt),
-      settings.iterations,
-      keyBytes + BLOCK_SIZE,
-    ),
-  ]
+  const derived = deriveKeyStream(passphrase, salt, settings, keyBytes + BLOCK_SIZE)
   return { key: derived.slice(0, keyBytes), iv: derived.slice(keyBytes) }
 }
 
-function readCiphertext(text: string): { salt: Bytes; body: Bytes } {
+/**
+ * Salt and body of a base64 blob that starts with `Salted__`.
+ *
+ * @param text - The blob, base64.
+ * @returns {{ salt: Bytes; body: Bytes }} The 8-byte salt and the whole 16-byte blocks after it.
+ * @throws {CipherError} When the text is not base64, has no `Salted__` header or no whole blocks.
+ */
+export function readSaltedCiphertext(text: string): { salt: Bytes; body: Bytes } {
   let bytes: Bytes
   try {
     bytes = Array.from(base64.decode(text))
@@ -228,7 +262,7 @@ export class AesPassphrase extends Cipher {
   encode(text: string, options: Readonly<CipherBaseOptions> = {}): CipherResult {
     try {
       const passphrase = readPassphrase(options)
-      const settings = readSettings(options)
+      const settings = readPassphraseSettings(options)
       const bytes = readBytes(options)
       const salt = readSalt(options)
       const { key, iv } = deriveKey(passphrase, salt, settings)
@@ -248,9 +282,9 @@ export class AesPassphrase extends Cipher {
   decode(text: string, options: Readonly<CipherBaseOptions> = {}): CipherResult {
     try {
       const passphrase = readPassphrase(options)
-      const settings = readSettings(options)
+      const settings = readPassphraseSettings(options)
       const bytes = readBytes(options)
-      const { salt, body } = readCiphertext(text)
+      const { salt, body } = readSaltedCiphertext(text)
       const { key, iv } = deriveKey(passphrase, salt, settings)
       const decrypted = aesCbc(body, key, 'decrypt', iv)
       let plaintext: Bytes

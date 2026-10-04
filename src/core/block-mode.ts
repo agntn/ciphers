@@ -218,6 +218,19 @@ export function pad(bytes: Bytes, blockSize: number): Bytes {
 }
 
 /**
+ * The PKCS#7 padding length decrypted blocks end in.
+ *
+ * @param bytes - Decrypted bytes, at least the last block.
+ * @param blockSize - Block length in bytes.
+ * @returns {number | undefined} 1 to `blockSize`, or nothing when the bytes do not end in padding.
+ */
+export function paddingLength(bytes: Bytes, blockSize: number): number | undefined {
+  const fill = bytes.at(-1) ?? 0
+  const valid = fill >= 1 && fill <= blockSize && bytes.slice(-fill).every((byte) => byte === fill)
+  return valid ? fill : undefined
+}
+
+/**
  * Strip PKCS#7 padding, which is how a wrong key shows after decryption.
  *
  * @param cipher - Name, label and block length for the error.
@@ -228,10 +241,8 @@ export function unpad(
   cipher: Pick<BlockShape, 'name' | 'label' | 'blockSize'>,
   bytes: Bytes,
 ): Bytes {
-  const fill = bytes.at(-1) ?? 0
-  const valid =
-    fill >= 1 && fill <= cipher.blockSize && bytes.slice(-fill).every((byte) => byte === fill)
-  if (!valid) {
+  const fill = paddingLength(bytes, cipher.blockSize)
+  if (fill === undefined) {
     throw new CipherError(
       `[${cipher.name}] Decrypted blocks do not end in PKCS#7 padding: wrong key, or not ${cipher.label} ciphertext`,
     )

@@ -51,6 +51,7 @@ describe('Ciphers MCP server', () => {
       'ciphers_frequency',
       'ciphers_period_estimate',
       'ciphers_family_guess',
+      'ciphers_passphrase_probe',
       'ciphers_info',
     ])
     const encodeTool = response.tools.find((tool) => tool.name === 'ciphers_encode')
@@ -1201,6 +1202,44 @@ describe('Ciphers MCP server', () => {
       const refused = await client.callTool({ name: 'ciphers_family_guess', arguments: args })
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain('Invalid arguments at /')
+    }
+  })
+
+  it('probes a passphrase blob over the protocol', async () => {
+    const client = await connectTestClient()
+    const { tools } = await client.listTools()
+    const properties = (name: string) =>
+      JSON.stringify(tools.find((tool) => tool.name === name)?.inputSchema.properties)
+    expect(properties('ciphers_passphrase_probe')).toContain(OPTION_DESCRIPTIONS.probeIterations)
+    expect(properties('ciphers_encode')).toContain(OPTION_DESCRIPTIONS.iterations)
+    expect(OPTION_DESCRIPTIONS.iterations).toMatch(/^AES-passphrase only/)
+
+    const blob = 'U2FsdGVkX18HYWQDuJcJTh2NoqzqwZ9pWaEBkXGGu54='
+    const result = await client.callTool({
+      name: 'ciphers_passphrase_probe',
+      arguments: { text: blob, key: 'secret', digests: ['sha1', 'sha256'], keyLengths: [256] },
+    })
+    expect(result.isError).not.toBe(true)
+    expect(onlyText(result.content).split('\n').slice(0, 4)).toEqual([
+      'Passphrase probe (salt 07616403b897094e, 1 block, 2 tries: digests sha1, sha256 × keyLength 256 × iterations 1):',
+      'Padding held in 1 of 2 tries, about 0.0078 expected by chance. Most printable first:',
+      '',
+      '  digest sha256, keyLength 256, iterations 1: pad 2, 100% printable, "ATTACK AT DAWN"',
+    ])
+
+    for (const [args, error] of [
+      [{ text: blob, key: 'secret', keyLengths: [100] }, 'Invalid arguments at /keyLengths/0'],
+      [{ text: blob, key: 'secret', digest: 'md5' }, 'digest'],
+      [{ text: blob }, 'Invalid arguments'],
+      [
+        { text: blob, key: 'secret', iterations: [100_000, 99_999, 99_998, 99_997] },
+        'Invalid option iterations=100000,99999,99998,99997: must add up to at most 333333 with 3 digests',
+      ],
+      [{ text: 'AAAAAAAAAAAAAAAAAAAAAA==', key: 'secret' }, 'Salted__'],
+    ] as const) {
+      const refused = await client.callTool({ name: 'ciphers_passphrase_probe', arguments: args })
+      expect(refused.isError).toBe(true)
+      expect(onlyText(refused.content)).toContain(error)
     }
   })
 

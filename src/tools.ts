@@ -17,10 +17,12 @@ import {
   MAX_PERIOD,
   MAX_TRANSFORM_TEXT_LENGTH,
   OPTION_DESCRIPTIONS,
+  PROBE_LIST_LIMITS,
   bruteForceCaesar,
   formatCipherInfo,
   formatFamilyGuess,
   formatFrequencyAnalysis,
+  formatPassphraseProbe,
   formatPeriodEstimate,
   transformCipher,
   type CipherToolParams,
@@ -575,6 +577,58 @@ export const familyGuessTool = defineTool({
     answer(formatFamilyGuess(await loadLibrary(), params.text, params.lang)),
 })
 
+export const passphraseProbeTool = defineTool({
+  name: 'ciphers_passphrase_probe',
+  title: 'Probe Passphrase Settings',
+  description:
+    'Try one passphrase on a Salted__ blob (base64 starting U2FsdGVkX1, from CryptoJS.AES.encrypt or openssl enc -a) under every EVP_BytesToKey digest, key length and iteration count of a grid. Lists the settings whose padding held, most printable first, next to how many a wrong passphrase would give by chance.',
+  snippet:
+    'Use ciphers_passphrase_probe when a passphrase is known but not the digest, key length or iterations of a Salted__ blob.',
+  guidelines: [
+    'Input is the blob and the passphrase as key. The grid defaults to md5, sha1 and sha256, key lengths 128, 192 and 256, and 1 iteration: 9 tries.',
+    'A wrong setting passes the padding check about once in 255 tries, so read the hits against the expected count: one that reads as text is the setting, and pad 1 with half the bytes unprintable is noise.',
+    'ciphers_decode with cipher aes-passphrase and the digest, keyLength and iterations of a hit returns the whole text.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_TRANSFORM_TEXT_LENGTH,
+        description: 'The blob: base64 starting U2FsdGVkX1, line breaks allowed',
+      }),
+      key: Type.String({
+        minLength: 1,
+        maxLength: MAX_KEY_LENGTH,
+        description: 'The passphrase to try, any text, read as UTF-8',
+      }),
+      digests: Type.Optional(
+        Type.Array(Type.Enum(['md5', 'sha1', 'sha256']), {
+          minItems: 1,
+          maxItems: PROBE_LIST_LIMITS.digests,
+          description: OPTION_DESCRIPTIONS.probeDigests,
+        }),
+      ),
+      keyLengths: Type.Optional(
+        Type.Array(Type.Integer({ minimum: 128, maximum: 1024, multipleOf: 32 }), {
+          minItems: 1,
+          maxItems: PROBE_LIST_LIMITS.keyLengths,
+          description: OPTION_DESCRIPTIONS.probeKeyLengths,
+        }),
+      ),
+      iterations: Type.Optional(
+        Type.Array(Type.Integer({ minimum: 1, maximum: 100_000 }), {
+          minItems: 1,
+          maxItems: PROBE_LIST_LIMITS.iterations,
+          description: OPTION_DESCRIPTIONS.probeIterations,
+        }),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  execute: async ({ text, key, ...grid }) =>
+    answer(formatPassphraseProbe(await loadLibrary(), text, key, grid)),
+})
+
 export const infoTool = defineTool({
   name: 'ciphers_info',
   title: 'Cipher Info',
@@ -613,6 +667,7 @@ export const ciphersTools: readonly ToolDefinition[] = [
   frequencyTool,
   periodEstimateTool,
   familyGuessTool,
+  passphraseProbeTool,
   infoTool,
 ]
 
@@ -652,5 +707,6 @@ export const callSummaries: Readonly<
   ciphers_frequency: (args) => excerpt(args['text']),
   ciphers_period_estimate: (args) => excerpt(args['text']),
   ciphers_family_guess: (args) => excerpt(args['text']),
+  ciphers_passphrase_probe: (args) => excerpt(args['text']),
   ciphers_info: (args) => named(args['cipher']) || named(args['category']) || 'all',
 }

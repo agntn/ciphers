@@ -65,6 +65,7 @@ describe('Pi extension', () => {
       'ciphers_period_estimate',
       'ciphers_family_guess',
       'ciphers_passphrase_probe',
+      'ciphers_crib_drag',
       'ciphers_info',
     ])
   })
@@ -78,7 +79,12 @@ describe('Pi extension', () => {
   })
 
   it('renders the results whose width the tool cannot bound', () => {
-    for (const name of ['ciphers_encode', 'ciphers_decode', 'ciphers_caesar_brute']) {
+    for (const name of [
+      'ciphers_encode',
+      'ciphers_decode',
+      'ciphers_caesar_brute',
+      'ciphers_crib_drag',
+    ]) {
       expect(getTool(name).renderResult).toBeTypeOf('function')
     }
     for (const name of [

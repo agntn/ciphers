@@ -287,6 +287,15 @@ describe('OMP extension', () => {
     await rejects('ciphers_encode', { cipher: 'caesar', text: 'A', shfit: 1 })
 
     await rejects('ciphers_caesar_brute', { text: 'X'.repeat(2_001) })
+
+    await accepts('ciphers_crib_drag', { ciphertexts: ['00', '01'], crib: 'a', limit: 50 })
+    await rejects('ciphers_crib_drag', { ciphertexts: ['00'], crib: 'a' })
+    await rejects('ciphers_crib_drag', { ciphertexts: ['00', '01'], crib: '' })
+    await rejects('ciphers_crib_drag', { ciphertexts: ['00', '01'], limit: 51 })
+    await rejects('ciphers_crib_drag', {
+      ciphertexts: ['00', '01'],
+      known: [{ message: 0, offset: 0, text: 'a', at: 1 }],
+    })
   })
 
   it('clips a collapsed result preview and keeps the expanded one whole', async () => {

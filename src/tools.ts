@@ -12,6 +12,12 @@ import {
   AFFINE_MULTIPLIERS,
   BRUTE_PREVIEW_LENGTH,
   MAX_BRUTE_TEXT_LENGTH,
+  MAX_CRIB_CIPHERTEXTS,
+  MAX_CRIB_CIPHERTEXT_LENGTH,
+  MAX_CRIB_KNOWN,
+  MAX_CRIB_KNOWN_LENGTH,
+  MAX_CRIB_LENGTH,
+  MAX_CRIB_LIMIT,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_LENGTH,
   MAX_PERIOD,
@@ -20,6 +26,7 @@ import {
   PROBE_LIST_LIMITS,
   bruteForceCaesar,
   formatCipherInfo,
+  formatCribDrag,
   formatFamilyGuess,
   formatFrequencyAnalysis,
   formatPassphraseProbe,
@@ -629,6 +636,86 @@ export const passphraseProbeTool = defineTool({
     answer(formatPassphraseProbe(await loadLibrary(), text, key, grid)),
 })
 
+export const cribDragTool = defineTool({
+  name: 'ciphers_crib_drag',
+  title: 'Drag Crib',
+  description:
+    'Slide a crib, a guessed piece of plaintext, across hex ciphertexts XORed with one reused key (a many-time pad, a reused stream cipher key or CTR nonce). Each place the crib could sit gives key bytes that decrypt the other ciphertexts there; places are ranked by how much that reads like the language. known holds the places accepted so far: they fix key bytes, places that contradict them drop out, and the reply shows the key and every plaintext they give.',
+  snippet:
+    'Use ciphers_crib_drag on two or more ciphertexts encrypted under the same XOR keystream.',
+  guidelines: [
+    'Start with a common word with spaces around it, such as " the ", and read the top places: the one that reveals readable text in the other ciphertexts is likely right.',
+    'To accept a place, add { message, offset, text } to known, with the crib as text, and call again with the next crib; a drag grows one call at a time, the state is in the arguments.',
+    'Extend a plaintext the reply shows half known by adding a longer text at the same place to known.',
+    'Without a crib the call just applies known and shows the key and plaintexts.',
+    'Ciphertexts are numbered from 0 in the order given, offsets count bytes from 0.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      ciphertexts: Type.Array(
+        Type.String({
+          maxLength: MAX_CRIB_CIPHERTEXT_LENGTH,
+          description: 'One ciphertext in hex, whitespace ignored',
+        }),
+        {
+          minItems: 2,
+          maxItems: MAX_CRIB_CIPHERTEXTS,
+          description: `Two to ${MAX_CRIB_CIPHERTEXTS} hex ciphertexts encrypted under the same keystream from their first byte`,
+        },
+      ),
+      crib: Type.Optional(
+        Type.String({
+          minLength: 1,
+          maxLength: MAX_CRIB_LENGTH,
+          description: 'Plaintext guess to slide across every ciphertext, as UTF-8 text',
+        }),
+      ),
+      known: Type.Optional(
+        Type.Array(
+          Type.Object(
+            {
+              message: Type.Integer({
+                minimum: 0,
+                maximum: MAX_CRIB_CIPHERTEXTS - 1,
+                description: 'Ciphertext the text is in, from 0',
+              }),
+              offset: Type.Integer({
+                minimum: 0,
+                maximum: MAX_CRIB_CIPHERTEXT_LENGTH / 2 - 1,
+                description: 'Byte the text starts at, from 0',
+              }),
+              text: Type.String({
+                minLength: 1,
+                maxLength: MAX_CRIB_KNOWN_LENGTH,
+                description: 'Plaintext at that place, as UTF-8 text',
+              }),
+            },
+            { additionalProperties: false },
+          ),
+          {
+            maxItems: MAX_CRIB_KNOWN,
+            description:
+              'Places accepted so far; they must agree with each other on every key byte',
+          },
+        ),
+      ),
+      lang: language(
+        'Language the plaintexts read in, ja for Hepburn romaji; ranks the places (default en)',
+      ),
+      limit: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: MAX_CRIB_LIMIT,
+          description: `How many places to list, 1 to ${MAX_CRIB_LIMIT} (default 10)`,
+        }),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  execute: async (params) => answer(formatCribDrag(await loadLibrary(), params)),
+})
+
 export const infoTool = defineTool({
   name: 'ciphers_info',
   title: 'Cipher Info',
@@ -668,6 +755,7 @@ export const ciphersTools: readonly ToolDefinition[] = [
   periodEstimateTool,
   familyGuessTool,
   passphraseProbeTool,
+  cribDragTool,
   infoTool,
 ]
 
@@ -708,5 +796,6 @@ export const callSummaries: Readonly<
   ciphers_period_estimate: (args) => excerpt(args['text']),
   ciphers_family_guess: (args) => excerpt(args['text']),
   ciphers_passphrase_probe: (args) => excerpt(args['text']),
+  ciphers_crib_drag: (args) => (typeof args['crib'] === 'string' ? excerpt(args['crib']) : 'known'),
   ciphers_info: (args) => named(args['cipher']) || named(args['category']) || 'all',
 }

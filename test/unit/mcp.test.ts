@@ -545,6 +545,54 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(encoded.content)).toBe('ABCDEFGHIJKL')
   })
 
+  /** RFC 2144 B.1 for CAST5, and the GnuPG 2.4 message from issue #165 for OpenPGP. */
+  it('discovers and executes CAST5 and OpenPGP through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'openpgp' } })
+    expect(onlyText(info.content)).toContain('(openpgp) — block, substitution-permutation')
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: {
+        cipher: 'openpgp',
+        key: 'causality',
+        text: `-----BEGIN PGP MESSAGE-----
+
+jA0ECQMKHwVT8OzL5gn90lIBzGgrwInQTM+5oFODSD8QMJaarJsJ7kftcv4jWWpP
+2I2U9qLHZ83SeQ1Ol/i2LutftOLxNYgigrj7idS03A5V1Psl+79RGbXLRDgSQKr7
+Co2B
+=XQvs
+-----END PGP MESSAGE-----`,
+      },
+    })
+    expect(decoded.isError).not.toBe(true)
+    expect(onlyText(decoded.content)).toBe('follow the white rabbit\n')
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'openpgp', key: 'k', text: 'hi', algorithm: 'cast5', count: 1024 },
+    })
+    expect(onlyText(encoded.content)).toMatch(/^-----BEGIN PGP MESSAGE-----\n/)
+    const back = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'openpgp', key: 'k', text: onlyText(encoded.content) },
+    })
+    expect(onlyText(back.content)).toBe('hi')
+    const wrong = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'openpgp', key: 'wrong', text: onlyText(encoded.content) },
+    })
+    expect(wrong.isError).toBe(true)
+    expect(onlyText(wrong.content)).toContain('Wrong passphrase')
+    const cast5 = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: {
+        cipher: 'cast5',
+        key: '01234567 12345678 23456789 3456789a',
+        text: 'ATTACK AT DAWN',
+      },
+    })
+    expect(onlyText(cast5.content)).toBe('585e13962a59ed5274e0ab1bdcde47a3')
+  })
+
   it('discovers and executes Triple DES CBC with an IV through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -969,6 +1017,10 @@ describe('Ciphers MCP server', () => {
       ['keyLength', { cipher: 'aes-passphrase', text: 'abc', key: 'k', keyLength: 100 }],
       ['iterations', { cipher: 'aes-passphrase', text: 'abc', key: 'k', iterations: 100_001 }],
       ['digest', { cipher: 'aes-passphrase', text: 'abc', key: 'k', digest: 'sha512' }],
+      ['key', { cipher: 'openpgp', text: 'abc' }],
+      ['key', { cipher: 'cast5', text: 'abc', key: '00'.repeat(4) }],
+      ['algorithm', { cipher: 'openpgp', text: 'abc', key: 'k', algorithm: 'twofish' }],
+      ['count', { cipher: 'openpgp', text: 'abc', key: 'k', count: 1023 }],
       ['key', { cipher: 'rabbit', text: 'abc' }],
       ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(15) }],
       ['key', { cipher: 'rabbit', text: 'abc', key: '00'.repeat(17) }],

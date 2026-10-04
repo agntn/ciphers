@@ -69,6 +69,8 @@ type CipherOptionRequirement = {
     readonly pattern: RegExp
     readonly error: string
   }
+  /** The `digest` values the cipher takes, when it takes fewer than the schema lists. */
+  readonly digests?: readonly string[]
 }
 
 const AES_KEY = {
@@ -117,7 +119,8 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
         'must be 64 or 128 hex digits (two AES-128 or two AES-256 keys: data key, then tweak key)',
     },
   },
-  { ciphers: ['aes-passphrase'], required: ['key'] },
+  { ciphers: ['aes-passphrase'], required: ['key'], digests: ['md5', 'sha1', 'sha256'] },
+  { ciphers: ['openpgp'], required: ['key'] },
   {
     ciphers: ['rijndael'],
     required: ['key'],
@@ -194,6 +197,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
+    ciphers: ['cast5'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:(?:[0-9A-Fa-f]\s*){2}){5,16}$/,
+      error: 'must be an even number of hex digits from 10 to 32 (a 40 to 128-bit CAST5 key)',
+    },
+  },
+  {
     ciphers: ['rc4'],
     required: ['key'],
     key: {
@@ -244,10 +255,27 @@ function cipherInputError(params: Readonly<CipherToolParams>): string | undefine
     }
   }
   const rule = requirement.key
-  if (rule === undefined || params.key === undefined || rule.pattern.test(params.key)) {
+  if (rule !== undefined && params.key !== undefined && !rule.pattern.test(params.key)) {
+    return `Invalid arguments at /key: ${rule.error}`
+  }
+  return digestError(requirement.digests, params)
+}
+
+/**
+ * Refuses a `digest` the schema lists for another cipher.
+ *
+ * @param digests - The digests the cipher takes, when it names them.
+ * @param params - Arguments that passed the schema.
+ * @returns {string | undefined} The error, or nothing when the digest fits.
+ */
+function digestError(
+  digests: readonly string[] | undefined,
+  params: Readonly<CipherToolParams>,
+): string | undefined {
+  if (digests === undefined || params.digest === undefined || digests.includes(params.digest)) {
     return undefined
   }
-  return `Invalid arguments at /key: ${rule.error}`
+  return `Invalid arguments at /digest: ${params.cipher} takes ${digests.join(', ')}`
 }
 
 /**
@@ -357,7 +385,17 @@ const cipherInput = Type.Object(
       Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
     ),
     digest: Type.Optional(
-      Type.Enum(['md5', 'sha1', 'sha256'], { description: OPTION_DESCRIPTIONS.digest }),
+      Type.Enum(['md5', 'sha1', 'ripemd160', 'sha256', 'sha384', 'sha512'], {
+        description: OPTION_DESCRIPTIONS.digest,
+      }),
+    ),
+    algorithm: Type.Optional(
+      Type.Enum(['idea', '3des', 'cast5', 'blowfish', 'aes128', 'aes192', 'aes256'], {
+        description: OPTION_DESCRIPTIONS.algorithm,
+      }),
+    ),
+    count: Type.Optional(
+      Type.Integer({ minimum: 1024, maximum: 65_011_712, description: OPTION_DESCRIPTIONS.count }),
     ),
     keyLength: Type.Optional(
       Type.Integer({
@@ -470,13 +508,15 @@ export const encodeTool = defineTool({
     'Lucifer (lucifer) works like AES with a key of 32 hex digits.',
     'MARS (mars) works like AES with a key of 32 to 112 hex digits in steps of 8.',
     'Serpent (serpent) works like AES, with the same key lengths.',
+    'CAST5 (cast5) works like Triple DES with a key of any even number of hex digits from 10 to 32.',
+    'OpenPGP (openpgp) reads and writes what gpg --symmetric gives: key is the passphrase as plain text, ciphers_decode takes the armored -----BEGIN PGP MESSAGE----- block (or its packets in base64 or hex) and reads algorithm, S2K and compression from it, ciphers_encode writes armor with algorithm (default aes256), digest (default sha512), count, and salt and iv to fix the random values.',
     'Rabbit (rabbit) is a stream cipher with a key of 32 hex digits and an optional iv of 16; it pads nothing, and endian picks the byte order (big as in RFC 4503, the default, or little as in Crypto++).',
     'RC4 (rc4) is a stream cipher with a key of any even number of hex digits from 2 to 512 and no IV; it pads nothing.',
     'XOR (xor) repeats a key of any nonzero even number of hex digits over the bytes.',
     'Salsa20 (salsa20) is a stream cipher with a key of 32 or 64 hex digits and a nonce of 16, XSalsa20 (xsalsa20) one with a key of 64 and a nonce of 48; they pad nothing, and counter numbers the first 64-byte block (default 0).',
     'ChaCha20 (chacha20) takes a key of 64 hex digits and a nonce of 24, XChaCha20 (xchacha20) the same key and a nonce of 48; both take counter like Salsa20.',
     'ChaCha20-Poly1305 (chacha20-poly1305) takes the ChaCha20 key and nonce and optional aad in hex; the hex out is the text bytes plus a 16-byte tag, and decoding fails unless key, nonce and aad all match.',
-    'Every block and stream cipher, aes-passphrase too, takes bytes: hex to read and write the plain side as hex, for bytes that are not UTF-8 text.',
+    'Every block and stream cipher, aes-passphrase and openpgp too, takes bytes: hex to read and write the plain side as hex, for bytes that are not UTF-8 text.',
     'ciphers_info lists every option with its default.',
   ],
   effect: 'read',

@@ -138,6 +138,19 @@ describe('guessFamily', () => {
     ])
   })
 
+  /** The message from issue #165, written by GnuPG 2.4; Morse must not read its dashes. */
+  it('knows an armored OpenPGP message', () => {
+    const armor = `-----BEGIN PGP MESSAGE-----
+
+jA0ECQMKHwVT8OzL5gn90lIBzGgrwInQTM+5oFODSD8QMJaarJsJ7kftcv4jWWpP
+2I2U9qLHZ83SeQ1Ol/i2LutftOLxNYgigrj7idS03A5V1Psl+79RGbXLRDgSQKr7
+Co2B
+=XQvs
+-----END PGP MESSAGE-----`
+    expect(ranking(guessFamily(armor))).toEqual(['openpgp:high'])
+    expect(ranking(guessFamily(`See below.\n\n${armor}\n`))).toEqual(['openpgp:high'])
+  })
+
   it('keeps the confidence low on a short text and guesses nothing below ten letters', () => {
     const short = guessFamily(
       create('vigenere').encode('MEET ME AT THE OLD MILL', { key: 'KEY' }).text,

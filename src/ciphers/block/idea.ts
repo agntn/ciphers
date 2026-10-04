@@ -113,6 +113,19 @@ function crypt(block: Bytes, subkeys: readonly number[]): number[] {
 }
 
 /**
+ * IDEA on one block with the subkeys expanded once, for the chaining modes.
+ *
+ * @param key - 16 key bytes.
+ * @param operation - Encrypt or decrypt.
+ * @returns {(block: Bytes) => Bytes} One 8-byte block in, one out.
+ */
+export function ideaBlock(key: Bytes, operation: 'encrypt' | 'decrypt'): (block: Bytes) => Bytes {
+  const encryption = encryptionKeys(key)
+  const subkeys = operation === 'encrypt' ? encryption : decryptionKeys(encryption)
+  return (block) => crypt(block, subkeys)
+}
+
+/**
  * Run each 8-byte block through IDEA on its own, the way ECB does.
  *
  * @param data - Whole blocks to transform.
@@ -121,11 +134,10 @@ function crypt(block: Bytes, subkeys: readonly number[]): number[] {
  * @returns {number[]} The transformed blocks.
  */
 export function ideaEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const encryption = encryptionKeys(key)
-  const subkeys = operation === 'encrypt' ? encryption : decryptionKeys(encryption)
+  const block = ideaBlock(key, operation)
   const result: number[] = []
   for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    result.push(...crypt(data.slice(offset, offset + BLOCK_SIZE), subkeys))
+    result.push(...block(data.slice(offset, offset + BLOCK_SIZE)))
   }
   return result
 }

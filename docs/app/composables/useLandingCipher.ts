@@ -50,6 +50,8 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "lucifer",
   "mars",
   "serpent",
+  "openpgp",
+  "cast5",
   "rabbit",
   "salsa20",
   "chacha20",

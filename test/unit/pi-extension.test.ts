@@ -307,7 +307,7 @@ describe('Pi extension', () => {
       text: '85E813540F0AB405',
     })
     expect(guess.content[0]?.text.split('\n').slice(2, 5)).toEqual([
-      '1. feistel, lai-massey (high): des, desx, triple-des, triple-des-cbc, blowfish, idea',
+      '1. feistel, lai-massey (high): des, desx, triple-des, triple-des-cbc, blowfish, idea, cast5',
       '   16 hex digits, whole 8-byte blocks.',
       '   Next: ciphers_decode with cipher des, which needs key.',
     ])

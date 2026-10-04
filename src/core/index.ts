@@ -38,6 +38,8 @@ export type {
   LuciferOptions,
   MarsOptions,
   SerpentOptions,
+  Cast5Options,
+  OpenPgpOptions,
   RabbitOptions,
   Rc4Options,
   XorOptions,

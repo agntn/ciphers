@@ -20,6 +20,8 @@ import { Idea } from './idea.ts'
 import { Lucifer } from './lucifer.ts'
 import { Mars } from './mars.ts'
 import { Serpent } from './serpent.ts'
+import { Cast5 } from './cast5.ts'
+import { OpenPgp } from './openpgp/openpgp.ts'
 
 /** The block ciphers, in registry order. */
 export const block: readonly CipherConstructor[] = [
@@ -44,4 +46,6 @@ export const block: readonly CipherConstructor[] = [
   Lucifer,
   Mars,
   Serpent,
+  Cast5,
+  OpenPgp,
 ]

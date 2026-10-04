@@ -542,6 +542,49 @@ try {
     run(binPath, ['decode', 'xor', '00ff80', '--key', 'ff', '--bytes', 'hex']).trim(),
     'ff007f',
   )
+  const chachaKey = '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+  assert.equal(
+    run(binPath, [
+      'encode',
+      'chacha20',
+      'ATTACK AT DAWN',
+      '--key',
+      chachaKey,
+      '--nonce',
+      '000000000000004a00000000',
+      '--counter',
+      '1',
+    ]).trim(),
+    '631b05b20350f9a07bfe632eef2d',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'chacha20-poly1305',
+      '08b82563520a4c81cdc90976213ccdabbd7363a02df0262f5ad3936c7d87',
+      '--key',
+      chachaKey,
+      '--nonce',
+      '070000004041424344454647',
+      '--aad',
+      '46524f4d3a2048512e',
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
+  assert.equal(
+    run(binPath, [
+      'encode',
+      'salsa20',
+      '00'.repeat(16),
+      '--key',
+      '80000000000000000000000000000000',
+      '--nonce',
+      '0000000000000000',
+      '--bytes',
+      'hex',
+    ]).trim(),
+    '4dfa5e481da23ea09a31022050859936',
+  )
   assert.equal(
     run(binPath, ['decode', 'rc4', '00ff80aa', '--key', '0102030405', '--bytes', 'hex']).trim(),
     'b2c6e3af',

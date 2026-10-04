@@ -40,6 +40,11 @@ export type {
   RabbitOptions,
   Rc4Options,
   XorOptions,
+  Salsa20Options,
+  XSalsa20Options,
+  ChaCha20Options,
+  XChaCha20Options,
+  ChaCha20Poly1305Options,
   CipherInfo,
   CipherOption,
 } from './types.ts'

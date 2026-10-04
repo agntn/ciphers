@@ -31,7 +31,7 @@ const { copied, copy } = useCopied();
 
       <h1 class="hero-title">Pick a cipher. <span>One call.</span></h1>
       <p class="hero-lead">
-        Caesar to Rabbit behind the same two methods. Encode, decode, brute force a Caesar, count
+        Caesar to ChaCha20 behind the same two methods. Encode, decode, brute force a Caesar, count
         letters. It all runs in your process, no network, no keys to sign up for, nothing to
         configure. For lessons, and for the puzzle you're stuck on at 1am.
       </p>

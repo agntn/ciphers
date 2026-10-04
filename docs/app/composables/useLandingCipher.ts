@@ -50,6 +50,11 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "mars",
   "serpent",
   "rabbit",
+  "salsa20",
+  "chacha20",
+  "chacha20-poly1305",
+  "xsalsa20",
+  "xchacha20",
 ];
 
 /** Every cipher in the registry. A newcomer missing from `ORDER` joins at the end. */

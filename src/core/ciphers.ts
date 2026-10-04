@@ -47,6 +47,11 @@ export const builtinCiphers = [
   'rabbit',
   'rc4',
   'xor',
+  'salsa20',
+  'xsalsa20',
+  'chacha20',
+  'xchacha20',
+  'chacha20-poly1305',
 ] as const
 
 export type BuiltinCipher = (typeof builtinCiphers)[number]

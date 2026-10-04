@@ -12,6 +12,7 @@ export interface TransformOptionArgs {
   readonly tweak?: string
   readonly nonce?: string
   readonly aad?: string
+  readonly counter?: string
   readonly rails?: string
   readonly width?: string
   readonly corner?: string
@@ -63,6 +64,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['tagLength', args.tagLength],
     ['keyLength', args.keyLength],
     ['iterations', args.iterations],
+    ['counter', args.counter],
     ['a', args.a],
     ['b', args.b],
   ] as const

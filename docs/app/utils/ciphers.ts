@@ -69,6 +69,11 @@ const PRESENTATION: Record<
   rabbit: { icon: "i-lucide-rabbit", blurb: "The eSTREAM stream cipher from RFC 4503, a squaring where the S-boxes would be", sample: "ATTACK AT DAWN", options: { key: "912813292e3d36fe3bfc62f1dc51c3ac" } },
   rc4: { icon: "i-lucide-shuffle", blurb: "Rivest's 1987 trade secret, a shuffled table of 256 bytes and one swap per byte", sample: "Attack at dawn", options: { key: "536563726574" } },
   xor: { icon: "i-lucide-repeat", blurb: "Vigenère on bytes, a short key repeated and XORed in", sample: "Attack at dawn", options: { key: "494345" } },
+  salsa20: { icon: "i-lucide-music", blurb: "Bernstein's first dance, twenty rounds of add, rotate and XOR", sample: "ATTACK AT DAWN", options: { key: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", nonce: "0001020304050607" } },
+  xsalsa20: { icon: "i-lucide-music-2", blurb: "Salsa20 with a nonce long enough to pick at random, the NaCl one", sample: "ATTACK AT DAWN", options: { key: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", nonce: "000102030405060708090a0b0c0d0e0f1011121314151617" } },
+  chacha20: { icon: "i-lucide-footprints", blurb: "Salsa20 reshuffled, the stream cipher inside TLS 1.3 and WireGuard", sample: "ATTACK AT DAWN", options: { key: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", nonce: "000000000000004a00000000" } },
+  xchacha20: { icon: "i-lucide-footprints", blurb: "ChaCha20 with a 24-byte nonce, so nobody has to count", sample: "ATTACK AT DAWN", options: { key: "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f", nonce: "404142434445464748494a4b4c4d4e4f5051525354555658" } },
+  "chacha20-poly1305": { icon: "i-lucide-shield-check", blurb: "ChaCha20 with a Poly1305 tag, so a changed byte gets caught", sample: "ATTACK AT DAWN", options: { key: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", nonce: "070000004041424344454647" } },
 };
 
 export interface CipherEntry {

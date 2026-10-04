@@ -29,6 +29,14 @@
     "./aes": {
       "types": "./dist/aes.d.mts",
       "import": "./dist/aes.mjs"
+    },
+    "./chacha": {
+      "types": "./dist/chacha.d.mts",
+      "import": "./dist/chacha.mjs"
+    },
+    "./salsa": {
+      "types": "./dist/salsa.d.mts",
+      "import": "./dist/salsa.mjs"
     }
   },
   "scripts": {

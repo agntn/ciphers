@@ -416,3 +416,27 @@ describe('CLI host locale', () => {
     ).toBe(runCli(['encode', 'adfgvx', 'HELLO', '--key', 'KEY', '--transposition', 'AB']).stdout)
   })
 })
+
+describe('CLI dashed text', () => {
+  it('decodes Morse that starts with a dash, with or without --', () => {
+    expect(runCli(['decode', 'morse', '-.-. .- -']).stdout).toBe('CAT\n')
+    expect(runCli(['decode', 'morse', '--', '-.-. .- -']).stdout).toBe('CAT\n')
+  })
+
+  it('keeps a group of short options that starts with a boolean', () => {
+    const result = runCli(['ciphers', '-vcstream'], { ...process.env, CONSOLA_LEVEL: '3' })
+
+    expect(result.status).toBe(0)
+    expect(`${result.stdout}${result.stderr}`).toContain('Category: stream')
+  })
+
+  it('names a dashed argument that fits nowhere in one line', () => {
+    const result = runCli(['decode', 'morse', '...', '--kye', 'x'])
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe(
+      'Unknown option "--kye" for decode. Text that starts with - goes after --, which ends the options.\n',
+    )
+  })
+})

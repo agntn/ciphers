@@ -4,7 +4,7 @@ import { sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runMain, defineCommand, type ArgsDef, type CommandDef } from 'citty'
 import type McpCommand from './commands/mcp.ts'
-import { normalizeMainArgs } from './cli-args.ts'
+import { normalizeMainArgs, separateText, shownArgument } from './cli-args.ts'
 import { CipherError } from './core/errors.ts'
 import { version } from './version.ts'
 
@@ -79,27 +79,42 @@ function exitOnClosedPipe(error: Readonly<NodeJS.ErrnoException>): void {
 process.stdout.on('error', exitOnClosedPipe)
 process.stderr.on('error', exitOnClosedPipe)
 
+const subCommands = {
+  encode: () => loadCommand(() => import('./commands/encode.ts')),
+  decode: () => loadCommand(() => import('./commands/decode.ts')),
+  ciphers: () => loadCommand(() => import('./commands/ciphers.ts')),
+  info: () => loadCommand(() => import('./commands/info.ts')),
+  brute: () => loadCommand(() => import('./commands/brute.ts')),
+  mcp: () => loadCommand(loadMcpCommand),
+  frequency: () => loadCommand(() => import('./commands/frequency.ts')),
+  period: () => loadCommand(() => import('./commands/period.ts')),
+  guess: () => loadCommand(() => import('./commands/guess.ts')),
+  probe: () => loadCommand(() => import('./commands/probe.ts')),
+  crib: () => loadCommand(() => import('./commands/crib.ts')),
+  hidden: () => loadCommand(() => import('./commands/hidden.ts')),
+  recover: () => loadCommand(() => import('./commands/recover.ts')),
+}
+
 const main = defineCommand({
   meta: {
     name: 'ciphers',
     version,
     description: 'ciphers: educational and puzzle cipher encode/decode/analyze CLI',
   },
-  subCommands: {
-    encode: () => loadCommand(() => import('./commands/encode.ts')),
-    decode: () => loadCommand(() => import('./commands/decode.ts')),
-    ciphers: () => loadCommand(() => import('./commands/ciphers.ts')),
-    info: () => loadCommand(() => import('./commands/info.ts')),
-    brute: () => loadCommand(() => import('./commands/brute.ts')),
-    mcp: () => loadCommand(loadMcpCommand),
-    frequency: () => loadCommand(() => import('./commands/frequency.ts')),
-    period: () => loadCommand(() => import('./commands/period.ts')),
-    guess: () => loadCommand(() => import('./commands/guess.ts')),
-    probe: () => loadCommand(() => import('./commands/probe.ts')),
-    crib: () => loadCommand(() => import('./commands/crib.ts')),
-    hidden: () => loadCommand(() => import('./commands/hidden.ts')),
-    recover: () => loadCommand(() => import('./commands/recover.ts')),
-  },
+  subCommands,
 })
 
-await runMain(main, { rawArgs: normalizeMainArgs(process.argv.slice(2)) })
+const [name = '', ...rest] = normalizeMainArgs(process.argv.slice(2))
+const load = Object.entries(subCommands).find(([key]) => key === name)?.[1]
+const defs = load ? await (await load()).args : undefined
+const separated = load
+  ? separateText(rest, (typeof defs === 'function' ? await defs() : defs) ?? {})
+  : { args: rest }
+if ('unknown' in separated) {
+  process.stderr.write(
+    `Unknown option ${shownArgument(separated.unknown)} for ${name}. Text that starts with - goes after --, which ends the options.\n`,
+  )
+  process.exitCode = 1
+} else {
+  await runMain(main, { rawArgs: [name, ...separated.args] })
+}

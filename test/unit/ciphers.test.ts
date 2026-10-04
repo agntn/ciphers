@@ -5064,6 +5064,9 @@ DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
     const forged = 'c30c04070101000000000000119f'
     expect(pgp.decode(forged + skesk + data, { key: 'hunter2' }).text).toBe('Attack at dawn')
     expect(() => pgp.decode(forged + data, { key: 'hunter2' })).toThrow(/The MDC does not match/)
+    const twofish = Buffer.from(bytesOf(gpg.twofish).slice(0, 15)).toString('hex')
+    expect(pgp.decode(twofish + skesk + data, { key: 'hunter2' }).text).toBe('Attack at dawn')
+    expect(() => pgp.decode(twofish + data, { key: 'hunter2' })).toThrow(/10 \(Twofish\)/)
     const cut = `c30c${skesk.slice(4, 28)}`
     expect(() => pgp.decode(cut + data, { key: 'hunter2' })).toThrow(/ends before the S2K count/)
     expect(() => pgp.decode(`c30b${skesk.slice(4, 26)}` + data, { key: 'k' })).toThrow(

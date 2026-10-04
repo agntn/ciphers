@@ -326,6 +326,12 @@ function missingData(packets: readonly Packet[]): CipherError {
   return new CipherError('The message has no encrypted data packet (SEIPD, tag 18)')
 }
 
+/**
+ * The passphrase packets this cipher can run; an unsupported one is thrown only when none is left.
+ *
+ * @param packets - The top-level packets.
+ * @returns {Skesk[]} The readable packets in order.
+ */
 function passphrasePackets(packets: readonly Packet[]): Skesk[] {
   const skesks = packets.filter((packet) => packet.tag === TAG.skesk)
   if (skesks.length === 0) {
@@ -339,7 +345,17 @@ function passphrasePackets(packets: readonly Packet[]): Skesk[] {
       `The message has ${skesks.length} passphrase packets; at most ${MAX_SKESK} are tried`,
     )
   }
-  return skesks.map((packet) => readSkesk(packet.body))
+  const readable: Skesk[] = []
+  let unsupported: unknown
+  for (const packet of skesks) {
+    try {
+      readable.push(readSkesk(packet.body))
+    } catch (e) {
+      unsupported ??= e
+    }
+  }
+  if (readable.length === 0) throw unsupported
+  return readable
 }
 
 /**

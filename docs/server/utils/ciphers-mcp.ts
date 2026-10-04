@@ -7,8 +7,7 @@ import {
 import { z } from "zod";
 
 /**
- * One cipher tool for the Docus MCP server, with the name, prose, annotations and executor of
- * `ciphers mcp`. Zod gets the whole object, since a bare shape strips a key the tool doesn't take.
+ * A `ciphers mcp` tool for Docus: its own schema in `tools/list`, its own checks on the call.
  *
  * @param {string} name - The tool's name, such as `ciphers_encode`.
  * @returns {McpToolDefinitionListItem} The tool definition for `server/mcp/tools/`.
@@ -18,7 +17,9 @@ export function ciphersMcpTool(name: string): McpToolDefinitionListItem {
   if (listing === undefined) {
     throw new Error(`Unknown ciphers tool: ${name}`);
   }
-  const schema = z.fromJSONSchema(listing.inputSchema as z.core.JSONSchema.JSONSchema);
+  /** Any object passes Zod, so `callTool` refuses a bad one in `ciphers mcp`'s words, sanitized. */
+  const schema = z.looseObject({});
+  schema._zod.toJSONSchema = () => ({ ...listing.inputSchema });
   /** The SDK hands Zod a missing `arguments` untouched, so read it as the `{}` stdio gets. */
   const run = schema._zod.run.bind(schema._zod);
   schema._zod.run = (payload, context) =>

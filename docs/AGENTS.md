@@ -1,13 +1,13 @@
 # docs/
 
-Docus site for `@agntn/ciphers`. Markdown lives in `content/`. The playground is a Vue page that imports the library into the browser. There is no server API because the library needs none, and I'm not adding one for symmetry with the other sites.
+Docus site for `@agntn/ciphers`. Markdown lives in `content/`. The playground is a Vue page that imports the library into the browser. The one route that answers at request time is `/mcp`, the Docus MCP server with every tool of `ciphers mcp` beside its own `list-pages` and `get-page`. Nothing else on the server, the library needs nothing else.
 
 ## Layout
 
 ```
 docs/
 ├── DESIGN.md                      # the instruments this site owns and where it departs from the agntn design system
-├── nuxt.config.ts                 # extends: ['docus'], cloudflare_module preset (Workers), @agntn/ciphers and #tool-operations aliased to ../src, @agntn/hashes and the @agntn/encodings subpaths to docs/node_modules
+├── nuxt.config.ts                 # extends: ['docus'], cloudflare_module preset (Workers), @agntn/ciphers, #tool-operations and #mcp aliased to ../src, @agntn/hashes, @agntn/tools and the @agntn/encodings subpaths to docs/node_modules
 ├── shiki-theme.ts                 # code block theme, every colour a --shiki-token-* variable from app.css
 ├── app/app.config.ts              # title, github, theme, the Nuxt UI variants in the instrument grammar
 ├── app/app.css                    # theme tokens, the shared `console-*` and `hero-*` grammar, `ciphers-*` classes
@@ -19,6 +19,9 @@ docs/
 ├── app/utils/                     # ciphers table (icons, blurbs, samples over the library's info()), tools (the agent tools' text), tokens, roster, formatting
 ├── app/pages/playground.vue       # playground, own route outside the docs layout, its own useSeo and OG image
 ├── server/routes/sitemap.xml.ts   # Docus sitemap plus the Vue pages it cannot see
+├── server/mcp/index.ts            # the Docus MCP handler at /mcp, named and versioned like `ciphers mcp`
+├── server/mcp/tools/              # one file per cipher tool, each `ciphersMcpTool("<name>")`
+├── server/utils/ciphers-mcp.ts    # a tool from `#mcp`: its entry in `toolListings` and `callTool`, the TypeBox schema read into Zod
 ├── public/                        # fonts, favicon.svg and the icons and manifest cut from it
 ├── content/index.md               # landing
 ├── content/1.guide/               # getting started, transform, analysis, cli, agents, custom, playground
@@ -32,18 +35,28 @@ pnpm install          # from docs/, the repo root needs no install or build firs
 pnpm dev              # http://localhost:3000
 pnpm build            # Cloudflare Workers output in .output/, content routes prerendered
 pnpm deploy           # build, then wrangler deploy to ciphers.agntn.dev
-pnpm generate         # static output; nothing on this site needs the worker at runtime
+pnpm generate         # static output without /mcp, the one route that needs the worker
 ```
 
 Deployment: Workers Builds with root directory `docs`. It installs `docs/` and nothing else, and that's enough, because the library comes from `../src` (next paragraph). The build image takes Node.js from `.node-version` at the repo root and never reads `engines`, so without that file the site builds on the image's default Node.js instead of 26. Nitro preset `cloudflare_module`. Nuxt Content wants a D1 binding named `DB`. `wrangler.jsonc` carries it plus the `NUXT_SITE_URL` var, and Nitro merges that into the generated `.output/server/wrangler.json`. Create the database once with `wrangler d1 create agntn-ciphers` and put the id in `wrangler.jsonc`. Until then the id is all zeros on purpose - `pnpm deploy` with zeros binds nothing, so don't run it before the id is real. No KV binding. Nothing is fetched, so nothing is cached.
 
-`@agntn/ciphers` is an alias in `nuxt.config.ts` for `../src/index.ts`. Vite bundles the checkout's sources for the browser and Nitro gets the same alias for the prerender, so `dist/` and the root `node_modules` are never touched. That works because the subgraph under `src/index.ts` imports nothing from `node:` and, besides `package.json` for the version, two packages from npm. `@agntn/hashes` gives MARS its SHA-1, `aes-passphrase` its `EVP_BytesToKey` over MD5, SHA-1 or SHA-256 and `openpgp` its S2K hashes and the SHA-1 of the MDC, and `@agntn/encodings` gives the block modes `hex` and `aes-passphrase` and `openpgp` `base64`. Workers Builds never installs the root, so `docs/package.json` lists both at the root's versions and `nuxt.config.ts` aliases them to `docs/node_modules`, `@agntn/encodings` once per subpath, since an alias to the package directory skips its `exports`. Any other npm import under `src/core` or `src/ciphers` breaks the deploy until it gets the same two lines. Workers Builds installs with pnpm 11, whose `minimumReleaseAge` refuses a version younger than a day, so `pnpm-workspace.yaml` here and at the root lists `@agntn/*` under `minimumReleaseAgeExclude`; without it the deploy fails for a day after each `@agntn` release. The CLI and MCP entries are where the rest belong, and they stay out of the alias.
+`@agntn/ciphers` is an alias in `nuxt.config.ts` for `../src/index.ts`. Vite bundles the checkout's sources for the browser and Nitro gets the same alias for the prerender, so `dist/` and the root `node_modules` are never touched. That works because the subgraph under `src/index.ts` imports nothing from `node:` and, besides `package.json` for the version, two packages from npm. `@agntn/hashes` gives MARS its SHA-1, `aes-passphrase` its `EVP_BytesToKey` over MD5, SHA-1 or SHA-256 and `openpgp` its S2K hashes and the SHA-1 of the MDC, and `@agntn/encodings` gives the block modes `hex` and `aes-passphrase` and `openpgp` `base64`. Workers Builds never installs the root, so `docs/package.json` lists both at the root's versions and `nuxt.config.ts` aliases them to `docs/node_modules`, `@agntn/encodings` once per subpath, since an alias to the package directory skips its `exports`. Any other npm import under `src/core` or `src/ciphers` breaks the deploy until it gets the same two lines. Workers Builds installs with pnpm 11, whose `minimumReleaseAge` refuses a version younger than a day, so `pnpm-workspace.yaml` here and at the root lists `@agntn/*` under `minimumReleaseAgeExclude`; without it the deploy fails for a day after each `@agntn` release. The CLI entry is where the rest belong, and it stays out of the alias. `src/mcp.ts` has its own, see [MCP](#mcp).
 
 Two resolution traps, both because the repo root is its own pnpm workspace:
 
 - `pnpm-workspace.yaml` sets `shamefullyHoist: true`. Without it `docs/node_modules` holds only direct dependencies, Node walks up to the root `node_modules`, and the server bundle can end up with a second copy of Vue.
 - `nuxt.config.ts` pins `workspaceDir` to `docs/` and disables devtools and telemetry, which would otherwise resolve from the root.
 - `vite.server.fs.allow` in `nuxt.config.ts` adds `../src`. Vite serves only directories on that list, and with `workspaceDir` pinned to `docs/` the library sits outside it, so `pnpm dev` couldn't load it otherwise.
+
+## MCP
+
+`#mcp` is an alias for `../src/mcp.ts`. A file in `server/mcp/tools/` names one tool and nothing else: `ciphersMcpTool()` takes the name, prose and annotations from `toolListings` and runs `callTool()` from there, so a tool changed in `src/tools.ts` changes here without an edit. A new tool needs one more file here, and `test/unit/docs-mcp.test.ts` fails until it has one. The same test holds `callTool()` to the answers of `ciphers mcp`. `@nuxtjs/mcp-toolkit` wants Zod, so the schema is `z.fromJSONSchema()` over the TypeBox one, passed as the whole object so an unknown key is refused instead of stripped. A schema error reads in Zod's words. Every other answer is the text `ciphers mcp` gives.
+
+`src/tools.ts` and `src/mcp.ts` import `@agntn/tools` and `@agntn/tools/mcp`, aliased to their files in `docs/node_modules` like `@agntn/encodings`. `@agntn/tools/mcp` pulls `@modelcontextprotocol/server`, a dependency here at the root's version. `@agntn/hashes` is aliased to its file too: with `/mcp` the worker imports the library at runtime, and Node refuses a directory import (`Directory import ... is not supported` in prerender).
+
+On the `cloudflare_module` preset the toolkit hands its server to `createMcpHandler` from `agents`, which tells an SDK v1 server apart with `instanceof`. pnpm installs one copy of `@modelcontextprotocol/sdk` per `zod` peer it resolves, so the toolkit and `agents` can each get their own and every request fails with "createMcpHandler received an unsupported server". `nitro.alias` points every import of the SDK at the copy in `docs/node_modules`. Keep it until both resolve the same one; `.output/server` should hold one `class McpServer`.
+
+`/mcp` is public, so the tool limits are the worker's limits. The most expensive calls they allow, `ciphers_passphrase_probe` on its largest grid, `openpgp` at the full S2K count and `ciphers_key_recover` on columnar at key length 9, take about a second of CPU each. A new tool or a raised limit gets the same measurement before it ships. Every argument reaches the worker, passphrases included, because an agent sends them there on purpose. Workers Logs in `wrangler.jsonc` record the invocation, not the body. Keep it that way: no `evlog` module, no `console` call with tool arguments. `content/1.guide/05.agents.md#remote-mcp` tells users the arguments travel.
 
 ## Live values
 

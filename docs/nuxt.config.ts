@@ -12,8 +12,13 @@ export default defineNuxtConfig({
     "@agntn/ciphers": resolve(librarySource, "index.ts"),
     /** The text the agent tools answer with; the module imports only the library, so the page runs it too. */
     "#tool-operations": resolve(librarySource, "tool-operations.ts"),
-    /** MARS imports SHA-1 from it, and a deploy installs only this directory. */
-    "@agntn/hashes": resolve(import.meta.dirname, "node_modules/@agntn/hashes"),
+    /** `toolListings` and `callTool` for the tools under server/mcp/tools/. Worker only. */
+    "#mcp": resolve(librarySource, "mcp.ts"),
+    /** The tool layer under src/tools.ts and src/mcp.ts, from the copy this directory installs. */
+    "@agntn/tools/mcp": resolve(import.meta.dirname, "node_modules/@agntn/tools/dist/mcp.mjs"),
+    "@agntn/tools": resolve(import.meta.dirname, "node_modules/@agntn/tools/dist/index.mjs"),
+    /** MARS and aes-passphrase hash with it. The file, since /mcp leaves the import to the worker. */
+    "@agntn/hashes": resolve(import.meta.dirname, "node_modules/@agntn/hashes/dist/index.mjs"),
     /** An alias to the directory would skip its `exports`, so each subpath gets its file. */
     "@agntn/encodings/hex": resolve(
       import.meta.dirname,
@@ -43,6 +48,18 @@ export default defineNuxtConfig({
     description:
       "Classical and block ciphers behind one local API: encode, decode, Caesar brute force and letter frequencies, as a library, a CLI, an MCP server and Pi and OMP extensions.",
     sections: [
+      {
+        title: "MCP Server",
+        description: "The tools of `ciphers mcp` and the page tools of this site over Streamable HTTP.",
+        links: [
+          {
+            title: "MCP endpoint",
+            href: "https://ciphers.agntn.dev/mcp",
+            description:
+              "Add it to any MCP client as an HTTP server, for example `claude mcp add --transport http ciphers https://ciphers.agntn.dev/mcp`.",
+          },
+        ],
+      },
       {
         title: "Playground",
         description: "Encode, decode, brute force and count letters with any cipher, in the browser.",
@@ -111,6 +128,7 @@ export default defineNuxtConfig({
         "lucide:table",
         "lucide:terminal",
         "lucide:x",
+        "simple-icons:cursor",
         "simple-icons:github",
         "simple-icons:npm",
         "vscode-icons:file-type-js",
@@ -139,12 +157,18 @@ export default defineNuxtConfig({
       ],
     },
   },
-  /** Docus ships an MCP endpoint that wants the Cloudflare Agents SDK on Workers. Not needed. */
-  mcp: {
-    enabled: false,
-  },
   nitro: {
     preset: "cloudflare_module",
+    /**
+     * One MCP SDK in the worker. The toolkit builds its server from one copy and `agents` checks it
+     * with `instanceof` against another. pnpm splits them by the `zod` peer each one resolves.
+     */
+    alias: {
+      "@modelcontextprotocol/sdk": resolve(
+        import.meta.dirname,
+        "node_modules/@modelcontextprotocol/sdk/dist/esm",
+      ),
+    },
     compatibilityDate: "2026-09-03",
     /** Nitro compiles the server bundle for ES2019 unless told otherwise; the library uses BigInt. */
     esbuild: { options: { target: "es2024" } },

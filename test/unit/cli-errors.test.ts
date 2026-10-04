@@ -377,6 +377,21 @@ describe('CLI builtin flags', () => {
     expect(result.stdout).toContain('ciphers encode|decode|ciphers|info|brute|mcp|frequency')
     expect(result.stderr).toBe('')
   })
+
+  it.each([
+    [['ciphers', '--version'], '"--version" for ciphers'],
+    [['ciphers', '--help=x'], '"--help=x" for ciphers'],
+    [['ciphers', '-hh'], '"-hh" for ciphers'],
+    [['--version', 'ciphers'], '"--version"'],
+  ])('refuses %j instead of listing the ciphers', (args, shown) => {
+    const result = runCli(args, { ...process.env, CONSOLA_LEVEL: '3' })
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe(
+      `Unknown option ${shown}. Text that starts with - goes after --, which ends the options.\n`,
+    )
+  })
 })
 
 describe('CLI closed stdout', () => {

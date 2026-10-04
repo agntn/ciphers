@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vite-plus/test'
-import { normalizeMainArgs, separateText, shownArgument } from '../../src/cli-args.ts'
+import { cittyAnswers, normalizeMainArgs, separateText, shownArgument } from '../../src/cli-args.ts'
 
 describe('normalizeMainArgs', () => {
   it('returns ciphers for empty argv', () => {
@@ -49,6 +49,11 @@ const decodeArgs = {
   verbose: { type: 'boolean', alias: 'v' },
 } as const
 
+const ciphersArgs = {
+  verbose: { type: 'boolean', alias: 'v' },
+  category: { type: 'string', alias: 'c' },
+} as const
+
 describe('separateText', () => {
   it('takes dashed text that names no option as text', () => {
     expect(separateText(['morse', '-.-. .- -'], decodeArgs)).toEqual({
@@ -92,6 +97,31 @@ describe('separateText', () => {
   it('refuses a dashed argument once every positional is taken', () => {
     expect(separateText(['morse', '...', '--kye', 'x'], decodeArgs)).toEqual({ unknown: '--kye' })
     expect(separateText(['-_8'], {})).toEqual({ unknown: '-_8' })
+  })
+  it('knows no help or version of its own', () => {
+    expect(separateText(['--version'], ciphersArgs)).toEqual({ unknown: '--version' })
+    expect(separateText(['-hh'], ciphersArgs)).toEqual({ unknown: '-hh' })
+    expect(separateText(['morse', '--help=x'], decodeArgs)).toEqual({
+      args: ['--', 'morse', '--help=x'],
+    })
+  })
+})
+
+describe('cittyAnswers', () => {
+  it.each([[['decode', 'morse', '-h']], [['ciphers', '--', '--help']], [['--version']], [['-v']]])(
+    'leaves %j to citty',
+    (args) => {
+      expect(cittyAnswers(args)).toBe(true)
+    },
+  )
+  it.each([
+    [['ciphers', '--version']],
+    [['--version', 'ciphers']],
+    [['ciphers', '--help=x']],
+    [['ciphers', '-hh']],
+    [['ciphers', '-v']],
+  ])('keeps %j for the guard', (args) => {
+    expect(cittyAnswers(args)).toBe(false)
   })
 })
 

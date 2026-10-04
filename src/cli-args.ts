@@ -1,3 +1,5 @@
+import { camelCase, kebabCase } from 'scule'
+
 /**
  * If the first argument is not a known subcommand, prepend `encode`.
  * The help and version flags stay where they are: citty answers them on the main command.
@@ -36,17 +38,27 @@ type Declared = Readonly<{ type?: string; alias?: string | readonly string[] }>
 export type Separated = { readonly args: readonly string[] } | { readonly unknown: string }
 
 /**
+ * Mirrors citty's `runMain`: an exact `--help` or `-h` anywhere, or a lone `--version` or `-v`.
+ *
+ * @param args - Every argument after the bin, with the subcommand in front.
+ * @returns {boolean} Whether citty prints usage or the version without parsing anything.
+ */
+export function cittyAnswers(args: readonly string[]): boolean {
+  if (args.some((arg) => arg === '--help' || arg === '-h')) return true
+  return args.length === 1 && (args[0] === '--version' || args[0] === '-v')
+}
+
+/**
  * Maps every name citty takes for an option of the command to whether it takes a value.
  *
  * @param defs - The command's argument definitions.
- * @returns {Record<string, boolean>} Names, both spellings, aliases, `no-` forms, help and version.
+ * @returns {Record<string, boolean>} Names, scule's two spellings, aliases and `no-` forms.
  */
 function optionNames(defs: Readonly<Record<string, Declared>>): Record<string, boolean> {
-  const names: Record<string, boolean> = { help: false, h: false, version: false, v: false }
+  const names: Record<string, boolean> = {}
   for (const [key, def] of Object.entries(defs)) {
     if (def.type === 'positional') continue
-    const kebab = key.replaceAll(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`)
-    for (const name of [key, kebab, ...[def.alias ?? []].flat()]) {
+    for (const name of [key, camelCase(key), kebabCase(key), ...[def.alias ?? []].flat()]) {
       names[name] = def.type !== 'boolean'
       names[`no-${name}`] = false
     }

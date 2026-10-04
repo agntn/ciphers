@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.6.1
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.6.0...v0.6.1)
+
+### 🚀 Enhancements
+
+- **block:** Open BZip2 in gpg messages too ([#223](https://github.com/agntn/ciphers/pull/223))
+
+### 🩹 Fixes
+
+- **cli:** Stop reading Morse as flags ([#214](https://github.com/agntn/ciphers/pull/214))
+- **docs:** Answer /mcp calls with no arguments ([#217](https://github.com/agntn/ciphers/pull/217))
+- **docs:** Keep bidi out of /mcp refusals ([#220](https://github.com/agntn/ciphers/pull/220))
+- **cli:** Hand citty only the flags it answers ([#221](https://github.com/agntn/ciphers/pull/221))
+
+### ❤️ Contributors
+
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+
 ## v0.6.0
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.5.2...v0.6.0)

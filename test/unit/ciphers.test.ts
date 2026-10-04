@@ -734,6 +734,11 @@ describe('book', () => {
     expect(book.encode('cafe\u0301', { book: 'un caf\u00E9' }).text).toBe('2')
   })
 
+  it('matches a word whose capital decomposes, as Greek \u0390 does', () => {
+    expect(book.encode('\u03AA\u0301', { book: '\u0390' }).text).toBe('1')
+    expect(book.encode('\u0390', { book: '\u03AA\u0301' }).text).toBe('1')
+  })
+
   it('takes the first letter in NFC, so a decomposed book picks the same letters', () => {
     const decomposed = { book: 'e\u0301clair e\u0301te\u0301', pick: 'letter' as const }
     expect(book.encode('\u00E9', decomposed).text).toBe('1')

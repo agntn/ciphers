@@ -144,13 +144,19 @@ function resultOptions(
 }
 
 /**
- * NFC and full case folding, so `ẞ` and `SS` meet `ß`, `ſ` meets `s` and both Turkish I meet `i`.
+ * NFC before and after full case folding, so `ẞ` and `SS` meet `ß`, `ſ` meets `s` and both Turkish I meet `i`.
  *
  * @param unit - A word or a letter.
  * @returns {string} The folded unit.
  */
 function fold(unit: string): string {
-  return unit.normalize('NFC').toLowerCase().toUpperCase().toLowerCase().replaceAll('i\u0307', 'i')
+  return unit
+    .normalize('NFC')
+    .toLowerCase()
+    .toUpperCase()
+    .toLowerCase()
+    .replaceAll('i\u0307', 'i')
+    .normalize('NFC')
 }
 
 /**

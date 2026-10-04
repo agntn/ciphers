@@ -1,3 +1,5 @@
+import { bzip2 } from '@agntn/compressions/bzip2'
+import { deflate } from '@agntn/compressions/deflate'
 import { base64 } from '@agntn/encodings/base64'
 import { sha1 } from '@agntn/hashes'
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../../core/types.ts'
@@ -22,7 +24,6 @@ import { blowfishBlock } from '../blowfish.ts'
 import { cast5Block } from '../cast5.ts'
 import { ideaBlock } from '../idea.ts'
 import { readArmor, writeArmor } from './armor.ts'
-import { inflateRaw, inflateZlib } from './inflate.ts'
 import { type Packet, readPackets, writePacket } from './packets.ts'
 import {
   MAX_S2K_COUNT,
@@ -95,7 +96,14 @@ const OTHER_ALGORITHMS: Readonly<Record<number, string>> = {
 
 const ALGORITHM_NAMES = ALGORITHMS.map((algorithm) => algorithm.name)
 
-const COMPRESSION: Readonly<Record<number, string>> = { 1: 'zip', 2: 'zlib', 3: 'bzip2' }
+/** Compression ids of RFC 4880 §9.3, each with what decompresses it under an output limit. */
+const COMPRESSION: Readonly<
+  Record<number, { name: string; run: (data: Uint8Array, limit: number) => { bytes: Uint8Array } }>
+> = {
+  1: { name: 'zip', run: (data, limit) => deflate.decompress(data, { container: 'raw', limit }) },
+  2: { name: 'zlib', run: (data, limit) => deflate.decompress(data, { container: 'zlib', limit }) },
+  3: { name: 'bzip2', run: (data, limit) => bzip2.decompress(data, { limit }) },
+}
 
 /** Passphrase packets one message may make this cipher try, each up to 65 MB of hashing. */
 const MAX_SKESK = 8
@@ -246,13 +254,30 @@ function decryptData(body: Bytes, session: SessionKey): Opened | 'wrong key' | '
   return { prefix: plain.slice(0, size), packets: plain.slice(size + 2, end) }
 }
 
+/**
+ * Unpacks at most `MAX_INFLATED` bytes. Subpaths export no error classes, so fields tell them apart.
+ *
+ * @param body - The packet body: the compression id, then the data.
+ * @returns {{ bytes: number[]; compression: string }} The contents and the compression name.
+ * @throws {CipherError} When the id is unknown, the data is broken or it grows too large.
+ */
 function decompress(body: Bytes): { bytes: number[]; compression: string } {
   const [id, ...data] = body
   if (id === 0) return { bytes: data, compression: 'none' }
-  if (id === 1) return { bytes: inflateRaw(data, MAX_INFLATED), compression: 'zip' }
-  if (id === 2) return { bytes: inflateZlib(data, MAX_INFLATED), compression: 'zlib' }
-  const name = id !== undefined && Object.hasOwn(COMPRESSION, id) ? ` (${COMPRESSION[id]})` : ''
-  throw new CipherError(`Compression ${String(id)}${name} is not supported: only zip and zlib`)
+  const format = id !== undefined && Object.hasOwn(COMPRESSION, id) ? COMPRESSION[id] : undefined
+  if (format === undefined) {
+    throw new CipherError(`Compression ${String(id)} is not supported: only zip, zlib and bzip2`)
+  }
+  try {
+    const { bytes } = format.run(Uint8Array.from(data), MAX_INFLATED)
+    return { bytes: Array.from(bytes), compression: format.name }
+  } catch (error) {
+    if (!(error instanceof Error) || !('partial' in error)) throw error
+    if ('limit' in error) {
+      throw new CipherError(`Compressed data inflates past ${MAX_INFLATED} bytes`)
+    }
+    throw new CipherError(`Compressed data is broken: ${error.message}`)
+  }
 }
 
 function readLiteral(body: Bytes): Literal {
@@ -539,7 +564,7 @@ export class OpenPgp extends Cipher {
       name: 'openpgp',
       label: 'OpenPGP (passphrase)',
       description:
-        'A passphrase-protected OpenPGP message, RFC 4880, what gpg --symmetric writes: an S2K turns the passphrase into the key, CFB encrypts a literal data packet behind a random block, and an MDC (SHA-1) catches changes. Decoding reads armored or bare packets with IDEA, Triple DES, CAST5, Blowfish or AES, ZIP or ZLIB compression and an encrypted session key; encoding writes armor GnuPG opens. UTF-8 text in, armor out',
+        'A passphrase-protected OpenPGP message, RFC 4880, what gpg --symmetric writes: an S2K turns the passphrase into the key, CFB encrypts a literal data packet behind a random block, and an MDC (SHA-1) catches changes. Decoding reads armored or bare packets with IDEA, Triple DES, CAST5, Blowfish or AES, ZIP, ZLIB or BZip2 compression and an encrypted session key; encoding writes armor GnuPG opens. UTF-8 text in, armor out',
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,

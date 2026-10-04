@@ -17,12 +17,15 @@ importers:
 
   .:
     dependencies:
+      '@agntn/compressions':
+        specifier: 0.1.0
+        version: 0.1.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
       '@agntn/encodings':
         specifier: 0.1.0
         version: 0.1.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
       '@agntn/hashes':
-        specifier: 0.6.1
-        version: 0.6.1(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
+        specifier: 0.6.4
+        version: 0.6.4(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
       '@agntn/tools':
         specifier: 0.0.0
         version: 0.0.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@modelcontextprotocol/server@2.2.0)(@oh-my-pi/pi-coding-agent@18.4.2)
@@ -78,6 +81,22 @@ importers:
 
 packages:
 
+  '@agntn/compressions@0.1.0':
+    resolution: {integrity: sha512-a79jmu7zZxzMIa5V/t4PqOuinx9eQDh05ix+agnxw1mXv1MhC5SKxCTVDQcyuqMz0tuHk5/0X5Wf8B9zdyoH4Q==}
+    engines: {node: '>=26'}
+    hasBin: true
+    peerDependencies:
+      '@earendil-works/pi-coding-agent': '>=0.84.2 <1'
+      '@oh-my-pi/pi-coding-agent': '>=18.0.0 <19'
+      ai: '>=7.0.0'
+    peerDependenciesMeta:
+      '@earendil-works/pi-coding-agent':
+        optional: true
+      '@oh-my-pi/pi-coding-agent':
+        optional: true
+      ai:
+        optional: true
+
   '@agntn/encodings@0.1.0':
     resolution: {integrity: sha512-kPCR2TxPtpt+2CIRlAYHq8V7LwneVBMAp/0geftLkgKcselVI+EYm6dsL1YnZbqw6Cqtl+vHO6u7T5eZ9TTNDQ==}
     engines: {node: '>=26'}
@@ -96,6 +115,22 @@ packages:
 
   '@agntn/hashes@0.6.1':
     resolution: {integrity: sha512-pakVYxcaOtVUTU9cfssc8S3c5kr7R5w7EhIBKJdhdNkvMeMOs4gU9zCJUamyXbKSvZcI9EYHUFcXWqapVNyW1A==}
+    engines: {node: '>=26'}
+    hasBin: true
+    peerDependencies:
+      '@earendil-works/pi-coding-agent': '>=0.87.1 <1'
+      '@oh-my-pi/pi-coding-agent': '>=18.4.2 <19'
+      ai: '>=7.0.0'
+    peerDependenciesMeta:
+      '@earendil-works/pi-coding-agent':
+        optional: true
+      '@oh-my-pi/pi-coding-agent':
+        optional: true
+      ai:
+        optional: true
+
+  '@agntn/hashes@0.6.4':
+    resolution: {integrity: sha512-eEqgph5RKF6nJfGnzdOlYpQb2vx8o3cqA17g+mqg0znmjGvYT3eF0tqJXFQctW4qw/lKQFXN+Zmrl7KTAbgdxw==}
     engines: {node: '>=26'}
     hasBin: true
     peerDependencies:
@@ -1675,7 +1710,6 @@ packages:
     resolution: {integrity: sha512-jrOY5WM+AaAqkv51fHP1x28ifto4WgcZVzodLUyMU1jMWn5Sq+VciRdk/n8E0Ey5w4p4cWWE+m5GfXWOYh7Kzw==}
     cpu: [arm64]
     os: [android]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-darwin-arm64@0.10.2':
     resolution: {integrity: sha512-3H7eNPIHJndUJXZ4QUGBPq1zC6RGcUZfm7bymJes+/N7wTVWUn1bxZ9JcozYHpkWQNm9f23G8YWbaHD9aYH72A==}
@@ -1687,7 +1721,6 @@ packages:
     resolution: {integrity: sha512-4O4lkCQIzPZGjiNB1GORSI6hBECbiiSBS/APZXPvNKYH+nhY4uuqv03LNXA+SET3hoBjvr95P5rIhY8KQaQUBA==}
     cpu: [arm64]
     os: [darwin]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-darwin-x64@0.10.2':
     resolution: {integrity: sha512-AJOUpR2s3LF9AWiiub/Uyc/UoXNTWcq8hK3cVI6fUSXtwh34dG21J6hRuNlO6JVJFTo4o3ScVvZOrh/YFfUEAA==}
@@ -1699,7 +1732,6 @@ packages:
     resolution: {integrity: sha512-9EvoUO0SEhD6/d8VHdWuPerepPMSR1y84+UEgz8Un1Ope14Oe7xMvePpEQLTLovoIFZ8Zg3iZ8z8E11pZMqC3g==}
     cpu: [x64]
     os: [darwin]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-freebsd-x64@0.10.2':
     resolution: {integrity: sha512-ms7DcZu87u5CiK/wMwvpKAvAmtaqKjCQIXNweMLypG6qbuiaOMQf1jpbB5+j46xBcgCovo8TQMcv0bCQLKIL9w==}
@@ -1711,7 +1743,6 @@ packages:
     resolution: {integrity: sha512-HqT78WwgHTmp8lwujoUa9CrIortX4DdpuiVC18ZPSGvuuJf4ylpIEI6QrQEM78Zwz3muhAWAOXZ5irdiYY+AyA==}
     cpu: [x64]
     os: [freebsd]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-linux-arm-gnu@0.10.2':
     resolution: {integrity: sha512-xJDpYAsKV5+eaiBhTYl05fvT6sst4PsCeuIFMRu9b0/WCSrNQPfCDtAQ5/MS6xNpsdujdZEPR+gmfWk3ZG5i3A==}
@@ -1725,7 +1756,6 @@ packages:
     cpu: [arm]
     os: [linux]
     libc: [glibc]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-linux-arm-musl@0.10.2':
     resolution: {integrity: sha512-qfTkgd7AEx61l4K9VtXWCGTxc/fmXJ4ZheDz3i+/AAJUtg4sa0bPrc0VBxPggB/rayR8Z3+JfrBItuyanBJJ9Q==}
@@ -1739,7 +1769,6 @@ packages:
     cpu: [arm]
     os: [linux]
     libc: [musl]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-linux-arm64-gnu@0.10.2':
     resolution: {integrity: sha512-4e6Mifm/4UdjtU3D8mATIrvgP+xEiH8xtQOjd0zpd72XKWT7ug3sdyhq2utkkZFP6BvYp7SgZrI+aR4VeIOHdw==}
@@ -1753,7 +1782,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-linux-arm64-musl@0.10.2':
     resolution: {integrity: sha512-RdsJrUfDYFVV3JOmWFUWwSu31fa1APn12xDeIKxgl/YWxrabwtxsDBNjF2561c7tmcbiewdCUvngqRs8AyGVLA==}
@@ -1767,7 +1795,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     libc: [musl]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-linux-x64-gnu@0.10.2':
     resolution: {integrity: sha512-mVzWimEPPreaPyXIUvxsHoJzvO7ckZ5j0LgQFHz04zQIRwt9A9T2hA7K5/jYjJKkMxWG/U2VjhGNwVhtyU+uqg==}
@@ -1781,7 +1808,6 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [glibc]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-linux-x64-musl@0.10.2':
     resolution: {integrity: sha512-Y77fyISurmr2mvO1yeq3u+x/WJbACgPR4w+lzEVx30ViCxZzIGrZPRN1yEdZ9xUNPNsIO5thBHIdRNG+UGUG+Q==}
@@ -1795,7 +1821,6 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [musl]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-win32-arm64@0.10.2':
     resolution: {integrity: sha512-1+tGLyG0u5YYy0lev4ck7/0sd8xJ9SZde0dLut7qLDPZV5WVTV8x6OxNXUne/PGuHZyO1vK+txPQzzHOyXHGSw==}
@@ -1807,7 +1832,6 @@ packages:
     resolution: {integrity: sha512-KOL/rBatWqH4ZpCNoF8ZtSNdOJbAxBJLmk/VeRciepGROPTbPum1A9t67GpFgOU7qrkUWlPJdJ+KHKbvbmOt+w==}
     cpu: [arm64]
     os: [win32]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-codegen/binding-win32-x64@0.10.2':
     resolution: {integrity: sha512-8a2SExRohRbwC0MY4VpOF0/RSckrJ2ASZqAor5/RYSJJaeadR93n10gZzcKT6pY9ukiSOIZCRKVRD2tH73T0qA==}
@@ -1819,7 +1843,6 @@ packages:
     resolution: {integrity: sha512-FxENahEjWSan59Syh/us/Kf4wNq8qrJLFJ3R2N4Oiwtb6yNdz/rWLNTIoNSssnsp7IoWJdUP6o/Z8ppg7lXMcg==}
     cpu: [x64]
     os: [win32]
-    deprecated: yuku-codegen is pure JavaScript since 0.14
 
   '@yuku-parser/binding-android-arm64@0.10.2':
     resolution: {integrity: sha512-2VPBU9fRGRAQ2xPAvghnec3oou5Nrxm2Bezhf+13UMspAxQSkF/32r+ySKXSwIPA5/RivumDJDxAxc301Sgicw==}
@@ -1831,7 +1854,6 @@ packages:
     resolution: {integrity: sha512-A2JCFCSHfnficqYEw4Iujpx7XrkMM3UfFcgJFmYpZSo9zM4nyhmdIIE0FogSduuU60lhM0/UcfuUBXIVNBMlGQ==}
     cpu: [arm64]
     os: [android]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-darwin-arm64@0.10.2':
     resolution: {integrity: sha512-LD+PMZE51tCYTOss5HBkm3/AE39MvcMDBfWJx7A4yDcjfNbAQDnHZKtzSOuqrswx+TQHY0ws5xn6+fWOwtmfBA==}
@@ -1843,7 +1865,6 @@ packages:
     resolution: {integrity: sha512-3PiyU+Eare4YuKaQ22N98/yAiROPY5o/NQJHraICzDvk4pgS+m+bgLKOvkGBRn33OnV95Vdv1Mn38b+MQHpULQ==}
     cpu: [arm64]
     os: [darwin]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-darwin-x64@0.10.2':
     resolution: {integrity: sha512-mmZ8cND+AoIIMRERyMinlg5ApHxP23B9jH2B5wT7T+dliPa9rubLxneB/SUjFwyUjGaFnB5G7t4YvpfbO5zbkQ==}
@@ -1855,7 +1876,6 @@ packages:
     resolution: {integrity: sha512-blFMAFI7AInI83XaiOF8cIeiRM46Nz9EfpZtZPRLbKxSA9aAr5v8aHYpmfN6NoyXxAv/10pwS4gsAuc1W6fy5Q==}
     cpu: [x64]
     os: [darwin]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-freebsd-x64@0.10.2':
     resolution: {integrity: sha512-gVIjaaIddbRfAhHlC8N809wQWml7mxfSVnzaLtzGXObTeFTPAg/YVnQXt1UOhPM1ah5eG/8Y0RUlNpB4GVe7eQ==}
@@ -1867,7 +1887,6 @@ packages:
     resolution: {integrity: sha512-TsNuL4qsZdO0tHp5GW43Y5fHeLPpPHA675wdcPNTcdq2ZO5AvsQWFFoiDg8CH4oBktfsQ9tdvKhjLnLYwKvp4g==}
     cpu: [x64]
     os: [freebsd]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-linux-arm-gnu@0.10.2':
     resolution: {integrity: sha512-q/XPPQQAPdlw05aPj30ygBhekmQryGOwxVraBgApjKK8yY1kNQgqq6XCYLF1WHSee+lhxclrTO7W0/bt7dR1GA==}
@@ -1881,7 +1900,6 @@ packages:
     cpu: [arm]
     os: [linux]
     libc: [glibc]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-linux-arm-musl@0.10.2':
     resolution: {integrity: sha512-A+Cb0I1hFF4wilTQpWs79k1aNnj4B2tkrHx3zsuUNF9BtVY2zPZ4yeQEM/zjXrS/qJlNMZVK9NrWJjwdpnTrfg==}
@@ -1895,7 +1913,6 @@ packages:
     cpu: [arm]
     os: [linux]
     libc: [musl]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-linux-arm64-gnu@0.10.2':
     resolution: {integrity: sha512-aGNSzqIqqphFwAdIFwVvKIyXD1Iy3CxrEJVIZAT87Ecyi4vCmmDD2v2l9h+Gd3/wSy3JZlOI792LJbKAjyy9rQ==}
@@ -1909,7 +1926,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-linux-arm64-musl@0.10.2':
     resolution: {integrity: sha512-Ddl1sF0rtuCXyHGSOV6dcmdx+ETv1iD+IVFqQuOjzkJZWclxJxdBWX6ZJMRtTiGqGUTbqLEKiTXxpR/Bvqk+2A==}
@@ -1923,7 +1939,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     libc: [musl]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-linux-x64-gnu@0.10.2':
     resolution: {integrity: sha512-/nlcpR6IF5U+0m5L9wvAIXeQa2DT+BXuvqKDsTcOTlcc0B4dHNyqE5hTXsS4hAyimpy2ZK8A1zMNF5hTrjg2cg==}
@@ -1937,7 +1952,6 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [glibc]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-linux-x64-musl@0.10.2':
     resolution: {integrity: sha512-GX80dxTQD/M/OryyuxJcFzFENzry3cDFPvCFTyWogNWQH3fSHfMrNfpwpl1YzMos1eV9NygK5GSDG7VArQlb4w==}
@@ -1951,7 +1965,6 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [musl]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-win32-arm64@0.10.2':
     resolution: {integrity: sha512-agePQBV4VHewiGU0ACSjscZ/hJd283f9JfAF19Gf1rI5+wy5tTgx4GS36i0b3xim15AQ4RCpDRosEvhLZ4zAOw==}
@@ -1963,7 +1976,6 @@ packages:
     resolution: {integrity: sha512-s6Gwttb1dQvtPX6Bgkw+UPC9IO3UBDXc6Zezog8MMgvu3UfJBBB9TQqKBX/2quu0Eyh+lLSAyNlIyyecaagUPg==}
     cpu: [arm64]
     os: [win32]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-parser/binding-win32-x64@0.10.2':
     resolution: {integrity: sha512-s8//CMpgL5+y1lvDCdyh1rwGI5+ytDJywFJRe1vnhI7n0j+caxshNucurikYLLVeQ2SYFex6aPrzgQxkabBQRA==}
@@ -1975,7 +1987,6 @@ packages:
     resolution: {integrity: sha512-FrERt9YWatY3bJfSUdi4YWY+6iQcyo3MzCC821BxlWM5TFZEHijnpz/bknR79VHlXY/9CvXz8ZlaAGPsTtN3nw==}
     cpu: [x64]
     os: [win32]
-    deprecated: yuku-parser runs on yuku-core since 0.14
 
   '@yuku-toolchain/types@0.10.2':
     resolution: {integrity: sha512-sSeo4SSSToiS+sSD+bwn/s94EEcaLJ7tG5LCp8gFYC1G5VzxzX7fqB6m9RU1yMD8KTpu6zdU/I1NlQf8hVBJ9Q==}
@@ -3385,6 +3396,18 @@ packages:
 
 snapshots:
 
+  '@agntn/compressions@0.1.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)':
+    dependencies:
+      '@agntn/encodings': 0.1.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
+      '@agntn/hashes': 0.6.4(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
+      '@agntn/tools': 0.0.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@modelcontextprotocol/server@2.2.0)(@oh-my-pi/pi-coding-agent@18.4.2)
+      '@modelcontextprotocol/server': 2.2.0
+      citty: 0.2.2
+      consola: 3.4.2
+    optionalDependencies:
+      '@earendil-works/pi-coding-agent': 1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3)
+      '@oh-my-pi/pi-coding-agent': 18.4.2
+
   '@agntn/encodings@0.1.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)':
     dependencies:
       '@agntn/hashes': 0.6.1(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
@@ -3397,6 +3420,15 @@ snapshots:
       '@oh-my-pi/pi-coding-agent': 18.4.2
 
   '@agntn/hashes@0.6.1(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)':
+    dependencies:
+      '@agntn/tools': 0.0.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@modelcontextprotocol/server@2.2.0)(@oh-my-pi/pi-coding-agent@18.4.2)
+      '@modelcontextprotocol/server': 2.2.0
+      citty: 0.2.2
+    optionalDependencies:
+      '@earendil-works/pi-coding-agent': 1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3)
+      '@oh-my-pi/pi-coding-agent': 18.4.2
+
+  '@agntn/hashes@0.6.4(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)':
     dependencies:
       '@agntn/tools': 0.0.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@modelcontextprotocol/server@2.2.0)(@oh-my-pi/pi-coding-agent@18.4.2)
       '@modelcontextprotocol/server': 2.2.0

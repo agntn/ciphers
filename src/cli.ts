@@ -95,6 +95,8 @@ const main = defineCommand({
     frequency: () => loadCommand(() => import('./commands/frequency.ts')),
     period: () => loadCommand(() => import('./commands/period.ts')),
     guess: () => loadCommand(() => import('./commands/guess.ts')),
+    probe: () => loadCommand(() => import('./commands/probe.ts')),
+    crib: () => loadCommand(() => import('./commands/crib.ts')),
   },
 })
 

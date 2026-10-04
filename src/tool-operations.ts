@@ -68,6 +68,24 @@ export const MAX_PERIOD = 100
 export const PERIOD_LINES = 10
 /** Kasiski factors the period estimate prints. */
 export const KASISKI_FACTORS = 5
+/** Ciphertexts one crib drag takes; each one is checked at every place. */
+export const MAX_CRIB_CIPHERTEXTS = 16
+/** Hex digits per ciphertext of a crib drag, 2048 bytes. */
+export const MAX_CRIB_CIPHERTEXT_DIGITS = 4_096
+/** Characters per ciphertext before whitespace goes, room for a space or line break per byte. */
+export const MAX_CRIB_CIPHERTEXT_LENGTH = MAX_CRIB_CIPHERTEXT_DIGITS * 2
+/** Characters of a crib. */
+export const MAX_CRIB_LENGTH = 100
+/** Placements a crib drag carries in `known`. */
+export const MAX_CRIB_KNOWN = 100
+/** Characters of a known placement's text, as many as the longest ciphertext has bytes. */
+export const MAX_CRIB_KNOWN_LENGTH = MAX_CRIB_CIPHERTEXT_DIGITS / 2
+/** Most places a crib drag returns. */
+export const MAX_CRIB_LIMIT = 50
+/** Longest list of each kind a passphrase probe takes. */
+export const PROBE_LIST_LIMITS = { digests: 3, keyLengths: 29, iterations: 32 } as const
+/** Hex digits a probe hit shows of plaintext that is not UTF-8. */
+const PROBE_HEX_PREVIEW = 32
 
 /**
  * Characters a brute-force line keeps below the top one. From this length on, scored against the
@@ -126,6 +144,10 @@ export const OPTION_DESCRIPTIONS = {
     'AES-passphrase only: hash passes per derived block, 1 to 100000, CryptoJS EvpKDF iterations (default 1); decoding needs the same value',
   salt: 'AES-passphrase encoding only: 16 hex digits (default random); decoding reads it from the ciphertext',
   maxPeriod: `Longest key length to try, 2 to ${MAX_PERIOD} (default 20)`,
+  probeDigests: 'EVP_BytesToKey hashes to try: md5, sha1, sha256 (default all three)',
+  probeKeyLengths:
+    'Key lengths in bits to try, each 128 to 1024 in steps of 32, CryptoJS keySize times 32 (default 128, 192 and 256)',
+  probeIterations: `Hash passes per derived block to try, each 1 to 100000, up to ${PROBE_LIST_LIMITS.iterations} counts adding up to at most 1000000 across the digests (default 1)`,
   period:
     'Block length. Required by alberti (letters before the disk rotates); optional for bifid (default 5)',
 } as const
@@ -453,5 +475,252 @@ export function formatFamilyGuess(
     )
   })
   lines.push('', 'Candidates, not a verdict: only a decode that reads settles it.')
+  return { content: [{ type: 'text', text: lines.join('\n') }] }
+}
+
+/**
+ * Decrypted text on one line: JSON quotes, with DEL, C1, separators and format controls escaped.
+ *
+ * @param text - Decrypted text, which the ciphertext's author controls.
+ * @param length - Code points kept inside the quotes; `…` follows when the text is longer.
+ * @returns {string} The quoted preview.
+ */
+export function quotedPreview(text: string, length: number = BRUTE_PREVIEW_LENGTH): string {
+  const characters = Array.from(text)
+  const shown = JSON.stringify(characters.slice(0, length).join('')).replaceAll(
+    /[\u007F-\u009F\u2028\u2029\p{Cf}]/gu,
+    (character) => `\\u${character.codePointAt(0)!.toString(16).padStart(4, '0')}`,
+  )
+  return characters.length > length ? `${shown}…` : shown
+}
+
+/**
+ * One probe hit on one line: its settings, the padding, how much prints and the start of the text.
+ *
+ * @param hit - A setting whose padding held.
+ * @returns {string} The line, indented.
+ */
+function probeHitLine(hit: Readonly<CiphersModule.PassphraseProbeHit>): string {
+  const settings = `digest ${hit.digest}, keyLength ${hit.keyLength}, iterations ${hit.iterations}`
+  const reading =
+    hit.text === undefined
+      ? `not UTF-8, hex ${hit.hex.slice(0, PROBE_HEX_PREVIEW)}${hit.hex.length > PROBE_HEX_PREVIEW ? '…' : ''}`
+      : quotedPreview(hit.text)
+  return `  ${settings}: pad ${hit.padLength}, ${Math.round(hit.printable * 100)}% printable, ${reading}`
+}
+
+/**
+ * Probe a `Salted__` blob for a model, with the error class from `library`.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - Base64 starting `U2FsdGVkX1`.
+ * @param passphrase - The passphrase to try.
+ * @param grid - Digests, key lengths and iteration counts; each defaults as `probePassphrase` says.
+ * @returns {CipherToolResult} The hits, most printable first, against the count expected by chance.
+ * @throws {InvalidOptionError} When a list is longer than `PROBE_LIST_LIMITS` allows.
+ */
+export function formatPassphraseProbe(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'probePassphrase' | 'InvalidOptionError'>>,
+  text: string,
+  passphrase: string,
+  grid: Readonly<CiphersModule.PassphraseProbeGrid> = {},
+): CipherToolResult {
+  for (const [name, limit] of Object.entries(PROBE_LIST_LIMITS)) {
+    const list = grid[name as keyof typeof PROBE_LIST_LIMITS]
+    if (list !== undefined && list.length > limit) {
+      throw new library.InvalidOptionError(name, list.length, `must list at most ${limit} values`)
+    }
+  }
+  const probe = library.probePassphrase(text, passphrase, grid)
+  const expected = `about ${Number(probe.expected.toPrecision(2))} expected by chance`
+  const lines = [
+    `Passphrase probe (salt ${probe.salt}, ${probe.blocks} ${probe.blocks === 1 ? 'block' : 'blocks'}, ${probe.tries} tries: digests ${probe.digests.join(', ')} × keyLength ${probe.keyLengths.join(', ')} × iterations ${probe.iterations.join(', ')}):`,
+  ]
+  if (probe.hits.length === 0) {
+    lines.push(
+      `Padding held in none of ${probe.tries} tries (${expected}): a wrong passphrase, settings outside this grid, or not this format. openssl enc -pbkdf2 and -iter derive the key with PBKDF2, which aes-passphrase does not take.`,
+    )
+    return { content: [{ type: 'text', text: lines.join('\n') }] }
+  }
+  lines.push(
+    `Padding held in ${probe.hits.length} of ${probe.tries} tries, ${expected}. Most printable first:`,
+    '',
+    ...probe.hits.map((hit) => probeHitLine(hit)),
+    '',
+    'A wrong setting passes the padding check about once in 255 tries, nearly always with pad 1, and decrypts to bytes that are not text. ciphers_decode with cipher aes-passphrase, the same key and the digest, keyLength and iterations of a hit returns its whole text.',
+  )
+  return { content: [{ type: 'text', text: lines.join('\n') }] }
+}
+
+export type CribToolParams = {
+  readonly ciphertexts: readonly string[]
+  readonly crib?: string
+  readonly known?: ReadonlyArray<Readonly<{ message: number; offset: number; text: string }>>
+  readonly lang?: 'en' | 'pl' | 'ja'
+  readonly limit?: number
+}
+
+/**
+ * Characters of a text as JSON Schema's `maxLength` counts them: code points, not UTF-16 units.
+ *
+ * @param text - The text.
+ * @returns {number} Its code points.
+ */
+function codePoints(text: string): number {
+  return Array.from(text).length
+}
+
+type CribBound = readonly [option: string, value: unknown, reason: string]
+type CribShow = Readonly<Pick<typeof CiphersModule, 'showCribBytes'>>
+type CribDragResult = ReturnType<typeof CiphersModule.dragCrib>
+
+/**
+ * The first bound of the crib drag the arguments break, the same ones the schema states.
+ *
+ * @param params - Arguments of `ciphers_crib_drag`.
+ * @returns {CribBound | undefined} The option, its value and the bound, or nothing when all hold.
+ */
+function cribBoundError(params: Readonly<CribToolParams>): CribBound | undefined {
+  const known = params.known ?? []
+  const bounds: ReadonlyArray<readonly [boolean, string, unknown, string]> = [
+    [
+      params.ciphertexts.length > MAX_CRIB_CIPHERTEXTS,
+      'ciphertexts',
+      params.ciphertexts.length,
+      `must hold at most ${MAX_CRIB_CIPHERTEXTS}`,
+    ],
+    [
+      params.ciphertexts.some((text) => text.length > MAX_CRIB_CIPHERTEXT_LENGTH),
+      'ciphertexts',
+      'one',
+      `must each be at most ${MAX_CRIB_CIPHERTEXT_LENGTH} characters`,
+    ],
+    [
+      params.ciphertexts.some(
+        (text) => text.replaceAll(/\s/g, '').length > MAX_CRIB_CIPHERTEXT_DIGITS,
+      ),
+      'ciphertexts',
+      'one',
+      `must each be at most ${MAX_CRIB_CIPHERTEXT_DIGITS} hex digits`,
+    ],
+    [
+      codePoints(params.crib ?? '') > MAX_CRIB_LENGTH,
+      'crib',
+      codePoints(params.crib ?? ''),
+      `must be at most ${MAX_CRIB_LENGTH} characters`,
+    ],
+    [known.length > MAX_CRIB_KNOWN, 'known', known.length, `must hold at most ${MAX_CRIB_KNOWN}`],
+    [
+      known.some(({ text }) => codePoints(text) > MAX_CRIB_KNOWN_LENGTH),
+      'known',
+      'one',
+      `text must be at most ${MAX_CRIB_KNOWN_LENGTH} characters`,
+    ],
+    [
+      (params.limit ?? 0) > MAX_CRIB_LIMIT,
+      'limit',
+      params.limit,
+      `must be at most ${MAX_CRIB_LIMIT}`,
+    ],
+  ]
+  const broken = bounds.find(([fails]) => fails)
+  return broken === undefined ? undefined : [broken[1], broken[2], broken[3]]
+}
+
+/**
+ * The ranked places of a crib drag, one line each.
+ *
+ * @param library - The loaded cipher library.
+ * @param drag - The drag's result.
+ * @param crib - The crib as given.
+ * @param count - How many ciphertexts there are.
+ * @returns {string[]} The header, the places and a note on what was left out.
+ */
+function cribPlaceLines(
+  library: CribShow,
+  drag: CribDragResult,
+  crib: string,
+  count: number,
+): string[] {
+  const shown = library.showCribBytes([...new TextEncoder().encode(crib)])
+  if (drag.total === 0) {
+    return [
+      `Crib "${shown}" fits no new place: it is longer than every ciphertext, contradicts the known key everywhere, or lies only on known key bytes.`,
+    ]
+  }
+  const lines = [
+    `Crib "${shown}" across ${count} ciphertexts (lang=${drag.language}), ${drag.total} places, most readable first:`,
+    '',
+  ]
+  drag.candidates.forEach(({ message, offset, score, reveals }, index) => {
+    const read = reveals
+      .map((reveal) => `#${reveal.message} "${library.showCribBytes(reveal.bytes)}"`)
+      .join(', ')
+    lines.push(`${index + 1}. #${message} at ${offset} (score ${score.toFixed(2)}): ${read}`)
+  })
+  if (drag.total > drag.candidates.length) {
+    lines.push(`(${drag.total - drag.candidates.length} more places ranked lower)`)
+  }
+  if (count === 2) {
+    lines.push(
+      'With two ciphertexts a place shows up once per side with the same reading: the crib is in one of them, the reading in the other.',
+    )
+  }
+  return lines
+}
+
+/**
+ * The key and plaintexts the known placements give.
+ *
+ * @param library - The loaded cipher library.
+ * @param drag - The drag's result.
+ * @returns {string[]} The key in hex and each plaintext, or a line saying nothing is known.
+ */
+function cribKnownLines(library: CribShow, drag: CribDragResult): string[] {
+  if (drag.key.every((byte) => byte === undefined)) {
+    return [
+      'Nothing known yet. To accept a place, add { message, offset, text } to known and call again.',
+    ]
+  }
+  const key = drag.key
+    .map((byte) => (byte === undefined ? '??' : byte.toString(16).padStart(2, '0')))
+    .join('')
+  return [
+    `Key (?? unknown): ${key}`,
+    'Plaintexts (· unknown):',
+    ...drag.plaintexts.map((bytes, message) => `#${message} "${library.showCribBytes(bytes)}"`),
+    'To accept another place, add it to known and call again.',
+  ]
+}
+
+/**
+ * Drag a crib for a model: the ranked places, then the key and plaintexts `known` gives.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - Arguments of `ciphers_crib_drag`.
+ * @returns {CipherToolResult} The ranked places and the state of the drag.
+ * @throws {InvalidOptionError} When an argument breaks a bound or a placement does not fit.
+ */
+export function formatCribDrag(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<
+    Pick<typeof CiphersModule, 'dragCrib' | 'showCribBytes' | 'InvalidOptionError'>
+  >,
+  params: Readonly<CribToolParams>,
+): CipherToolResult {
+  const broken = cribBoundError(params)
+  if (broken !== undefined) throw new library.InvalidOptionError(...broken)
+  const drag = library.dragCrib(params.ciphertexts, {
+    ...(params.crib === undefined ? {} : { crib: params.crib }),
+    ...(params.known === undefined ? {} : { known: params.known }),
+    ...(params.lang === undefined ? {} : { language: params.lang }),
+    ...(params.limit === undefined ? {} : { limit: params.limit }),
+  })
+  const lines =
+    params.crib === undefined
+      ? []
+      : [...cribPlaceLines(library, drag, params.crib, params.ciphertexts.length), '']
+  lines.push(...cribKnownLines(library, drag))
   return { content: [{ type: 'text', text: lines.join('\n') }] }
 }

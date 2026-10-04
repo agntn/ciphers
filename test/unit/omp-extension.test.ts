@@ -248,6 +248,21 @@ describe('OMP extension', () => {
     await rejects('ciphers_family_guess', { text: 'TEST', lang: 'de' })
     await rejects('ciphers_family_guess', { text: 'X'.repeat(100_001) })
 
+    const blob = 'U2FsdGVkX18HYWQDuJcJTh2NoqzqwZ9pWaEBkXGGu54='
+    await accepts('ciphers_passphrase_probe', { text: blob, key: 'secret', keyLengths: [1024] })
+    await accepts('ciphers_passphrase_probe', { text: blob, key: 'secret', iterations: [1, 2] })
+    await rejects('ciphers_passphrase_probe', { text: blob, key: '' })
+    await rejects('ciphers_passphrase_probe', { text: blob, key: 'secret', digests: ['sha512'] })
+    await rejects('ciphers_passphrase_probe', { text: blob, key: 'secret', digests: [] })
+    await rejects('ciphers_passphrase_probe', { text: blob, key: 'secret', keyLengths: [100] })
+    await rejects('ciphers_passphrase_probe', { text: blob, key: 'secret', iterations: [0] })
+    await rejects('ciphers_passphrase_probe', {
+      text: blob,
+      key: 'secret',
+      iterations: Array.from({ length: 33 }, (_, index) => index + 1),
+    })
+    await rejects('ciphers_passphrase_probe', { text: blob, key: 'secret', digest: 'md5' })
+
     await accepts('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_000) })
     await rejects('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_001) })
     await rejects('ciphers_encode', { cipher: 'bifid', text: 'X', period: 0 })
@@ -272,6 +287,15 @@ describe('OMP extension', () => {
     await rejects('ciphers_encode', { cipher: 'caesar', text: 'A', shfit: 1 })
 
     await rejects('ciphers_caesar_brute', { text: 'X'.repeat(2_001) })
+
+    await accepts('ciphers_crib_drag', { ciphertexts: ['00', '01'], crib: 'a', limit: 50 })
+    await rejects('ciphers_crib_drag', { ciphertexts: ['00'], crib: 'a' })
+    await rejects('ciphers_crib_drag', { ciphertexts: ['00', '01'], crib: '' })
+    await rejects('ciphers_crib_drag', { ciphertexts: ['00', '01'], limit: 51 })
+    await rejects('ciphers_crib_drag', {
+      ciphertexts: ['00', '01'],
+      known: [{ message: 0, offset: 0, text: 'a', at: 1 }],
+    })
   })
 
   it('clips a collapsed result preview and keeps the expanded one whole', async () => {

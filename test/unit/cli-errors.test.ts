@@ -181,6 +181,44 @@ describe('CLI family guess', () => {
   })
 })
 
+describe('CLI crib drag', () => {
+  const first = '315c4eeaa8b5f8aaf9174145bf43e1784b8fa00dc71d885a804e5ee9'
+  const target = '32510ba9babebbbefd001547a810e67149caee11d945cd7fc81a05e9'
+
+  it('ranks the places and prints what known gives', () => {
+    const result = runCli(
+      [
+        'crib',
+        first,
+        target,
+        '--crib',
+        'The secret',
+        '--known',
+        '[{"message":1,"offset":0,"text":"The"}]',
+      ],
+      { ...process.env, CONSOLA_LEVEL: '3' },
+    )
+
+    expect(result.status).toBe(0)
+    const output = stripVTControlCharacters(`${result.stdout}${result.stderr}`)
+    expect(output).toContain('Crib drag "The secret" across 2 ciphertexts (lang=en)')
+    expect(output).toContain('  1. #1 at 0 (score ')
+    expect(output).toContain('): #0 "We can fac"\n')
+    expect(output).toContain(`Key (?? unknown): 66396e${'??'.repeat(25)}`)
+    expect(output).toContain(`  #0 "We ${'·'.repeat(25)}"\n`)
+  })
+
+  it('rejects known that is not a JSON array of placements as one line', () => {
+    const result = runCli(['crib', first, target, '--known', '{"message":0}'])
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe(
+      'Invalid option known=JSON: must be a JSON array of {"message": 0, "offset": 0, "text": "..."}\n',
+    )
+  })
+})
+
 describe('CLI Caesar brute force', () => {
   /**
    * Run `ciphers brute` and keep its shift lines without the terminal styling.

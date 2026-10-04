@@ -77,7 +77,15 @@ const AFFINE_INVERSES: ReadonlyArray<readonly [a: number, inverse: number]> = [
 const MONOALPHABETIC = ['caesar', 'atbash', 'affine'] as const
 const POLYALPHABETIC = ['vigenere', 'beaufort', 'autokey', 'trithemius', 'alberti'] as const
 const BLOCK_16 = ['aes', 'aes-cbc', 'aes-lrw', 'rijndael', 'serpent', 'mars', 'lucifer'] as const
-const BLOCK_8 = ['des', 'desx', 'triple-des', 'triple-des-cbc', 'blowfish', 'idea'] as const
+const BLOCK_8 = [
+  'des',
+  'desx',
+  'triple-des',
+  'triple-des-cbc',
+  'blowfish',
+  'idea',
+  'cast5',
+] as const
 const STREAM = [
   'aes-ctr',
   'aes-cfb',
@@ -316,6 +324,19 @@ function bacon(reading: Readonly<Reading>): FamilyCandidate[] {
 }
 
 /**
+ * An armored OpenPGP message, what `gpg --symmetric --armor` and `gpg --encrypt --armor` write.
+ *
+ * @param reading - The text.
+ * @returns {FamilyCandidate[]} `openpgp`, or nothing.
+ */
+function armored(reading: Readonly<Reading>): FamilyCandidate[] {
+  if (!reading.text.includes('-----BEGIN PGP MESSAGE-----')) return []
+  const signal =
+    'An armored OpenPGP message. openpgp opens it with a passphrase, not with a private key.'
+  return [candidate(['openpgp'], 'high', signal)]
+}
+
+/**
  * The OpenSSL envelope CryptoJS writes: base64 of `Salted__` and a salt.
  *
  * @param reading - The text.
@@ -409,7 +430,16 @@ function mostCommon(values: readonly string[]): string {
 }
 
 /** Layout rules in order. The first that answers decides, so Bacon's A and B never read as hex. */
-const LAYOUTS = [morse, gridDigits, adfgvx, bacon, salted, alphabetNumbers, hexBytes] as const
+const LAYOUTS = [
+  armored,
+  morse,
+  gridDigits,
+  adfgvx,
+  bacon,
+  salted,
+  alphabetNumbers,
+  hexBytes,
+] as const
 
 /**
  * ROT47: punctuation where letters belong, and letters that fit the language once shifted back.

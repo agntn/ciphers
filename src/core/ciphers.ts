@@ -45,6 +45,8 @@ export const builtinCiphers = [
   'lucifer',
   'mars',
   'serpent',
+  'cast5',
+  'openpgp',
   'rabbit',
   'rc4',
   'xor',

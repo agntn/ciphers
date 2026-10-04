@@ -102,6 +102,32 @@ function keySchedule(key: Bytes): BlowfishTables {
 }
 
 /**
+ * Blowfish on one block with the key schedule run once, for the chaining modes.
+ *
+ * @param key - 4 to 56 key bytes.
+ * @param operation - Encrypt or decrypt.
+ * @returns {(block: Bytes) => Bytes} One 8-byte block in, one out.
+ */
+export function blowfishBlock(
+  key: Bytes,
+  operation: 'encrypt' | 'decrypt',
+): (block: Bytes) => Bytes {
+  const { p, s } = keySchedule(key)
+  const subkeys = operation === 'encrypt' ? p : p.toReversed()
+  return (block) => {
+    const words = [0, 4].map((start) =>
+      block.slice(start, start + 4).reduce((word, byte) => (word << 8) | byte, 0),
+    )
+    return feistel(words[0]!, words[1]!, subkeys, s).flatMap((word) => [
+      word >>> 24,
+      (word >>> 16) & 0xff,
+      (word >>> 8) & 0xff,
+      word & 0xff,
+    ])
+  }
+}
+
+/**
  * Run each 8-byte block through Blowfish on its own, the way ECB does. Equal plaintext blocks
  * come out as equal ciphertext blocks.
  *
@@ -111,16 +137,10 @@ function keySchedule(key: Bytes): BlowfishTables {
  * @returns {number[]} The transformed blocks.
  */
 export function blowfishEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const { p, s } = keySchedule(key)
-  const subkeys = operation === 'encrypt' ? p : p.toReversed()
+  const block = blowfishBlock(key, operation)
   const output: number[] = []
   for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    const words = [0, 4].map((start) =>
-      data.slice(offset + start, offset + start + 4).reduce((word, byte) => (word << 8) | byte, 0),
-    )
-    for (const word of feistel(words[0]!, words[1]!, subkeys, s)) {
-      output.push(word >>> 24, (word >>> 16) & 0xff, (word >>> 8) & 0xff, word & 0xff)
-    }
+    output.push(...block(data.slice(offset, offset + BLOCK_SIZE)))
   }
   return output
 }

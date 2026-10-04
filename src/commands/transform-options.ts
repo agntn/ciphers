@@ -31,6 +31,8 @@ export interface TransformOptionArgs {
   readonly bytes?: string
   readonly tagLength?: string
   readonly digest?: string
+  readonly algorithm?: string
+  readonly count?: string
   readonly keyLength?: string
   readonly iterations?: string
   readonly salt?: string
@@ -92,6 +94,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['tagLength', args.tagLength],
     ['keyLength', args.keyLength],
     ['iterations', args.iterations],
+    ['count', args.count],
     ['counter', args.counter],
     ['a', args.a],
     ['b', args.b],
@@ -121,6 +124,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['corner', args.corner],
     ['path', args.path],
     ['digest', args.digest],
+    ['algorithm', args.algorithm],
     ['salt', args.salt],
   ] as const
   for (const [name, value] of strings) {

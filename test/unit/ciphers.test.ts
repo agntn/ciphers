@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { deflateRawSync, deflateSync } from 'node:zlib'
 import { describe, it, expect } from 'vite-plus/test'
 import { create, ciphers, has } from '../../src/core/registry.ts'
 import { resolveCipher } from '../../src/core/resolve.ts'
@@ -34,6 +35,8 @@ import { ideaEcb } from '../../src/ciphers/block/idea.ts'
 import { luciferEcb } from '../../src/ciphers/block/lucifer.ts'
 import { marsEcb } from '../../src/ciphers/block/mars.ts'
 import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
+import { cast5Ecb } from '../../src/ciphers/block/cast5.ts'
+import { inflateRaw, inflateZlib } from '../../src/ciphers/block/openpgp/inflate.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 import { rc4 } from '../../src/ciphers/stream/rc4.ts'
 import { xor } from '../../src/ciphers/stream/xor.ts'
@@ -43,8 +46,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 53 ciphers', () => {
-    expect(ciphers()).toHaveLength(53)
+  it('registers all 55 ciphers', () => {
+    expect(ciphers()).toHaveLength(55)
     for (const name of [
       'caesar',
       'rot13',
@@ -85,6 +88,8 @@ describe('registry', () => {
       'lucifer',
       'mars',
       'serpent',
+      'cast5',
+      'openpgp',
       'rabbit',
       'rc4',
       'xor',
@@ -1281,6 +1286,8 @@ describe('edge cases', () => {
     lucifer: { key: '0123456789abcdeffedcba9876543210' },
     mars: { key: '0123456789abcdeffedcba9876543210' },
     serpent: { key: '0123456789abcdeffedcba9876543210' },
+    cast5: { key: '0123456712345678234567893456789a' },
+    openpgp: { key: 'secret', count: 1024 },
     rabbit: { key: '0123456789abcdeffedcba9876543210' },
     rc4: { key: '0102030405' },
     xor: { key: '494345' },
@@ -4604,6 +4611,531 @@ describe('serpent', () => {
         { name: 'bytes', type: 'string', required: false, default: 'text' },
       ],
     })
+  })
+})
+
+describe('cast5', () => {
+  const cast5 = create('cast5')
+  const hex = (value: string) =>
+    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+  const key = '0123456712345678234567893456789a'
+
+  /** RFC 2144 B.1. A key of 80 bits or less runs 12 rounds, not 16. */
+  it('matches the RFC 2144 vectors for 128, 80 and 40-bit keys', () => {
+    for (const [vectorKey, ciphertext] of [
+      [key, '238b4fe5847e44b2'],
+      ['01234567123456782345', 'eb6a711a2c02271b'],
+      ['0123456712', '7ac816d16e9b302e'],
+    ]) {
+      expect(cast5Ecb(hex('0123456789abcdef'), hex(vectorKey!), 'encrypt')).toEqual(
+        hex(ciphertext!),
+      )
+      expect(cast5Ecb(hex(ciphertext!), hex(vectorKey!), 'decrypt')).toEqual(
+        hex('0123456789abcdef'),
+      )
+    }
+  })
+
+  /** Expected values from `openssl enc -cast5-ecb -provider legacy`, PKCS#7 padding by default. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, ciphertext] of [
+      ['', 'c5556e216407fd3b'],
+      ['ATTACK AT DAWN', '585e13962a59ed5274e0ab1bdcde47a3'],
+      ['zażółć gęślą jaźń 🙂', 'f601eea6923ed22be927bec46ec6d42d8212113ae87ef89c003c8607d9961c83'],
+    ]) {
+      expect(cast5.encode(text!, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'cast5',
+        operation: 'encode',
+        options: { key, mode: 'ecb' },
+      })
+      expect(cast5.decode(ciphertext!, { key }).text).toBe(text)
+    }
+  })
+
+  it('rejects keys that are not a CAST5 key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => cast5[operation]('')).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(4), '00'.repeat(17), '0'.repeat(11), 'g'.repeat(32), 12]) {
+        expect(() => cast5[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('CAST5')).toBe(cast5)
+    expect(cast5.info()).toMatchObject({
+      name: 'cast5',
+      category: 'block',
+      family: 'feistel',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
+    })
+  })
+})
+
+describe('openpgp', () => {
+  const pgp = create('openpgp')
+
+  /**
+   * Written by GnuPG 2.4.9 with the flags each name says, the issue vector from #165.
+   */
+  const gpg = {
+    issue: `-----BEGIN PGP MESSAGE-----
+
+jA0ECQMKHwVT8OzL5gn90lIBzGgrwInQTM+5oFODSD8QMJaarJsJ7kftcv4jWWpP
+2I2U9qLHZ83SeQ1Ol/i2LutftOLxNYgigrj7idS03A5V1Psl+79RGbXLRDgSQKr7
+Co2B
+=XQvs
+-----END PGP MESSAGE-----`,
+    cast5Zlib: `-----BEGIN PGP MESSAGE-----
+
+jA0EAwMC4qY1+40ldSxg0k8B6MsWcfpm/Rv4g8ddH1R1fxUWjLu+EbrSe0hiFCGm
+u6Hnf/bnFlXmlo3u2rybkylTGXxhD53GCbLq5aTp52VHZZsCEzJ+rKROcdW046+P
+=YQef
+-----END PGP MESSAGE-----`,
+    ideaSalted: `-----BEGIN PGP MESSAGE-----
+
+jAwEAQEBxXCXebWeQh/STQFbcXYhzd08/AYhFS1w62bEcK+cik7ZgEHxdr28bHZm
++31rzpHnV2ajAMoAW+kwElCAeHsS2dzEQC5nSNJS2oO0DhB/Mi3FH0hZOsPp
+=sw4o
+-----END PGP MESSAGE-----`,
+    tripleDesSimple: `-----BEGIN PGP MESSAGE-----
+
+jAQEAgAC0kYBtqJdkfIfH9wdTBQnN4ATkDBssgyE9VjnVIaVTka4SVGCRvQfM1t8
+UfP2XuWGaU5jjJOPgXMFeXssSAYuCBnMxOFT+qjq
+=olVP
+-----END PGP MESSAGE-----`,
+    blowfishZip: `-----BEGIN PGP MESSAGE-----
+
+jA0EBAMDXsaXBQCRMbZg0ksBy4mR5PFZg3wdfcWW7qQGTBaKHGnaDAx+026Vng7B
+UOCVhg5KievnN0dr5BxT3G50Muk3czHYzCjepPs/FwXJdurULMmJzumGLLk=
+=EoiY
+-----END PGP MESSAGE-----`,
+    aes128: `-----BEGIN PGP MESSAGE-----
+
+jA0EBwMI7IUr7YkBXz5g0lABNvbQ5ONkbrhBbcpNsBSocgPRGZ2GT3vie07awLJ2
+6Mg/F1ZV5MKiufYA32q9mCR+ZU4723SYXBwm1dlN9vsIB2Ct9umbCtOHm2KuG+xX
+Ww==
+=9Xii
+-----END PGP MESSAGE-----`,
+    aes192Zip: `-----BEGIN PGP MESSAGE-----
+
+jA0ECAMJ0PWef/NdSMdg0lQBP58aJlXVF6zaD1x6KmyAAQiTO2qjwwEEfmaZbNsj
+YSPxkVeA1qBRRBsaI5ELvHsOv3qm11idBMARmOHzAdRWlc+y/oj8rwPokcIOpphJ
+w/Xk1Tk=
+=Ubpv
+-----END PGP MESSAGE-----`,
+    textMode: `-----BEGIN PGP MESSAGE-----
+
+jA0ECQMKgAVxurx260xg0k4Bx5jYinrsEPBUqvYAXSv5DXugGbAFMzdDtys5xiys
+6MncWaXVKJQshKJxsyynwBoiy0yGXmjhCIKDDtIQTH60f1wuMGU/FBjUAMnNZv0=
+=sPhU
+-----END PGP MESSAGE-----`,
+    utf8Zlib: `-----BEGIN PGP MESSAGE-----
+
+jA0ECQMKrzP8PNNqDL5g0mABc1JJfoYOSGYdmqE49+X+oG+KcI/moQjKzR8+Kz+k
+zNrpZ2ora6MLWf4YZQgDnHRg46AtzGnNUoDT/2ZK4EZfpX6IRYvbyMYKJBsfentR
+OuLclj5b53PzOdn9+7rwdYw=
+=z7s+
+-----END PGP MESSAGE-----`,
+    sessionKey: `-----BEGIN PGP MESSAGE-----
+
+hQEMA8zgF6iEMmDJAQf/bl9MCfuc9F8eUl6raqTehzzjfNlVhiS7VAgIA6Pjvb1o
+JCdPEA89MXui/X7jSoCrXf4j48qC8SSFUqw7TY9oEJIjXv+qAW/KhzORKrn6R85+
+0OkWgwbyM8CirY5zxOQkABJM+rjyz6KsT+qpMyrd97jkFXT6JeqW1E19eADDP8Cs
+537IN/OEitJk/JyrlKzQui58NhPCM+ZiUZm8bqz4EXB77AS9xsOVNqmLsA/zRea2
+TOBAyNnNwNW912Lx5++CWSL9mm3RwSylhAIQuenlylzIftHSVruzQtgA8RgOhQiR
+AIXhlFuRzm4ATg6vYTT+C6kMJAgmB5qTkZbg0RjqUIwuBAkDCr/E2pJD7OQ3YDXZ
+aN8xaomc9C9sAeOPdvkvwLvjd2faxoov9qlFd1PKI9JGATeAUhKviAe+H9WNGkzg
+5Gex0kWX0Z+0zuHGdpe4F26pglxdFsxleyoncgM9h7+vI8eM10P0xjr4u54jqMFx
+SlStooxAdg==
+=/RlP
+-----END PGP MESSAGE-----`,
+    partial: `-----BEGIN PGP MESSAGE-----
+
+jA0EAwMKEsCo5aIZMg9g0sEvAahK9rUlOJWgv5Ev4S96nX4l749p9oL1bkoDLDSG
+YkeBtJVg9rKX3ngup9XodFLlOMUoRCiVjObJHoXmdUbq9zWeRBG+F2Gdt56STcv6
+SZrIp2g6RC7l4fWcZtcUu9Z+NlMDYvrk3v81KcxBBRrhmExKQBo4yaKMp75E2fY/
+SxKBmKfkQvXJ2SB+Fx/NpIOj6oA3zpfp4xX6Vd7UmtKCcwtM4yo6UYJ1MluixNgv
+jHzfuWLh7/OtFWucbsPG9XT0/aiYseJwa9ebxorNI8dIIKPriKw8/dfpYhYEf+ZG
+bbS/4hYDPGYKckd7bwh0yiKkzVTjF7Us4DI/gF+EYvirVn+co5On/7VrYpwW4WEV
+jOgFXTw4nuKVncYZmQmhhQityI+RPEzaWfBy3Uksj8QucAOj4E5/HfN3vOFugWqr
+y2Ce8rGK2DHK4V3f2BqEXJxQpdV/+fqKEvrN4fsqGCt05kCBwIDwuso2uQIfTgu+
+J6MnZYn1cfnKNam9pOCadUhparQhsRq4u4SRzFI0XtfYtlAxNAI5p7bo3Rq/k+El
+RSfn541Lyod/yqQioC1E0mOOFbJVuTIJaIU8rtZ+axQCHdJ3T5ZTEu+M7cq7/D39
+H8Iq5CX9AkU+LH5nwrVhJ4zk/rtgOKjAxBP7GS+VIv6V
+=PQv+
+-----END PGP MESSAGE-----`,
+    partialData: `-----BEGIN PGP MESSAGE-----
+
+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
+=QRMR
+-----END PGP MESSAGE-----`,
+    binary: `-----BEGIN PGP MESSAGE-----
+
+jA0EBwMK9yI4OBtPZ/Bg0j0BE+JQr1aiwsmSIrex0tFWRGCstcJRM07oZSGKWg2m
+0SQawn2b/Ye9WgRrapN4YIiNXfZx15EL841nz7sq
+=c9RO
+-----END PGP MESSAGE-----`,
+    twofish: `-----BEGIN PGP MESSAGE-----
+
+jA0ECgMK1Zx51qF8zxZg0koBv4wf0b2oTKJyV2T39OzUYL1QxDYva29FYTVcH6MK
+5y6oQBFwk4xvGVMo1D8MPQvjG1uc70ApDqclLv2PXk0TVm8yerTLs9e4gw==
+=B1wH
+-----END PGP MESSAGE-----`,
+    bzip2: `-----BEGIN PGP MESSAGE-----
+
+jA0ECQMKBxI/90NiHt1g0oIB49nLLfFHQHOoS5jcfXvJC7RTR77N+binPznpIq1O
+K5m/wRlQV4AnCHIRLXpGyNp4pfVfvohKLIrgXWnbG2q1R9RphObOJIoiUTpJFhf3
+794vDJMGZvJ3ghUHt2gRoJvdwYF+fUXkcYCpB6eoP1Cuu9xyUU9JOmDLDJhCUZTp
++twz
+=4l/p
+-----END PGP MESSAGE-----`,
+    sha224: `-----BEGIN PGP MESSAGE-----
+
+jA0ECQMLhkHdltrzA1Jg0lABE5694CQqHC2HviNu1rmhc8Vz+akznMwhmOqR51XO
+fps6M15aADZQZZpSUkrki4cYjI1Tidp722PI/RliYWBDW5+tfkE1pazWCmvjMM18
+eQ==
+=Dacz
+-----END PGP MESSAGE-----`,
+    ocb: `-----BEGIN PGP MESSAGE-----
+
+jE0FCQIDCufe5nWHXjJqYN4FCzEw5mXQjqmslPI9dMJhDlQ0SUmj1ofcS1cs+yDg
+aqBQcXu3hPABz8vADUVyqb4ZglAyhP/MzdUnv9Mc+dRQAQkCEDJiLoxGYflpSb8P
+DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
+6VvdbUYmF1l4yF2Z+UjlL5k=
+=cflf
+-----END PGP MESSAGE-----`,
+  }
+
+  const body = (armor: string) =>
+    armor
+      .split('\n')
+      .filter((line) => /^[A-Za-z0-9+/]+={0,2}$/.test(line))
+      .join('')
+  const bytesOf = (armor: string) => [...Buffer.from(body(armor), 'base64')]
+
+  it('opens the GnuPG message from the issue', () => {
+    expect(pgp.decode(gpg.issue, { key: 'causality' })).toEqual({
+      text: 'follow the white rabbit\n',
+      cipher: 'openpgp',
+      operation: 'decode',
+      options: {
+        key: 'causality',
+        algorithm: 'aes256',
+        digest: 'sha512',
+        count: 60_817_408,
+        salt: '1f0553f0eccbe609',
+        iv: '48c74c4430cdbe1ee97f78a7470dd098',
+        compression: 'zip',
+        filename: 'm.txt',
+      },
+    })
+  })
+
+  it('opens every algorithm, S2K and compression GnuPG writes that it runs', () => {
+    for (const [armor, options] of [
+      [gpg.cast5Zlib, { algorithm: 'cast5', digest: 'sha1', count: 65_536, compression: 'zlib' }],
+      [gpg.ideaSalted, { algorithm: 'idea', digest: 'md5', salt: 'c5709779b59e421f' }],
+      [gpg.tripleDesSimple, { algorithm: '3des', digest: 'sha1' }],
+      [gpg.blowfishZip, { algorithm: 'blowfish', digest: 'ripemd160', compression: 'zip' }],
+      [gpg.aes128, { algorithm: 'aes128', digest: 'sha256', count: 65_536 }],
+      [gpg.aes192Zip, { algorithm: 'aes192', digest: 'sha384', compression: 'zip' }],
+    ] as const) {
+      const decoded = pgp.decode(armor, { key: 'hunter2' })
+      expect(decoded.text).toBe('Attack at dawn')
+      expect(decoded.options).toMatchObject(options)
+    }
+    expect(pgp.decode(gpg.ideaSalted, { key: 'hunter2' }).options).not.toHaveProperty('count')
+    expect(pgp.decode(gpg.tripleDesSimple, { key: 'hunter2' }).options).not.toHaveProperty('salt')
+  })
+
+  it('turns the CRLF of text mode into LF, as gpg --decrypt does', () => {
+    expect(pgp.decode(gpg.textMode, { key: 'hunter2' })).toMatchObject({
+      text: 'line one\nline two\n',
+      options: { filename: 'notes.txt' },
+    })
+  })
+
+  it('reads the passphrase as UTF-8', () => {
+    expect(pgp.decode(gpg.utf8Zlib, { key: 'zażółć' }).text).toBe('Zażółć gęślą jaźń')
+  })
+
+  /** `gpg -c -e` to an RSA key: the SKESK carries the session key under the S2K key. */
+  it('opens a session key encrypted under the passphrase, past a public key packet', () => {
+    expect(pgp.decode(gpg.sessionKey, { key: 'hunter2' })).toMatchObject({
+      text: 'Attack at dawn',
+      options: { algorithm: 'aes256', digest: 'sha512', filename: 'esk.txt' },
+    })
+  })
+
+  /** Both came from stdin, so GnuPG wrote partial body lengths; the second one inside ZIP. */
+  it('joins partial body chunks, in the encrypted data and inside compressed data', () => {
+    const sha256 = (text: string) => createHash('sha256').update(text).digest('hex')
+    expect(sha256(pgp.decode(gpg.partialData, { key: 'hunter2' }).text)).toBe(
+      '9afbee2dc3df931c97dbe30587f5c2a33205cbceaf4d0d474ad45e671c67c1dc',
+    )
+    const partial = pgp.decode(gpg.partial, { key: 'hunter2' })
+    expect(sha256(partial.text)).toBe(
+      '2e81c1e5cef5f042f6feca69ac9167c0a99d249ca6ecaf2d5580ed84ccdb6089',
+    )
+    expect(partial.options).toMatchObject({ algorithm: 'cast5', compression: 'zip' })
+  })
+
+  it('returns bytes that are not text as hex', () => {
+    expect(pgp.decode(gpg.binary, { key: 'hunter2', bytes: 'hex' }).text).toBe('00ff80c0')
+    expect(() => pgp.decode(gpg.binary, { key: 'hunter2' })).toThrow(
+      new CipherError(
+        '[openpgp] Decrypted bytes are not UTF-8 text; pass bytes: hex to get them as hex',
+      ),
+    )
+  })
+
+  it('reads the packets bare, in base64 or hex, as well as armored', () => {
+    const packets = Buffer.from(body(gpg.aes128), 'base64')
+    for (const text of [packets.toString('base64'), packets.toString('hex').toUpperCase()]) {
+      expect(pgp.decode(text, { key: 'hunter2' }).text).toBe('Attack at dawn')
+    }
+    expect(pgp.decode(`Some page text\n\n${gpg.aes128}\n`, { key: 'hunter2' }).text).toBe(
+      'Attack at dawn',
+    )
+  })
+
+  /**
+   * GnuPG 2.4.9 opens this output; the SKESK bytes are RFC 4880 §5.3 worked by hand.
+   */
+  it('writes an armored message that it reads back with the same options', () => {
+    const options = { key: 'secret', salt: '0011223344556677', iv: '00'.repeat(16), count: 1024 }
+    const encoded = pgp.encode('Attack at dawn', options)
+    expect(encoded.text).toMatch(
+      /^-----BEGIN PGP MESSAGE-----\n\n[\s\S]+\n=.{4}\n-----END PGP MESSAGE-----$/,
+    )
+    expect(Buffer.from(bytesOf(encoded.text).slice(0, 15)).toString('hex')).toBe(
+      'c30d0409030a001122334455667700',
+    )
+    expect(encoded.options).toEqual({
+      key: 'secret',
+      algorithm: 'aes256',
+      digest: 'sha512',
+      count: 1024,
+      salt: '0011223344556677',
+      iv: '00'.repeat(16),
+    })
+    const decoded = pgp.decode(encoded.text, { key: 'secret' })
+    expect(decoded.text).toBe('Attack at dawn')
+    expect(decoded.options).toEqual(encoded.options)
+    expect(pgp.encode('Attack at dawn', decoded.options).text).toBe(encoded.text)
+  })
+
+  it('writes every algorithm and digest it can read', () => {
+    for (const algorithm of ['idea', '3des', 'cast5', 'blowfish', 'aes128', 'aes192', 'aes256']) {
+      for (const digest of ['md5', 'sha1', 'ripemd160', 'sha256', 'sha384', 'sha512']) {
+        const encoded = pgp.encode('zażółć', { key: 'k', algorithm, digest, count: 1024 })
+        expect(pgp.decode(encoded.text, { key: 'k' })).toMatchObject({
+          text: 'zażółć',
+          options: { algorithm, digest },
+        })
+      }
+    }
+  })
+
+  /** A definite length past about 125 KB once overflowed the call stack when the packet was read. */
+  it('reads back a message too long to spread into one call', () => {
+    const text = 'x'.repeat(200_000)
+    const encoded = pgp.encode(text, { key: 'k', count: 1024 })
+    expect(pgp.decode(encoded.text, { key: 'k' }).text).toBe(text)
+  })
+
+  it('rounds count up to a value the count byte can hold', () => {
+    const encoded = pgp.encode('x', { key: 'k', count: 65_537 })
+    expect(encoded.options.count).toBe(69_632)
+    expect(pgp.decode(encoded.text, { key: 'k' }).options.count).toBe(69_632)
+  })
+
+  it('draws a new salt and first block for every encoding unless they are given', () => {
+    const first = pgp.encode('x', { key: 'k', count: 1024 })
+    const second = pgp.encode('x', { key: 'k', count: 1024 })
+    expect(first.text).not.toBe(second.text)
+    expect(first.options.salt).toMatch(/^[0-9a-f]{16}$/)
+    expect(first.options.iv).toMatch(/^[0-9a-f]{32}$/)
+  })
+
+  it('names what is wrong with a message it cannot open', () => {
+    expect(() => pgp.decode(gpg.aes128, { key: 'wrong' })).toThrow(
+      new CipherError(
+        '[openpgp] Wrong passphrase: the check bytes after the random prefix do not match',
+      ),
+    )
+    const changed = bytesOf(gpg.aes128)
+    const flipped = changed.length - 30
+    changed[flipped]! ^= 1
+    expect(() => pgp.decode(Buffer.from(changed).toString('base64'), { key: 'hunter2' })).toThrow(
+      new CipherError('[openpgp] The MDC does not match: the message was changed or cut'),
+    )
+    expect(() =>
+      pgp.decode(
+        gpg.aes128.replace(/\n=(.)/, (_, c: string) => `\n=${c === 'A' ? 'B' : 'A'}`),
+        {
+          key: 'hunter2',
+        },
+      ),
+    ).toThrow(/Armor checksum does not match/)
+    expect(() =>
+      pgp.decode(Buffer.from(changed.slice(0, 40)).toString('hex'), { key: 'k' }),
+    ).toThrow(/runs past the end of the message/)
+    expect(() => pgp.decode('not base64!', { key: 'k' })).toThrow(
+      /must be an armored OpenPGP message/,
+    )
+    expect(() => pgp.decode(gpg.aes128.replace('MESSAGE', 'SIGNATURE'), { key: 'k' })).toThrow(
+      /not BEGIN PGP SIGNATURE/,
+    )
+    expect(() => pgp.decode(gpg.aes128.replace(/\n-----END[^\n]*$/, ''), { key: 'k' })).toThrow(
+      /no -----END PGP MESSAGE----- line/,
+    )
+  })
+
+  it('names what GnuPG can write that it does not run', () => {
+    for (const [armor, reason] of [
+      [gpg.twofish, 'Cipher algorithm 10 (Twofish) is not supported'],
+      [gpg.bzip2, 'Compression 3 (bzip2) is not supported'],
+      [gpg.sha224, 'S2K hash 11 (SHA-224) is not supported'],
+      [gpg.ocb, 'AEAD encrypted data (packet tag 20, as GnuPG writes OCB) is not supported'],
+    ] as const) {
+      expect(() => pgp.decode(armor, { key: 'hunter2' })).toThrow(`[openpgp] ${reason}`)
+    }
+    const packets = bytesOf(gpg.aes128)
+    const data = Buffer.from(packets.slice(15)).toString('hex')
+    expect(() => pgp.decode(data, { key: 'hunter2' })).toThrow(
+      /no passphrase packet \(SKESK, tag 3\)/,
+    )
+    const skesk = Buffer.from(packets.slice(0, 15)).toString('hex')
+    expect(() => pgp.decode(skesk.repeat(9) + data, { key: 'hunter2' })).toThrow(
+      /9 passphrase packets; at most 8 are tried/,
+    )
+    expect(pgp.decode(skesk.repeat(2) + data, { key: 'hunter2' }).text).toBe('Attack at dawn')
+    /* Salted MD5 S2K whose wrong key passes the 1 in 65536 prefix check; salt found by search. */
+    const forged = 'c30c04070101000000000000119f'
+    expect(pgp.decode(forged + skesk + data, { key: 'hunter2' }).text).toBe('Attack at dawn')
+    expect(() => pgp.decode(forged + data, { key: 'hunter2' })).toThrow(/The MDC does not match/)
+    const twofish = Buffer.from(bytesOf(gpg.twofish).slice(0, 15)).toString('hex')
+    expect(pgp.decode(twofish + skesk + data, { key: 'hunter2' }).text).toBe('Attack at dawn')
+    expect(() => pgp.decode(twofish + data, { key: 'hunter2' })).toThrow(/10 \(Twofish\)/)
+    const cut = `c30c${skesk.slice(4, 28)}`
+    expect(() => pgp.decode(cut + data, { key: 'hunter2' })).toThrow(/ends before the S2K count/)
+    expect(() => pgp.decode(`c30b${skesk.slice(4, 26)}` + data, { key: 'k' })).toThrow(
+      /inside the S2K salt/,
+    )
+  })
+
+  it('refuses encoding options outside what it writes', () => {
+    expect(() => pgp.encode('x', {})).toThrow(MissingOptionError)
+    for (const options of [
+      { algorithm: 'twofish' },
+      { algorithm: 'AES256' },
+      { digest: 'sha224' },
+      { digest: 'toString' },
+      { count: 1023 },
+      { count: 65_011_713 },
+      { count: 2048.5 },
+      { salt: '0011' },
+      { iv: '00'.repeat(8) },
+      { algorithm: 'cast5', iv: '00'.repeat(16) },
+    ]) {
+      expect(() => pgp.encode('x', { key: 'k', ...options })).toThrow(InvalidOptionError)
+    }
+  })
+
+  /** Every stream and strategy zlib writes, raw and wrapped, checked against node:zlib. */
+  it('inflates what zlib deflates, and stops a stream that grows too large', () => {
+    const inputs = [
+      Buffer.alloc(0),
+      Buffer.from('a'),
+      Buffer.alloc(70_000, 7),
+      createHash('sha512').update('seed').digest(),
+      Buffer.from('abcabcabd'.repeat(5000)),
+    ]
+    for (const input of inputs) {
+      for (const level of [0, 1, 9]) {
+        for (const strategy of [0, 1, 2, 3, 4]) {
+          const raw = inflateRaw([...deflateRawSync(input, { level, strategy })], 1 << 20)
+          const zlib = inflateZlib([...deflateSync(input, { level, strategy })], 1 << 20)
+          expect(input.equals(Buffer.from(raw)) && input.equals(Buffer.from(zlib))).toBe(true)
+        }
+      }
+    }
+    expect(() => inflateRaw([...deflateRawSync(Buffer.alloc(100_000))], 50_000)).toThrow(
+      /inflates past 50000 bytes/,
+    )
+    const wrapped = [...deflateSync(Buffer.from('hello'))]
+    const last = wrapped.length - 1
+    wrapped[last]! ^= 1
+    expect(() => inflateZlib(wrapped, 100)).toThrow(/Adler-32/)
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('OpenPGP')).toBe(pgp)
+    expect(pgp.info()).toMatchObject({
+      name: 'openpgp',
+      category: 'block',
+      selfInverse: false,
+      worksOn: 'UTF-8 or hex, armor out',
+    })
+    expect(pgp.info().options.map((option) => option.name)).toEqual([
+      'key',
+      'algorithm',
+      'digest',
+      'count',
+      'salt',
+      'iv',
+      'bytes',
+    ])
   })
 })
 

@@ -22,7 +22,7 @@ export default defineCommand({
     iv: {
       type: 'string',
       description:
-        'Initialization vector, 32 hex digits (AES-CBC, AES-CFB, AES-OFB, AES-CTR) or 16 (Triple DES CBC; Rabbit, optional)',
+        'Initialization vector, 32 hex digits (AES-CBC, AES-CFB, AES-OFB, AES-CTR) or 16 (Triple DES CBC; Rabbit, optional); the random first block when encoding (OpenPGP; default random)',
     },
     segment: {
       type: 'string',
@@ -101,7 +101,17 @@ export default defineCommand({
     digest: {
       type: 'string',
       description:
-        'Hash for the key, md5, sha1 or sha256 as in openssl enc -md (AES passphrase; default md5)',
+        'Hash for the key, md5, sha1 or sha256 as in openssl enc -md (AES passphrase; default md5), or the S2K hash when encoding, up to sha512 (OpenPGP; default sha512)',
+    },
+    algorithm: {
+      type: 'string',
+      description:
+        'idea, 3des, cast5, blowfish, aes128, aes192 or aes256, when encoding (OpenPGP; default aes256)',
+    },
+    count: {
+      type: 'string',
+      description:
+        'Bytes the S2K hashes, 1024 to 65011712, when encoding (OpenPGP; default 65011712)',
     },
     keyLength: {
       type: 'string',
@@ -113,7 +123,7 @@ export default defineCommand({
     },
     salt: {
       type: 'string',
-      description: 'Salt, 16 hex digits, when encoding (AES passphrase; default random)',
+      description: 'Salt, 16 hex digits, when encoding (AES passphrase, OpenPGP; default random)',
     },
     rails: { type: 'string', description: 'Number of rails (Rail Fence)', alias: 'r' },
     width: { type: 'string', description: 'Cells per row (Route)' },

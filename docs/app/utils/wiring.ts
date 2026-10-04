@@ -7,14 +7,40 @@ export interface WireGroup {
 }
 
 /**
- * The units a ciphertext is drawn in: characters, or bytes of hex for a block cipher.
+ * The units a ciphertext is drawn in: bytes when a byte cipher answers in hex, characters otherwise,
+ * so the base64 of aes-passphrase and the armor of openpgp count characters.
  *
  * @param {string} text - Ciphertext.
- * @param {boolean} block - Whether the cipher answers in hex.
+ * @param {boolean} block - Whether the cipher is a block or stream cipher.
  * @returns {string[]} One entry per drawn cell.
  */
 export function outputUnits(text: string, block: boolean): string[] {
-  return block ? (text.match(/.{1,2}/gu) ?? []) : [...text];
+  return block && /^[\da-f]+$/u.test(text) ? (text.match(/.{1,2}/gu) ?? []) : [...text];
+}
+
+/**
+ * How many leading units the cipher writes before the text counts: what it already writes for an
+ * empty text, such as the armor and passphrase packet of openpgp. No letter fixes them.
+ *
+ * @param {string} slug - A built-in cipher.
+ * @param {string} ciphertext - The sample's ciphertext.
+ * @param {Record<string, string | number>} options - The sample options.
+ * @param {boolean} block - Whether the cipher is a block or stream cipher.
+ * @returns {number} The header length in units, 0 for most ciphers.
+ */
+export function headerLength(
+  slug: string,
+  ciphertext: string,
+  options: Record<string, string | number>,
+  block: boolean,
+): number {
+  let empty: string;
+  try {
+    empty = create(slug).encode("", options).text;
+  } catch {
+    return 0;
+  }
+  return shared(outputUnits(empty, block), outputUnits(ciphertext, block));
 }
 
 /**
@@ -36,11 +62,12 @@ function shared(left: string[], right: string[]): number {
  * other cipher encodes growing prefixes of the text: the output units a prefix already agrees on
  * belong to the characters that arrived since the last agreement. What only the whole text settles
  * goes to the characters still waiting, and a tail longer than any letter needed, a tag, to all of them.
+ * The header no letter fixes is left out, and output indexes count from its end.
  *
  * @param {string} slug - A built-in cipher.
  * @param {string} plaintext - The sample text.
  * @param {Record<string, string | number>} options - The sample options.
- * @param {boolean} block - Whether the cipher answers in hex.
+ * @param {boolean} block - Whether the cipher is a block or stream cipher.
  * @returns {WireGroup[]} The groups in input order.
  */
 export function wiring(
@@ -51,7 +78,9 @@ export function wiring(
 ): WireGroup[] {
   const cipher = create(slug);
   const inputs = [...plaintext];
-  const outputs = outputUnits(cipher.encode(plaintext, options).text, block);
+  const ciphertext = cipher.encode(plaintext, options).text;
+  const outputs = outputUnits(ciphertext, block);
+  const header = headerLength(slug, ciphertext, options, block);
 
   if (cipher.info().family === "transposition") {
     const markers = inputs.map((_, index) => String.fromCodePoint(0xe000 + index));
@@ -66,7 +95,7 @@ export function wiring(
 
   const groups: WireGroup[] = [];
   let pending: number[] = [];
-  let fixed = 0;
+  let fixed = header;
   for (let length = 1; length < inputs.length; length += 1) {
     pending.push(length - 1);
     let prefix: string[];
@@ -92,7 +121,10 @@ export function wiring(
   } else if (rest.length > 0) {
     groups.push({ inputs: pending, outputs: rest });
   }
-  return groups;
+  return groups.map((group) => ({
+    inputs: group.inputs,
+    outputs: group.outputs.map((cell) => cell - header),
+  }));
 }
 
 /**

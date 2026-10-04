@@ -45,7 +45,14 @@ export type PassphraseDigest = keyof typeof DIGESTS
 /** The KDF settings a passphrase blob does not record. */
 export type PassphraseSettings = { digest: PassphraseDigest; keyLength: number; iterations: number }
 
-function readPassphrase(options: Readonly<CipherBaseOptions>): string {
+/**
+ * The passphrase in `key`, any text but empty.
+ *
+ * @param options - The cipher options.
+ * @returns {string} The passphrase.
+ * @throws {MissingOptionError} When `key` is missing or empty.
+ */
+export function readPassphrase(options: Readonly<CipherBaseOptions>): string {
   const key = options.key
   if (key === undefined || key === '') throw new MissingOptionError('key')
   if (typeof key !== 'string') throw new InvalidOptionError('key', key, 'must be a string')

@@ -2,7 +2,7 @@
 import type { LandingSample } from "../../composables/useLandingCipher";
 import { CIPHERS, familyLabel, keyspaceParts, registryPosition } from "../../utils/ciphers";
 import { optionLiteral } from "../../utils/format";
-import { outputUnits, wiring } from "../../utils/wiring";
+import { headerLength, outputUnits, wiring } from "../../utils/wiring";
 
 const props = defineProps<{ sample: LandingSample; samples: readonly LandingSample[] }>();
 const emit = defineEmits<{ step: [delta: number]; pause: [paused: boolean] }>();
@@ -19,10 +19,15 @@ const call = computed(() => {
 const keyspace = computed(() => keyspaceParts(entry.value.info));
 const roundtrip = computed(() => props.sample.roundtrip === props.sample.plaintext);
 
-/** A block cipher answers in hex, so its tape has one cell per byte; everything else, one per character. */
+/** Hex gets one cell per byte, anything else one per character. The header no letter fixes stays off the tape. */
 const input = computed(() => [...props.sample.plaintext]);
-const output = computed(() => outputUnits(props.sample.ciphertext, block.value));
-const unit = computed(() => (block.value ? "bytes" : "chars"));
+const units = computed(() => outputUnits(props.sample.ciphertext, block.value));
+const header = computed(() =>
+  headerLength(entry.value.slug, props.sample.ciphertext, props.sample.options, block.value),
+);
+const output = computed(() => units.value.slice(header.value));
+const hex = computed(() => units.value.length < props.sample.ciphertext.length);
+const unit = computed(() => (hex.value ? "bytes" : "chars"));
 
 /** Which input characters fix which output cells, measured by the library on this sample. */
 const groups = computed(() =>
@@ -289,16 +294,18 @@ const kin = computed(() => ticks.value.filter((tick) => tick.open).length);
                 :key="index"
                 data-out
                 class="tape-cell"
-                :data-byte="block ? '' : undefined"
-                :data-blank="cell === ' ' ? '' : undefined"
+                :data-byte="hex ? '' : undefined"
+                :data-blank="/\s/u.test(cell) ? '' : undefined"
                 :data-lit="lit !== undefined && groups[lit]?.outputs.includes(index) ? '' : undefined"
                 :style="{ animationDelay: `${Math.min(index * 12, 480)}ms` }"
                 aria-hidden="true"
                 @mouseenter="lit = groupOfOutput.get(index)"
-                >{{ cell === " " ? "·" : cell }}</span
+                >{{ /\s/u.test(cell) ? "·" : cell }}</span
               >
             </span>
-            <span class="tape-count">{{ output.length }} {{ unit }}</span>
+            <span class="tape-count"
+              >{{ output.length }} {{ unit }}<template v-if="header"> + {{ header }} header</template></span
+            >
           </div>
         </div>
       </div>

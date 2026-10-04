@@ -521,6 +521,34 @@ try {
     'Rabbit stream cipher test',
   )
   assert.equal(
+    run(binPath, [
+      'encode',
+      'cast5',
+      'ATTACK AT DAWN',
+      '--key',
+      '0123456712345678234567893456789a',
+    ]).trim(),
+    '585e13962a59ed5274e0ab1bdcde47a3',
+  )
+  {
+    const armor = run(binPath, [
+      'encode',
+      'openpgp',
+      'Attack at dawn',
+      '--key',
+      'k',
+      '--algorithm',
+      'cast5',
+      '--count',
+      '1024',
+    ])
+    assert.match(armor, /^-----BEGIN PGP MESSAGE-----\n/)
+    assert.equal(
+      run(binPath, ['decode', 'openpgp', '--key', 'k', '--', armor]).trim(),
+      'Attack at dawn',
+    )
+  }
+  assert.equal(
     run(binPath, ['encode', 'rc4', 'Attack at dawn', '--key', '536563726574']).trim(),
     '45a01f645fc35b383552544b9bf5',
   )

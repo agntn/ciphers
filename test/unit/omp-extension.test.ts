@@ -309,6 +309,13 @@ describe('OMP extension', () => {
       ciphertexts: ['00', '01'],
       known: [{ message: 0, offset: 0, text: 'a', at: 1 }],
     })
+
+    await accepts('ciphers_key_recover', { text: 'A', cipher: 'columnar', keyLength: 9, limit: 20 })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'enigma' })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'vigenere', period: 101 })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'columnar', keyLength: 10 })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'vigenere', limit: 21 })
+    await rejects('ciphers_key_recover', { text: 'X'.repeat(10_001), cipher: 'vigenere' })
   })
 
   it('clips a collapsed result preview and keeps the expanded one whole', async () => {

@@ -18,6 +18,7 @@ export function normalizeMainArgs(argv: readonly string[]): string[] {
     'probe',
     'crib',
     'hidden',
+    'recover',
     'mcp',
   ]
   const builtinFlags = ['--help', '-h', '--version', '-v']

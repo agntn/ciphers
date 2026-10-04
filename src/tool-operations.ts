@@ -1,7 +1,24 @@
 import type * as CiphersModule from './index.ts'
 import { cipherCategories } from './core/ciphers.ts'
+import {
+  DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_KEY_CANDIDATES,
+  MAX_COLUMNAR_KEY_LENGTH,
+  MAX_KEY_CANDIDATES,
+  keyRecoveryCiphers,
+  periodicKeyRecoveryCiphers,
+  type KeyRecoveryCipher,
+} from './core/recover-options.ts'
 
-export { cipherCategories }
+export {
+  DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_KEY_CANDIDATES,
+  MAX_COLUMNAR_KEY_LENGTH,
+  MAX_KEY_CANDIDATES,
+  cipherCategories,
+  keyRecoveryCiphers,
+  periodicKeyRecoveryCiphers,
+}
 
 type CiphersLibrary = Pick<
   typeof CiphersModule,
@@ -439,10 +456,10 @@ function nextStep(
 ): string {
   const [first] = found.ciphers
   if (first === 'vigenere') {
-    return 'ciphers_period_estimate gives the key length and a Vigenère key.'
+    return 'ciphers_key_recover with cipher vigenere searches the key; ciphers_period_estimate shows the key lengths.'
   }
   if (first === 'caesar' && found.options === undefined) {
-    return 'ciphers_caesar_brute ranks all 25 shifts.'
+    return 'ciphers_caesar_brute ranks all 25 shifts; ciphers_key_recover with cipher substitution solves a mixed alphabet.'
   }
   const given = Object.entries(found.options ?? {}).map(([name, value]) => `${name}=${value}`)
   const needed = library
@@ -452,7 +469,11 @@ function nextStep(
     .map(({ name }) => name)
   const known = given.length === 0 ? '' : ` and ${given.join(', ')}`
   const missing = needed.length === 0 ? '' : `, which needs ${needed.join(' and ')}`
-  return `ciphers_decode with cipher ${first}${known}${missing}.`
+  const search =
+    first === 'rail-fence'
+      ? ' ciphers_key_recover with cipher columnar searches a columnar key.'
+      : ''
+  return `ciphers_decode with cipher ${first}${known}${missing}.${search}`
 }
 
 /**
@@ -590,7 +611,7 @@ function codePoints(text: string): number {
   return Array.from(text).length
 }
 
-type CribBound = readonly [option: string, value: unknown, reason: string]
+type BrokenBound = readonly [option: string, value: unknown, reason: string]
 type CribShow = Readonly<Pick<typeof CiphersModule, 'showCribBytes'>>
 type CribDragResult = ReturnType<typeof CiphersModule.dragCrib>
 
@@ -598,9 +619,9 @@ type CribDragResult = ReturnType<typeof CiphersModule.dragCrib>
  * The first bound of the crib drag the arguments break, the same ones the schema states.
  *
  * @param params - Arguments of `ciphers_crib_drag`.
- * @returns {CribBound | undefined} The option, its value and the bound, or nothing when all hold.
+ * @returns {BrokenBound | undefined} The option, its value and the bound, or nothing when all hold.
  */
-function cribBoundError(params: Readonly<CribToolParams>): CribBound | undefined {
+function cribBoundError(params: Readonly<CribToolParams>): BrokenBound | undefined {
   const known = params.known ?? []
   const bounds: ReadonlyArray<readonly [boolean, string, unknown, string]> = [
     [
@@ -858,4 +879,94 @@ export function formatHiddenText(
       ),
     },
   }
+}
+
+export type KeyRecoverToolParams = {
+  readonly text: string
+  readonly cipher: KeyRecoveryCipher
+  readonly period?: number
+  readonly keyLength?: number
+  readonly lang?: 'en' | 'pl' | 'ja'
+  readonly limit?: number
+}
+
+/** How the reply names each cipher, and the call that decodes the text with a key it found. */
+const keyRecoveryTexts: Readonly<
+  Record<KeyRecoveryCipher, readonly [label: string, next: string]>
+> = {
+  vigenere: ['Vigenère', 'ciphers_decode with cipher vigenere and the key reads the text.'],
+  beaufort: ['Beaufort', 'ciphers_decode with cipher beaufort and the key reads the text.'],
+  'variant-beaufort': [
+    'Variant Beaufort',
+    'Variant Beaufort decrypts as Vigenère encrypts: ciphers_encode with cipher vigenere and the key reads the text.',
+  ],
+  substitution: [
+    'Substitution',
+    'The key is the cipher letter of each plaintext letter A to Z; ? marks a letter the text never uses.',
+  ],
+  columnar: ['Columnar', 'ciphers_decode with cipher columnar and the key reads the text.'],
+}
+
+const languageNames = { en: 'English', pl: 'Polish', ja: 'Japanese romaji' } as const
+
+/**
+ * The first bound of a key recovery the arguments break, the same ones the schema states.
+ *
+ * @param params - Arguments of `ciphers_key_recover`.
+ * @returns {BrokenBound | undefined} The option, its value and the bound, or nothing when all hold.
+ */
+function keyRecoverBoundError(params: Readonly<KeyRecoverToolParams>): BrokenBound | undefined {
+  const length = codePoints(params.text)
+  if (length > MAX_TRANSFORM_TEXT_LENGTH) {
+    return ['text', length, `must be at most ${MAX_TRANSFORM_TEXT_LENGTH} characters`]
+  }
+  if (params.period !== undefined && params.period > MAX_PERIOD) {
+    return ['period', params.period, `must be at most ${MAX_PERIOD}`]
+  }
+  return undefined
+}
+
+/**
+ * Recover a key for a model: the keys found, best first, each with what it decodes to.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - Arguments of `ciphers_key_recover`.
+ * @returns {CipherToolResult} The ranked keys, the fit plaintext and random letters score, and
+ *   the call that reads the text.
+ * @throws {InvalidOptionError} When an argument breaks a bound or belongs to another cipher.
+ */
+export function formatKeyRecovery(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'recoverKey' | 'InvalidOptionError'>>,
+  params: Readonly<KeyRecoverToolParams>,
+): CipherToolResult {
+  const broken = keyRecoverBoundError(params)
+  if (broken !== undefined) throw new library.InvalidOptionError(...broken)
+  const recovery = library.recoverKey(params.text, {
+    cipher: params.cipher,
+    ...(params.lang === undefined ? {} : { language: params.lang }),
+    ...(params.period === undefined ? {} : { period: params.period }),
+    ...(params.keyLength === undefined ? {} : { keyLength: params.keyLength }),
+    ...(params.limit === undefined ? {} : { limit: params.limit }),
+  })
+  const [label, next] = keyRecoveryTexts[recovery.cipher]
+  if (recovery.candidates.length === 0) {
+    const text = `No ${label} key: ${recovery.letters} letters are too few to search.`
+    return { content: [{ type: 'text', text }] }
+  }
+  const order =
+    recovery.scoredBy === 'quadgrams'
+      ? 'best fit first. Fit is the mean log probability per quadgram'
+      : 'best first, a longer key below a shorter one that fits almost as well. Fit is the mean log probability per letter'
+  const lines = [
+    `${label} keys for ${recovery.letters} letters (lang=${recovery.language}), ${order}: ${languageNames[recovery.language]} plaintext scores about ${recovery.referenceFit.toFixed(2)}, random letters ${recovery.randomFit.toFixed(2)}.`,
+    '',
+    ...recovery.candidates.map(
+      ({ key, fit, text }, index) =>
+        `${index + 1}. key ${key}, fit ${fit.toFixed(2)}: ${index === 0 ? quotedPreview(text, Infinity) : quotedPreview(text)}`,
+    ),
+    '',
+    `Only the top text is whole, the others stop at ${BRUTE_PREVIEW_LENGTH} characters. ${next}`,
+  ]
+  return { content: [{ type: 'text', text: lines.join('\n') }] }
 }

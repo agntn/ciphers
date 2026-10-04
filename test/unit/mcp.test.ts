@@ -54,6 +54,7 @@ describe('Ciphers MCP server', () => {
       'ciphers_passphrase_probe',
       'ciphers_crib_drag',
       'ciphers_hidden_text_read',
+      'ciphers_key_recover',
       'ciphers_info',
     ])
     const encodeTool = response.tools.find((tool) => tool.name === 'ciphers_encode')
@@ -1275,7 +1276,16 @@ Co2B
       await guess({
         text: 'CHREEVOAHMAERATBIAXXWTNXBEEOPHBSBQMQEQERBWRVXUOAKXAOSXXWEAHBWGJMMQMNKGRFVGXWTRZXWIAKLXFPSKAUTEMNDCMGTSXMXBTUIADNGMGPSRELXNJELXVRVPRTULHDNQWTWDTYGBPHXTFALJHASVBFXNGLLCHRZBWELEKMSJIKNBHWRJGNMGJSGLXFEYPHAGNRBIEQJTAMRVLCRREMNDGLXRRIMGNSNRWCHRQHAEYEVTAQEBBIPEEWEVKAKOEWADREMXMTBHHCHRTKDNVRZCHRCLQOHPWQAIIWXNRMGWOIIFKEE',
       }),
-    ).toContain('Next: ciphers_period_estimate gives the key length and a Vigenère key.')
+    ).toContain(
+      'Next: ciphers_key_recover with cipher vigenere searches the key; ciphers_period_estimate shows the key lengths.',
+    )
+    const transposed = create('columnar').encode(
+      'To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex.',
+      { key: 'BAKER' },
+    ).text
+    expect(await guess({ text: transposed })).toContain(
+      'ciphers_key_recover with cipher columnar searches a columnar key.',
+    )
     expect(await guess({ text: '69c4e0d86a7b0430d8cdb78070b4c55a' })).toContain(
       'Next: ciphers_decode with cipher aes, which needs key.',
     )
@@ -1323,6 +1333,52 @@ Co2B
       [{ text: 'AAAAAAAAAAAAAAAAAAAAAA==', key: 'secret' }, 'Salted__'],
     ] as const) {
       const refused = await client.callTool({ name: 'ciphers_passphrase_probe', arguments: args })
+      expect(refused.isError).toBe(true)
+      expect(onlyText(refused.content)).toContain(error)
+    }
+  })
+
+  it('recovers a key over the protocol', async () => {
+    const client = await connectTestClient()
+    const plain =
+      'To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex. It was not that he felt any emotion akin to love for Irene Adler.'
+    const recover = async (args: Readonly<Record<string, unknown>>) =>
+      await client.callTool({ name: 'ciphers_key_recover', arguments: args })
+
+    const found = await recover({
+      text: create('vigenere').encode(plain, { key: 'BOHEMIA' }).text,
+      cipher: 'vigenere',
+      limit: 2,
+    })
+    expect(found.isError).not.toBe(true)
+    const lines = onlyText(found.content).split('\n')
+    expect(lines[0]).toMatch(
+      /^Vigenère keys for 183 letters \(lang=en\), best fit first\. Fit is the mean log probability per quadgram: English plaintext scores about -9\.44, random letters -\d+\.\d\d\.$/,
+    )
+    expect(lines[2]).toMatch(/^1\. key BOHEMIA, fit -\d+\.\d\d: "To Sherlock .* Irene Adler\."$/)
+    expect(lines[3]).toMatch(/^2\. key [A-Z]+, fit -\d+\.\d\d: ".{80}"…$/)
+    expect(lines.at(-1)).toBe(
+      'Only the top text is whole, the others stop at 80 characters. ciphers_decode with cipher vigenere and the key reads the text.',
+    )
+
+    expect(onlyText((await recover({ text: '', cipher: 'columnar' })).content)).toBe(
+      'No Columnar key: 0 letters are too few to search.',
+    )
+
+    for (const [args, error] of [
+      [
+        { text: 'ABC', cipher: 'substitution', period: 3 },
+        'Invalid option period=3: only vigenere, beaufort, variant-beaufort take it',
+      ],
+      [
+        { text: 'ABC', cipher: 'columnar', lang: 'pl' },
+        'Invalid option language=pl: must be en for columnar',
+      ],
+      [{ text: 'ABC', cipher: 'enigma' }, 'variant-beaufort'],
+      [{ text: 'ABC', cipher: 'vigenere', keyLength: 3 }, 'only columnar takes it'],
+      [{ text: 'X'.repeat(10_001), cipher: 'vigenere' }, 'Invalid arguments'],
+    ] as const) {
+      const refused = await recover(args)
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain(error)
     }

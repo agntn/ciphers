@@ -11,6 +11,8 @@ import { builtinCiphers, cipherCategories } from './core/ciphers.ts'
 import {
   AFFINE_MULTIPLIERS,
   BRUTE_PREVIEW_LENGTH,
+  DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_KEY_CANDIDATES,
   HIDDEN_TEXT_LINES,
   MAX_BRUTE_TEXT_LENGTH,
   MAX_CRIB_CIPHERTEXTS,
@@ -20,7 +22,9 @@ import {
   MAX_CRIB_KNOWN_LENGTH,
   MAX_CRIB_LENGTH,
   MAX_CRIB_LIMIT,
+  MAX_COLUMNAR_KEY_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
+  MAX_KEY_CANDIDATES,
   MAX_BOOK_LENGTH,
   MAX_KEY_LENGTH,
   MAX_PERIOD,
@@ -34,7 +38,10 @@ import {
   formatFrequencyAnalysis,
   formatPassphraseProbe,
   formatHiddenText,
+  formatKeyRecovery,
   formatPeriodEstimate,
+  keyRecoveryCiphers,
+  periodicKeyRecoveryCiphers,
   transformCipher,
   type CipherToolParams,
 } from './tool-operations.ts'
@@ -837,6 +844,56 @@ export const hiddenTextReadTool = defineTool({
   execute: async (params) => answer(formatHiddenText(await loadLibrary(), params)),
 })
 
+export const keyRecoverTool = defineTool({
+  name: 'ciphers_key_recover',
+  title: 'Recover Key',
+  description: `Search for the key of a Vigenère, Beaufort, variant Beaufort, monoalphabetic substitution or columnar transposition ciphertext, and rank the keys found by how much the text each one decodes to reads like the language: quadgrams for English, letter frequencies for Polish and Japanese romaji. Best first, each with its plaintext; the reply gives the fit plaintext and random letters score, so a wrong cipher shows as every key scoring near random.`,
+  snippet:
+    'Use ciphers_key_recover to find the key once ciphers_family_guess or ciphers_period_estimate has named the cipher.',
+  guidelines: [
+    'Input is ciphertext and the cipher. Returns up to limit keys, best first; only the top text is whole.',
+    `Vigenère, Beaufort and variant Beaufort try the five likeliest key lengths unless period gives one; ciphers_period_estimate shows the lengths.`,
+    `Columnar tries every column order of each length from 2 to ${DEFAULT_COLUMNAR_KEY_LENGTH}, or of keyLength up to ${MAX_COLUMNAR_KEY_LENGTH}; substitution and columnar need English.`,
+    'Short texts, around 150 letters, give ranked guesses rather than one answer: read the top few.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Ciphertext' }),
+      cipher: Type.Enum(keyRecoveryCiphers, {
+        description:
+          'Cipher the text was encrypted with: vigenere, beaufort, variant-beaufort (plaintext minus key), substitution (any mixed alphabet) or columnar',
+      }),
+      period: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: MAX_PERIOD,
+          description: `${periodicKeyRecoveryCiphers.join(', ')} only: key length, 1 to ${MAX_PERIOD}; without it the five likeliest are tried`,
+        }),
+      ),
+      keyLength: Type.Optional(
+        Type.Integer({
+          minimum: 2,
+          maximum: MAX_COLUMNAR_KEY_LENGTH,
+          description: `Columnar only: key length, 2 to ${MAX_COLUMNAR_KEY_LENGTH}; without it every length from 2 to ${DEFAULT_COLUMNAR_KEY_LENGTH}`,
+        }),
+      ),
+      lang: language(
+        'Language the plaintext reads in, ja for Hepburn romaji; substitution and columnar take en only (default en)',
+      ),
+      limit: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: MAX_KEY_CANDIDATES,
+          description: `How many keys to list, 1 to ${MAX_KEY_CANDIDATES} (default ${DEFAULT_KEY_CANDIDATES})`,
+        }),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  execute: async (params) => answer(formatKeyRecovery(await loadLibrary(), params)),
+})
+
 export const infoTool = defineTool({
   name: 'ciphers_info',
   title: 'Cipher Info',
@@ -878,6 +935,7 @@ export const ciphersTools: readonly ToolDefinition[] = [
   passphraseProbeTool,
   cribDragTool,
   hiddenTextReadTool,
+  keyRecoverTool,
   infoTool,
 ]
 
@@ -920,5 +978,6 @@ export const callSummaries: Readonly<
   ciphers_passphrase_probe: (args) => excerpt(args['text']),
   ciphers_crib_drag: (args) => (typeof args['crib'] === 'string' ? excerpt(args['crib']) : 'known'),
   ciphers_hidden_text_read: (args) => `${named(args['pick']) || 'all'} ${excerpt(args['text'])}`,
+  ciphers_key_recover: (args) => `${named(args['cipher'])} ${excerpt(args['text'])}`,
   ciphers_info: (args) => named(args['cipher']) || named(args['category']) || 'all',
 }

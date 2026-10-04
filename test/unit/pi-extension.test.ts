@@ -67,6 +67,7 @@ describe('Pi extension', () => {
       'ciphers_passphrase_probe',
       'ciphers_crib_drag',
       'ciphers_hidden_text_read',
+      'ciphers_key_recover',
       'ciphers_info',
     ])
   })
@@ -86,6 +87,7 @@ describe('Pi extension', () => {
       'ciphers_caesar_brute',
       'ciphers_crib_drag',
       'ciphers_hidden_text_read',
+      'ciphers_key_recover',
     ]) {
       expect(getTool(name).renderResult).toBeTypeOf('function')
     }

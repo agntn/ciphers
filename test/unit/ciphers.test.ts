@@ -5060,6 +5060,10 @@ DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
       /9 passphrase packets; at most 8 are tried/,
     )
     expect(pgp.decode(skesk.repeat(2) + data, { key: 'hunter2' }).text).toBe('Attack at dawn')
+    /* Salted MD5 S2K whose wrong key passes the 1 in 65536 prefix check; salt found by search. */
+    const forged = 'c30c04070101000000000000119f'
+    expect(pgp.decode(forged + skesk + data, { key: 'hunter2' }).text).toBe('Attack at dawn')
+    expect(() => pgp.decode(forged + data, { key: 'hunter2' })).toThrow(/The MDC does not match/)
     const cut = `c30c${skesk.slice(4, 28)}`
     expect(() => pgp.decode(cut + data, { key: 'hunter2' })).toThrow(/ends before the S2K count/)
     expect(() => pgp.decode(`c30b${skesk.slice(4, 26)}` + data, { key: 'k' })).toThrow(

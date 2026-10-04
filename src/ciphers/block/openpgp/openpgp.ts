@@ -119,6 +119,11 @@ interface SessionKey {
   readonly key: Bytes
 }
 
+interface Opened {
+  readonly prefix: number[]
+  readonly packets: number[]
+}
+
 interface Literal {
   readonly data: number[]
   readonly filename: string
@@ -219,19 +224,15 @@ function sessionKey(skesk: Skesk, passphrase: Bytes): SessionKey | undefined {
  *
  * @param body - The SEIPD packet body.
  * @param session - The session key.
- * @returns {{ prefix: number[]; packets: number[] } | undefined} The random prefix and the packets inside, or nothing when the key is wrong.
- * @throws {CipherError} When the MDC does not match.
+ * @returns {Opened | 'wrong key' | 'changed'} The random prefix and the packets inside, or why not.
  */
-function decryptData(
-  body: Bytes,
-  session: SessionKey,
-): { prefix: number[]; packets: number[] } | undefined {
+function decryptData(body: Bytes, session: SessionKey): Opened | 'wrong key' | 'changed' {
   const size = session.algorithm.blockSize
   const plain = cfb(session.algorithm, session.key, body.slice(1), 'decrypt')
   if (plain.length < size + 2 + MDC_LENGTH) {
     throw new CipherError('The encrypted data packet is too short to hold its prefix and MDC')
   }
-  if (plain[size - 2] !== plain[size] || plain[size - 1] !== plain[size + 1]) return undefined
+  if (plain[size - 2] !== plain[size] || plain[size - 1] !== plain[size + 1]) return 'wrong key'
   const end = plain.length - MDC_LENGTH
   const digest = sha1(Uint8Array.from(plain.slice(0, end + 2)))
   const mdc = plain.slice(end)
@@ -240,7 +241,7 @@ function decryptData(
     mdc[1] !== MDC_HEADER[1] ||
     digest.some((b, i) => b !== mdc[2 + i])
   ) {
-    throw new CipherError('The MDC does not match: the message was changed or cut')
+    return 'changed'
   }
   return { prefix: plain.slice(0, size), packets: plain.slice(size + 2, end) }
 }
@@ -358,10 +359,11 @@ function decryptMessage(message: Bytes, passphrase: Bytes): Decrypted {
       `SEIPD version ${String(data.body[0])} is not supported: only 1, since 2 carries AEAD`,
     )
   }
+  let changed = false
   for (const skesk of passphrasePackets(packets)) {
     const session = sessionKey(skesk, passphrase)
-    const opened = session && decryptData(data.body, session)
-    if (session && opened) {
+    const opened = session ? decryptData(data.body, session) : 'wrong key'
+    if (session && typeof opened === 'object') {
       return {
         ...findLiteral(opened.packets, 0),
         skesk,
@@ -369,8 +371,13 @@ function decryptMessage(message: Bytes, passphrase: Bytes): Decrypted {
         prefix: opened.prefix,
       }
     }
+    changed ||= opened === 'changed'
   }
-  throw new CipherError('Wrong passphrase: the check bytes after the random prefix do not match')
+  throw new CipherError(
+    changed
+      ? 'The MDC does not match: the message was changed or cut'
+      : 'Wrong passphrase: the check bytes after the random prefix do not match',
+  )
 }
 
 interface EncodeSettings {

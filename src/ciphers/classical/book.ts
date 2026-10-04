@@ -14,8 +14,8 @@ const PICKS = ['word', 'letter'] as const
 type BookAddress = (typeof ADDRESSES)[number]
 type BookPick = (typeof PICKS)[number]
 
-/** Letters and digits in a row, an apostrophe inside a word kept, as the dCode examples count. */
-const WORD = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu
+/** Letters and digits with their combining marks, an inner apostrophe kept, as dCode counts. */
+const WORD = /[\p{L}\p{N}][\p{L}\p{N}\p{M}]*(?:['’][\p{L}\p{N}][\p{L}\p{N}\p{M}]*)*/gu
 
 /** A letter or a digit of the plaintext, the unit `pick: letter` encodes. */
 const LETTER = /[\p{L}\p{N}]/u
@@ -144,13 +144,13 @@ function resultOptions(
 }
 
 /**
- * Full case folding, so `ẞ` and `SS` meet `ß`, `ſ` meets `s` and both Turkish I meet `i`.
+ * NFC and full case folding, so `ẞ` and `SS` meet `ß`, `ſ` meets `s` and both Turkish I meet `i`.
  *
  * @param unit - A word or a letter.
  * @returns {string} The folded unit.
  */
 function fold(unit: string): string {
-  return unit.toLowerCase().toUpperCase().toLowerCase().replaceAll('i\u0307', 'i')
+  return unit.normalize('NFC').toLowerCase().toUpperCase().toLowerCase().replaceAll('i\u0307', 'i')
 }
 
 /**

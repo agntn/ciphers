@@ -728,6 +728,12 @@ describe('book', () => {
     ).toBe('1 2 3 4')
   })
 
+  it('keeps combining marks in a word and matches either normal form', () => {
+    expect(book.encode('हिन्दी', { book: 'हिन्दी भाषा' }).text).toBe('1')
+    expect(book.decode('1', { book: 'हिन्दी भाषा' }).text).toBe('हिन्दी')
+    expect(book.encode('cafe\u0301', { book: 'un caf\u00E9' }).text).toBe('2')
+  })
+
   it('wraps round to the first word once every match is used', () => {
     expect(book.encode('one one', { book: 'one two' }).text).toBe('1 1')
   })

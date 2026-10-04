@@ -360,6 +360,9 @@ function readQuery(query: Record<string, unknown>) {
   }
 }
 
+/** Longest option value the address bar carries. A whole book for the book cipher stays out. */
+const MAX_SHARED_OPTION = 2000;
+
 const shareQuery = computed(() => {
   const query: Record<string, string> = { op: operation.value };
   if (operation.value !== "info") query.text = text.value;
@@ -367,7 +370,7 @@ const shareQuery = computed(() => {
   if (isTransform.value) {
     for (const field of optionFields.value) {
       const value = fieldText(values[field.name]);
-      if (value) query[field.name] = value;
+      if (value && value.length <= MAX_SHARED_OPTION) query[field.name] = value;
     }
     if (lettersOnly.value && !preserveCase.value) query.preserveCase = "0";
     if (lettersOnly.value && stripNonAlpha.value) query.stripNonAlpha = "1";

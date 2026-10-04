@@ -144,6 +144,16 @@ function resultOptions(
 }
 
 /**
+ * Case-fold a unit so `SS` meets `ß`, `ſ` meets `s` and both Turkish I meet `i`.
+ *
+ * @param unit - A word or a letter.
+ * @returns {string} The folded unit.
+ */
+function fold(unit: string): string {
+  return unit.toUpperCase().toLowerCase().replaceAll('i\u0307', 'i')
+}
+
+/**
  * The first character of a word, the one `pick: letter` reads.
  *
  * @param word - A word of the book.
@@ -170,7 +180,7 @@ function formatAddress(word: Readonly<BookWord>, settings: Readonly<BookSettings
 }
 
 /**
- * Words of the book by what they stand for: the whole word or its first letter, lowercase.
+ * Words of the book by what they stand for: the whole word or its first letter, case-folded.
  *
  * @param book - The split book.
  * @param pick - Whole word or first letter.
@@ -179,7 +189,7 @@ function formatAddress(word: Readonly<BookWord>, settings: Readonly<BookSettings
 function indexBook(book: Readonly<SplitBook>, pick: BookPick): Map<string, BookWord[]> {
   const index = new Map<string, BookWord[]>()
   for (const word of book.words) {
-    const unit = (pick === 'word' ? word.text : initial(word.text)).toLowerCase()
+    const unit = fold(pick === 'word' ? word.text : initial(word.text))
     const found = index.get(unit)
     if (found === undefined) index.set(unit, [word])
     else found.push(word)
@@ -218,7 +228,7 @@ function encodeBook(
   const used = new Map<string, number>()
   return units
     .map((unit) => {
-      const key = unit.toLowerCase()
+      const key = fold(unit)
       const candidates = index.get(key)
       if (candidates === undefined) {
         const what = settings.pick === 'word' ? 'word' : 'word starting with'

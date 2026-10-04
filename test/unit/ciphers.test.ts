@@ -722,6 +722,12 @@ describe('book', () => {
     expect(book.decode(letters, { book: DECLARATION, pick: 'letter' }).text).toBe('ATTACKATDAWN')
   })
 
+  it('folds case beyond lowercase, so SS meets ß and both Turkish I meet i', () => {
+    expect(
+      book.encode('STRASSE istanbul ﬁne ıssız', { book: 'straße İstanbul fine Issız' }).text,
+    ).toBe('1 2 3 4')
+  })
+
   it('wraps round to the first word once every match is used', () => {
     expect(book.encode('one one', { book: 'one two' }).text).toBe('1 1')
   })

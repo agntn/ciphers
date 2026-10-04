@@ -761,8 +761,8 @@ export const hiddenTextReadTool = defineTool({
       ),
       letter: Type.Optional(
         Type.Integer({
-          minimum: -MAX_KEY_LENGTH,
-          maximum: MAX_KEY_LENGTH,
+          minimum: -MAX_FREQUENCY_TEXT_LENGTH,
+          maximum: MAX_FREQUENCY_TEXT_LENGTH,
           description:
             'line, word, sentence and paragraph only: the letter taken from each, 1 the first (default), 2 the second, -1 the last; never 0',
         }),

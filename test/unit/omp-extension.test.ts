@@ -271,6 +271,8 @@ describe('OMP extension', () => {
     await rejects('ciphers_hidden_text_read', { text: 'TEST', pick: 'column' })
     await rejects('ciphers_hidden_text_read', { text: 'TEST', pick: 'every-letter', every: 0 })
     await rejects('ciphers_hidden_text_read', { text: 'TEST', letter: 1.5 })
+    await accepts('ciphers_hidden_text_read', { text: 'TEST', pick: 'word', letter: -1_001 })
+    await rejects('ciphers_hidden_text_read', { text: 'TEST', pick: 'word', letter: 100_001 })
     await rejects('ciphers_hidden_text_read', { text: 'TEST', direction: 'up' })
     await rejects('ciphers_hidden_text_read', { text: 'X'.repeat(100_001) })
 

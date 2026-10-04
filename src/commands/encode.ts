@@ -44,6 +44,27 @@ export default defineCommand({
       type: 'string',
       description: 'Letter J to Z for 0, switches to the single digit form A to I (A1Z26)',
     },
+    book: {
+      type: 'string',
+      description: 'The text to count in, given whole (book cipher)',
+    },
+    bookFile: {
+      type: 'string',
+      description: 'File to read the book from as UTF-8, in place of --book (book cipher)',
+    },
+    address: {
+      type: 'string',
+      description: 'word, line-word or page-line-word (book cipher; default word)',
+    },
+    pick: {
+      type: 'string',
+      description:
+        'word for the whole word, letter for its first letter (book cipher; default word)',
+    },
+    start: {
+      type: 'string',
+      description: 'Number of the first word, line and page, 1 or 0 (book cipher; default 1)',
+    },
     blanks: {
       type: 'string',
       description: 'The two blank digits of the top row (straddling checkerboard; default 26)',

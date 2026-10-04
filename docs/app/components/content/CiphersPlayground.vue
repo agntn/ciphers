@@ -125,12 +125,25 @@ const cipherItems = CIPHERS.map((cipher) => ({
   icon: cipher.icon,
 }));
 
+/** Options whose line breaks and form feeds matter: a textarea, never trimmed. */
+const MULTILINE_OPTIONS = new Set(["book"]);
+
+/**
+ * One option field as the cipher gets it, trimmed unless its line breaks count.
+ *
+ * @param {string} name - Option name.
+ * @returns {string} The field text.
+ */
+function optionText(name: string): string {
+  return MULTILINE_OPTIONS.has(name) ? String(values[name] ?? "") : fieldText(values[name]);
+}
+
 /** Typed option values. Empty fields are left out so the cipher applies its own defaults. */
 const options = computed<Record<string, string | number | boolean>>(() => {
   const out: Record<string, string | number | boolean> = {};
   for (const field of optionFields.value) {
-    const raw = fieldText(values[field.name]);
-    if (raw === "") continue;
+    const raw = optionText(field.name);
+    if (raw.trim() === "") continue;
     out[field.name] = field.type === "number" ? Number(raw) : raw;
   }
   if (lettersOnly.value && !preserveCase.value) out.preserveCase = false;
@@ -360,14 +373,17 @@ function readQuery(query: Record<string, unknown>) {
   }
 }
 
+/** Longest option value the address bar carries. A whole book for the book cipher stays out. */
+const MAX_SHARED_OPTION = 2000;
+
 const shareQuery = computed(() => {
   const query: Record<string, string> = { op: operation.value };
   if (operation.value !== "info") query.text = text.value;
   if (needsCipher.value) query.cipher = entry.value.slug;
   if (isTransform.value) {
     for (const field of optionFields.value) {
-      const value = fieldText(values[field.name]);
-      if (value) query[field.name] = value;
+      const value = optionText(field.name);
+      if (value.trim() && value.length <= MAX_SHARED_OPTION) query[field.name] = value;
     }
     if (lettersOnly.value && !preserveCase.value) query.preserveCase = "0";
     if (lettersOnly.value && stripNonAlpha.value) query.stripNonAlpha = "1";
@@ -517,7 +533,21 @@ const shareLink = computed(() => {
                     >
                   </dt>
                   <dd>
+                    <UTextarea
+                      v-if="MULTILINE_OPTIONS.has(field.name)"
+                      :id="`playground-option-${field.name}`"
+                      v-model="values[field.name]"
+                      variant="none"
+                      :rows="1"
+                      autoresize
+                      :maxrows="6"
+                      :placeholder="field.description"
+                      spellcheck="false"
+                      autocomplete="off"
+                      class="w-full"
+                    />
                     <UInput
+                      v-else
                       :id="`playground-option-${field.name}`"
                       v-model="values[field.name]"
                       variant="none"

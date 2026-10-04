@@ -43,8 +43,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 52 ciphers', () => {
-    expect(ciphers()).toHaveLength(52)
+  it('registers all 53 ciphers', () => {
+    expect(ciphers()).toHaveLength(53)
     for (const name of [
       'caesar',
       'rot13',
@@ -61,6 +61,7 @@ describe('registry', () => {
       'playfair',
       'polybius',
       'a1z26',
+      'book',
       'straddling-checkerboard',
       'enigma',
       'aes',
@@ -693,6 +694,152 @@ describe('a1z26', () => {
   })
 })
 
+/** The Declaration of Independence to "a candid world", as the National Archives has it. */
+const DECLARATION = `When in the Course of human events, it becomes necessary for one people to dissolve the political bands which have connected them with another, and to assume among the powers of the earth, the separate and equal station to which the Laws of Nature and of Nature's God entitle them, a decent respect to the opinions of mankind requires that they should declare the causes which impel them to the separation.
+
+We hold these truths to be self-evident, that all men are created equal, that they are endowed by their Creator with certain unalienable Rights, that among these are Life, Liberty and the pursuit of Happiness.--That to secure these rights, Governments are instituted among Men, deriving their just powers from the consent of the governed, --That whenever any Form of Government becomes destructive of these ends, it is the Right of the People to alter or to abolish it, and to institute new Government, laying its foundation on such principles and organizing its powers in such form, as to them shall seem most likely to effect their Safety and Happiness. Prudence, indeed, will dictate that Governments long established should not be changed for light and transient causes; and accordingly all experience hath shewn, that mankind are more disposed to suffer, while evils are sufferable, than to right themselves by abolishing the forms to which they are accustomed. But when a long train of abuses and usurpations, pursuing invariably the same Object evinces a design to reduce them under absolute Despotism, it is their right, it is their duty, to throw off such Government, and to provide new Guards for their future security.--Such has been the patient sufferance of these Colonies; and such is now the necessity which constrains them to alter their former Systems of Government. The history of the present King of Great Britain is a history of repeated injuries and usurpations, all having in direct object the establishment of an absolute Tyranny over these States. To prove this, let Facts be submitted to a candid world.`
+
+describe('book', () => {
+  const book = create('book')
+  const pages = 'one two three\n\nfour five\fsix seven\neight nine ten'
+
+  it('reads the dCode examples from the Declaration of Independence', () => {
+    expect(book.decode('15,4,12,52,7', { book: DECLARATION, pick: 'letter' }).text).toBe('DCODE')
+    expect(book.decode('221,132,136,305', { book: DECLARATION }).text).toBe('by of of King')
+    expect(book.decode('221,132,136,305', { book: DECLARATION, pick: 'letter' }).text).toBe('BOOK')
+  })
+
+  it('counts self-evident as two words, so word 115 is instituted as for Beale cipher 2', () => {
+    expect(book.decode('115', { book: DECLARATION }).text).toBe('instituted')
+  })
+
+  it('gives a repeated word or letter the next place each time', () => {
+    const words = book.encode('of of of', { book: DECLARATION }).text
+    expect(new Set(words.split(' ')).size).toBe(3)
+    expect(book.decode(words, { book: DECLARATION }).text).toBe('of of of')
+    const letters = book.encode('Attack at dawn!', { book: DECLARATION, pick: 'letter' }).text
+    expect(letters.split(' ')).toHaveLength(12)
+    expect(book.decode(letters, { book: DECLARATION, pick: 'letter' }).text).toBe('ATTACKATDAWN')
+  })
+
+  it('folds case beyond lowercase, so SS meets ß and both Turkish I meet i', () => {
+    expect(
+      book.encode('STRAẞE istanbul ﬁne ıssız', { book: 'straße İstanbul fine Issız' }).text,
+    ).toBe('1 2 3 4')
+  })
+
+  it('keeps combining marks in a word and matches either normal form', () => {
+    expect(book.encode('हिन्दी', { book: 'हिन्दी भाषा' }).text).toBe('1')
+    expect(book.decode('1', { book: 'हिन्दी भाषा' }).text).toBe('हिन्दी')
+    expect(book.encode('cafe\u0301', { book: 'un caf\u00E9' }).text).toBe('2')
+  })
+
+  it('matches a word whose capital decomposes, as Greek \u0390 does', () => {
+    expect(book.encode('\u03AA\u0301', { book: '\u0390' }).text).toBe('1')
+    expect(book.encode('\u0390', { book: '\u03AA\u0301' }).text).toBe('1')
+  })
+
+  it('takes the first letter in NFC, so a decomposed book picks the same letters', () => {
+    const decomposed = { book: 'e\u0301clair e\u0301te\u0301', pick: 'letter' as const }
+    expect(book.encode('\u00E9', decomposed).text).toBe('1')
+    expect(book.encode('e\u0301e\u0301', decomposed).text).toBe('1 2')
+    expect(book.decode('2', decomposed).text).toBe('\u00C9')
+  })
+
+  it('decodes one letter per address when its capital would be longer', () => {
+    const letters = { book: '\u00DFeta \uFB03le', pick: 'letter' as const }
+    expect(book.decode('1 2', letters).text).toBe('\u00DF\uFB03')
+    expect(book.encode('\u00DF\uFB03', letters).text).toBe('1 2')
+  })
+
+  it('wraps round to the first word once every match is used', () => {
+    expect(book.encode('one one', { book: 'one two' }).text).toBe('1 1')
+  })
+
+  it('counts lines and pages, a form feed between pages and blank lines left out', () => {
+    expect(book.decode('2-2-3 1-2-1', { book: pages, address: 'page-line-word' }).text).toBe(
+      'ten four',
+    )
+    expect(book.decode('4-3 2-2', { book: pages, address: 'line-word' }).text).toBe('ten five')
+    expect(book.encode('ten one', { book: pages, address: 'page-line-word', start: 0 }).text).toBe(
+      '1-1-2 0-0-0',
+    )
+  })
+
+  it('reports the settings and the split, and leaves the book out', () => {
+    expect(book.decode('1', { book: pages }).options).toEqual({
+      address: 'word',
+      pick: 'word',
+      start: 1,
+      words: 10,
+      lines: 4,
+      pages: 2,
+    })
+  })
+
+  it('drops what is not a letter or a digit', () => {
+    expect(book.encode('A, €B!', { book: 'Alpha Bravo', pick: 'letter' }).text).toBe('1 2')
+    expect(book.encode('by, of!', { book: DECLARATION }).text).toBe(
+      book.encode('by of', { book: DECLARATION }).text,
+    )
+  })
+
+  it('names the number that is out of range and how many there are', () => {
+    expect(() => book.decode('400', { book: DECLARATION })).toThrow(
+      'Word 400 is out of range: the book has 341 words, numbered from 1',
+    )
+    expect(() => book.decode('0', { book: DECLARATION })).toThrow('Word 0 is out of range')
+    expect(() => book.decode('2-3-1', { book: pages, address: 'page-line-word' })).toThrow(
+      'Line 3 is out of range: page 2 has 2 lines, numbered from 1',
+    )
+    expect(() => book.decode('1-1-4', { book: pages, address: 'page-line-word' })).toThrow(
+      'Word 4 is out of range: line 1 of page 1 has 3 words, numbered from 1',
+    )
+  })
+
+  it('throws CipherError on numbers that are not whole addresses, or none', () => {
+    expect(() => book.decode('1-2', { book: pages, address: 'page-line-word' })).toThrow(
+      'page-line-word addresses take 3 numbers each, and the text has 2',
+    )
+    expect(() => book.decode('no numbers', { book: pages })).toThrow(CipherError)
+  })
+
+  it('throws CipherError when the book has no word for the plaintext', () => {
+    expect(() => book.encode('xylophone', { book: DECLARATION })).toThrow(
+      'The book has no word "xylophone"',
+    )
+    expect(() => book.encode('z', { book: DECLARATION, pick: 'letter' })).toThrow(
+      'The book has no word starting with "z"',
+    )
+    expect(() => book.encode('x'.repeat(5000), { book: DECLARATION })).toThrow(
+      'The book has no word of 5000 characters',
+    )
+    expect(() => book.decode('1'.repeat(30), { book: DECLARATION })).toThrow(
+      'Word of 30 digits is out of range',
+    )
+    expect(() =>
+      book.decode('000000000002 1 4', { book: pages, address: 'page-line-word' }),
+    ).toThrow('Word 4 is out of range: line 1 of page of 12 digits has 2 words')
+  })
+
+  it('needs a book with a word in it, and keeps a long one out of the error', () => {
+    expect(() => book.decode('1')).toThrow(MissingOptionError)
+    expect(() => book.decode('1', { book: '... --- ...' })).toThrow(
+      'Invalid option book=11 characters: must have a word in it',
+    )
+  })
+
+  it.each([
+    [{ address: 'chapter-verse' }, 'address'],
+    [{ pick: 'line' }, 'pick'],
+    [{ start: 2 }, 'start'],
+    [{ start: '1' }, 'start'],
+  ])('rejects %o with InvalidOptionError', (options, option) => {
+    expect(() => book.decode('1', { book: pages, ...options })).toThrow(InvalidOptionError)
+    expect(() => book.decode('1', { book: pages, ...options })).toThrow(option)
+  })
+})
+
 describe('columnar', () => {
   const col = create('columnar')
 
@@ -1111,6 +1258,7 @@ describe('edge cases', () => {
     playfair: { key: 'TEST' },
     columnar: { key: 'TEST' },
     route: { width: 3 },
+    book: { book: 'The 123 tests' },
     bifid: { key: 'TEST' },
     aes: { key: '000102030405060708090a0b0c0d0e0f' },
     'aes-cbc': { key: '000102030405060708090a0b0c0d0e0f', iv: '00'.repeat(16) },
@@ -5323,7 +5471,10 @@ describe('info().worksOn', () => {
     columnar: { key: 'ZEBRA' },
     route: { width: 3 },
   }
-  const classical = builtinCiphers.filter((name) => create(name).info().category === 'classical')
+  /** Book takes letters of any script, so it has its own test in its describe. */
+  const classical = builtinCiphers.filter(
+    (name) => create(name).info().category === 'classical' && name !== 'book',
+  )
   const encode = (name: string, text: string): string =>
     create(name).encode(text, options[name]).text
 

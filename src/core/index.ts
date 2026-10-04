@@ -16,6 +16,7 @@ export type {
   StraddlingCheckerboardOptions,
   BaconOptions,
   A1z26Options,
+  BookOptions,
   ByteCipherOptions,
   AesOptions,
   AesCbcOptions,

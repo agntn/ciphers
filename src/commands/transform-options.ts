@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import consola from 'consola'
 import type { CipherBaseOptions } from '../core/types.ts'
 
@@ -8,6 +9,11 @@ export interface TransformOptionArgs {
   readonly blanks?: string
   readonly separator?: string
   readonly zero?: string
+  readonly book?: string
+  readonly bookFile?: string
+  readonly address?: string
+  readonly pick?: string
+  readonly start?: string
   readonly iv?: string
   readonly tweak?: string
   readonly nonce?: string
@@ -46,6 +52,28 @@ function parseInteger(value: string | undefined, name: string): number | undefin
 }
 
 /**
+ * Read the book for the book cipher from a file.
+ *
+ * @param file - Path to the file.
+ * @param book - The --book value, which must be absent.
+ * @returns {string} The file as UTF-8 text.
+ */
+function readBookFile(file: string, book: string | undefined): string {
+  if (book !== undefined) {
+    consola.error('Use --book or --book-file, not both')
+    process.exit(1)
+  }
+  try {
+    return readFileSync(file, 'utf8')
+  } catch (error) {
+    consola.error(
+      `Cannot read --book-file: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    process.exit(1)
+  }
+}
+
+/**
  * Parse the options shared by the encode and decode commands.
  *
  * @param args - Raw Citty option values.
@@ -67,6 +95,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['counter', args.counter],
     ['a', args.a],
     ['b', args.b],
+    ['start', args.start],
   ] as const
   for (const [name, value] of integers) {
     const parsed = parseInteger(value, name)
@@ -86,6 +115,9 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
     ['blanks', args.blanks],
     ['separator', args.separator],
     ['zero', args.zero],
+    ['book', args.book],
+    ['address', args.address],
+    ['pick', args.pick],
     ['corner', args.corner],
     ['path', args.path],
     ['digest', args.digest],
@@ -94,6 +126,7 @@ export function parseTransformOptions(args: Readonly<TransformOptionArgs>): Ciph
   for (const [name, value] of strings) {
     if (value !== undefined) options[name] = value
   }
+  if (args.bookFile !== undefined) options.book = readBookFile(args.bookFile, args.book)
   if (args.key) options.key = args.key
   if (args.transposition) options.transposition = args.transposition
 

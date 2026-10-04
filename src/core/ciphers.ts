@@ -17,6 +17,7 @@ export const builtinCiphers = [
   'bacon',
   'tap-code',
   'a1z26',
+  'book',
   'columnar',
   'route',
   'adfgvx',

@@ -132,6 +132,18 @@ export interface A1z26Options extends CipherBaseOptions {
   zero?: string
 }
 
+/** Book cipher options. */
+export interface BookOptions extends CipherBaseOptions {
+  /** The text to count in. A form feed starts a page, a line without a word does not count. */
+  book: string
+  /** One address: `word`, `line-word` or `page-line-word`. Default: `word`. */
+  address?: 'word' | 'line-word' | 'page-line-word'
+  /** `word` for the whole word, `letter` for its first letter. Default: `word`. */
+  pick?: 'word' | 'letter'
+  /** Number of the first word, line and page. Default: 1. */
+  start?: 0 | 1
+}
+
 /** Options every block and stream cipher shares. */
 export interface ByteCipherOptions extends CipherBaseOptions {
   /** `text` for UTF-8 text on the plain side, `hex` for hex bytes there. Default: `text`. */
@@ -412,6 +424,7 @@ export interface CipherInfo {
     | 'substitution-reflection'
     | 'digraph'
     | 'fractionation'
+    | 'homophonic'
     | 'transposition'
     | 'polyalphabetic'
     | 'rotor'

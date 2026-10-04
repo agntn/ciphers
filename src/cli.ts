@@ -98,6 +98,7 @@ const main = defineCommand({
     probe: () => loadCommand(() => import('./commands/probe.ts')),
     crib: () => loadCommand(() => import('./commands/crib.ts')),
     hidden: () => loadCommand(() => import('./commands/hidden.ts')),
+    recover: () => loadCommand(() => import('./commands/recover.ts')),
   },
 })
 

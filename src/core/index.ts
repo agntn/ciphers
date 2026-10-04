@@ -96,6 +96,18 @@ export {
   type CribPlacement,
 } from './crib.ts'
 export {
+  DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_KEY_CANDIDATES,
+  MAX_COLUMNAR_KEY_LENGTH,
+  MAX_KEY_CANDIDATES,
+  keyRecoveryCiphers,
+  recoverKey,
+  type KeyCandidate,
+  type KeyRecovery,
+  type KeyRecoveryCipher,
+  type KeyRecoveryOptions,
+} from './recover.ts'
+export {
   guessFamily,
   type FamilyCandidate,
   type FamilyGuess,

@@ -254,6 +254,33 @@ describe('CLI hidden text', () => {
   })
 })
 
+describe('CLI key recovery', () => {
+  it('prints the keys and the command that reads the text', () => {
+    const plain =
+      'To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex. It was not that he felt any emotion akin to love for Irene Adler.'
+    const result = runCli(['encode', 'vigenere', plain, '--key', 'WATSON'])
+    const recovered = runCli(['recover', result.stdout.trim(), '-c', 'vigenere', '--limit', '1'], {
+      ...process.env,
+      CONSOLA_LEVEL: '3',
+    })
+
+    expect(recovered.status).toBe(0)
+    const output = stripVTControlCharacters(`${recovered.stdout}${recovered.stderr}`)
+    expect(output).toContain('vigenere keys (183 letters, lang=en), best first')
+    expect(output).toContain(`  1. key WATSON  fit -`)
+    expect(output).toContain(plain)
+    expect(output).toContain('Next: ciphers decode vigenere "<text>" --key WATSON')
+  })
+
+  it('rejects a key length for another cipher as one line', () => {
+    const result = runCli(['recover', 'Hello there', '-c', 'vigenere', '--key-length', '3'])
+
+    expect(result.status).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toBe('Invalid option keyLength=3: only columnar takes it\n')
+  })
+})
+
 describe('CLI Caesar brute force', () => {
   /**
    * Run `ciphers brute` and keep its shift lines without the terminal styling.

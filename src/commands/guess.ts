@@ -13,8 +13,10 @@ import { create } from '../core/registry.ts'
  */
 function nextCommand(found: FamilyCandidate): string {
   const [first] = found.ciphers
-  if (first === 'vigenere') return 'ciphers period "<text>"'
-  if (first === 'caesar' && found.options === undefined) return 'ciphers brute "<text>"'
+  if (first === 'vigenere') return 'ciphers recover "<text>" -c vigenere'
+  if (first === 'caesar' && found.options === undefined) {
+    return 'ciphers brute "<text>", or ciphers recover "<text>" -c substitution'
+  }
   const flags = [
     ...Object.entries(found.options ?? {}).map(([name, value]) => `--${name} ${value}`),
     ...create(first!)
@@ -22,7 +24,8 @@ function nextCommand(found: FamilyCandidate): string {
       .options.filter(({ name, required }) => required && !Object.hasOwn(found.options ?? {}, name))
       .map(({ name }) => `--${name} <${name}>`),
   ]
-  return ['ciphers decode', first, '"<text>"', ...flags].join(' ')
+  const decode = ['ciphers decode', first, '"<text>"', ...flags].join(' ')
+  return first === 'rail-fence' ? `${decode}, or ciphers recover "<text>" -c columnar` : decode
 }
 
 export default defineCommand({

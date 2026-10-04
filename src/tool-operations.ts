@@ -34,6 +34,10 @@ export type CipherToolParams = {
   blanks?: string
   separator?: string
   zero?: string
+  book?: string
+  address?: 'word' | 'line-word' | 'page-line-word'
+  pick?: 'word' | 'letter'
+  start?: 0 | 1
   tagLength?: number
   digest?: 'md5' | 'sha1' | 'sha256'
   keyLength?: number
@@ -56,6 +60,8 @@ export const MAX_TRANSFORM_TEXT_LENGTH = 10_000
 export const MAX_BRUTE_TEXT_LENGTH = 2_000
 export const MAX_FREQUENCY_TEXT_LENGTH = 100_000
 export const MAX_KEY_LENGTH = 1_000
+/** Longest book the book cipher takes from a tool call, a long novel. */
+export const MAX_BOOK_LENGTH = 1_000_000
 /** Longest key length `ciphers_period_estimate` tries. */
 export const MAX_PERIOD = 100
 /** Key lengths the period estimate prints, most likely first. */
@@ -91,6 +97,11 @@ export const OPTION_DESCRIPTIONS = {
   separator:
     'A1Z26 only: text between the numbers of one word, 1 to 10 characters without digits; decoding drops it only between two numbers (default -)',
   zero: 'A1Z26 only: letter J to Z that stands for 0. Setting it switches to the single digit form, A to I for 1 to 9, where decoding turns those letters into digits',
+  book: 'Book cipher only, and required there: the text to count in, whole. A form feed starts a new page, as pdftotext writes them, and a line without a word is not counted',
+  address:
+    'Book cipher only: what one address counts, word for its place in the book (default), line-word for its line and place in the line, page-line-word for page, line on the page and place in the line',
+  pick: 'Book cipher only: word for the whole word (default), letter for its first letter',
+  start: 'Book cipher only: number of the first word, line and page, 1 (default) or 0',
   width:
     'Route only, and required there: cells per row of the grid the text fills row by row (at least 2)',
   corner: 'Route only: corner the path starts from (default top-left)',
@@ -145,6 +156,10 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'blanks',
     'separator',
     'zero',
+    'book',
+    'address',
+    'pick',
+    'start',
     'tagLength',
     'digest',
     'keyLength',

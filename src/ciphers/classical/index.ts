@@ -6,6 +6,7 @@ import { Alberti } from './alberti.ts'
 import { Atbash } from './atbash.ts'
 import { Autokey } from './autokey.ts'
 import { Bacon } from './bacon.ts'
+import { Book } from './book.ts'
 import { Beaufort } from './beaufort.ts'
 import { Bifid } from './bifid.ts'
 import { Caesar } from './caesar.ts'
@@ -42,6 +43,7 @@ export const classical: readonly CipherConstructor[] = [
   Bacon,
   TapCode,
   A1z26,
+  Book,
   Columnar,
   Route,
   Adfgvx,

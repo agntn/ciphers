@@ -13,6 +13,7 @@ import {
   BRUTE_PREVIEW_LENGTH,
   MAX_BRUTE_TEXT_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
+  MAX_BOOK_LENGTH,
   MAX_KEY_LENGTH,
   MAX_PERIOD,
   MAX_TRANSFORM_TEXT_LENGTH,
@@ -53,7 +54,7 @@ function answer(result: {
 
 type CipherOptionRequirement = {
   readonly ciphers: readonly string[]
-  readonly required: readonly ('key' | 'iv' | 'nonce' | 'period' | 'width')[]
+  readonly required: readonly ('key' | 'iv' | 'nonce' | 'period' | 'width' | 'book')[]
   readonly key?: {
     readonly pattern: RegExp
     readonly error: string
@@ -84,6 +85,7 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
   },
   { ciphers: ['columnar'], required: ['key'] },
   { ciphers: ['route'], required: ['width'] },
+  { ciphers: ['book'], required: ['book'] },
   { ciphers: ['aes', 'aes-cbc-mac'], required: ['key'], key: AES_KEY },
   { ciphers: ['aes-cbc', 'aes-cfb', 'aes-ofb', 'aes-ctr'], required: ['key', 'iv'], key: AES_KEY },
   { ciphers: ['aes-ccm', 'aes-ocb'], required: ['key', 'nonce'], key: AES_KEY },
@@ -379,6 +381,16 @@ const cipherInput = Type.Object(
     zero: Type.Optional(
       Type.String({ pattern: '^[J-Zj-z]$', description: OPTION_DESCRIPTIONS.zero }),
     ),
+    book: Type.Optional(
+      Type.String({ maxLength: MAX_BOOK_LENGTH, description: OPTION_DESCRIPTIONS.book }),
+    ),
+    address: Type.Optional(
+      Type.Enum(['word', 'line-word', 'page-line-word'], {
+        description: OPTION_DESCRIPTIONS.address,
+      }),
+    ),
+    pick: Type.Optional(Type.Enum(['word', 'letter'], { description: OPTION_DESCRIPTIONS.pick })),
+    start: Type.Optional(Type.Enum([0, 1], { description: OPTION_DESCRIPTIONS.start })),
     preserveCase: Type.Optional(
       Type.Boolean({ description: 'Preserve letter case (default true)' }),
     ),
@@ -425,6 +437,7 @@ export const encodeTool = defineTool({
     'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
     'Route (route) needs width, the cells per row. Decoding reads the grid along path from corner, so a grid copied row by row from a puzzle goes to ciphers_decode. Line breaks are not cells.',
     'A1Z26 (a1z26) turns letters into their numbers, 1 to 26, joined by separator (default -). With zero it is the single digit form instead: A to I for 1 to 9 and zero for 0, so letters like BEF go to ciphers_decode and come back as 256.',
+    'Book cipher (book) needs book, the whole text both sides count in. Decoding reads every number in order, one per address, or two or three with address line-word or page-line-word, and pick letter takes first letters, as Beale cipher 2 does. Encoding takes the next matching word each time, so a repeated letter gets a new number.',
     'Straddling checkerboard (straddling-checkerboard) turns letters into digits, one for the eight on the top row and two for the rest. key is the board of 28 cells and blanks its two blank digits.',
     'AES (aes) needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
     'AES-CBC (aes-cbc) takes the same key plus iv, 32 hex digits.',

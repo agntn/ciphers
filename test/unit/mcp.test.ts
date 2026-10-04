@@ -492,6 +492,32 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(outside.content)).toContain('Invalid A1Z26 number 27 at character 3')
   })
 
+  it('discovers and executes the book cipher through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'book' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(book) — classical, homophonic')
+    const book = 'one two three\n\nfour five\fsix seven\neight nine ten'
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'book', text: '2-2-3 1-2-1', book, address: 'page-line-word' },
+    })
+    expect(decoded.isError).not.toBe(true)
+    expect(onlyText(decoded.content)).toBe('ten four')
+    const letters = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'book', text: 'toe', book, pick: 'letter', start: 0 },
+    })
+    expect(letters.isError).not.toBe(true)
+    expect(onlyText(letters.content)).toBe('1 0 7')
+    const outside = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'book', text: '11', book },
+    })
+    expect(outside.isError).toBe(true)
+    expect(onlyText(outside.content)).toContain('Word 11 is out of range: the book has 10 words')
+  })
+
   it('discovers and executes the route transposition along its path through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'route' } })
@@ -957,6 +983,11 @@ describe('Ciphers MCP server', () => {
       ['separator', { cipher: 'a1z26', text: 'abc', separator: '-'.repeat(11) }],
       ['zero', { cipher: 'a1z26', text: 'abc', zero: 'a' }],
       ['zero', { cipher: 'a1z26', text: 'abc', zero: 'oo' }],
+      ['book', { cipher: 'book', text: '1' }],
+      ['book', { cipher: 'book', text: '1', book: '' }],
+      ['address', { cipher: 'book', text: '1', book: 'a', address: 'chapter' }],
+      ['pick', { cipher: 'book', text: '1', book: 'a', pick: 'line' }],
+      ['start', { cipher: 'book', text: '1', book: 'a', start: 2 }],
       ['width', { cipher: 'route', text: 'abc' }],
       ['width', { cipher: 'route', text: 'abc', width: 1 }],
       ['corner', { cipher: 'route', text: 'abc', width: 2, corner: 'middle' }],

@@ -423,6 +423,13 @@ describe('CLI dashed text', () => {
     expect(runCli(['decode', 'morse', '--', '-.-. .- -']).stdout).toBe('CAT\n')
   })
 
+  it('keeps a group of short options that starts with a boolean', () => {
+    const result = runCli(['ciphers', '-vcstream'], { ...process.env, CONSOLA_LEVEL: '3' })
+
+    expect(result.status).toBe(0)
+    expect(`${result.stdout}${result.stderr}`).toContain('Category: stream')
+  })
+
   it('names a dashed argument that fits nowhere in one line', () => {
     const result = runCli(['decode', 'morse', '...', '--kye', 'x'])
 

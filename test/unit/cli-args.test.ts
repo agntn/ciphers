@@ -73,6 +73,14 @@ describe('separateText', () => {
       args: ['--key', '-lemon', '--', 'vigenere', 'attack'],
     })
   })
+  it('reads a short group as parseArgs does, a value-taking letter ending it', () => {
+    expect(separateText(['-vkx', 'vigenere', 'attack'], decodeArgs)).toEqual({
+      args: ['-vkx', '--', 'vigenere', 'attack'],
+    })
+    expect(separateText(['-vk', 'x', 'vigenere', 'attack'], decodeArgs)).toEqual({
+      args: ['-vk', 'x', '--', 'vigenere', 'attack'],
+    })
+  })
   it('reads a boolean cluster with letters it lacks as text', () => {
     expect(separateText(['morse', '-vx'], decodeArgs)).toEqual({ args: ['--', 'morse', '-vx'] })
   })

@@ -55,15 +55,22 @@ function optionNames(defs: Readonly<Record<string, Declared>>): Record<string, b
 }
 
 /**
- * Splits a dashed argument into the option it names and whether it carries its value.
+ * Reads a group of short options the way `util.parseArgs` does: a value-taking one ends the group.
  *
- * @param arg - One argument that starts with `-`, longer than `-`.
- * @returns {{ name: string; inline: boolean; short: boolean }} `k` with a value for `-kx`.
+ * @param letters - The group without its leading `-`.
+ * @param names - What `optionNames` returned.
+ * @returns {boolean | undefined} Whether the next argument is a value, `undefined` for text.
  */
-function flag(arg: string): { name: string; inline: boolean; short: boolean } {
-  if (!arg.startsWith('--')) return { name: arg.charAt(1), inline: arg.length > 2, short: true }
-  const [name = '', ...value] = arg.slice(2).split('=')
-  return { name, inline: value.length > 0, short: false }
+function shortGroup(
+  letters: string,
+  names: Readonly<Record<string, boolean>>,
+): boolean | undefined {
+  for (let index = 0; index < letters.length; index++) {
+    const letter = letters.charAt(index)
+    if (!Object.hasOwn(names, letter)) return undefined
+    if (names[letter] === true) return index === letters.length - 1
+  }
+  return false
 }
 
 /**
@@ -75,11 +82,10 @@ function flag(arg: string): { name: string; inline: boolean; short: boolean } {
  */
 function takesValue(arg: string, names: Readonly<Record<string, boolean>>): boolean | undefined {
   if (arg === '-' || !arg.startsWith('-')) return undefined
-  const { name, inline, short } = flag(arg)
+  if (!arg.startsWith('--')) return shortGroup(arg.slice(1), names)
+  const [name = '', ...value] = arg.slice(2).split('=')
   if (!Object.hasOwn(names, name)) return undefined
-  const valued = names[name] === true
-  if (short && inline && !valued) return undefined
-  return valued && !inline
+  return names[name] === true && value.length === 0
 }
 
 /**

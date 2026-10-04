@@ -4,7 +4,7 @@ import { sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runMain, defineCommand, type ArgsDef, type CommandDef } from 'citty'
 import type McpCommand from './commands/mcp.ts'
-import { normalizeMainArgs, separateText, shownArgument } from './cli-args.ts'
+import { cittyAnswers, normalizeMainArgs, separateText, shownArgument } from './cli-args.ts'
 import { CipherError } from './core/errors.ts'
 import { version } from './version.ts'
 
@@ -104,15 +104,17 @@ const main = defineCommand({
   subCommands,
 })
 
-const [name = '', ...rest] = normalizeMainArgs(process.argv.slice(2))
+const rawArgs = normalizeMainArgs(process.argv.slice(2))
+const [name = '', ...rest] = rawArgs
 const load = Object.entries(subCommands).find(([key]) => key === name)?.[1]
 const defs = load ? await (await load()).args : undefined
-const separated = load
-  ? separateText(rest, (typeof defs === 'function' ? await defs() : defs) ?? {})
-  : { args: rest }
+const separated = cittyAnswers(rawArgs)
+  ? { args: rest }
+  : separateText(load ? rest : rawArgs, (typeof defs === 'function' ? await defs() : defs) ?? {})
 if ('unknown' in separated) {
+  const where = load ? ` for ${name}` : ''
   process.stderr.write(
-    `Unknown option ${shownArgument(separated.unknown)} for ${name}. Text that starts with - goes after --, which ends the options.\n`,
+    `Unknown option ${shownArgument(separated.unknown)}${where}. Text that starts with - goes after --, which ends the options.\n`,
   )
   process.exitCode = 1
 } else {

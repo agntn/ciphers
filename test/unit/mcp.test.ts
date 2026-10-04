@@ -52,6 +52,7 @@ describe('Ciphers MCP server', () => {
       'ciphers_period_estimate',
       'ciphers_family_guess',
       'ciphers_passphrase_probe',
+      'ciphers_crib_drag',
       'ciphers_info',
     ])
     const encodeTool = response.tools.find((tool) => tool.name === 'ciphers_encode')
@@ -1240,6 +1241,90 @@ describe('Ciphers MCP server', () => {
       const refused = await client.callTool({ name: 'ciphers_passphrase_probe', arguments: args })
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain(error)
+    }
+  })
+
+  it('drags a crib over the protocol', async () => {
+    const client = await connectTestClient()
+    const first =
+      '315c4eeaa8b5f8aaf9174145bf43e1784b8fa00dc71d885a804e5ee9fa40b16349c146fb778cdf2d3aff021dfff5b403b510d0d0455468aeb98622b137dae857553ccd8883a7bc37520e06e515d22c954eba5025b8cc57ee59418ce7dc6bc41556bdb36bbca3e8774301fbcaa3b83b220809560987815f65286764703de0f3d524400a19b159610b11ef3e'
+    const target =
+      '32510ba9babebbbefd001547a810e67149caee11d945cd7fc81a05e9f85aac650e9052ba6a8cd8257bf14d13e6f0a803b54fde9e77472dbff89d71b57bddef121336cb85ccb8f3315f4b52e301d16e9f52f904'
+    const drag = async (args: Readonly<Record<string, unknown>>) =>
+      await client.callTool({ name: 'ciphers_crib_drag', arguments: args })
+
+    const opened = await drag({
+      ciphertexts: [first, target],
+      crib: 'The secret message is: ',
+      limit: 2,
+    })
+    expect(opened.isError).not.toBe(true)
+    expect(onlyText(opened.content).split('\n')).toEqual([
+      'Crib "The secret message is: " across 2 ciphertexts (lang=en), 144 places, most readable first:',
+      '',
+      '1. #0 at 0 (score -3.12): #1 "We can factor the numbe"',
+      '2. #1 at 0 (score -3.12): #0 "We can factor the numbe"',
+      '(142 more places ranked lower)',
+      'With two ciphertexts a place shows up once per side with the same reading: the crib is in one of them, the reading in the other.',
+      '',
+      'Nothing known yet. To accept a place, add { message, offset, text } to known and call again.',
+    ])
+
+    const accepted = onlyText(
+      (
+        await drag({
+          ciphertexts: [first, target],
+          known: [{ message: 1, offset: 0, text: 'The secret' }],
+        })
+      ).content,
+    ).split('\n')
+    expect(accepted[0]).toBe(`Key (?? unknown): 66396e89c9dbd8cc9874${'??'.repeat(129)}`)
+    expect(accepted.slice(1, 4)).toEqual([
+      'Plaintexts (· unknown):',
+      `#0 "We can fac${'·'.repeat(129)}"`,
+      `#1 "The secret${'·'.repeat(73)}"`,
+    ])
+
+    const contradiction = await drag({
+      ciphertexts: [first, target],
+      known: [
+        { message: 1, offset: 0, text: 'The' },
+        { message: 0, offset: 0, text: 'Xe' },
+      ],
+    })
+    expect(contradiction.isError).toBe(true)
+    expect(onlyText(contradiction.content)).toContain(
+      'Invalid option known=#1: disagrees with an earlier placement on key byte 0',
+    )
+
+    const emoji = await drag({
+      ciphertexts: ['00'.repeat(300), '01'.repeat(300)],
+      crib: '😀'.repeat(60),
+    })
+    expect(emoji.isError).not.toBe(true)
+
+    const spaced = await drag({
+      ciphertexts: ['00 '.repeat(2_048), '01 '.repeat(2_048)],
+      crib: 'a',
+    })
+    expect(spaced.isError).not.toBe(true)
+    const long = await drag({ ciphertexts: ['00'.repeat(2_049), '01'], crib: 'a' })
+    expect(long.isError).toBe(true)
+    expect(onlyText(long.content)).toContain(
+      'Invalid option ciphertexts=one: must each be at most 4096 hex digits',
+    )
+
+    for (const args of [
+      { ciphertexts: [first] },
+      { ciphertexts: [first, target], crib: '' },
+      { ciphertexts: [first, target], limit: 51 },
+      { ciphertexts: [first, target], known: [{ message: 0, offset: 0, text: 'a', at: 1 }] },
+      { ciphertexts: Array.from({ length: 17 }, () => '00') },
+      { ciphertexts: [first, 'a'.repeat(8_193)] },
+    ]) {
+      const refused = await drag(args)
+      expect(refused.isError).toBe(true)
+      expect(onlyText(refused.content)).toContain('Invalid arguments at /')
     }
   })
 

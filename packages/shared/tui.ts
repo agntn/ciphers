@@ -165,4 +165,5 @@ export const PREVIEWED_TOOLS: ReadonlySet<string> = new Set([
   'ciphers_encode',
   'ciphers_decode',
   'ciphers_caesar_brute',
+  'ciphers_crib_drag',
 ])

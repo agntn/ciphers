@@ -85,6 +85,14 @@ export {
   type PassphraseProbeHit,
 } from './passphrase-probe.ts'
 export {
+  dragCrib,
+  showCribBytes,
+  type CribCandidate,
+  type CribDrag,
+  type CribDragOptions,
+  type CribPlacement,
+} from './crib.ts'
+export {
   guessFamily,
   type FamilyCandidate,
   type FamilyGuess,

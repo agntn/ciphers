@@ -1,5 +1,50 @@
 # Changelog
 
+## v0.6.0
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.5.2...v0.6.0)
+
+### 🚀 Enhancements
+
+- ⚠️  Say what each cipher works on ([#190](https://github.com/agntn/ciphers/pull/190))
+- Give byte cipher plaintext back as hex ([#192](https://github.com/agntn/ciphers/pull/192))
+- **classical:** Turn letters into A1Z26 numbers ([#198](https://github.com/agntn/ciphers/pull/198))
+- **stream:** Add Salsa20, ChaCha20 and Poly1305 ([#201](https://github.com/agntn/ciphers/pull/201))
+- Probe a salted blob across KDF settings ([#202](https://github.com/agntn/ciphers/pull/202))
+- Drag a crib across reused XOR keys ([#204](https://github.com/agntn/ciphers/pull/204))
+- **classical:** Read numbers as words of a book ([#203](https://github.com/agntn/ciphers/pull/203))
+- **tools:** Read text hidden by position ([#205](https://github.com/agntn/ciphers/pull/205))
+- **block:** Open what gpg --symmetric writes ([#206](https://github.com/agntn/ciphers/pull/206))
+- Recover classical cipher keys ([#211](https://github.com/agntn/ciphers/pull/211))
+- Serve the tools from ciphers.agntn.dev/mcp ([#212](https://github.com/agntn/ciphers/pull/212))
+
+### 🩹 Fixes
+
+- **docs:** Read number fields in the playground ([#195](https://github.com/agntn/ciphers/pull/195))
+- **docs:** Build the site on Node.js 26 ([#197](https://github.com/agntn/ciphers/pull/197))
+- **classical:** Let a book run on one line ([#213](https://github.com/agntn/ciphers/pull/213))
+
+### 💅 Refactors
+
+- Take hex and base64 from encodings ([#196](https://github.com/agntn/ciphers/pull/196))
+
+### 📖 Documentation
+
+- Point base encodings at @agntn/encodings ([#188](https://github.com/agntn/ciphers/pull/188))
+
+### 🏡 Chore
+
+- Add CODEOWNERS ([#200](https://github.com/agntn/ciphers/pull/200))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Say what each cipher works on ([#190](https://github.com/agntn/ciphers/pull/190))
+
+### ❤️ Contributors
+
+- Ori ([@oritwoen](https://github.com/oritwoen))
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+
 ## v0.5.2
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.5.1...v0.5.2)

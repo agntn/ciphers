@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import oxlint from '@agntn/ox/oxlint'
 import oxfmt from '@agntn/ox/oxfmt'
 import { defineConfig } from 'vite-plus'
@@ -8,7 +9,11 @@ if (!Array.isArray(readonlyParams)) {
 }
 const [severity, options] = readonlyParams
 
+/** Root tsconfig for oxc: docs/tsconfig.json needs `nuxt prepare` first. Vite's type omits it. */
+const oxc: object = { tsconfig: fileURLToPath(new URL('tsconfig.json', import.meta.url)) }
+
 export default defineConfig({
+  oxc,
   lint: {
     ...oxlint,
     rules: {
@@ -27,5 +32,9 @@ export default defineConfig({
     ignorePatterns: ['dist', 'coverage', 'docs', 'CHANGELOG.md'],
     semi: false,
     singleQuote: true,
+  },
+  test: {
+    /** The docs helper reaches the server through Nuxt's `#mcp` alias. */
+    alias: { '#mcp': fileURLToPath(new URL('src/mcp.ts', import.meta.url)) },
   },
 })

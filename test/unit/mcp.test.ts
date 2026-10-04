@@ -1303,13 +1303,24 @@ describe('Ciphers MCP server', () => {
     })
     expect(emoji.isError).not.toBe(true)
 
+    const spaced = await drag({
+      ciphertexts: ['00 '.repeat(2_048), '01 '.repeat(2_048)],
+      crib: 'a',
+    })
+    expect(spaced.isError).not.toBe(true)
+    const long = await drag({ ciphertexts: ['00'.repeat(2_049), '01'], crib: 'a' })
+    expect(long.isError).toBe(true)
+    expect(onlyText(long.content)).toContain(
+      'Invalid option ciphertexts=one: must each be at most 4096 hex digits',
+    )
+
     for (const args of [
       { ciphertexts: [first] },
       { ciphertexts: [first, target], crib: '' },
       { ciphertexts: [first, target], limit: 51 },
       { ciphertexts: [first, target], known: [{ message: 0, offset: 0, text: 'a', at: 1 }] },
       { ciphertexts: Array.from({ length: 17 }, () => '00') },
-      { ciphertexts: [first, 'a'.repeat(4_097)] },
+      { ciphertexts: [first, 'a'.repeat(8_193)] },
     ]) {
       const refused = await drag(args)
       expect(refused.isError).toBe(true)

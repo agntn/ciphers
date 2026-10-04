@@ -13,6 +13,7 @@ import {
   BRUTE_PREVIEW_LENGTH,
   MAX_BRUTE_TEXT_LENGTH,
   MAX_CRIB_CIPHERTEXTS,
+  MAX_CRIB_CIPHERTEXT_DIGITS,
   MAX_CRIB_CIPHERTEXT_LENGTH,
   MAX_CRIB_KNOWN,
   MAX_CRIB_KNOWN_LENGTH,
@@ -656,7 +657,7 @@ export const cribDragTool = defineTool({
       ciphertexts: Type.Array(
         Type.String({
           maxLength: MAX_CRIB_CIPHERTEXT_LENGTH,
-          description: 'One ciphertext in hex, whitespace ignored',
+          description: `One ciphertext in hex, at most ${MAX_CRIB_CIPHERTEXT_DIGITS} digits; whitespace between them is ignored`,
         }),
         {
           minItems: 2,
@@ -682,7 +683,7 @@ export const cribDragTool = defineTool({
               }),
               offset: Type.Integer({
                 minimum: 0,
-                maximum: MAX_CRIB_CIPHERTEXT_LENGTH / 2 - 1,
+                maximum: MAX_CRIB_CIPHERTEXT_DIGITS / 2 - 1,
                 description: 'Byte the text starts at, from 0',
               }),
               text: Type.String({

@@ -65,13 +65,15 @@ export const KASISKI_FACTORS = 5
 /** Ciphertexts one crib drag takes; each one is checked at every place. */
 export const MAX_CRIB_CIPHERTEXTS = 16
 /** Hex digits per ciphertext of a crib drag, 2048 bytes. */
-export const MAX_CRIB_CIPHERTEXT_LENGTH = 4_096
+export const MAX_CRIB_CIPHERTEXT_DIGITS = 4_096
+/** Characters per ciphertext before whitespace goes, room for a space or line break per byte. */
+export const MAX_CRIB_CIPHERTEXT_LENGTH = MAX_CRIB_CIPHERTEXT_DIGITS * 2
 /** Characters of a crib. */
 export const MAX_CRIB_LENGTH = 100
 /** Placements a crib drag carries in `known`. */
 export const MAX_CRIB_KNOWN = 100
 /** Characters of a known placement's text, as many as the longest ciphertext has bytes. */
-export const MAX_CRIB_KNOWN_LENGTH = MAX_CRIB_CIPHERTEXT_LENGTH / 2
+export const MAX_CRIB_KNOWN_LENGTH = MAX_CRIB_CIPHERTEXT_DIGITS / 2
 /** Most places a crib drag returns. */
 export const MAX_CRIB_LIMIT = 50
 /** Longest list of each kind a passphrase probe takes. */
@@ -574,10 +576,18 @@ function cribBoundError(params: Readonly<CribToolParams>): CribBound | undefined
       `must hold at most ${MAX_CRIB_CIPHERTEXTS}`,
     ],
     [
-      params.ciphertexts.some((digits) => digits.length > MAX_CRIB_CIPHERTEXT_LENGTH),
+      params.ciphertexts.some((text) => text.length > MAX_CRIB_CIPHERTEXT_LENGTH),
       'ciphertexts',
       'one',
-      `must each be at most ${MAX_CRIB_CIPHERTEXT_LENGTH} hex digits`,
+      `must each be at most ${MAX_CRIB_CIPHERTEXT_LENGTH} characters`,
+    ],
+    [
+      params.ciphertexts.some(
+        (text) => text.replaceAll(/\s/g, '').length > MAX_CRIB_CIPHERTEXT_DIGITS,
+      ),
+      'ciphertexts',
+      'one',
+      `must each be at most ${MAX_CRIB_CIPHERTEXT_DIGITS} hex digits`,
     ],
     [
       codePoints(params.crib ?? '') > MAX_CRIB_LENGTH,

@@ -144,13 +144,13 @@ function resultOptions(
 }
 
 /**
- * Case-fold a unit so `SS` meets `ß`, `ſ` meets `s` and both Turkish I meet `i`.
+ * Full case folding, so `ẞ` and `SS` meet `ß`, `ſ` meets `s` and both Turkish I meet `i`.
  *
  * @param unit - A word or a letter.
  * @returns {string} The folded unit.
  */
 function fold(unit: string): string {
-  return unit.toUpperCase().toLowerCase().replaceAll('i\u0307', 'i')
+  return unit.toLowerCase().toUpperCase().toLowerCase().replaceAll('i\u0307', 'i')
 }
 
 /**

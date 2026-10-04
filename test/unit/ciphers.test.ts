@@ -724,7 +724,7 @@ describe('book', () => {
 
   it('folds case beyond lowercase, so SS meets ß and both Turkish I meet i', () => {
     expect(
-      book.encode('STRASSE istanbul ﬁne ıssız', { book: 'straße İstanbul fine Issız' }).text,
+      book.encode('STRAẞE istanbul ﬁne ıssız', { book: 'straße İstanbul fine Issız' }).text,
     ).toBe('1 2 3 4')
   })
 

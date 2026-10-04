@@ -677,7 +677,9 @@ function columnarKeys(
   )
   const lengths =
     options.keyLength === undefined
-      ? Array.from({ length: DEFAULT_COLUMNAR_KEY_LENGTH - 1 }, (_, index) => index + 2)
+      ? Array.from({ length: DEFAULT_COLUMNAR_KEY_LENGTH - 1 }, (_, index) => index + 2).filter(
+          (columns) => columns <= letters.length,
+        )
       : [options.keyLength]
   const into = new Uint8Array(SEARCH_CHARACTERS)
   const fitOf = (order: readonly number[], characters: number): number => {
@@ -686,7 +688,7 @@ function columnarKeys(
   }
   const screened: Found[] = []
   const size = Math.max(SCREENED_ORDERS, options.limit ?? DEFAULT_KEY_CANDIDATES)
-  for (const length of lengths.filter((columns) => columns < letters.length)) {
+  for (const length of lengths) {
     for (const order of columnOrders(length)) {
       const fit = fitOf(order, SCREEN_CHARACTERS)
       if (fit === -Infinity || (screened.length >= size && fit <= screened.at(-1)!.fit)) continue

@@ -147,6 +147,17 @@ describe('recoverKey', () => {
     expect(create('columnar').decode(ciphertext, { key }).text).toBe(SCANDAL)
   })
 
+  it('searches a columnar key as long as the text, or longer', () => {
+    for (const keyLength of [4, 6]) {
+      const { candidates } = recoverKey('NEHT', { cipher: 'columnar', keyLength })
+
+      expect(candidates.length).toBeGreaterThan(0)
+      for (const { key, text } of candidates) {
+        expect(create('columnar').decode('NEHT', { key }).text).toBe(text)
+      }
+    }
+  })
+
   it('takes a columnar key length up to nine', () => {
     const ciphertext = create('columnar').encode(SCANDAL, { key: 'WATSONKEY' }).text
 

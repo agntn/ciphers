@@ -15,8 +15,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(ai@7.0.92(zod@4.6.5))
       '@agntn/hashes':
-        specifier: 0.6.4
-        version: 0.6.4(ai@7.0.92(zod@4.6.5))
+        specifier: 0.6.6
+        version: 0.6.6(ai@7.0.92(zod@4.6.5))
       '@agntn/tools':
         specifier: 0.0.0
         version: 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
@@ -107,6 +107,22 @@ packages:
 
   '@agntn/hashes@0.6.4':
     resolution: {integrity: sha512-eEqgph5RKF6nJfGnzdOlYpQb2vx8o3cqA17g+mqg0znmjGvYT3eF0tqJXFQctW4qw/lKQFXN+Zmrl7KTAbgdxw==}
+    engines: {node: '>=26'}
+    hasBin: true
+    peerDependencies:
+      '@earendil-works/pi-coding-agent': '>=0.87.1 <1'
+      '@oh-my-pi/pi-coding-agent': '>=18.4.2 <19'
+      ai: '>=7.0.0'
+    peerDependenciesMeta:
+      '@earendil-works/pi-coding-agent':
+        optional: true
+      '@oh-my-pi/pi-coding-agent':
+        optional: true
+      ai:
+        optional: true
+
+  '@agntn/hashes@0.6.6':
+    resolution: {integrity: sha512-AUQIqegy+vU1Q8ZMw94q1UJpfkcU0frKncQVhFcp7gRut3lvA57TQ2KqcNX+89ExPGXVMn1Zg6mtEv2stB2jeA==}
     engines: {node: '>=26'}
     hasBin: true
     peerDependencies:
@@ -7651,6 +7667,14 @@ snapshots:
       ai: 7.0.92(zod@4.5.4)
 
   '@agntn/hashes@0.6.4(ai@7.0.92(zod@4.6.5))':
+    dependencies:
+      '@agntn/tools': 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
+      '@modelcontextprotocol/server': 2.2.0
+      citty: 0.2.2
+    optionalDependencies:
+      ai: 7.0.92(zod@4.5.4)
+
+  '@agntn/hashes@0.6.6(ai@7.0.92(zod@4.6.5))':
     dependencies:
       '@agntn/tools': 0.0.0(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
       '@modelcontextprotocol/server': 2.2.0

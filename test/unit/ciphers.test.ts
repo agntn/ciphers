@@ -4904,6 +4904,7 @@ u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
       [gpg.aes128, { algorithm: 'aes128', digest: 'sha256', count: 65_536 }],
       [gpg.aes192Zip, { algorithm: 'aes192', digest: 'sha384', compression: 'zip' }],
       [gpg.bzip2, { algorithm: 'aes256', digest: 'sha512', compression: 'bzip2' }],
+      [gpg.sha224, { algorithm: 'aes256', digest: 'sha224', salt: '8641dd96daf30352' }],
     ] as const) {
       const decoded = pgp.decode(armor, { key: 'hunter2' })
       expect(decoded.text).toBe('Attack at dawn')
@@ -4992,7 +4993,7 @@ u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
 
   it('writes every algorithm and digest it can read', () => {
     for (const algorithm of ['idea', '3des', 'cast5', 'blowfish', 'aes128', 'aes192', 'aes256']) {
-      for (const digest of ['md5', 'sha1', 'ripemd160', 'sha256', 'sha384', 'sha512']) {
+      for (const digest of ['md5', 'sha1', 'ripemd160', 'sha224', 'sha256', 'sha384', 'sha512']) {
         const encoded = pgp.encode('zażółć', { key: 'k', algorithm, digest, count: 1024 })
         expect(pgp.decode(encoded.text, { key: 'k' })).toMatchObject({
           text: 'zażółć',
@@ -5060,11 +5061,16 @@ u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
   it('names what GnuPG can write that it does not run', () => {
     for (const [armor, reason] of [
       [gpg.twofish, 'Cipher algorithm 10 (Twofish) is not supported'],
-      [gpg.sha224, 'S2K hash 11 (SHA-224) is not supported'],
       [gpg.ocb, 'AEAD encrypted data (packet tag 20, as GnuPG writes OCB) is not supported'],
     ] as const) {
       expect(() => pgp.decode(armor, { key: 'hunter2' })).toThrow(`[openpgp] ${reason}`)
     }
+    /* The SHA-224 message with its S2K hash id turned to 12. */
+    const sha3 = bytesOf(gpg.sha224)
+    sha3[5] = 12
+    expect(() => pgp.decode(Buffer.from(sha3).toString('hex'), { key: 'hunter2' })).toThrow(
+      '[openpgp] S2K hash 12 (SHA3-256) is not supported',
+    )
     const packets = bytesOf(gpg.aes128)
     const data = Buffer.from(packets.slice(15)).toString('hex')
     expect(() => pgp.decode(data, { key: 'hunter2' })).toThrow(
@@ -5094,7 +5100,7 @@ u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
     for (const options of [
       { algorithm: 'twofish' },
       { algorithm: 'AES256' },
-      { digest: 'sha224' },
+      { digest: 'sha3-256' },
       { digest: 'toString' },
       { count: 1023 },
       { count: 65_011_713 },

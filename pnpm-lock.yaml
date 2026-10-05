@@ -24,8 +24,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
       '@agntn/hashes':
-        specifier: 0.6.4
-        version: 0.6.4(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
+        specifier: 0.6.6
+        version: 0.6.6(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)
       '@agntn/tools':
         specifier: 0.0.0
         version: 0.0.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@modelcontextprotocol/server@2.2.0)(@oh-my-pi/pi-coding-agent@18.4.2)
@@ -131,6 +131,22 @@ packages:
 
   '@agntn/hashes@0.6.4':
     resolution: {integrity: sha512-eEqgph5RKF6nJfGnzdOlYpQb2vx8o3cqA17g+mqg0znmjGvYT3eF0tqJXFQctW4qw/lKQFXN+Zmrl7KTAbgdxw==}
+    engines: {node: '>=26'}
+    hasBin: true
+    peerDependencies:
+      '@earendil-works/pi-coding-agent': '>=0.87.1 <1'
+      '@oh-my-pi/pi-coding-agent': '>=18.4.2 <19'
+      ai: '>=7.0.0'
+    peerDependenciesMeta:
+      '@earendil-works/pi-coding-agent':
+        optional: true
+      '@oh-my-pi/pi-coding-agent':
+        optional: true
+      ai:
+        optional: true
+
+  '@agntn/hashes@0.6.6':
+    resolution: {integrity: sha512-AUQIqegy+vU1Q8ZMw94q1UJpfkcU0frKncQVhFcp7gRut3lvA57TQ2KqcNX+89ExPGXVMn1Zg6mtEv2stB2jeA==}
     engines: {node: '>=26'}
     hasBin: true
     peerDependencies:
@@ -3429,6 +3445,15 @@ snapshots:
       '@oh-my-pi/pi-coding-agent': 18.4.2
 
   '@agntn/hashes@0.6.4(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)':
+    dependencies:
+      '@agntn/tools': 0.0.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@modelcontextprotocol/server@2.2.0)(@oh-my-pi/pi-coding-agent@18.4.2)
+      '@modelcontextprotocol/server': 2.2.0
+      citty: 0.2.2
+    optionalDependencies:
+      '@earendil-works/pi-coding-agent': 1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3)
+      '@oh-my-pi/pi-coding-agent': 18.4.2
+
+  '@agntn/hashes@0.6.6(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@oh-my-pi/pi-coding-agent@18.4.2)':
     dependencies:
       '@agntn/tools': 0.0.0(@earendil-works/pi-coding-agent@1.0.2(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.30.1(zod@4.4.3))(@smithy/signature-v4@5.7.4)(ws@8.22.0)(zod@4.4.3))(@modelcontextprotocol/server@2.2.0)(@oh-my-pi/pi-coding-agent@18.4.2)
       '@modelcontextprotocol/server': 2.2.0

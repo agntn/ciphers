@@ -4870,6 +4870,24 @@ u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
 -----END PGP MESSAGE-----`,
   }
 
+  /** Written by OpenPGP.js 6.3.2 with its S2K hash forced to SHA-3, which GnuPG can't write. */
+  const openpgpJs = {
+    sha3_256: `-----BEGIN PGP MESSAGE-----
+
+wy4ECQMMwmBZuYq4BfVgSzh4ODZtDiryHDYMY6w8YA5Gi1SgVoh7Nc+gu4Yd
+Ln9D0j8B3mnUEdl2r/bMLxwNJlrYkG0LKsQqD1ZghZVj/FtE/KTZiiJn98Ko
+Q05ZhhGm4vs0Oamqhizr1HyJ+iV9yPg=
+=qFwG
+-----END PGP MESSAGE-----`,
+    sha3_512: `-----BEGIN PGP MESSAGE-----
+
+wy4ECQMOhZX3NepkNg5gUf1aYUYMl8LyFXtcZH8gTSS7Cc0LJOawqmSqlyRF
+n2JR0j8BydJYDlywmnKH2QVzyvTnwGM1KJgAhL4Re6FXGGebG+UwPZdDdP3p
+DJv6R/VYo5IrSwj9yp/aTWzKte5AN3Y=
+=RU5O
+-----END PGP MESSAGE-----`,
+  }
+
   const body = (armor: string) =>
     armor
       .split('\n')
@@ -4912,6 +4930,19 @@ u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
     }
     expect(pgp.decode(gpg.ideaSalted, { key: 'hunter2' }).options).not.toHaveProperty('count')
     expect(pgp.decode(gpg.tripleDesSimple, { key: 'hunter2' }).options).not.toHaveProperty('salt')
+  })
+
+  it('opens a SHA3-256 or SHA3-512 S2K from OpenPGP.js', () => {
+    for (const [armor, options] of [
+      [openpgpJs.sha3_256, { digest: 'sha3-256', salt: 'c26059b98ab805f5', count: 65_536 }],
+      [openpgpJs.sha3_512, { digest: 'sha3-512', salt: '8595f735ea64360e', count: 65_536 }],
+    ] as const) {
+      expect(pgp.decode(armor, { key: 'hunter2' })).toMatchObject({
+        text: 'Attack at dawn',
+        options: { algorithm: 'aes256', ...options },
+      })
+      expect(() => pgp.decode(armor, { key: 'hunter3' })).toThrow(CipherError)
+    }
   })
 
   it('turns the CRLF of text mode into LF, as gpg --decrypt does', () => {
@@ -4993,7 +5024,17 @@ u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
 
   it('writes every algorithm and digest it can read', () => {
     for (const algorithm of ['idea', '3des', 'cast5', 'blowfish', 'aes128', 'aes192', 'aes256']) {
-      for (const digest of ['md5', 'sha1', 'ripemd160', 'sha224', 'sha256', 'sha384', 'sha512']) {
+      for (const digest of [
+        'md5',
+        'sha1',
+        'ripemd160',
+        'sha224',
+        'sha256',
+        'sha384',
+        'sha512',
+        'sha3-256',
+        'sha3-512',
+      ]) {
         const encoded = pgp.encode('zażółć', { key: 'k', algorithm, digest, count: 1024 })
         expect(pgp.decode(encoded.text, { key: 'k' })).toMatchObject({
           text: 'zażółć',
@@ -5065,11 +5106,11 @@ u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
     ] as const) {
       expect(() => pgp.decode(armor, { key: 'hunter2' })).toThrow(`[openpgp] ${reason}`)
     }
-    /* The SHA-224 message with its S2K hash id turned to 12. */
-    const sha3 = bytesOf(gpg.sha224)
-    sha3[5] = 12
-    expect(() => pgp.decode(Buffer.from(sha3).toString('hex'), { key: 'hunter2' })).toThrow(
-      '[openpgp] S2K hash 12 (SHA3-256) is not supported',
+    /* The SHA-224 message with its S2K hash id turned to 13, which RFC 9580 reserves. */
+    const reserved = bytesOf(gpg.sha224)
+    reserved[5] = 13
+    expect(() => pgp.decode(Buffer.from(reserved).toString('hex'), { key: 'hunter2' })).toThrow(
+      '[openpgp] S2K hash 13 is not supported: md5, sha1, ripemd160, sha256, sha384, sha512, sha224, sha3-256 and sha3-512',
     )
     const packets = bytesOf(gpg.aes128)
     const data = Buffer.from(packets.slice(15)).toString('hex')
@@ -5100,7 +5141,7 @@ u2iMpoKp3snzPvV2Iq7i3WM2Wwd+sXHhnu9Z87CU1J1F3vdCpdhM6+uX3X6m8prO
     for (const options of [
       { algorithm: 'twofish' },
       { algorithm: 'AES256' },
-      { digest: 'sha3-256' },
+      { digest: 'sha3-384' },
       { digest: 'toString' },
       { count: 1023 },
       { count: 65_011_713 },

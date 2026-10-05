@@ -589,7 +589,7 @@ export class OpenPgp extends Cipher {
           required: false,
           default: 'sha512',
           description:
-            'Encoding only: the S2K hash, md5, sha1, ripemd160, sha224, sha256, sha384 or sha512 (GnuPG 2.4 picks sha512)',
+            'Encoding only: the S2K hash, md5, sha1, ripemd160, sha224, sha256, sha384, sha512, sha3-256 or sha3-512 (GnuPG 2.4 picks sha512)',
         },
         {
           name: 'count',

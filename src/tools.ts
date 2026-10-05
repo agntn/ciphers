@@ -394,9 +394,22 @@ const cipherInput = Type.Object(
       Type.Enum([32, 48, 64, 80, 96, 112, 128], { description: OPTION_DESCRIPTIONS.tagLength }),
     ),
     digest: Type.Optional(
-      Type.Enum(['md5', 'sha1', 'ripemd160', 'sha224', 'sha256', 'sha384', 'sha512'], {
-        description: OPTION_DESCRIPTIONS.digest,
-      }),
+      Type.Enum(
+        [
+          'md5',
+          'sha1',
+          'ripemd160',
+          'sha224',
+          'sha256',
+          'sha384',
+          'sha512',
+          'sha3-256',
+          'sha3-512',
+        ],
+        {
+          description: OPTION_DESCRIPTIONS.digest,
+        },
+      ),
     ),
     algorithm: Type.Optional(
       Type.Enum(['idea', '3des', 'cast5', 'blowfish', 'aes128', 'aes192', 'aes256'], {

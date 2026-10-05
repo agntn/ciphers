@@ -56,7 +56,16 @@ export type CipherToolParams = {
   pick?: 'word' | 'letter'
   start?: 0 | 1
   tagLength?: number
-  digest?: 'md5' | 'sha1' | 'ripemd160' | 'sha224' | 'sha256' | 'sha384' | 'sha512'
+  digest?:
+    | 'md5'
+    | 'sha1'
+    | 'ripemd160'
+    | 'sha224'
+    | 'sha256'
+    | 'sha384'
+    | 'sha512'
+    | 'sha3-256'
+    | 'sha3-512'
   algorithm?: 'idea' | '3des' | 'cast5' | 'blowfish' | 'aes128' | 'aes192' | 'aes256'
   count?: number
   keyLength?: number
@@ -158,7 +167,7 @@ export const OPTION_DESCRIPTIONS = {
   tagLength:
     'AES-CCM and AES-OCB only: tag length in bits, 32 to 128 in steps of 16 for AES-CCM, 64, 96 or 128 for AES-OCB (default 128); decoding needs the same value',
   digest:
-    'AES-passphrase: hash for EVP_BytesToKey, md5 as in CryptoJS (default), sha256 as in openssl enc since 1.1.0, or sha1; decoding needs the same value. Openpgp encoding only: the S2K hash, md5, sha1, ripemd160, sha224, sha256, sha384 or sha512 (default sha512); decoding reads it from the message',
+    'AES-passphrase: hash for EVP_BytesToKey, md5 as in CryptoJS (default), sha256 as in openssl enc since 1.1.0, or sha1; decoding needs the same value. Openpgp encoding only: the S2K hash, md5, sha1, ripemd160, sha224, sha256, sha384, sha512, sha3-256 or sha3-512 (default sha512); decoding reads it from the message',
   algorithm:
     'Openpgp encoding only: idea, 3des, cast5, blowfish, aes128, aes192 or aes256 (default aes256); decoding reads it from the message',
   count:

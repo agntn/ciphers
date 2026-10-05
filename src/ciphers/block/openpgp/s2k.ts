@@ -4,6 +4,8 @@ import {
   Sha1Hasher,
   Sha224Hasher,
   Sha256Hasher,
+  Sha3_256Hasher,
+  Sha3_512Hasher,
   Sha512Hasher,
   type Hasher,
 } from '@agntn/hashes'
@@ -19,12 +21,8 @@ export const S2K_HASHES: Readonly<Record<number, { name: string; create: () => H
   9: { name: 'sha384', create: () => new Sha512Hasher(48) },
   10: { name: 'sha512', create: () => new Sha512Hasher() },
   11: { name: 'sha224', create: () => new Sha224Hasher() },
-}
-
-/** Ids a message may name that have no hasher here. */
-const OTHER_HASHES: Readonly<Record<number, string>> = {
-  12: 'SHA3-256',
-  14: 'SHA3-512',
+  12: { name: 'sha3-256', create: () => new Sha3_256Hasher() },
+  14: { name: 'sha3-512', create: () => new Sha3_512Hasher() },
 }
 
 /** The largest count a coded byte gives, 0xff. */
@@ -92,10 +90,9 @@ function readType(type: number | undefined): S2k['type'] {
 
 function readHash(hash: number | undefined): number {
   if (hash !== undefined && Object.hasOwn(S2K_HASHES, hash)) return hash
-  const name =
-    hash !== undefined && Object.hasOwn(OTHER_HASHES, hash) ? ` (${OTHER_HASHES[hash]})` : ''
+  const names = Object.values(S2K_HASHES).map((entry) => entry.name)
   throw new CipherError(
-    `S2K hash ${String(hash)}${name} is not supported: md5, sha1, ripemd160, sha224, sha256, sha384 and sha512`,
+    `S2K hash ${String(hash)} is not supported: ${names.slice(0, -1).join(', ')} and ${names.at(-1)!}`,
   )
 }
 

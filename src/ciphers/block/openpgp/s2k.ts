@@ -2,6 +2,7 @@ import {
   Md5Hasher,
   Ripemd160Hasher,
   Sha1Hasher,
+  Sha224Hasher,
   Sha256Hasher,
   Sha512Hasher,
   type Hasher,
@@ -17,11 +18,11 @@ export const S2K_HASHES: Readonly<Record<number, { name: string; create: () => H
   8: { name: 'sha256', create: () => new Sha256Hasher() },
   9: { name: 'sha384', create: () => new Sha512Hasher(48) },
   10: { name: 'sha512', create: () => new Sha512Hasher() },
+  11: { name: 'sha224', create: () => new Sha224Hasher() },
 }
 
 /** Ids a message may name that have no hasher here. */
 const OTHER_HASHES: Readonly<Record<number, string>> = {
-  11: 'SHA-224',
   12: 'SHA3-256',
   14: 'SHA3-512',
 }
@@ -94,7 +95,7 @@ function readHash(hash: number | undefined): number {
   const name =
     hash !== undefined && Object.hasOwn(OTHER_HASHES, hash) ? ` (${OTHER_HASHES[hash]})` : ''
   throw new CipherError(
-    `S2K hash ${String(hash)}${name} is not supported: md5, sha1, ripemd160, sha256, sha384 and sha512`,
+    `S2K hash ${String(hash)}${name} is not supported: md5, sha1, ripemd160, sha224, sha256, sha384 and sha512`,
   )
 }
 

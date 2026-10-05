@@ -56,7 +56,7 @@
   "dependencies": {
     "@agntn/compressions": "0.1.0",
     "@agntn/encodings": "0.1.0",
-    "@agntn/hashes": "0.6.4",
+    "@agntn/hashes": "0.6.6",
     "@agntn/tools": "0.0.0",
     "@modelcontextprotocol/server": "2.2.0",
     "citty": "0.2.2",

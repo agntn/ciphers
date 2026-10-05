@@ -325,7 +325,7 @@ export interface OpenPgpOptions extends ByteCipherOptions {
   /** Encoding only: the block cipher. Default: `aes256`. */
   algorithm?: 'idea' | '3des' | 'cast5' | 'blowfish' | 'aes128' | 'aes192' | 'aes256'
   /** Encoding only: the S2K hash. Default: `sha512`. */
-  digest?: 'md5' | 'sha1' | 'ripemd160' | 'sha256' | 'sha384' | 'sha512'
+  digest?: 'md5' | 'sha1' | 'ripemd160' | 'sha224' | 'sha256' | 'sha384' | 'sha512'
   /** Encoding only: bytes the S2K hashes, 1024 to 65011712, rounded up. Default: 65011712. */
   count?: number
   /** Encoding only: 16 hex digits. Default: random. */

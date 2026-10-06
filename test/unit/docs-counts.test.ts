@@ -2,13 +2,11 @@ import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
-import type { CommandDef } from 'citty'
 import { describe, expect, it } from 'vite-plus/test'
-import decode from '../../src/commands/decode.ts'
-import encode from '../../src/commands/encode.ts'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
 import { create } from '../../src/core/registry.ts'
 import { createMcpServer } from '../../src/mcp.ts'
+import { decodeTool, encodeTool } from '../../src/tools.ts'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 
@@ -204,16 +202,11 @@ describe('every option list names what the ciphers take', () => {
     expect([...listed].sort()).toEqual([...declared!].sort())
   })
 
-  it('the CLI guide lists every flag encode and decode read', async () => {
-    const commands: readonly Pick<CommandDef, 'args'>[] = [encode, decode]
-    const [declared, decoded] = await Promise.all(
-      commands.map(async ({ args }) =>
-        Object.entries((await (typeof args === 'function' ? args() : args)) ?? {})
-          .filter(([, arg]) => arg.type !== 'positional')
-          .map(
-            ([name]) => `--${name.replaceAll(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`,
-          ),
-      ),
+  it('the CLI guide lists every flag encode and decode read', () => {
+    const [declared, decoded] = [encodeTool, decodeTool].map(({ input, cli }) =>
+      Object.keys(input.properties)
+        .filter((name) => !(cli?.positional ?? []).includes(name))
+        .map((name) => `--${name.replaceAll(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`),
     )
     expect(decoded, 'decode reads what encode reads').toEqual(declared)
 

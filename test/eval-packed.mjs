@@ -109,7 +109,7 @@ async function copyCheckout(directory) {
   }
 }
 
-// Unpacking inside the checkout lets the packed CLI resolve citty and consola
+// Unpacking inside the checkout lets the packed CLI resolve its dependencies
 // from the repository's node_modules, so the test needs no registry install.
 const temporaryRoot = await mkdtemp(path.join(root, '.ciphers-packed-test-'))
 try {
@@ -697,11 +697,13 @@ try {
     assert.equal(result.content[0]?.text, 'KHOOR', `${host} extension`)
   }
 
-  // The tarball ships no src/, so its mcp has only the bundle to serve.
+  // The tarball ships no src/, so its mcp has only the bundle to serve: the
+  // server runCli starts over the tools built into dist/.
   const packedUrls = await runMcp(binPath)
   assert.ok(
-    packedUrls.includes(pathToFileURL(path.join(packageRoot, 'dist/mcp.mjs')).href),
-    'the packed mcp serves dist/mcp.mjs',
+    packedUrls.includes(pathToFileURL(binPath).href) &&
+      packedUrls.some((url) => url.includes('/node_modules/@modelcontextprotocol/server/')),
+    'the packed mcp serves the bundle',
   )
 
   // pnpm pack rebuilt the checkout's own dist, and that bin serves src/.

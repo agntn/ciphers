@@ -2,121 +2,85 @@
 import { existsSync } from 'node:fs'
 import { sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { runMain, defineCommand, type ArgsDef, type CommandDef } from 'citty'
-import type McpCommand from './commands/mcp.ts'
-import { cittyAnswers, normalizeMainArgs, separateText, shownArgument } from './cli-args.ts'
+import { runCli } from '@agntn/tools/cli'
 import { CipherError } from './core/errors.ts'
+import type { createMcpServer } from './mcp.ts'
+import { ciphersTools } from './tools.ts'
 import { version } from './version.ts'
 
-async function loadCommand<T extends ArgsDef>(
-  loader: () => Promise<{ readonly default: CommandDef<T> }>,
-): Promise<CommandDef<T>> {
-  const command = (await loader()).default
-  const run = command.run
-  if (!run) return command
-
-  return {
-    ...command,
-    async run(context) {
-      try {
-        const result: unknown = await run(context)
-        return result
-      } catch (error) {
-        if (!(error instanceof CipherError)) throw error
-        process.stderr.write(`${error.message}\n`)
-        process.exitCode = 1
-      }
-    },
-  }
-}
-
-/** The same file from `src/cli.ts` and `dist/cli.mjs`; the npm package ships no `src/commands`. */
-const sourceMcpCommand = new URL('../src/commands/mcp.ts', import.meta.url)
+/** The same file from `src/cli.ts` and `dist/cli.mjs`; the npm package ships no `src/`. */
+const sourceMcp = new URL('../src/mcp.ts', import.meta.url)
+const sourceMcpPath = fileURLToPath(sourceMcp)
 
 /**
  * Narrows the module a runtime URL import returned, which TypeScript types as `any`.
  *
  * @param value - The imported module namespace.
- * @returns {boolean} Whether it exports a default command.
+ * @returns {boolean} Whether it exports the server.
  */
-function isMcpModule(value: unknown): value is { readonly default: typeof McpCommand } {
-  return typeof value === 'object' && value !== null && 'default' in value
+function isMcpModule(
+  value: unknown,
+): value is { readonly createMcpServer: typeof createMcpServer } {
+  return typeof value === 'object' && value !== null && 'createMcpServer' in value
 }
 
 /**
- * Loads the MCP command. A built bin inside a checkout runs the live source, as the Pi and OMP
- * extensions do, so a local server needs a restart after a change instead of `pnpm build`. Node
- * refuses to strip types under `node_modules`, so a copy there keeps the bundle, and so does the npm
- * package, which ships no `src/commands`. `CIPHERS_DIST=1` keeps it everywhere, for tests of the build.
+ * A built bin inside a checkout serves the live source, as the Pi and OMP extensions do, so a local
+ * server needs a restart after a change instead of `pnpm build`. Node refuses to strip types under
+ * `node_modules`, so a copy there keeps the bundle, and so does the npm package, which ships no
+ * `src/`. `CIPHERS_DIST=1` keeps it everywhere, for tests of the build.
  *
- * @returns {Promise<{ readonly default: typeof McpCommand }>} The module holding the command.
+ * @param argv - Every argument after the bin.
+ * @returns {boolean} Whether the line is a bare `mcp` and the source is there to serve.
  */
-async function loadMcpCommand(): Promise<{ readonly default: typeof McpCommand }> {
-  const sourcePath = fileURLToPath(sourceMcpCommand)
-  const fromSource =
+function servesSource(argv: readonly string[]): boolean {
+  return (
+    argv.length === 1 &&
+    argv[0] === 'mcp' &&
     !import.meta.url.endsWith('.ts') &&
     process.env['CIPHERS_DIST'] !== '1' &&
-    !sourcePath.includes(`${sep}node_modules${sep}`) &&
-    existsSync(sourcePath)
-  if (!fromSource) return import('./commands/mcp.ts')
-  const module: unknown = await import(sourceMcpCommand.href)
-  if (!isMcpModule(module)) throw new TypeError(`${sourcePath} has no default command`)
-  return module
+    !sourceMcpPath.includes(`${sep}node_modules${sep}`) &&
+    existsSync(sourceMcpPath)
+  )
 }
 
 /**
- * Ends the process once the reader of stdout or stderr is gone, as after `| head -1` or a pager that
- * quits early. Node ignores SIGPIPE, so without a listener the next write throws `EPIPE` with a stack
- * trace. The exit code stays whatever the command set.
+ * Serves `src/mcp.ts` over stdio. The URL is built at runtime, so the bundler leaves `src` out.
  *
- * @param error - The error the stream emitted.
+ * @returns {Promise<void>} Once the server is connected.
  */
-function exitOnClosedPipe(error: Readonly<NodeJS.ErrnoException>): void {
-  if (error.code !== 'EPIPE') throw error
-  process.exit()
+async function serveSource(): Promise<void> {
+  const module: unknown = await import(sourceMcp.href)
+  if (!isMcpModule(module)) throw new TypeError(`${sourceMcpPath} has no createMcpServer`)
+  const { StdioServerTransport } = await import('@modelcontextprotocol/server/stdio')
+  await module.createMcpServer().connect(new StdioServerTransport())
 }
 
-process.stdout.on('error', exitOnClosedPipe)
-process.stderr.on('error', exitOnClosedPipe)
-
-const subCommands = {
-  encode: () => loadCommand(() => import('./commands/encode.ts')),
-  decode: () => loadCommand(() => import('./commands/decode.ts')),
-  ciphers: () => loadCommand(() => import('./commands/ciphers.ts')),
-  info: () => loadCommand(() => import('./commands/info.ts')),
-  brute: () => loadCommand(() => import('./commands/brute.ts')),
-  mcp: () => loadCommand(loadMcpCommand),
-  frequency: () => loadCommand(() => import('./commands/frequency.ts')),
-  period: () => loadCommand(() => import('./commands/period.ts')),
-  guess: () => loadCommand(() => import('./commands/guess.ts')),
-  probe: () => loadCommand(() => import('./commands/probe.ts')),
-  crib: () => loadCommand(() => import('./commands/crib.ts')),
-  hidden: () => loadCommand(() => import('./commands/hidden.ts')),
-  recover: () => loadCommand(() => import('./commands/recover.ts')),
+/**
+ * A cipher that refuses its input says why in one line; anything else is a bug and keeps its stack.
+ *
+ * @param error - What a command threw.
+ * @returns {boolean} Whether it prints as one line instead of a stack trace.
+ */
+function isRefusal(error: unknown): boolean {
+  return error instanceof CipherError
 }
 
-const main = defineCommand({
-  meta: {
-    name: 'ciphers',
-    version,
-    description: 'ciphers: educational and puzzle cipher encode/decode/analyze CLI',
-  },
-  subCommands,
-})
-
-const rawArgs = normalizeMainArgs(process.argv.slice(2))
-const [name = '', ...rest] = rawArgs
-const load = Object.entries(subCommands).find(([key]) => key === name)?.[1]
-const defs = load ? await (await load()).args : undefined
-const separated = cittyAnswers(rawArgs)
-  ? { args: rest }
-  : separateText(load ? rest : rawArgs, (typeof defs === 'function' ? await defs() : defs) ?? {})
-if ('unknown' in separated) {
-  const where = load ? ` for ${name}` : ''
-  process.stderr.write(
-    `Unknown option ${shownArgument(separated.unknown)}${where}. Text that starts with - goes after --, which ends the options.\n`,
-  )
-  process.exitCode = 1
+const argv = process.argv.slice(2)
+if (servesSource(argv)) {
+  await serveSource()
 } else {
-  await runMain(main, { rawArgs: [name, ...separated.args] })
+  await runCli(
+    {
+      name: 'ciphers',
+      version,
+      description: 'Educational and puzzle ciphers: encode, decode and analyze',
+      tools: ciphersTools,
+      default: 'info',
+      fallback: 'encode',
+      mcp: true,
+      expected: isRefusal,
+    },
+    argv,
+  )
 }

@@ -57,11 +57,8 @@
     "@agntn/compressions": "0.1.0",
     "@agntn/encodings": "0.1.0",
     "@agntn/hashes": "0.6.6",
-    "@agntn/tools": "0.0.0",
-    "@modelcontextprotocol/server": "2.2.0",
-    "citty": "0.2.2",
-    "consola": "3.4.2",
-    "scule": "1.3.0"
+    "@agntn/tools": "0.2.0",
+    "@modelcontextprotocol/server": "2.2.0"
   },
   "devDependencies": {
     "@agntn/ox": "0.1.0",

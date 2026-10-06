@@ -72,6 +72,7 @@ describe('Ciphers MCP server', () => {
     })
     expect(JSON.stringify(encodeTool?.inputSchema)).not.toContain('allOf')
     expect(encodeTool?.annotations).toEqual({
+      title: 'Cipher Encode',
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,

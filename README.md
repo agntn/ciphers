@@ -53,33 +53,31 @@ ciphers brute "DWWDFN DW GDZQ"
 ```
 
 ```
-ℹ Caesar brute-force (25 shifts, best en fit first):
-
-  shift= 3 → ATTACK AT DAWN
-  shift=25 → EXXEGO EX HEAR
-  shift=11 → SLLSUC SL VSOF
-  shift=18 → LEELNV LE OLHY
-  shift=21 → IBBIKS IB LIEV
-  shift= 5 → YRRYAI YR BYUL
-  shift=12 → RKKRTB RK URNE
-  shift=14 → PIIPRZ PI SPLC
-  shift=17 → MFFMOW MF PMIZ
-  shift=10 → TMMTVD TM WTPG
-  shift=22 → HAAHJR HA KHDU
-  shift=16 → NGGNPX NG QNJA
-  shift= 9 → UNNUWE UN XUQH
-  shift= 8 → VOOVXF VO YVRI
-  shift=24 → FYYFHP FY IFBS
-  shift= 1 → CVVCEM CV FCYP
-  shift= 2 → BUUBDL BU EBXO
-  shift=15 → OHHOQY OH ROKB
-  shift= 7 → WPPWYG WP ZWSJ
-  shift=19 → KDDKMU KD NKGX
-  shift=23 → GZZGIQ GZ JGCT
-  shift=20 → JCCJLT JC MJFW
-  shift= 4 → ZSSZBJ ZS CZVM
-  shift= 6 → XQQXZH XQ AXTK
-  shift=13 → QJJQSA QJ TQMD
+shift= 3 -> ATTACK AT DAWN
+shift=25 -> EXXEGO EX HEAR
+shift=11 -> SLLSUC SL VSOF
+shift=18 -> LEELNV LE OLHY
+shift=21 -> IBBIKS IB LIEV
+shift= 5 -> YRRYAI YR BYUL
+shift=12 -> RKKRTB RK URNE
+shift=14 -> PIIPRZ PI SPLC
+shift=17 -> MFFMOW MF PMIZ
+shift=10 -> TMMTVD TM WTPG
+shift=22 -> HAAHJR HA KHDU
+shift=16 -> NGGNPX NG QNJA
+shift= 9 -> UNNUWE UN XUQH
+shift= 8 -> VOOVXF VO YVRI
+shift=24 -> FYYFHP FY IFBS
+shift= 1 -> CVVCEM CV FCYP
+shift= 2 -> BUUBDL BU EBXO
+shift=15 -> OHHOQY OH ROKB
+shift= 7 -> WPPWYG WP ZWSJ
+shift=19 -> KDDKMU KD NKGX
+shift=23 -> GZZGIQ GZ JGCT
+shift=20 -> JCCJLT JC MJFW
+shift= 4 -> ZSSZBJ ZS CZVM
+shift= 6 -> XQQXZH XQ AXTK
+shift=13 -> QJJQSA QJ TQMD
 ```
 
 Shift 3 on top, it's the most English of the 25. English goes by letter pairs, so `HELLO WORLD` beats `EBIIL TLOIA` too. `--lang pl` ranks by Polish letters instead, `--lang ja` by Japanese romaji. Shift 25 comes second and ends in HEAR, which is about as funny as a Caesar brute force gets ;)
@@ -106,7 +104,7 @@ ciphers frequency "DWWDFN DW GDZQ" --lang pl
 ciphers info bifid
 ```
 
-`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish, about 0.082 with Japanese romaji), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram. That's `period`. It ranks the lengths by column IoC and Kasiski, and hands you a Vigenère key for the top three. Want the key itself? `recover` searches it for Vigenère, both Beauforts, a mixed alphabet substitution or a columnar transposition, and ranks what it finds by how well the text reads. No idea what you're even holding? `guess` reads the layout and the letters and names the likely families, with the command to run next. Got a `U2FsdGVkX1` blob and a passphrase, but not the digest or key length? `probe` tries them all and tells you how many hits are luck. Two ciphertexts under the same XOR key? `crib` slides a guessed word across them and shows what reads. And when nothing's encrypted at all and the message hides in the first letters, `hidden` tries the usual places and puts the reading that looks like English on top.
+`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish, about 0.082 with Japanese romaji), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram. That's `period`. It ranks the lengths by column IoC and Kasiski, and hands you a Vigenère key for the top three. Want the key itself? `recover` searches it for Vigenère, both Beauforts, a mixed alphabet substitution or a columnar transposition, and ranks what it finds by how well the text reads. No idea what you're even holding? `guess` reads the layout and the letters and names the likely families, with the call to try next. Got a `U2FsdGVkX1` blob and a passphrase, but not the digest or key length? `probe` tries them all and tells you how many hits are luck. Two ciphertexts under the same XOR key? `crib` slides a guessed word across them and shows what reads. And when nothing's encrypted at all and the message hides in the first letters, `hidden` tries the usual places and puts the reading that looks like English on top.
 
 ### Commands
 
@@ -119,14 +117,16 @@ ciphers info bifid
 | `period`    | Vigenère key length, with the likely key            | `ciphers period "<ciphertext>" --max-period 30`        |
 | `guess`     | Likely cipher families and what to run next         | `ciphers guess "<ciphertext>" --lang pl`               |
 | `probe`     | Which KDF settings open a `Salted__` blob           | `ciphers probe "U2FsdGVkX1..." --key secret`           |
-| `crib`      | Crib dragging over ciphertexts under one reused key | `ciphers crib <hex> <hex> --crib " the "`              |
+| `crib`      | Crib dragging over ciphertexts under one reused key | `ciphers crib '["<hex>","<hex>"]' --crib " the "`      |
 | `hidden`    | A message hidden by position, best readings first   | `ciphers hidden "$(cat poem.txt)" --pick line`         |
-| `recover`   | Searched keys, best first, each with its plaintext  | `ciphers recover "<ciphertext>" -c substitution`       |
-| `ciphers`   | Every cipher by category, `-v` adds the options     | `ciphers ciphers -v`                                   |
-| `info`      | One cipher's category, family, options and keyspace | `ciphers info enigma`                                  |
+| `recover`   | Searched keys, best first, each with its plaintext  | `ciphers recover "<ciphertext>" --cipher substitution` |
+| `info`      | Every cipher by category, or one cipher up close    | `ciphers info enigma`                                  |
+| `ciphers`   | Same as `info`, for old habits                      | `ciphers ciphers --category stream`                    |
 | `mcp`       | The MCP server on stdio                             | `ciphers mcp`                                          |
 
 A cipher's options are its flags: `--key`, `--transposition`, `--shift`, `--rails`, `--period`, `--letters`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
+
+Each command is one of the agent tools, built by `runCli` from [`@agntn/tools`](https://tools.agntn.dev/guide/cli). So the CLI refuses exactly what a model gets refused, in the same words, and `--json` prints the details a model gets. Morse that starts with a dash? Put it after `--`, or pipe it in as `-`.
 
 ## 🧠 Library
 

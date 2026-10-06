@@ -543,6 +543,11 @@ export const encodeTool = defineTool({
   ],
   effect: 'read',
   input: cipherInput,
+  cli: {
+    description: 'Encode plaintext with a cipher',
+    positional: ['cipher', 'text'],
+    stdin: ['text', 'book'],
+  },
   execute: (params) => transform('encode', params),
 })
 
@@ -554,6 +559,11 @@ export const decodeTool = defineTool({
   guidelines: ['Same options as ciphers_encode.'],
   effect: 'read',
   input: cipherInput,
+  cli: {
+    description: 'Decode ciphertext with a cipher',
+    positional: ['cipher', 'text'],
+    stdin: ['text', 'book'],
+  },
   execute: (params) => transform('decode', params),
 })
 
@@ -579,6 +589,12 @@ export const caesarBruteTool = defineTool({
     },
     { additionalProperties: false },
   ),
+  cli: {
+    command: 'brute',
+    description: 'Brute-force a Caesar shift, best fit to --lang first',
+    positional: ['text'],
+    stdin: ['text'],
+  },
   execute: async (params) =>
     answer(bruteForceCaesar(await loadLibrary(), params.text, params.lang)),
 })
@@ -602,6 +618,11 @@ export const frequencyTool = defineTool({
     },
     { additionalProperties: false },
   ),
+  cli: {
+    description: 'Count the letters and compare their order with the language',
+    positional: ['text'],
+    stdin: ['text'],
+  },
   execute: async (params) =>
     answer(formatFrequencyAnalysis(await loadLibrary(), params.text, params.lang)),
 })
@@ -634,6 +655,12 @@ export const periodEstimateTool = defineTool({
     },
     { additionalProperties: false },
   ),
+  cli: {
+    command: 'period',
+    description: 'Estimate a Vigenère key length, with the key for the top three',
+    positional: ['text'],
+    stdin: ['text'],
+  },
   execute: async (params) =>
     answer(formatPeriodEstimate(await loadLibrary(), params.text, params.lang, params.maxPeriod)),
 })
@@ -656,6 +683,12 @@ export const familyGuessTool = defineTool({
     },
     { additionalProperties: false },
   ),
+  cli: {
+    command: 'guess',
+    description: 'Guess the cipher family of a ciphertext, with the next step',
+    positional: ['text'],
+    stdin: ['text'],
+  },
   execute: async (params) =>
     answer(formatFamilyGuess(await loadLibrary(), params.text, params.lang)),
 })
@@ -708,6 +741,12 @@ export const passphraseProbeTool = defineTool({
     },
     { additionalProperties: false },
   ),
+  cli: {
+    command: 'probe',
+    description: 'Try one passphrase on a Salted__ blob under a grid of settings',
+    positional: ['text'],
+    stdin: ['text'],
+  },
   execute: async ({ text, key, ...grid }) =>
     answer(formatPassphraseProbe(await loadLibrary(), text, key, grid)),
 })
@@ -789,6 +828,11 @@ export const cribDragTool = defineTool({
     },
     { additionalProperties: false },
   ),
+  cli: {
+    command: 'crib',
+    description: 'Slide a crib across hex ciphertexts under one reused key',
+    positional: ['ciphertexts'],
+  },
   execute: async (params) => answer(formatCribDrag(await loadLibrary(), params)),
 })
 
@@ -854,6 +898,12 @@ export const hiddenTextReadTool = defineTool({
     },
     { additionalProperties: false },
   ),
+  cli: {
+    command: 'hidden',
+    description: 'Read a message hidden in plain text by position',
+    positional: ['text'],
+    stdin: ['text'],
+  },
   execute: async (params) => answer(formatHiddenText(await loadLibrary(), params)),
 })
 
@@ -904,6 +954,12 @@ export const keyRecoverTool = defineTool({
     },
     { additionalProperties: false },
   ),
+  cli: {
+    command: 'recover',
+    description: 'Search the key of a Vigenère, Beaufort, substitution or columnar text',
+    positional: ['text'],
+    stdin: ['text'],
+  },
   execute: async (params) => answer(formatKeyRecovery(await loadLibrary(), params)),
 })
 
@@ -933,6 +989,11 @@ export const infoTool = defineTool({
     },
     { additionalProperties: false },
   ),
+  cli: {
+    aliases: ['ciphers'],
+    description: "List the ciphers, or show one cipher's options",
+    positional: ['cipher'],
+  },
   execute: async (params) =>
     answer(formatCipherInfo(await loadLibrary(), params.cipher, params.category)),
 })

@@ -12,8 +12,8 @@ type CliRun = SpawnSyncReturns<string> & { readonly loaded: readonly string[] }
 
 /**
  * Run `src/cli.ts` under the load hook, not the built bin: Publish tests before it builds. Plain Node
- * strips the types, since the sources name every relative import with its `.ts` extension, and citty
- * exits the process itself, so the hook reports at exit, into a file owned by this call.
+ * strips the types, since the sources name every relative import with its `.ts` extension, and the
+ * hook reports at exit, into a file owned by this call.
  *
  * @param args - CLI arguments.
  * @param input - Text handed to the child's stdin; empty stdin ends `mcp` on EOF.
@@ -50,21 +50,20 @@ function loadedFrom(loaded: readonly string[], directory: string): string[] {
 }
 
 describe('CLI usage paths', () => {
-  it.each([
-    { args: ['--help'], status: 0 },
-    { args: ['-h'], status: 0 },
-    { args: ['mcp', '--help'], status: 0 },
-    { args: ['Encode', 'caesar', 'HELLO'], status: 1 },
-  ])('ciphers $args prints the usage without the MCP server', ({ args, status }) => {
-    const result = runCli(args)
+  it.each([['--help'], ['-h'], ['mcp', '--help'], ['encode', '--help']])(
+    'ciphers %j prints the usage without the MCP server or the ciphers',
+    (...args) => {
+      const result = runCli(args)
 
-    expect(result.status).toBe(status)
-    expect(result.stdout).toMatch(/USAGE.*ciphers (encode\|decode|mcp)/u)
-    expect(result.loaded.some((url) => url.endsWith('/src/commands/mcp.ts'))).toBe(true)
-    expect(loadedFrom(result.loaded, '/node_modules/@modelcontextprotocol/')).toEqual([])
-    expect(loadedFrom(result.loaded, '/node_modules/typebox/')).toEqual([])
-    expect(result.loaded.filter((url) => url.endsWith('/src/mcp.ts'))).toEqual([])
-  })
+      expect(result.status).toBe(0)
+      expect(result.stdout).toMatch(/^USAGE ciphers(?: mcp| encode)? /mu)
+      expect(result.loaded.some((url) => url.endsWith('/src/tools.ts'))).toBe(true)
+      expect(loadedFrom(result.loaded, '/node_modules/@modelcontextprotocol/')).toEqual([])
+      expect(loadedFrom(result.loaded, '/node_modules/typebox/')).toEqual([])
+      expect(result.loaded.filter((url) => url.endsWith('/src/mcp.ts'))).toEqual([])
+      expect(result.loaded.filter((url) => url.endsWith('/src/index.ts'))).toEqual([])
+    },
+  )
 
   it('ciphers mcp serves the server over stdio', () => {
     const initialize = {

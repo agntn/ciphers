@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.7.0
+
+[compare changes](https://github.com/agntn/ciphers/compare/v0.6.1...v0.7.0)
+
+### 🚀 Enhancements
+
+- Take SHA-224 in the OpenPGP S2K ([#225](https://github.com/agntn/ciphers/pull/225))
+- **block:** Open OpenPGP messages keyed by SHA-3 ([#226](https://github.com/agntn/ciphers/pull/226))
+- **block:** Open OpenPGP AEAD messages ([#230](https://github.com/agntn/ciphers/pull/230))
+- Add MCP server description and icons ([#232](https://github.com/agntn/ciphers/pull/232))
+
+### 💅 Refactors
+
+- ⚠️  Build the CLI with runCli ([#229](https://github.com/agntn/ciphers/pull/229))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Build the CLI with runCli ([#229](https://github.com/agntn/ciphers/pull/229))
+
+### ❤️ Contributors
+
+- Aeitwoen ([@aeitwoen](https://github.com/aeitwoen))
+- Ori
+
 ## v0.6.1
 
 [compare changes](https://github.com/agntn/ciphers/compare/v0.6.0...v0.6.1)

@@ -8,22 +8,25 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 /**
  * The cipher alphabet a key stands for, `?` where a recovered key never saw the letter.
  *
- * @param key - A whole alphabet of 26 letters and `?`, or a keyword the rest of A-Z follows.
+ * @param key - 26 cells of A-Z and `?`, or a keyword the rest of A-Z follows.
  * @returns {string} 26 cells, cell `i` holding the cipher letter of plaintext letter `i`.
- * @throws {InvalidOptionError} When a keyword has no letter, or `?` sits outside a whole alphabet.
+ * @throws {InvalidOptionError} On a repeated letter in a whole alphabet, or a keyword without one.
  */
 function cipherAlphabet(key: string): string {
   const upper = key.replaceAll(/[a-z]/g, (letter) => letter.toUpperCase())
-  if (upper.includes('?')) {
+  if (/^[A-Z?]{26}$/.test(upper)) {
     const letters = upper.replaceAll('?', '')
-    if (!/^[A-Z?]{26}$/.test(upper) || new Set(letters).size !== letters.length) {
+    if (new Set(letters).size !== letters.length) {
       throw new InvalidOptionError(
         'key',
         key,
-        'with ? must be a whole alphabet: 26 cells, each letter at most once and ? for the rest',
+        'as a whole alphabet must name each letter at most once',
       )
     }
     return upper
+  }
+  if (upper.includes('?')) {
+    throw new InvalidOptionError('key', key, 'can hold ? only as a whole alphabet of 26 cells')
   }
   if (!/[A-Z]/.test(upper)) {
     throw new InvalidOptionError('key', key, 'must contain at least one ASCII letter')

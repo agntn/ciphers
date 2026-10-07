@@ -232,6 +232,7 @@ describe('substitution', () => {
     expect(substitution.encode('Flee at once', { key: 'Ze-bra, zebras!' }).text).toBe(
       'Siaa zq lkba',
     )
+    expect(substitution.encode('Flee', { key: 'zebras zebras zebras zebra' }).text).toBe('Siaa')
     expect(substitution.encode('abcxyz', { key: 'QWERTYUIOPASDFGHJKLMZXCVBN' }).text).toBe('qwevbn')
   })
 
@@ -262,6 +263,7 @@ describe('substitution', () => {
         'ZEB?',
         'ZZB?ASCDFGHIJKLMNOPQTUVWXY',
         'ZEB?ASCDFGHIJKLMNOPQTUVWXY1',
+        'ABCDEFGHIJKLMNOPQRSTUVWXYA',
       ]) {
         expect(() => substitution[operation]('abc', { key })).toThrow(InvalidOptionError)
       }

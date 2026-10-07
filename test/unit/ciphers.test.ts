@@ -4859,6 +4859,44 @@ DpWGMQefmO8vj0bGWQoL7jRsrt3J7KA/rNvGBeW9tXjcY/0FzXXzjWSrJkpBnqd+
 6VvdbUYmF1l4yF2Z+UjlL5k=
 =cflf
 -----END PGP MESSAGE-----`,
+    /** `--force-ocb --chunk-size 6 --compress-algo none`: six fox lines in 64-byte chunks. */
+    ocbChunks: `-----BEGIN PGP MESSAGE-----
+
+jE0FCQIDCiQYQ4VZQU8Y/wNXr6L+7vpW3fqxiawCt26fDbOwW4BpKfeDX7J9Zcf6
+RyeGjWuw0iPM60fnxy6lbz6KZbHmDdj8883p3y5HPdTBEQEJAgCmjTwlHWszWVtQ
+k+SSpKJEwApREMg/xwVRCyLXc+Bn/uxYA4kAqR96VeMa+8W7ilPq6QREKdQjSbjR
+Uj07/aV8262DZsycB9R/h6qtq+ed+rdHjx/dTW3YIYoD/2C3yZD/gTcHhAo0IlQ9
+mK3yh6tjiAfJ3lQQY1qMfB1/PHf0C69/fj9CGtaHvSB2z4JBpLgdKkhCwOziMlmh
+sY8qrNPGklWwpMqiM4yLUQjZnY1r3/8Od6k4nfpXMRHWnX1+x+EQqpc6mtzYOMNP
+oOTJ2e7F0Y5m2UdonVu7CFsg2M3Fn9yN8IB+AoPiJmy3SWD/tUOTFqa5yJDRYjWC
+gNTYiL3ZhBEo3BfeEvRhN0ud2z4x6GeiOlmqy1Xo8QknkGxRAgaxsdDrSZQWDhnz
+qNou086QwP+7rWhNYEmIUiN9vBZc9Q1H3r/6itEZ9pRYiEBqQsUOfWx/dyNMdOoZ
+1v11fmcCbM/yi3WpTulRFi/RaGj9HkG707PDE5CGIP3HTAzDyLhZhiULTY0EvF7C
+kTTiqfHWpIwxIoOFa3qpi9Z8e6xkcLAgtBxXuZTQ2/p56sJ8fpdOj4gbAu3nXmRT
+oye14Xcl75FJLhD76JLElJljbw==
+=EZWQ
+-----END PGP MESSAGE-----`,
+    /** The same lines from stdin, AES-128 and ZIP, 64-byte chunks again. */
+    ocbAes128Zip: `-----BEGIN PGP MESSAGE-----
+
+jD0FBwIDCjZBbsuHpuhZ/y2cvPIdnlb4DuiiaO27NJMnanJ2gtoh+hD74rnMYAhJ
+9gXfRoloCia5TguIg7fY1JUBBwIAPwTHtBeAgUGVV2IRBAu0Cbt95Zz3UN9xb3i/
+fx8c/ek8kJafmvm49s9bgzQsSLTyHaDUC69jtUZz+z2MtZHu1FZ6hh3g0RcaS+85
+2Buuy1/dugx0BJltnV86IN+abIcdbMwOSETtswgU0DXCNI6tl/zCoos0Te/hM8IU
+VLqJvwKSuIcIRvVAEMS18eOmEKZhlA==
+=QkkM
+-----END PGP MESSAGE-----`,
+    /** `--force-ocb -c -e` to a Curve25519 key: a public key packet, then the passphrase one. */
+    ocbToKey: `-----BEGIN PGP MESSAGE-----
+
+hF4DbeZ4SwRspV0SAQdAZob9vMOv7Q3xk7A8mhQq+wAPOd03vhAqdpnoo0RCATYw
+m74AZ0KCq/II5tlKku4m+JhHg+ojXYbtKZhr5V+CjQDGKO+JTDcy+GwelqSFWKy+
+jE0FCQIDCuFlX8yjE6wq/6DUVuFg1aWOnczWFVzSNUvzyatNwSee8UpZgOw1svFR
+U8pGwhde8tSNRuoNVgwRTLMjs5wG+UkwX71GkANJn9RaAQkCENzypJdirBGc8Vy9
+9BBOq1jI319g0cXSXXTQsQsRsvMX4m+pF/5mDHD7rqXDWxb5sV5UMjRLXyjkkgxi
+j4nX7IyZKs4n2Uzc1l21kx4xzifMlNqhMRk0
+=4qeb
+-----END PGP MESSAGE-----`,
     /** 5 MiB of zero bytes, BZip2 inside a 137-byte encrypted packet. */
     bomb: `-----BEGIN PGP MESSAGE-----
 
@@ -4886,6 +4924,45 @@ n2JR0j8BydJYDlywmnKH2QVzyvTnwGM1KJgAhL4Re6FXGGebG+UwPZdDdP3p
 DJv6R/VYo5IrSwj9yp/aTWzKte5AN3Y=
 =RU5O
 -----END PGP MESSAGE-----`,
+  }
+
+  /**
+   * The published samples, all `Hello, world!` under `password`: SKESK v6 and SEIPD v2 from
+   * RFC 9580 A.9 to A.11, and SKESK v5 with tag 20 from rfc4880bis-10 A.3 and LibrePGP A.3.
+   */
+  const samples = {
+    eax: `-----BEGIN PGP MESSAGE-----
+
+w0AGHgcBCwMIpa5XnR/F2Cv/aSJPkZmTs1Bvo7WaanPP+MXvxfQcV/tU4cImgV14
+KPX5LEVOtl6+AKtZhsaObnxV0mkCBwEGn/kOOzIZZPOkKRPI3MZhkyUBUifvt+rq
+pJ8EwuZ0F11KPSJu1q/LnKmsEiwUcOEcY9TAqyQcapOK1Iv5mlqZuQu6gyXeYQR1
+QCWKt5Wala0FHdqW6xVDHf719eIlXKeCYVRuM5o=
+-----END PGP MESSAGE-----`,
+    ocb: `-----BEGIN PGP MESSAGE-----
+
+wz8GHQcCCwMIVqKY0vXjZFP/z8xcEWZO2520JZDX3EawckG2EsOBLP/76gDyNHsl
+ZBEj+IeuYNT9YU4IN9gZ02zSaQIHAgYgpmH3MfyaMDK1YjMmAn46XY21dI6+/wsM
+WRDQns3WQf+f04VidYA1vEl1TOG/P/+n2tCjuBBPUTPPQqQQCoPu9MobSAGohGv0
+K82nyM6dZeIS8wHLzZj9yt5pSod61CRzI/boVw==
+-----END PGP MESSAGE-----`,
+    gcm: `-----BEGIN PGP MESSAGE-----
+
+wzwGGgcDCwMI6dOXhbIHAAj/tC58SD70iERXyzcmubPbn/d25fTZpAlS4kRymIUa
+v/91Jt8t1VRBdXmneZ/SaQIHAwb8uUSQvLmLvcnRBsYJAmaUD3LontwhtVlrFXax
+Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
++pXjXZtAIW9ppMJI2yj/QzHxYykHOZ5v+Q==
+-----END PGP MESSAGE-----`,
+    eaxV5:
+      'c33e05070103' +
+      '08cd5a9f70fbe0bc6590bc669e34e500dcaedc5b32aa2dab02359dee19d07c3446c4312a34ae1967a2fb' +
+      '7e928ea5b4fa8012bd456d1738c63c36d44a010701' +
+      '0eb732379f73c4928de25facfe6517ec105dc11a81dc0cb8a2f6f3d90016384a56fc821ae11ae8dbcb4986' +
+      '2655dea88d06a81486801b0ff387bd2eab013de1259586906eab2476',
+    ocbV5:
+      'c33d05070203089f0b7da3e5ea64779099e326e5400a90936cefb4e8eba08c6773716d1f2714540a38fcac' +
+      '529949dac529d3de31e15b4aeb729e330033dbedd449010702' +
+      '0e5ed2bc1e470abe8f1d644c7a6c8a567b0f7701196611a154ba9c2574cd056284a8ef68035c623d93cc70' +
+      '8a43211bb6eaf2b27f7c18d571bcd83b20add3a08b73af15b9a098',
   }
 
   const body = (armor: string) =>
@@ -5099,13 +5176,121 @@ DJv6R/VYo5IrSwj9yp/aTWzKte5AN3Y=
     )
   })
 
-  it('names what GnuPG can write that it does not run', () => {
-    for (const [armor, reason] of [
-      [gpg.twofish, 'Cipher algorithm 10 (Twofish) is not supported'],
-      [gpg.ocb, 'AEAD encrypted data (packet tag 20, as GnuPG writes OCB) is not supported'],
+  it('opens the OCB data GnuPG writes behind a SKESK v5', () => {
+    const fox = 'fff8c7166de1f1cf26886d47704f0e53b00b053ec5cb08e8a1231ccef9471923'
+    const sha256 = (text: string) => createHash('sha256').update(text).digest('hex')
+    expect(pgp.decode(gpg.ocb, { key: 'hunter2' })).toEqual({
+      text: 'Attack at dawn',
+      cipher: 'openpgp',
+      operation: 'decode',
+      options: {
+        key: 'hunter2',
+        algorithm: 'aes256',
+        digest: 'sha512',
+        count: 65_536,
+        salt: 'e7dee675875e326a',
+        aead: 'ocb',
+        filename: 'ocb.txt',
+      },
+    })
+    const chunks = pgp.decode(gpg.ocbChunks, { key: 'hunter2' })
+    expect(sha256(chunks.text)).toBe(fox)
+    expect(chunks.options).toMatchObject({ algorithm: 'aes256', aead: 'ocb', filename: 'fox.txt' })
+    const zip = pgp.decode(gpg.ocbAes128Zip, { key: 'hunter2' })
+    expect(sha256(zip.text)).toBe(fox)
+    expect(zip.options).toMatchObject({ algorithm: 'aes128', aead: 'ocb', compression: 'zip' })
+    expect(pgp.decode(gpg.ocbToKey, { key: 'hunter2' })).toMatchObject({
+      text: 'Attack at dawn',
+      options: { algorithm: 'aes256', aead: 'ocb', compression: 'zlib', filename: 'esk.txt' },
+    })
+  })
+
+  it('opens the EAX, OCB and GCM samples of RFC 9580 and the SKESK v5 ones', () => {
+    for (const [message, text, options] of [
+      [samples.eax, 'Hello, world!', { aead: 'eax', salt: 'a5ae579d1fc5d82b', count: 65_011_712 }],
+      [samples.ocb, 'Hello, world!', { aead: 'ocb', salt: '56a298d2f5e36453', count: 65_011_712 }],
+      [samples.gcm, 'Hello, world!', { aead: 'gcm', salt: 'e9d39785b2070008', count: 65_011_712 }],
+      [samples.eaxV5, 'Hello, world!\n', { aead: 'eax', salt: 'cd5a9f70fbe0bc65', count: 524_288 }],
+      [samples.ocbV5, 'Hello, world!\n', { aead: 'ocb', salt: '9f0b7da3e5ea6477', count: 524_288 }],
     ] as const) {
-      expect(() => pgp.decode(armor, { key: 'hunter2' })).toThrow(`[openpgp] ${reason}`)
+      const decoded = pgp.decode(message, { key: 'password' })
+      expect(decoded.text).toBe(text)
+      expect(decoded.options).toEqual({
+        key: 'password',
+        algorithm: 'aes128',
+        digest: 'sha256',
+        ...options,
+      })
+      expect(() => pgp.decode(message, { key: 'passw0rd' })).toThrow(
+        new CipherError(
+          '[openpgp] Wrong passphrase: the tag on the sealed session key does not match',
+        ),
+      )
     }
+  })
+
+  it('refuses AEAD data with a changed chunk or final tag', () => {
+    const changed = new CipherError(
+      '[openpgp] An AEAD tag does not match: the message was changed or cut',
+    )
+    const packets = bytesOf(gpg.ocbChunks)
+    for (const at of [packets.length - 200, packets.length - 1]) {
+      const flipped = [...packets]
+      flipped[at]! ^= 1
+      expect(() => pgp.decode(Buffer.from(flipped).toString('hex'), { key: 'hunter2' })).toThrow(
+        changed,
+      )
+    }
+    const sample = bytesOf(samples.gcm)
+    const chunkTag = sample.length - 20
+    sample[chunkTag]! ^= 0x80
+    expect(() => pgp.decode(Buffer.from(sample).toString('hex'), { key: 'password' })).toThrow(
+      changed,
+    )
+  })
+
+  it('names what is wrong with an AEAD message it cannot open', () => {
+    const fail = (hex: string, reason: string) =>
+      expect(() => pgp.decode(hex, { key: 'password' })).toThrow(`[openpgp] ${reason}`)
+    const v5 = samples.ocbV5
+    const skeskV5 = v5.slice(0, 126)
+    const v4 = Buffer.from(bytesOf(gpg.aes128)).toString('hex')
+    fail(
+      v4.slice(0, 30) + v5.slice(126),
+      'The passphrase packets are SKESK v4, and this encrypted data needs v5',
+    )
+    fail(
+      skeskV5 + v4.slice(30),
+      'The passphrase packets are SKESK v5, and this encrypted data needs v4',
+    )
+    fail(`c33d0503${v5.slice(8)}`, 'AEAD runs on 16-byte blocks, and cast5 has 8')
+    fail(`c33d050704${v5.slice(10)}`, 'AEAD mode 4 is not supported: only eax, ocb and gcm')
+    fail(`c33d07${v5.slice(6)}`, 'SKESK version 7 is not supported: only 4, 5 and 6')
+    fail(
+      `${skeskV5}d44902${v5.slice(132)}`,
+      'AEAD encrypted data version 2 is not supported: only 1',
+    )
+    fail(`${skeskV5}d4040107020e`, 'The AEAD encrypted data is too short to hold its final tag')
+    fail(
+      `c32d0507020308${'00'.repeat(40)}${v5.slice(126)}`,
+      'The SKESK v5 packet ends before its sealed session key',
+    )
+    const v6 = Buffer.from(bytesOf(samples.ocb)).toString('hex')
+    fail(`${v6.slice(0, 6)}1e${v6.slice(8)}`, 'The SKESK v6 lengths do not match its S2K and nonce')
+    fail(
+      `${v6.slice(0, 130)}d26903${v6.slice(136)}`,
+      'SEIPD version 3 is not supported: only 1 and 2',
+    )
+    fail(
+      v4.slice(0, 30) + skeskV5 + v4.slice(0, 30) + v6.slice(130),
+      'The passphrase packets are SKESK v4 and v5, and this encrypted data needs v6',
+    )
+  })
+
+  it('names what GnuPG can write that it does not run', () => {
+    expect(() => pgp.decode(gpg.twofish, { key: 'hunter2' })).toThrow(
+      '[openpgp] Cipher algorithm 10 (Twofish) is not supported',
+    )
     /* The SHA-224 message with its S2K hash id turned to 13, which RFC 9580 reserves. */
     const reserved = bytesOf(gpg.sha224)
     reserved[5] = 13

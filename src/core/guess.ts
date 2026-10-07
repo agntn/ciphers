@@ -416,6 +416,31 @@ function alphabetNumbers(reading: Readonly<Reading>): FamilyCandidate[] {
 }
 
 /**
+ * Nihilist: two square cells added up, so 22 to 110 and never ending in 1.
+ *
+ * @param reading - The text.
+ * @returns {FamilyCandidate[]} Nihilist, at most `medium`: character codes can look alike.
+ */
+function nihilist(reading: Readonly<Reading>): FamilyCandidate[] {
+  const { text } = reading
+  if (!/^[\d\s,]+$/.test(text)) return []
+  const numbers = (text.match(/\d+/g) ?? []).map(Number)
+  if (
+    numbers.length < 2 ||
+    numbers.some((value) => value < 22 || value > 110 || value % 10 === 1)
+  ) {
+    return []
+  }
+  return [
+    candidate(
+      ['nihilist'],
+      numbers.length >= 10 ? 'medium' : 'low',
+      `${numbers.length} numbers from 22 to 110 and none ending in 1, as two square cells added together give.`,
+    ),
+  ]
+}
+
+/**
  * The value that occurs most often, the first one seen on a tie.
  *
  * @param values - Values to count, at least one.
@@ -438,6 +463,7 @@ const LAYOUTS = [
   bacon,
   salted,
   alphabetNumbers,
+  nihilist,
   hexBytes,
 ] as const
 

@@ -10,6 +10,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "enigma",
   "atbash",
   "polybius",
+  "nihilist",
   "columnar",
   "autokey",
   "affine",

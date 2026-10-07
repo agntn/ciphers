@@ -40,6 +40,7 @@ const PRESENTATION: Record<
   playfair: { icon: "i-lucide-grid-2x2", blurb: "Letter pairs through a keyed 5×5 table", sample: "HIDE THE GOLD", options: { key: "PLAYFAIR EXAMPLE" } },
   hill: { icon: "i-lucide-brackets", blurb: "Letter blocks times a key matrix, mod 26", sample: "ACT CAT", options: { key: "GYBNQKURP" } },
   polybius: { icon: "i-lucide-grid-3x3", blurb: "Each letter becomes a row and a column", sample: "HELLO" },
+  nihilist: { icon: "i-lucide-grid-2x2-plus", blurb: "Square numbers plus a keyword, no wrap at 100", sample: "DYNAMITE WINTER PALACE", options: { key: "RUSSIAN", square: "ZEBRAS" } },
   morse: { icon: "i-lucide-radio", blurb: "Dots, dashes and a slash between words", sample: "SOS" },
   bacon: { icon: "i-lucide-binary", blurb: "Five A or B per letter", sample: "SECRET" },
   "tap-code": { icon: "i-lucide-grid-3x3", blurb: "Knocks on a 5×5 grid, C and K share", sample: "HELP" },

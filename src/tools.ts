@@ -100,7 +100,7 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     key: { pattern: /^[A-Za-z]+$/, error: 'must contain ASCII letters only' },
   },
   {
-    ciphers: ['vigenere', 'beaufort', 'autokey', 'playfair'],
+    ciphers: ['vigenere', 'beaufort', 'autokey', 'playfair', 'nihilist'],
     required: ['key'],
     key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
   },
@@ -331,6 +331,9 @@ const cipherInput = Type.Object(
     transposition: Type.Optional(
       Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
     ),
+    square: Type.Optional(
+      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.square }),
+    ),
     iv: Type.Optional(
       Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.iv }),
     ),
@@ -517,7 +520,7 @@ export const encodeTool = defineTool({
   description: 'Encode text with an exact-name built-in cipher. ciphers_info lists the options.',
   snippet: 'Use ciphers_encode to encode text with local educational and puzzle ciphers.',
   guidelines: [
-    'Vigenère, Beaufort, Autokey, Playfair and Columnar need key, Alberti needs key and period.',
+    'Vigenère, Beaufort, Autokey, Playfair, Nihilist and Columnar need key, Alberti needs key and period.',
     'Route (route) needs width, the cells per row. Decoding reads the grid along path from corner, so a grid copied row by row from a puzzle goes to ciphers_decode. Line breaks are not cells.',
     'A1Z26 (a1z26) turns letters into their numbers, 1 to 26, joined by separator (default -). With zero it is the single digit form instead: A to I for 1 to 9 and zero for 0, so letters like BEF go to ciphers_decode and come back as 256.',
     'Book cipher (book) needs book, the whole text both sides count in. Decoding reads every number in order, one per address, or two or three with address line-word or page-line-word, and pick letter takes first letters, as Beale cipher 2 does. Encoding takes the next matching word each time, so a repeated letter gets a new number.',

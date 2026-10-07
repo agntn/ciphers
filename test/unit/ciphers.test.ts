@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 57 ciphers', () => {
-    expect(ciphers()).toHaveLength(57)
+  it('registers all 58 ciphers', () => {
+    expect(ciphers()).toHaveLength(58)
     for (const name of [
       'caesar',
       'rot13',
@@ -64,6 +64,7 @@ describe('registry', () => {
       'playfair',
       'hill',
       'polybius',
+      'nihilist',
       'a1z26',
       'book',
       'straddling-checkerboard',
@@ -596,6 +597,52 @@ describe('polybius', () => {
   it('empty string returns empty', () => {
     expect(polybius.encode('').text).toBe('')
     expect(polybius.decode('').text).toBe('')
+  })
+})
+
+describe('nihilist', () => {
+  const nihilist = create('nihilist')
+  const keys = { key: 'RUSSIAN', square: 'ZEBRAS' }
+  const wikipedia = '37 106 62 36 67 47 86 26 104 53 62 77 27 55 57 66 55 36 54 27'
+
+  /** Published vector: https://en.wikipedia.org/wiki/Nihilist_cipher#Example */
+  it('takes DYNAMITE WINTER PALACE through ZEBRAS and RUSSIAN', () => {
+    expect(nihilist.encode('Dynamite winter palace', keys)).toMatchObject({
+      text: wikipedia,
+      options: keys,
+    })
+    expect(nihilist.decode(wikipedia, keys).text).toBe('DYNAMITEWINTERPALACE')
+    expect(nihilist.decode(wikipedia.replaceAll(' ', ', '), keys).text).toBe('DYNAMITEWINTERPALACE')
+  })
+
+  it('adds without wrapping, so two cells from the fifth row pass 100', () => {
+    expect(nihilist.encode('Y', { key: 'Y', square: 'ZEBRAS' }).text).toBe('110')
+    expect(nihilist.encode('AZ', { key: 'A' }).text).toBe('22 66')
+  })
+
+  it('reads J as I in the text and in the key', () => {
+    expect(nihilist.encode('JI', { key: 'j' }).text).toBe(nihilist.encode('II', { key: 'I' }).text)
+    expect(nihilist.decode(nihilist.encode('J', { key: 'A' }).text, { key: 'A' }).text).toBe('I')
+  })
+
+  it('refuses a number the key cannot take back to a cell', () => {
+    expect(() => nihilist.decode('37 999', keys)).toThrow(CipherError)
+    expect(() => nihilist.decode('37 60', keys)).toThrow(/number 2 is 60, and 60 - 51 = 9/)
+    expect(() => nihilist.decode('HELLO', keys)).toThrow(/no numbers/)
+    expect(() => nihilist.decode(`37 ${'9'.repeat(5000)}`, keys)).toThrow(
+      /number 2 has 5000 digits/,
+    )
+    expect(nihilist.decode(' ', keys).text).toBe('')
+  })
+
+  it('rejects a key it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => nihilist[operation]('22')).toThrow(MissingOptionError)
+      expect(() => nihilist[operation]('22', { key: '' })).toThrow(MissingOptionError)
+      expect(() => nihilist[operation]('22', { key: '123' })).toThrow(InvalidOptionError)
+      expect(() => nihilist[operation]('22', { key: 5 })).toThrow(InvalidOptionError)
+      expect(() => nihilist[operation]('22', { key: 'A', square: 1 })).toThrow(InvalidOptionError)
+    }
   })
 })
 
@@ -1380,6 +1427,7 @@ describe('edge cases', () => {
     alberti: { key: 'TEST', period: 4 },
     playfair: { key: 'TEST' },
     hill: { key: 'TEST' },
+    nihilist: { key: 'TEST' },
     columnar: { key: 'TEST' },
     route: { width: 3 },
     book: { book: 'The 123 tests' },
@@ -6365,6 +6413,7 @@ describe('info().worksOn', () => {
     alberti: { key: 'ALBERTI', period: 4 },
     playfair: { key: 'PLAYFAIR EXAMPLE' },
     hill: { key: 'DDCF' },
+    nihilist: { key: 'RUSSIAN', square: 'ZEBRAS' },
     columnar: { key: 'ZEBRA' },
     route: { width: 3 },
   }

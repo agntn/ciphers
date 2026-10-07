@@ -531,7 +531,7 @@ export const encodeTool = defineTool({
     'MARS (mars) works like AES with a key of 32 to 112 hex digits in steps of 8.',
     'Serpent (serpent) works like AES, with the same key lengths.',
     'CAST5 (cast5) works like Triple DES with a key of any even number of hex digits from 10 to 32.',
-    'OpenPGP (openpgp) reads and writes what gpg --symmetric gives: key is the passphrase as plain text, ciphers_decode takes the armored -----BEGIN PGP MESSAGE----- block (or its packets in base64 or hex) and reads algorithm, S2K and compression from it, ciphers_encode writes armor with algorithm (default aes256), digest (default sha512), count, and salt and iv to fix the random values.',
+    'OpenPGP (openpgp) reads and writes what gpg --symmetric gives: key is the passphrase as plain text, ciphers_decode takes the armored -----BEGIN PGP MESSAGE----- block (or its packets in base64 or hex) and reads algorithm, S2K, compression and AEAD mode (OCB, EAX or GCM) from it, ciphers_encode writes armor with algorithm (default aes256), digest (default sha512), count, and salt and iv to fix the random values.',
     'Rabbit (rabbit) is a stream cipher with a key of 32 hex digits and an optional iv of 16; it pads nothing, and endian picks the byte order (big as in RFC 4503, the default, or little as in Crypto++).',
     'RC4 (rc4) is a stream cipher with a key of any even number of hex digits from 2 to 512 and no IV; it pads nothing.',
     'XOR (xor) repeats a key of any nonzero even number of hex digits over the bytes.',

@@ -1,8 +1,10 @@
+import { existsSync } from 'node:fs'
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
 import { afterEach, describe, expect, it } from 'vite-plus/test'
 import { Cipher, create, register, type CipherInfo, type CipherResult } from '../../src/index.ts'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
 import { createMcpServer } from '../../src/mcp.ts'
+import { serverInfo } from '../../src/server-info.ts'
 import { BRUTE_PREVIEW_LENGTH, OPTION_DESCRIPTIONS } from '../../src/tool-operations.ts'
 
 const openConnections: Array<{ close(): Promise<void> }> = []
@@ -78,6 +80,16 @@ describe('Ciphers MCP server', () => {
       idempotentHint: true,
       openWorldHint: false,
     })
+  })
+
+  it('introduces itself with a description and icons the site serves', async () => {
+    const client = await connectTestClient()
+
+    expect(client.getServerVersion()).toEqual(serverInfo)
+    for (const icon of serverInfo.icons) {
+      const file = new URL(`../../docs/public${new URL(icon.src).pathname}`, import.meta.url)
+      expect(existsSync(file), icon.src).toBe(true)
+    }
   })
 
   it('names the ciphers that read key and period as the registry declares them', () => {

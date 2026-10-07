@@ -697,11 +697,11 @@ try {
     assert.equal(result.content[0]?.text, 'KHOOR', `${host} extension`)
   }
 
-  // The tarball ships no src/, so its mcp has only the bundle to serve: the
-  // server runCli starts over the tools built into dist/.
+  /** No src/ in the tarball, so its mcp serves createMcpServer from dist/mcp.mjs, like the site. */
   const packedUrls = await runMcp(binPath)
   assert.ok(
     packedUrls.includes(pathToFileURL(binPath).href) &&
+      packedUrls.includes(pathToFileURL(path.join(path.dirname(binPath), 'mcp.mjs')).href) &&
       packedUrls.some((url) => url.includes('/node_modules/@modelcontextprotocol/server/')),
     'the packed mcp serves the bundle',
   )

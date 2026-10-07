@@ -45,13 +45,14 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 55 ciphers', () => {
-    expect(ciphers()).toHaveLength(55)
+  it('registers all 56 ciphers', () => {
+    expect(ciphers()).toHaveLength(56)
     for (const name of [
       'caesar',
       'rot13',
       'rot47',
       'atbash',
+      'substitution',
       'vigenere',
       'beaufort',
       'autokey',
@@ -207,6 +208,66 @@ describe('atbash', () => {
 
   it('preserves non-alpha', () => {
     expect(atbash.encode('Hello, World!').text).toBe('Svool, Dliow!')
+  })
+})
+
+describe('substitution', () => {
+  const substitution = create('substitution')
+
+  /** Published vector: https://en.wikipedia.org/wiki/Substitution_cipher#Simple_substitution */
+  it('keys a mixed alphabet by ZEBRAS', () => {
+    const options = { key: 'zebras', preserveCase: false }
+    expect(substitution.encode('flee at once. we are discovered!', options).text).toBe(
+      'SIAA ZQ LKBA. VA ZOA RFPBLUAOAR!',
+    )
+    expect(substitution.decode('SIAA ZQ LKBA. VA ZOA RFPBLUAOAR!', options).text).toBe(
+      'FLEE AT ONCE. WE ARE DISCOVERED!',
+    )
+  })
+
+  it('reads a whole alphabet and a keyword spelling it alike', () => {
+    expect(substitution.encode('Flee at once', { key: 'ZEBRASCDFGHIJKLMNOPQTUVWXY' }).text).toBe(
+      'Siaa zq lkba',
+    )
+    expect(substitution.encode('Flee at once', { key: 'Ze-bra, zebras!' }).text).toBe(
+      'Siaa zq lkba',
+    )
+    expect(substitution.encode('Flee', { key: 'zebras zebras zebras zebra' }).text).toBe('Siaa')
+    expect(substitution.encode('abcxyz', { key: 'QWERTYUIOPASDFGHJKLMZXCVBN' }).text).toBe('qwevbn')
+  })
+
+  it('turns a cell left unknown into ? both ways', () => {
+    const key = 'ZEB?ASCDFGHIJKLMNOPQTUVWXY'
+    expect(substitution.encode('Bad', { key }).text).toBe('Ez?')
+    expect(substitution.decode('Ez?R', { key }).text).toBe('Ba??')
+    expect(substitution.encode('Ab, c!', { key: '?'.repeat(26) }).text).toBe('??, ?!')
+    expect(substitution.decode('Ab, c!', { key: '?'.repeat(26) }).text).toBe('??, ?!')
+  })
+
+  it('passes the rest and applies the shared options', () => {
+    const options = { key: 'ZEBRAS', stripNonAlpha: true }
+    const encoded = substitution.encode('Wé ßee 1 🙂', options)
+    expect(encoded.text).toBe('Vaa')
+    expect(encoded.options).toEqual({ key: 'ZEBRAS', preserveCase: true, stripNonAlpha: true })
+    expect(substitution.encode('Wé ßee 1 🙂', { key: 'ZEBRAS' }).text).toBe('Vé ßaa 1 🙂')
+  })
+
+  it('rejects a key it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => substitution[operation]('abc')).toThrow(MissingOptionError)
+      expect(() => substitution[operation]('abc', { key: '' })).toThrow(MissingOptionError)
+      for (const key of [
+        '123',
+        'ß',
+        12,
+        'ZEB?',
+        'ZZB?ASCDFGHIJKLMNOPQTUVWXY',
+        'ZEB?ASCDFGHIJKLMNOPQTUVWXY1',
+        'ABCDEFGHIJKLMNOPQRSTUVWXYA',
+      ]) {
+        expect(() => substitution[operation]('abc', { key })).toThrow(InvalidOptionError)
+      }
+    }
   })
 })
 
@@ -1263,6 +1324,7 @@ describe('resolveCipher', () => {
 describe('edge cases', () => {
   const keyOpts: Record<string, Record<string, unknown>> = {
     vigenere: { key: 'TEST' },
+    substitution: { key: 'ZEBRAS' },
     beaufort: { key: 'TEST' },
     autokey: { key: 'TEST' },
     alberti: { key: 'TEST', period: 4 },
@@ -6245,6 +6307,7 @@ describe('bytes: hex', () => {
 
 describe('info().worksOn', () => {
   const options: Record<string, CipherBaseOptions> = {
+    substitution: { key: 'ZEBRAS' },
     vigenere: { key: 'LEMON' },
     beaufort: { key: 'KEY' },
     autokey: { key: 'QUEENLY' },

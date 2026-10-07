@@ -562,19 +562,19 @@ function square(reading: Readonly<Reading>): FamilyCandidate[] {
 }
 
 /**
- * The monoalphabetic ciphers when no key reads, first when the IoC says one alphabet.
+ * The monoalphabetic ciphers when no key reads, a mixed alphabet first when the IoC says one.
  *
  * @param reading - The text.
- * @returns {FamilyCandidate} Caesar, Atbash and affine.
+ * @returns {FamilyCandidate} Caesar, Atbash, affine and substitution.
  */
 function oneAlphabet(reading: Readonly<Reading>): FamilyCandidate {
   const { language, letters, ic, lift } = reading
   if (lift < ONE_ALPHABET) {
     const signal = `IoC ${ic.toFixed(4)} on ${letters} letters can still come from one alphabet.`
-    return candidate(MONOALPHABETIC, 'low', signal)
+    return candidate([...MONOALPHABETIC, 'substitution'], 'low', signal)
   }
   return candidate(
-    MONOALPHABETIC,
+    ['substitution', ...MONOALPHABETIC],
     lower(byLetters(letters, 200, 100)),
     `IoC ${ic.toFixed(4)} is close to ${language} plaintext, one alphabet throughout, but no Caesar, Atbash or affine key makes the letters fit ${language}: a mixed alphabet, or a short text.`,
   )

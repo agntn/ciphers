@@ -18,6 +18,7 @@ import { Polybius } from './polybius.ts'
 import { RailFence } from './rail-fence.ts'
 import { Route } from './route.ts'
 import { StraddlingCheckerboard } from './straddling-checkerboard.ts'
+import { Substitution } from './substitution.ts'
 import { Rot13 } from './rot13.ts'
 import { Rot47 } from './rot47.ts'
 import { TapCode } from './tap-code.ts'
@@ -30,6 +31,7 @@ export const classical: readonly CipherConstructor[] = [
   Rot13,
   Rot47,
   Atbash,
+  Substitution,
   Vigenere,
   Beaufort,
   Autokey,

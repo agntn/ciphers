@@ -104,6 +104,11 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     required: ['key'],
     key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
   },
+  {
+    ciphers: ['substitution'],
+    required: ['key'],
+    key: { pattern: /[A-Za-z?]/, error: 'must contain at least one ASCII letter or ?' },
+  },
   { ciphers: ['columnar'], required: ['key'] },
   { ciphers: ['route'], required: ['width'] },
   { ciphers: ['book'], required: ['book'] },

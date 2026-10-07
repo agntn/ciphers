@@ -4,6 +4,7 @@ export const builtinCiphers = [
   'rot13',
   'rot47',
   'atbash',
+  'substitution',
   'vigenere',
   'beaufort',
   'autokey',

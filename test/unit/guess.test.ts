@@ -71,6 +71,20 @@ describe('guessFamily', () => {
     })
   })
 
+  it('puts a mixed alphabet first when one alphabet fits and no simple key does', () => {
+    const mixed = create('substitution').encode(DICKENS, { key: 'ZEBRAS' }).text
+    expect(guessFamily(mixed).candidates[0]).toMatchObject({
+      families: [
+        'substitution-keyed',
+        'substitution-shift',
+        'substitution-reflection',
+        'substitution-multiplicative',
+      ],
+      ciphers: ['substitution', 'caesar', 'atbash', 'affine'],
+    })
+    expect(guessFamily(mixed).candidates[0]).not.toHaveProperty('options')
+  })
+
   it('takes letters that fit the language as moved, not replaced', () => {
     for (const encoded of [
       create('rail-fence').encode(DICKENS, { rails: 4 }).text,

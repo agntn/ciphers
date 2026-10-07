@@ -974,6 +974,8 @@ Co2B
       ['key', { cipher: 'vigenere', text: 'abc', key: '123' }],
       ['key', { cipher: 'playfair', text: 'abc' }],
       ['key', { cipher: 'playfair', text: 'abc', key: '123' }],
+      ['key', { cipher: 'substitution', text: 'abc' }],
+      ['key', { cipher: 'substitution', text: 'abc', key: '123' }],
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
       ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],
@@ -1267,6 +1269,16 @@ Co2B
     }
   })
 
+  it('takes a substitution key with every cell unknown', async () => {
+    const client = await connectTestClient()
+    const response = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'substitution', text: 'Ab, c!', key: '?'.repeat(26) },
+    })
+    expect(response.isError).toBeFalsy()
+    expect(onlyText(response.content)).toBe('??, ?!')
+  })
+
   it('guesses the cipher family over the protocol', async () => {
     const client = await connectTestClient()
     const guess = async (args: Readonly<Record<string, unknown>>) =>
@@ -1298,6 +1310,13 @@ Co2B
     ).text
     expect(await guess({ text: transposed })).toContain(
       'ciphers_key_recover with cipher columnar searches a columnar key.',
+    )
+    const mixed = create('substitution').encode(
+      'To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex.',
+      { key: 'BAKER' },
+    ).text
+    expect(await guess({ text: mixed })).toContain(
+      'Next: ciphers_key_recover with cipher substitution searches the mixed alphabet; ciphers_caesar_brute ranks all 25 shifts.',
     )
     expect(await guess({ text: '69c4e0d86a7b0430d8cdb78070b4c55a' })).toContain(
       'Next: ciphers_decode with cipher aes, which needs key.',

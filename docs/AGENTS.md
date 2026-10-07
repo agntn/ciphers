@@ -19,7 +19,7 @@ docs/
 ├── app/utils/                     # ciphers table (icons, blurbs, samples over the library's info()), tools (the agent tools' text), tokens, roster, formatting
 ├── app/pages/playground.vue       # playground, own route outside the docs layout, its own useSeo and OG image
 ├── server/routes/sitemap.xml.ts   # Docus sitemap plus the Vue pages it cannot see
-├── server/mcp/index.ts            # the Docus MCP handler at /mcp, named and versioned like `ciphers mcp`
+├── server/mcp/index.ts            # the Docus MCP handler at /mcp, introduced like `ciphers mcp` by `src/server-info.ts`
 ├── server/mcp/tools/              # one file per cipher tool, each `ciphersMcpTool("<name>")`
 ├── server/utils/ciphers-mcp.ts    # a tool from `#mcp`: its entry in `toolListings` and `callTool` behind a Zod schema that lets any object through
 ├── public/                        # fonts, favicon.svg and the icons and manifest cut from it
@@ -71,7 +71,7 @@ On the `cloudflare_module` preset the toolkit hands its server to `createMcpHand
 
 - `seo.schema` in `app/app.config.ts` emits the landing JSON-LD: `WebSite`, the agntn `Organization` as publisher, and a free `SoftwareApplication` with `sameAs` on GitHub and npm. Docs pages get `Article` plus `BreadcrumbList` from Docus on their own.
 - The Docus sitemap reads content collections only. `server/routes/sitemap.xml.ts` wraps it and appends the Vue pages listed in `PAGES`; a new page under `app/pages/` goes there too or it is invisible to crawlers.
-- Docus links `/favicon.ico` without shipping one. `public/favicon.svg` is the source, the PNGs and the `.ico` are cut from it with ImageMagick, `app.head` in `nuxt.config.ts` links them with the manifest and theme colours.
+- Docus links `/favicon.ico` without shipping one. `public/favicon.svg` is the source, the PNGs and the `.ico` are cut from it with ImageMagick, `app.head` in `nuxt.config.ts` links them with the manifest and theme colours. Both MCP servers show `favicon.svg` and `icon-512.png` as their icons, so `test/unit/mcp.test.ts` fails when either goes missing.
 
 ## OG images
 

@@ -1,8 +1,8 @@
 import { indexTools, invokeTool, ToolInputError, wireSchema } from '@agntn/tools'
 import { createMcpServer as createToolServer, errorResult, toolAnnotations } from '@agntn/tools/mcp'
 import type { CallToolResult, Server, Tool } from '@modelcontextprotocol/server'
+import { serverInfo } from './server-info.ts'
 import { ciphersTools } from './tools.ts'
-import { version } from './version.ts'
 
 /** The `tools/list` entries, in order, for the server at ciphers.agntn.dev/mcp. */
 export const toolListings: readonly Tool[] = ciphersTools.map((tool) => ({
@@ -50,5 +50,5 @@ export async function callTool(
  * @returns {Server} A server ready to connect to an MCP transport.
  */
 export function createMcpServer(): Server {
-  return createToolServer({ name: 'ciphers', version }, ciphersTools)
+  return createToolServer(serverInfo, ciphersTools)
 }

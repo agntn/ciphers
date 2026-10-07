@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vite-plus/test'
+import { serverInfo } from '../../src/server-info.ts'
 
 const cliPath = fileURLToPath(new URL('../../src/cli.ts', import.meta.url))
 const hookPath = fileURLToPath(new URL('../record-loads.ts', import.meta.url))
@@ -82,7 +83,7 @@ describe('CLI usage paths', () => {
     const [responseLine = ''] = result.stdout.trim().split('\n')
     expect(responseLine, `the server answered nothing:\n${result.stderr}`).not.toBe('')
     const response: unknown = JSON.parse(responseLine)
-    expect(response).toMatchObject({ id: 1, result: { serverInfo: { name: 'ciphers' } } })
+    expect(response).toMatchObject({ id: 1, result: { serverInfo } })
     expect(loadedFrom(result.loaded, '/node_modules/@modelcontextprotocol/')).not.toEqual([])
   })
 })

@@ -213,7 +213,8 @@ describe('CLI analysis', () => {
 })
 
 describe('CLI dashed text and stdin', () => {
-  it('reads Morse that starts with a dash after -- or from stdin', () => {
+  it('reads Morse that starts with a dash as is, after -- or from stdin', () => {
+    expect(runCli(['decode', 'morse', '-.-. .- -']).stdout).toBe('CAT\n')
     expect(runCli(['decode', 'morse', '--', '-.-. .- -']).stdout).toBe('CAT\n')
     expect(runCli(['decode', 'morse', '-'], { input: '-.-. .- -\n' }).stdout).toBe('CAT\n')
   })
@@ -226,10 +227,11 @@ describe('CLI dashed text and stdin', () => {
     expect(result.stdout).toBe('The quick brown\n')
   })
 
-  it('opens armor that starts with dashes from stdin', () => {
+  it('opens armor that starts with dashes as an argument or from stdin', () => {
     const armor = runCli(['encode', 'openpgp', 'hello', '--key', 'pw', '--count', '1024']).stdout
 
     expect(armor).toMatch(/^-----BEGIN PGP MESSAGE-----\n/u)
+    expect(runCli(['decode', 'openpgp', armor, '--key', 'pw']).stdout).toBe('hello\n')
     expect(runCli(['decode', 'openpgp', '-', '--key', 'pw'], { input: armor }).stdout).toBe(
       'hello\n',
     )

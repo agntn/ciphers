@@ -239,6 +239,8 @@ describe('substitution', () => {
     const key = 'ZEB?ASCDFGHIJKLMNOPQTUVWXY'
     expect(substitution.encode('Bad', { key }).text).toBe('Ez?')
     expect(substitution.decode('Ez?R', { key }).text).toBe('Ba??')
+    expect(substitution.encode('Ab, c!', { key: '?'.repeat(26) }).text).toBe('??, ?!')
+    expect(substitution.decode('Ab, c!', { key: '?'.repeat(26) }).text).toBe('??, ?!')
   })
 
   it('passes the rest and applies the shared options', () => {

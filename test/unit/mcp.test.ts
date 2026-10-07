@@ -974,6 +974,8 @@ Co2B
       ['key', { cipher: 'vigenere', text: 'abc', key: '123' }],
       ['key', { cipher: 'playfair', text: 'abc' }],
       ['key', { cipher: 'playfair', text: 'abc', key: '123' }],
+      ['key', { cipher: 'substitution', text: 'abc' }],
+      ['key', { cipher: 'substitution', text: 'abc', key: '123' }],
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
       ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],
@@ -1265,6 +1267,16 @@ Co2B
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain('Invalid arguments at /maxPeriod')
     }
+  })
+
+  it('takes a substitution key with every cell unknown', async () => {
+    const client = await connectTestClient()
+    const response = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'substitution', text: 'Ab, c!', key: '?'.repeat(26) },
+    })
+    expect(response.isError).toBeFalsy()
+    expect(onlyText(response.content)).toBe('??, ?!')
   })
 
   it('guesses the cipher family over the protocol', async () => {

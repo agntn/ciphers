@@ -100,9 +100,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     key: { pattern: /^[A-Za-z]+$/, error: 'must contain ASCII letters only' },
   },
   {
-    ciphers: ['substitution', 'vigenere', 'beaufort', 'autokey', 'playfair'],
+    ciphers: ['vigenere', 'beaufort', 'autokey', 'playfair'],
     required: ['key'],
     key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
+  },
+  {
+    ciphers: ['substitution'],
+    required: ['key'],
+    key: { pattern: /[A-Za-z?]/, error: 'must contain at least one ASCII letter or ?' },
   },
   { ciphers: ['columnar'], required: ['key'] },
   { ciphers: ['route'], required: ['width'] },

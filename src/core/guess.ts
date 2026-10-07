@@ -562,6 +562,26 @@ function square(reading: Readonly<Reading>): FamilyCandidate[] {
 }
 
 /**
+ * Hill: letters only, whole blocks of 2 or 3, flat, and a J no 5×5 square would give.
+ *
+ * @param reading - The text.
+ * @returns {FamilyCandidate[]} Hill, at most `medium`, since a Vigenère without spaces looks alike.
+ */
+function hill(reading: Readonly<Reading>): FamilyCandidate[] {
+  const { symbols, letters, lift } = reading
+  if (!/^[A-Za-z]{20,}$/.test(symbols) || !/j/i.test(symbols) || lift >= ONE_ALPHABET) return []
+  const blocks = [2, 3].filter((size) => letters % size === 0)
+  if (blocks.length === 0) return []
+  return [
+    candidate(
+      ['hill'],
+      lower(byLetters(letters, 200, 60)),
+      `${letters} letters with no spaces, whole blocks of ${blocks.join(' or ')}, flat counts and a J, as a Hill matrix leaves them.`,
+    ),
+  ]
+}
+
+/**
  * The monoalphabetic ciphers when no key reads, a mixed alphabet first when the IoC says one.
  *
  * @param reading - The text.
@@ -654,7 +674,7 @@ function statistics(reading: Readonly<Reading>): FamilyCandidate[] {
   if (reading.letters < MIN_LETTERS) return []
   const keyed = keyThatReads(reading)
   if (keyed.length > 0) return keyed
-  return [...square(reading), ...alphabets(reading)]
+  return [...square(reading), ...hill(reading), ...alphabets(reading)]
 }
 
 const RANK: Readonly<Record<GuessConfidence, number>> = { high: 0, medium: 1, low: 2 }

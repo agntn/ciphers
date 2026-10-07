@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 56 ciphers', () => {
-    expect(ciphers()).toHaveLength(56)
+  it('registers all 57 ciphers', () => {
+    expect(ciphers()).toHaveLength(57)
     for (const name of [
       'caesar',
       'rot13',
@@ -62,6 +62,7 @@ describe('registry', () => {
       'route',
       'affine',
       'playfair',
+      'hill',
       'polybius',
       'a1z26',
       'book',
@@ -509,6 +510,55 @@ describe('playfair', () => {
 
   it('empty string returns empty', () => {
     expect(playfair.encode('', { key: 'MONARCHY' }).text).toBe('')
+  })
+})
+
+describe('hill', () => {
+  const hill = create('hill')
+
+  /** Published vectors: https://en.wikipedia.org/wiki/Hill_cipher#Example */
+  it('takes HELP to HIAT under the 2×2 key DDCF', () => {
+    expect(hill.encode('HELP', { key: 'DDCF' }).text).toBe('HIAT')
+    expect(hill.decode('HIAT', { key: 'DDCF' }).text).toBe('HELP')
+  })
+
+  /** Published vectors: https://en.wikipedia.org/wiki/Hill_cipher#Encryption */
+  it('takes ACT to POH and CAT to FIN under the 3×3 key GYBNQKURP', () => {
+    expect(hill.encode('Act, cat!', { key: 'gybnqkurp' }).text).toBe('POHFIN')
+    expect(hill.decode('poh fin', { key: 'GYBNQKURP' }).text).toBe('ACTCAT')
+  })
+
+  it('pads a short last block with X', () => {
+    expect(hill.encode('HEL', { key: 'DDCF' }).text).toBe(hill.encode('HELX', { key: 'DDCF' }).text)
+    expect(hill.encode('AC', { key: 'GYBNQKURP' }).text).toBe(
+      hill.encode('ACX', { key: 'GYBNQKURP' }).text,
+    )
+    expect(hill.decode(hill.encode('HEL', { key: 'DDCF' }).text, { key: 'DDCF' }).text).toBe('HELX')
+    expect(hill.encode('', { key: 'DDCF' }).text).toBe('')
+  })
+
+  it('refuses ciphertext that is not whole blocks', () => {
+    expect(() => hill.decode('HIA', { key: 'DDCF' })).toThrow(CipherError)
+    expect(() => hill.decode('POHF', { key: 'GYBNQKURP' })).toThrow(/blocks of 3/)
+  })
+
+  it('refuses a key with no inverse before reading the text', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const key of ['AAAA', 'ABCD', 'CAAC', 'NAAN', 'ABCDEFGHI']) {
+        expect(() => hill[operation]('', { key })).toThrow(InvalidOptionError)
+      }
+      expect(() => hill[operation]('HELP', { key: 'ABCD' })).toThrow(/shares a factor with 26/)
+    }
+  })
+
+  it('rejects a key it cannot read', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => hill[operation]('HELP')).toThrow(MissingOptionError)
+      expect(() => hill[operation]('HELP', { key: '' })).toThrow(MissingOptionError)
+      for (const key of ['DDC', 'DDCFX', 'DD CF', 'DDÇF', 12, 'GYBNQKURPA']) {
+        expect(() => hill[operation]('HELP', { key })).toThrow(InvalidOptionError)
+      }
+    }
   })
 })
 
@@ -1329,6 +1379,7 @@ describe('edge cases', () => {
     autokey: { key: 'TEST' },
     alberti: { key: 'TEST', period: 4 },
     playfair: { key: 'TEST' },
+    hill: { key: 'TEST' },
     columnar: { key: 'TEST' },
     route: { width: 3 },
     book: { book: 'The 123 tests' },
@@ -6313,6 +6364,7 @@ describe('info().worksOn', () => {
     autokey: { key: 'QUEENLY' },
     alberti: { key: 'ALBERTI', period: 4 },
     playfair: { key: 'PLAYFAIR EXAMPLE' },
+    hill: { key: 'DDCF' },
     columnar: { key: 'ZEBRA' },
     route: { width: 3 },
   }

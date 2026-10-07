@@ -108,6 +108,30 @@ describe('guessFamily', () => {
     expect(long.candidates[0]).toMatchObject({ ciphers: ['playfair'], confidence: 'high' })
   })
 
+  it('points at Hill for flat blocks with a J, after the periodic ciphers', () => {
+    for (const key of ['DDCF', 'GYBNQKURP']) {
+      const encoded = create('hill').encode(`${DICKENS} ${DICKENS}`, { key }).text
+      expect(encoded).toMatch(/J/)
+      expect(ranking(guessFamily(encoded))).toContain('hill:medium')
+      expect(guessFamily(encoded).candidates[0]?.ciphers[0]).toBe('vigenere')
+      expect(
+        guessFamily(encoded).candidates.find(({ ciphers }) => ciphers[0] === 'hill'),
+      ).toMatchObject({
+        families: ['polygraphic'],
+      })
+    }
+  })
+
+  it('reads Hill in groups of five, but not with punctuation, without a J or in one alphabet', () => {
+    const encoded = create('hill').encode(`${DICKENS} ${DICKENS}`, { key: 'DDCF' }).text
+    const hill = (text: string) =>
+      ranking(guessFamily(text)).filter((entry) => entry.startsWith('hill'))
+    expect(hill(encoded.replaceAll(/(.{5})/g, '$1 '))).toEqual(['hill:medium'])
+    expect(hill(`${encoded}.`)).toEqual([])
+    expect(hill(encoded.replaceAll('J', 'K'))).toEqual([])
+    expect(hill(create('atbash').encode(DICKENS, { stripNonAlpha: true }).text)).toEqual([])
+  })
+
   it('reads punctuation in place of letters as ROT47', () => {
     expect(ranking(guessFamily(create('rot47').encode(DICKENS).text))).toEqual(['rot47:high'])
   })

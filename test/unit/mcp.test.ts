@@ -976,6 +976,8 @@ Co2B
       ['key', { cipher: 'playfair', text: 'abc', key: '123' }],
       ['key', { cipher: 'substitution', text: 'abc' }],
       ['key', { cipher: 'substitution', text: 'abc', key: '123' }],
+      ['key', { cipher: 'hill', text: 'abc' }],
+      ['key', { cipher: 'hill', text: 'abc', key: 'DDCFX' }],
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
       ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],
@@ -1277,6 +1279,18 @@ Co2B
     })
     expect(response.isError).toBeFalsy()
     expect(onlyText(response.content)).toBe('??, ?!')
+  })
+
+  it('names the determinant of a Hill key nothing could decode', async () => {
+    const client = await connectTestClient()
+    const response = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'hill', text: 'HELP', key: 'ABCD' },
+    })
+    expect(response.isError).toBe(true)
+    expect(onlyText(response.content)).toContain(
+      'has determinant 24 mod 26, which shares a factor with 26',
+    )
   })
 
   it('guesses the cipher family over the protocol', async () => {

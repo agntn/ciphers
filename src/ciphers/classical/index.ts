@@ -12,6 +12,7 @@ import { Bifid } from './bifid.ts'
 import { Caesar } from './caesar.ts'
 import { Columnar } from './columnar.ts'
 import { Enigma } from './enigma.ts'
+import { Hill } from './hill.ts'
 import { Morse } from './morse.ts'
 import { Playfair } from './playfair.ts'
 import { Polybius } from './polybius.ts'
@@ -40,6 +41,7 @@ export const classical: readonly CipherConstructor[] = [
   RailFence,
   Affine,
   Playfair,
+  Hill,
   Polybius,
   Morse,
   Bacon,

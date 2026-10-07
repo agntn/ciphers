@@ -12,6 +12,7 @@ export type {
   RouteOptions,
   AffineOptions,
   PlayfairOptions,
+  HillOptions,
   PolybiusOptions,
   AdfgvxOptions,
   StraddlingCheckerboardOptions,

@@ -102,6 +102,12 @@ export interface PlayfairOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Hill cipher options. */
+export interface HillOptions extends CipherBaseOptions {
+  /** 4 or 9 letters, the matrix row by row with A as 0. Required. */
+  key: string
+}
+
 /** Polybius cipher options. */
 export interface PolybiusOptions extends CipherBaseOptions {
   /** Optional keyword for the 5×5 table. */
@@ -460,6 +466,7 @@ export interface CipherInfo {
     | 'substitution-multiplicative'
     | 'substitution-reflection'
     | 'digraph'
+    | 'polygraphic'
     | 'fractionation'
     | 'homophonic'
     | 'transposition'

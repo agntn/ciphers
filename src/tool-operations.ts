@@ -133,7 +133,7 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
  */
 export const OPTION_DESCRIPTIONS = {
   category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
-  key: 'Keyword, the passphrase for aes-passphrase and openpgp (any text), or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, 10 to 32 (an even number) for cast5, 32 for rabbit, 2 to 512 (an even number) for rc4, any nonzero even number for xor, 32 or 64 for salsa20, 64 for xsalsa20, chacha20, xchacha20 and chacha20-poly1305. Required by vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, aes-passphrase, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent, cast5, openpgp, rabbit, rc4, xor, salsa20, xsalsa20, chacha20, xchacha20 and chacha20-poly1305; optional for polybius, adfgvx, bifid and straddling-checkerboard (the 28 cells row by row, each letter A-Z once and two fillers such as . and /)',
+  key: 'Keyword, the cipher alphabet for substitution (26 letters, ? for one left unknown, or a keyword the rest of A-Z follows), the passphrase for aes-passphrase and openpgp (any text), or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, 10 to 32 (an even number) for cast5, 32 for rabbit, 2 to 512 (an even number) for rc4, any nonzero even number for xor, 32 or 64 for salsa20, 64 for xsalsa20, chacha20, xchacha20 and chacha20-poly1305. Required by substitution, vigenere, beaufort, autokey, alberti, playfair, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, aes-passphrase, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent, cast5, openpgp, rabbit, rc4, xor, salsa20, xsalsa20, chacha20, xchacha20 and chacha20-poly1305; optional for polybius, adfgvx, bifid and straddling-checkerboard (the 28 cells row by row, each letter A-Z once and two fillers such as . and /)',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
   iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it). Openpgp encoding only: the random first block, 16 digits or 32 for AES (default random)',
   endian:
@@ -466,6 +466,9 @@ function nextStep(
   const [first] = found.ciphers
   if (first === 'vigenere') {
     return 'ciphers_key_recover with cipher vigenere searches the key; ciphers_period_estimate shows the key lengths.'
+  }
+  if (first === 'substitution') {
+    return 'ciphers_key_recover with cipher substitution searches the mixed alphabet; ciphers_caesar_brute ranks all 25 shifts.'
   }
   if (first === 'caesar' && found.options === undefined) {
     return 'ciphers_caesar_brute ranks all 25 shifts; ciphers_key_recover with cipher substitution solves a mixed alphabet.'
@@ -911,7 +914,7 @@ const keyRecoveryTexts: Readonly<
   ],
   substitution: [
     'Substitution',
-    'The key is the cipher letter of each plaintext letter A to Z; ? marks a letter the text never uses.',
+    'The key is the cipher letter of each plaintext letter A to Z, ? where the text never uses one: ciphers_decode with cipher substitution and the key reads the text.',
   ],
   columnar: ['Columnar', 'ciphers_decode with cipher columnar and the key reads the text.'],
 }

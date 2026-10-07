@@ -2,6 +2,7 @@ export type {
   CipherResult,
   CipherBaseOptions,
   CaesarOptions,
+  SubstitutionOptions,
   VigenereOptions,
   BeaufortOptions,
   AutokeyOptions,

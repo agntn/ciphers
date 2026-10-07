@@ -4,6 +4,7 @@ import { builtinCiphers, create, type CipherCategory, type CipherInfo } from "@a
 export const FAMILIES: ReadonlyArray<{ key: CipherInfo["family"]; label: string }> = [
   { key: "substitution-shift", label: "Shift" },
   { key: "substitution-reflection", label: "Reflection" },
+  { key: "substitution-keyed", label: "Mixed alphabet" },
   { key: "substitution-multiplicative", label: "Multiplicative" },
   { key: "polyalphabetic", label: "Polyalphabetic" },
   { key: "digraph", label: "Digraph" },
@@ -27,6 +28,7 @@ const PRESENTATION: Record<
   rot13: { icon: "i-lucide-rotate-ccw", blurb: "Caesar with shift 13, its own inverse", sample: "HELLO WORLD" },
   rot47: { icon: "i-lucide-hash", blurb: "Shift 47 over printable ASCII", sample: "Hello, World! 123" },
   atbash: { icon: "i-lucide-flip-horizontal-2", blurb: "Mirror the alphabet, A becomes Z", sample: "ATTACK AT DAWN" },
+  substitution: { icon: "i-lucide-replace", blurb: "One shuffled alphabet, keyed by a word", sample: "FLEE AT ONCE", options: { key: "ZEBRAS" } },
   vigenere: { icon: "i-lucide-key-round", blurb: "A keyword picks the shift per letter", sample: "ATTACK AT DAWN", options: { key: "LEMON" } },
   beaufort: { icon: "i-lucide-key-round", blurb: "Subtract the text from a repeating key", sample: "DCODE", options: { key: "KEY" } },
   autokey: { icon: "i-lucide-key-round", blurb: "The plaintext extends the primer key", sample: "ATTACK AT DAWN", options: { key: "QUEENLY" } },

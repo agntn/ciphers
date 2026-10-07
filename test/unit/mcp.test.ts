@@ -1299,6 +1299,13 @@ Co2B
     expect(await guess({ text: transposed })).toContain(
       'ciphers_key_recover with cipher columnar searches a columnar key.',
     )
+    const mixed = create('substitution').encode(
+      'To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex.',
+      { key: 'BAKER' },
+    ).text
+    expect(await guess({ text: mixed })).toContain(
+      'Next: ciphers_key_recover with cipher substitution searches the mixed alphabet; ciphers_caesar_brute ranks all 25 shifts.',
+    )
     expect(await guess({ text: '69c4e0d86a7b0430d8cdb78070b4c55a' })).toContain(
       'Next: ciphers_decode with cipher aes, which needs key.',
     )

@@ -30,6 +30,12 @@ export interface CaesarOptions extends CipherBaseOptions {
   shift?: number
 }
 
+/** Monoalphabetic substitution options. */
+export interface SubstitutionOptions extends CipherBaseOptions {
+  /** 26 letters with `?` for an unknown one, or a keyword the rest of A-Z follows. */
+  key: string
+}
+
 /** Vigenère cipher options. */
 export interface VigenereOptions extends CipherBaseOptions {
   /** Keyword (letters only, case-insensitive). Required. */

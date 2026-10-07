@@ -111,10 +111,13 @@ describe('recoverKey', () => {
 
   it('solves a mixed alphabet substitution', () => {
     const alphabet = 'QWERTYUIOPASDFGHJKLZXCVBNM'
-    const [key, text] = top(substitute(SCANDAL, alphabet), { cipher: 'substitution' })
+    const ciphertext = substitute(SCANDAL, alphabet)
+    const [key, text] = top(ciphertext, { cipher: 'substitution' })
 
     expect(text).toBe(SCANDAL)
     expect(key).toBe(visibleKey(alphabet, SCANDAL))
+    expect(create('substitution').encode(SCANDAL, { key: alphabet }).text).toBe(ciphertext)
+    expect(create('substitution').decode(ciphertext, { key }).text).toBe(SCANDAL)
   })
 
   it('reads most of a short Atbash text, ? for the letters it lacks', () => {

@@ -13,6 +13,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "columnar",
   "autokey",
   "affine",
+  "substitution",
   "bifid",
   "aes-cbc-mac",
   "route",

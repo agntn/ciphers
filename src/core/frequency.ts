@@ -311,6 +311,53 @@ export function meanPairLift(text: string, language: FrequencyLanguage): number 
   return lift / (upper.length - 1)
 }
 
+/** Share of pairs a two-square lets through: two letters share a column one time in five. */
+const TRANSPARENT_SHARE = 0.2
+
+/**
+ * How often each letter opens and closes a pair, as a share of all pairs.
+ *
+ * @param pairs - Two-letter strings.
+ * @returns {[Map<string, number>, Map<string, number>]} Shares of first and of second letters.
+ */
+function pairMarginals(pairs: readonly string[]): [Map<string, number>, Map<string, number>] {
+  const firsts = new Map<string, number>()
+  const seconds = new Map<string, number>()
+  for (const pair of pairs) {
+    firsts.set(pair[0]!, (firsts.get(pair[0]!) ?? 0) + 1 / pairs.length)
+    seconds.set(pair[1]!, (seconds.get(pair[1]!) ?? 0) + 1 / pairs.length)
+  }
+  return [firsts, seconds]
+}
+
+/**
+ * How much likelier the pairs at even positions are if one in five is plain language.
+ *
+ * @param text - Ciphertext; only A-Z counts, case folded.
+ * @param language - Language whose pair table scores the pairs.
+ * @param reversed - Read each pair back to front, as a horizontal two-square lets it through.
+ * @returns {number | undefined} The mean, or `undefined` without a pair table or a whole pair.
+ */
+export function transparentPairScore(
+  text: string,
+  language: FrequencyLanguage,
+  reversed: boolean,
+): number | undefined {
+  const pairLogs = letterPairLogProbabilities[language]
+  const letters = text.toUpperCase().replaceAll(/[^A-Z]/g, '')
+  if (pairLogs === undefined || letters.length < 2) return undefined
+  const pairs = (letters.match(/../g) ?? []).map((pair) => (reversed ? pair[1]! + pair[0]! : pair))
+  const [firsts, seconds] = pairMarginals(pairs)
+  let score = 0
+  for (const pair of pairs) {
+    const apart = firsts.get(pair[0]!)! * seconds.get(pair[1]!)!
+    const mixed =
+      TRANSPARENT_SHARE * Math.exp(pairLogs.get(pair)!) + (1 - TRANSPARENT_SHARE) * apart
+    score += Math.log(mixed / apart)
+  }
+  return score / pairs.length
+}
+
 /**
  * Refuse a language without a frequency table.
  *

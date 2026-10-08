@@ -42,6 +42,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "rc4",
   "running-key",
   "four-square",
+  "two-square",
   "aes-cbc",
   "aes-cfb",
   "aes-ctr",

@@ -171,6 +171,30 @@ describe('Ciphers MCP server', () => {
     expect(ignored.isError).not.toBe(true)
   })
 
+  it('sets the two-square squares side by side through the protocol', async () => {
+    const client = await connectTestClient()
+    const aca = { cipher: 'two-square', key: 'DIALOGUE', secondKey: 'BIOGRAPHY' }
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { ...aca, text: 'IRRTEHMKGIMEQGRUNMMZSV', orientation: 'horizontal' },
+    })
+    expect(decoded).toEqual({ content: [{ type: 'text', text: 'ANOTHERDIGRAPHICSETUPX' }] })
+
+    const sideways = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { ...aca, text: 'IR', orientation: 'sideways' },
+    })
+    expect(sideways.isError).toBe(true)
+    expect(onlyText(sideways.content)).toContain('orientation')
+
+    const missing = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'two-square', key: 'DIALOGUE', secondKey: '1984', text: 'AN' },
+    })
+    expect(missing.isError).toBe(true)
+    expect(onlyText(missing.content)).toContain('/secondKey')
+  })
+
   it('refuses a running key shorter than the text through the protocol', async () => {
     const client = await connectTestClient()
     const arguments_ = { cipher: 'running-key', text: 'Flee at once', key: 'errors can' }

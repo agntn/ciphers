@@ -31,6 +31,7 @@ const PRESENTATION: Record<
   atbash: { icon: "i-lucide-flip-horizontal-2", blurb: "Mirror the alphabet, A becomes Z", sample: "ATTACK AT DAWN" },
   substitution: { icon: "i-lucide-replace", blurb: "One shuffled alphabet, keyed by a word", sample: "FLEE AT ONCE", options: { key: "ZEBRAS" } },
   vigenere: { icon: "i-lucide-key-round", blurb: "A keyword picks the shift per letter", sample: "ATTACK AT DAWN", options: { key: "LEMON" } },
+  gronsfeld: { icon: "i-lucide-hash", blurb: "A PIN for a key, every digit one shift", sample: "GRONSFELD", options: { key: "1234" } },
   beaufort: { icon: "i-lucide-key-round", blurb: "Subtract the text from a repeating key", sample: "DCODE", options: { key: "KEY" } },
   porta: { icon: "i-lucide-arrow-left-right", blurb: "Thirteen tables, each one trades the halves of A-Z", sample: "DEFEND THE EAST WALL", options: { key: "FORTIFICATION" } },
   autokey: { icon: "i-lucide-key-round", blurb: "The plaintext extends the primer key", sample: "ATTACK AT DAWN", options: { key: "QUEENLY" } },

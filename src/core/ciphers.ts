@@ -6,6 +6,7 @@ export const builtinCiphers = [
   'atbash',
   'substitution',
   'vigenere',
+  'gronsfeld',
   'beaufort',
   'porta',
   'autokey',

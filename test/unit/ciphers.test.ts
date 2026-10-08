@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 59 ciphers', () => {
-    expect(ciphers()).toHaveLength(59)
+  it('registers all 60 ciphers', () => {
+    expect(ciphers()).toHaveLength(60)
     for (const name of [
       'caesar',
       'rot13',
@@ -54,6 +54,7 @@ describe('registry', () => {
       'atbash',
       'substitution',
       'vigenere',
+      'gronsfeld',
       'beaufort',
       'porta',
       'autokey',
@@ -1422,6 +1423,7 @@ describe('resolveCipher', () => {
 describe('edge cases', () => {
   const keyOpts: Record<string, Record<string, unknown>> = {
     vigenere: { key: 'TEST' },
+    gronsfeld: { key: '1234' },
     substitution: { key: 'ZEBRAS' },
     beaufort: { key: 'TEST' },
     porta: { key: 'TEST' },
@@ -1518,6 +1520,7 @@ describe('edge cases', () => {
       'rot13',
       'atbash',
       'vigenere',
+      'gronsfeld',
       'beaufort',
       'porta',
       'autokey',
@@ -1550,6 +1553,63 @@ describe('edge cases', () => {
     // café: é preserved (not in A-Z/a-z), 🎉 preserved
     expect(result.text).toContain('🎉')
     expect(result.text).toContain('é')
+  })
+})
+
+describe('gronsfeld', () => {
+  const gronsfeld = create('gronsfeld')
+
+  /** Published vectors: https://www.dcode.fr/gronsfeld-cipher */
+  it('matches the two dCode examples', () => {
+    expect(gronsfeld.encode('GRONSFELD', { key: '1234' }).text).toBe('HTRRTHHPE')
+    expect(gronsfeld.decode('HTRRTHHPE', { key: '1234' }).text).toBe('GRONSFELD')
+    expect(gronsfeld.decode('EEREG', { key: '123' }).text).toBe('DCODE')
+    expect(gronsfeld.encode('DCODE', { key: '123' }).text).toBe('EEREG')
+  })
+
+  /** English Wikipedia: "a Gronsfeld key of 0123 is the same as a Vigenere key of ABCD". */
+  it('is Vigenère under the key that spells the digits from A', () => {
+    const text = 'Attack at dawn! Zebra, ŻÓŁW 42'
+    const vigenere = create('vigenere')
+    expect(gronsfeld.encode(text, { key: '0123' }).text).toBe(
+      vigenere.encode(text, { key: 'ABCD' }).text,
+    )
+    expect(gronsfeld.encode(text, { key: '9876543210' }).text).toBe(
+      vigenere.encode(text, { key: 'JIHGFEDCBA' }).text,
+    )
+  })
+
+  it('keeps a leading zero, advances the key only for ASCII letters and preserves case', () => {
+    const options = { key: '0123' }
+    const encoded = gronsfeld.encode('Hello, World! éſı', options)
+    expect(encoded.text).toBe('Hfnoo, Xqule! éſı')
+    expect(encoded.options).toEqual({ ...options, preserveCase: true, stripNonAlpha: false })
+    expect(gronsfeld.decode(encoded.text, options).text).toBe('Hello, World! éſı')
+    expect(
+      gronsfeld.encode('Hello, World!', { ...options, preserveCase: false, stripNonAlpha: true })
+        .text,
+    ).toBe('HFNOOXQULE')
+    expect(gronsfeld.encode('ZZZZ', { key: '0000' }).text).toBe('ZZZZ')
+  })
+
+  it('rejects a missing key and any key but digits', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => gronsfeld[operation]('A')).toThrow(MissingOptionError)
+      expect(() => gronsfeld[operation]('A', { key: '' })).toThrow(MissingOptionError)
+      for (const key of [1234, null, 'ABC', '12a', '1 2', '-1', '3.14', '١٢']) {
+        expect(() => gronsfeld[operation]('A', { key })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('advertises the digit key and ten shifts per key position', () => {
+    expect(gronsfeld.info()).toMatchObject({
+      name: 'gronsfeld',
+      selfInverse: false,
+      family: 'polyalphabetic',
+      keyspace: '10^keyLength',
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
   })
 })
 
@@ -6505,6 +6565,7 @@ describe('info().worksOn', () => {
   const options: Record<string, CipherBaseOptions> = {
     substitution: { key: 'ZEBRAS' },
     vigenere: { key: 'LEMON' },
+    gronsfeld: { key: '1234' },
     beaufort: { key: 'KEY' },
     porta: { key: 'FORTIFICATION' },
     autokey: { key: 'QUEENLY' },

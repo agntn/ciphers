@@ -42,6 +42,12 @@ export interface VigenereOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Gronsfeld cipher options. */
+export interface GronsfeldOptions extends CipherBaseOptions {
+  /** Repeating digits 0 to 9, one shift per letter. Required. */
+  key: string
+}
+
 /** Standard Beaufort cipher options. */
 export interface BeaufortOptions extends CipherBaseOptions {
   /** Repeating keyword; only ASCII letters are used, ignoring case. */

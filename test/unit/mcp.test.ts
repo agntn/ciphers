@@ -981,6 +981,8 @@ Co2B
       ['key', { cipher: 'nihilist', text: '37', square: 'ZEBRAS' }],
       ['key', { cipher: 'nihilist', text: '37', key: '123' }],
       ['key', { cipher: 'porta', text: 'abc' }],
+      ['key', { cipher: 'gronsfeld', text: 'abc' }],
+      ['key', { cipher: 'gronsfeld', text: 'abc', key: '12a' }],
       ['key', { cipher: 'porta', text: 'abc', key: '123' }],
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],

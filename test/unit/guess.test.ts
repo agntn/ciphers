@@ -133,6 +133,18 @@ describe('guessFamily', () => {
     )
   })
 
+  it('never puts four-square ahead of bifid, whatever the length', () => {
+    const encoded = create('four-square').encode(`${DICKENS} ${DICKENS}`, {
+      key: 'EXAMPLE',
+      secondKey: 'KEYWORD',
+    }).text
+    for (const length of [240, 260, 280]) {
+      const top = ranking(guessFamily(encoded.slice(0, length))).slice(0, 2)
+      expect(top.map((entry) => entry.split(':')[0])).toEqual(['bifid', 'four-square'])
+      expect(new Set(top.map((entry) => entry.split(':')[1])).size).toBe(1)
+    }
+  })
+
   it('keeps four-square one step behind Playfair when no pair doubles', () => {
     const encoded = create('playfair').encode(`${DICKENS} ${DICKENS}`, { key: 'MONARCHY' }).text
     expect(ranking(guessFamily(encoded))).toContain('four-square:medium')

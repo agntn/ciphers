@@ -561,10 +561,10 @@ function keyThatReads(reading: Readonly<Reading>): FamilyCandidate[] {
 }
 
 /**
- * Playfair and bifid: the 5×5 square leaves no J, and Playfair never pairs a letter with itself.
+ * Playfair, four-square and bifid: the 5×5 squares leave no J, and only Playfair never pairs a letter with itself.
  *
  * @param reading - The text.
- * @returns {FamilyCandidate[]} Either, both or nothing.
+ * @returns {FamilyCandidate[]} Any of the three, or nothing.
  */
 function square(reading: Readonly<Reading>): FamilyCandidate[] {
   const { symbols, letters, lift } = reading
@@ -572,28 +572,48 @@ function square(reading: Readonly<Reading>): FamilyCandidate[] {
   const upper = symbols.toUpperCase()
   const doubled = /^(?:..)*?(.)\1/.test(upper)
   const several = lift < ONE_ALPHABET
+  const even = letters % 2 === 0
+  const pairs = several ? byLetters(letters, 200, 60) : lower(byLetters(letters, 200, 60))
   const found: FamilyCandidate[] = []
-  if (letters % 2 === 0 && !doubled) {
-    const confidence = byLetters(letters, 200, 60)
+  if (even && !doubled) {
     found.push(
       candidate(
         ['playfair'],
-        several ? confidence : lower(confidence),
+        pairs,
         `${letters} letters, an even count with no J and no pair of the same letter twice.`,
       ),
     )
   }
-  if (letters < 40) return found
-  let confidence = byLetters(letters, 300, 100)
-  if (!doubled) confidence = lower(confidence)
+  if (letters >= 40) found.push(bifid(letters, doubled, several))
+  if (!even) return found
   found.push(
     candidate(
-      ['bifid'],
-      several ? confidence : 'low',
-      `No J in ${letters} letters, as a 5×5 square leaves it${several ? ', while several alphabets would use it' : ''}.`,
+      ['four-square'],
+      doubled ? pairs : lower(pairs),
+      doubled
+        ? `${letters} letters, an even count with no J, and a pair of the same letter twice, which four-square writes and Playfair never does.`
+        : `${letters} letters, an even count with no J, read in pairs as Playfair is.`,
     ),
   )
   return found
+}
+
+/**
+ * Bifid: no J, from 40 letters, and less sure without a doubled pair, which a Playfair text lacks too.
+ *
+ * @param letters - A-Z letters in the text.
+ * @param doubled - Whether a pair holds the same letter twice.
+ * @param several - Whether the counts are flatter than one alphabet's.
+ * @returns {FamilyCandidate} Bifid.
+ */
+function bifid(letters: number, doubled: boolean, several: boolean): FamilyCandidate {
+  let confidence = byLetters(letters, 300, 100)
+  if (!doubled) confidence = lower(confidence)
+  return candidate(
+    ['bifid'],
+    several ? confidence : 'low',
+    `No J in ${letters} letters, as a 5×5 square leaves it${several ? ', while several alphabets would use it' : ''}.`,
+  )
 }
 
 /**

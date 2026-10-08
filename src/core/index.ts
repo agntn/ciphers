@@ -15,6 +15,7 @@ export type {
   RouteOptions,
   AffineOptions,
   PlayfairOptions,
+  FourSquareOptions,
   HillOptions,
   PolybiusOptions,
   NihilistOptions,

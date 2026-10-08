@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 61 ciphers', () => {
-    expect(ciphers()).toHaveLength(61)
+  it('registers all 62 ciphers', () => {
+    expect(ciphers()).toHaveLength(62)
     for (const name of [
       'caesar',
       'rot13',
@@ -65,6 +65,7 @@ describe('registry', () => {
       'route',
       'affine',
       'playfair',
+      'four-square',
       'hill',
       'polybius',
       'nihilist',
@@ -514,6 +515,69 @@ describe('playfair', () => {
 
   it('empty string returns empty', () => {
     expect(playfair.encode('', { key: 'MONARCHY' }).text).toBe('')
+  })
+})
+
+describe('four-square', () => {
+  const fourSquare = create('four-square')
+  const squares = { key: 'zgptfoihmuwdrcnykeqaxvsbl', secondKey: 'mfnbdcrhsaxyogvituewlqzkp' }
+
+  /** Published vectors: http://practicalcryptography.com/ciphers/classical-era/four-square/ */
+  it('takes ATTACK AT DAWN to TIYBFHTIZBSY under the Practical Cryptography squares', () => {
+    expect(fourSquare.encode('attack at dawn', squares).text).toBe('TIYBFHTIZBSY')
+    expect(fourSquare.decode('TIYBFHTIZBSY', squares).text).toBe('ATTACKATDAWN')
+  })
+
+  /** Published vectors: the pycipher example on the same page. */
+  it('writes the doubled pairs Playfair never would', () => {
+    const ciphertext = 'FBUMCNESFDPIKKZXCXMIUNZNQUNM'
+    expect(fourSquare.encode('defend the east wall of the castle', squares).text).toBe(ciphertext)
+    expect(fourSquare.decode(ciphertext, squares).text).toBe('DEFENDTHEEASTWALLOFTHECASTLE')
+    expect(ciphertext).toMatch(/^(?:..)*?(.)\1/)
+  })
+
+  it('reads a keyword the way Playfair builds its square', () => {
+    const keywords = { key: 'Zgpt, foih!', secondKey: 'MFNB DCRH' }
+    expect(fourSquare.encode('ATTACK AT DAWN', keywords).text).toBe(
+      fourSquare.encode('ATTACK AT DAWN', {
+        key: 'ZGPTFOIHABCDEKLMNQRSUVWXY',
+        secondKey: 'MFNBDCRHAEGIKLOPQSTUVWXYZ',
+      }).text,
+    )
+  })
+
+  it('folds J into I and pads an odd length with X', () => {
+    const keys = { key: 'EXAMPLE', secondKey: 'KEYWORD' }
+    expect(fourSquare.encode('Jumbo', keys).text).toBe(fourSquare.encode('IUMBOX', keys).text)
+    expect(fourSquare.decode(fourSquare.encode('Jumbo', keys).text, keys).text).toBe('IUMBOX')
+    expect(fourSquare.decode('fy gm, KJ', keys).text).toBe(fourSquare.decode('FYGMKI', keys).text)
+    expect(fourSquare.encode('', keys).text).toBe('')
+  })
+
+  it('refuses ciphertext with an odd number of letters', () => {
+    expect(() => fourSquare.decode('TIY', squares)).toThrow(CipherError)
+    expect(() => fourSquare.decode('TIY', squares)).toThrow(/3 letters don't split into pairs/)
+  })
+
+  it('needs both keywords, each with a letter', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => fourSquare[operation]('AT', { secondKey: 'KEY' })).toThrow(MissingOptionError)
+      expect(() => fourSquare[operation]('AT', { key: 'KEY' })).toThrow(/secondKey/)
+      expect(() => fourSquare[operation]('AT', { key: 'KEY', secondKey: '' })).toThrow(
+        MissingOptionError,
+      )
+      for (const bad of [
+        { key: '123', secondKey: 'KEY' },
+        { key: 'KEY', secondKey: 'ÉÉ' },
+        { key: 7, secondKey: 'KEY' },
+      ]) {
+        expect(() => fourSquare[operation]('AT', bad)).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('reports both keywords back', () => {
+    expect(fourSquare.encode('AT', squares).options).toEqual(squares)
   })
 })
 
@@ -1432,6 +1496,7 @@ describe('edge cases', () => {
     autokey: { key: 'TEST' },
     alberti: { key: 'TEST', period: 4 },
     playfair: { key: 'TEST' },
+    'four-square': { key: 'TEST', secondKey: 'CASE' },
     hill: { key: 'TEST' },
     nihilist: { key: 'TEST' },
     columnar: { key: 'TEST' },
@@ -6648,6 +6713,7 @@ describe('info().worksOn', () => {
     'running-key': { key: 'errors can occur' },
     alberti: { key: 'ALBERTI', period: 4 },
     playfair: { key: 'PLAYFAIR EXAMPLE' },
+    'four-square': { key: 'EXAMPLE', secondKey: 'KEYWORD' },
     hill: { key: 'DDCF' },
     nihilist: { key: 'RUSSIAN', square: 'ZEBRAS' },
     columnar: { key: 'ZEBRA' },

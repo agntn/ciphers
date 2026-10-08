@@ -132,6 +132,17 @@ describe('guessFamily', () => {
     expect(hill(create('atbash').encode(DICKENS, { stripNonAlpha: true }).text)).toEqual([])
   })
 
+  it("points at Nihilist for Wikipedia's sums, and lets a 1 at the end rule it out", () => {
+    const encoded = create('nihilist').encode(DICKENS, { key: 'RUSSIAN', square: 'ZEBRAS' }).text
+    expect(ranking(guessFamily(encoded))).toEqual(['nihilist:medium'])
+    expect(guessFamily(encoded).candidates[0]?.families).toEqual(['fractionation'])
+    expect(ranking(guessFamily('37 106 62'))).toEqual(['nihilist:low'])
+    expect(ranking(guessFamily('37 106 61'))).toEqual([])
+    expect(ranking(guessFamily('37 111 62'))).toEqual([])
+    const low = create('nihilist').encode('AAAAAAAAAA', { key: 'E' }).text
+    expect(ranking(guessFamily(low))).toEqual(['a1z26:high', 'nihilist:medium'])
+  })
+
   it('reads punctuation in place of letters as ROT47', () => {
     expect(ranking(guessFamily(create('rot47').encode(DICKENS).text))).toEqual(['rot47:high'])
   })

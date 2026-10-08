@@ -114,6 +114,14 @@ export interface PolybiusOptions extends CipherBaseOptions {
   key?: string
 }
 
+/** Nihilist cipher options. */
+export interface NihilistOptions extends CipherBaseOptions {
+  /** Keyword added to the text, letter by letter as square numbers. Required. */
+  key: string
+  /** Optional keyword for the 5×5 square. */
+  square?: string
+}
+
 /** ADFGVX cipher options. */
 export interface AdfgvxOptions extends CipherBaseOptions {
   /** Optional keyword for the 6×6 grid. */

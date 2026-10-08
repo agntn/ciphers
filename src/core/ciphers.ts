@@ -15,6 +15,7 @@ export const builtinCiphers = [
   'playfair',
   'hill',
   'polybius',
+  'nihilist',
   'morse',
   'bacon',
   'tap-code',

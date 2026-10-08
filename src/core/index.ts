@@ -14,6 +14,7 @@ export type {
   PlayfairOptions,
   HillOptions,
   PolybiusOptions,
+  NihilistOptions,
   AdfgvxOptions,
   StraddlingCheckerboardOptions,
   BaconOptions,

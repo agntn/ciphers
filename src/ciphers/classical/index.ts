@@ -21,6 +21,7 @@ import { Polybius } from './polybius.ts'
 import { Porta } from './porta.ts'
 import { RailFence } from './rail-fence.ts'
 import { Route } from './route.ts'
+import { RunningKey } from './running-key.ts'
 import { StraddlingCheckerboard } from './straddling-checkerboard.ts'
 import { Substitution } from './substitution.ts'
 import { Rot13 } from './rot13.ts'
@@ -41,6 +42,7 @@ export const classical: readonly CipherConstructor[] = [
   Beaufort,
   Porta,
   Autokey,
+  RunningKey,
   Trithemius,
   Alberti,
   RailFence,

@@ -142,6 +142,23 @@ describe('Ciphers MCP server', () => {
     expect(decoded.isError).not.toBe(true)
   })
 
+  it('refuses a running key shorter than the text through the protocol', async () => {
+    const client = await connectTestClient()
+    const arguments_ = { cipher: 'running-key', text: 'Flee at once', key: 'errors can' }
+
+    const refused = await client.callTool({ name: 'ciphers_encode', arguments: arguments_ })
+    expect(refused.isError).toBe(true)
+    expect(onlyText(refused.content)).toContain(
+      'Invalid option key=9 letters: the text has 10, and a running key never goes round again',
+    )
+
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { ...arguments_, key: 'errors can occur' },
+    })
+    expect(encoded).toEqual({ content: [{ type: 'text', text: 'Jcvs rl qnps' }] })
+  })
+
   it('discovers and executes Beaufort through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'beaufort' } })
@@ -983,6 +1000,8 @@ Co2B
       ['key', { cipher: 'porta', text: 'abc' }],
       ['key', { cipher: 'gronsfeld', text: 'abc' }],
       ['key', { cipher: 'gronsfeld', text: 'abc', key: '12a' }],
+      ['key', { cipher: 'running-key', text: 'abc' }],
+      ['key', { cipher: 'running-key', text: 'abc', key: '123' }],
       ['key', { cipher: 'porta', text: 'abc', key: '123' }],
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],

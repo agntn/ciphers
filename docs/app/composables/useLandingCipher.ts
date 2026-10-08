@@ -40,6 +40,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "gronsfeld",
   "rot47",
   "rc4",
+  "running-key",
   "aes-cbc",
   "aes-cfb",
   "aes-ctr",

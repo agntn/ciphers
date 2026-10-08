@@ -100,7 +100,7 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     key: { pattern: /^[A-Za-z]+$/, error: 'must contain ASCII letters only' },
   },
   {
-    ciphers: ['vigenere', 'beaufort', 'porta', 'autokey', 'playfair', 'nihilist'],
+    ciphers: ['vigenere', 'beaufort', 'porta', 'autokey', 'running-key', 'playfair', 'nihilist'],
     required: ['key'],
     key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
   },
@@ -528,7 +528,8 @@ export const encodeTool = defineTool({
   description: 'Encode text with an exact-name built-in cipher. ciphers_info lists the options.',
   snippet: 'Use ciphers_encode to encode text with local educational and puzzle ciphers.',
   guidelines: [
-    'Vigenère, Gronsfeld (digits 0 to 9 only), Beaufort, Porta, Autokey, Playfair, Nihilist and Columnar need key, Alberti needs key and period.',
+    'Vigenère, Gronsfeld (digits 0 to 9 only), Beaufort, Porta, Autokey, Running key, Playfair, Nihilist and Columnar need key, Alberti needs key and period.',
+    'Running key (running-key) never repeats its key: the passage needs at least one ASCII letter per letter of the text, and the letters past that are left unused.',
     'Porta (porta) follows the ACA table; a text from dCode with its default table needs rotation right.',
     'Route (route) needs width, the cells per row. Decoding reads the grid along path from corner, so a grid copied row by row from a puzzle goes to ciphers_decode. Line breaks are not cells.',
     'A1Z26 (a1z26) turns letters into their numbers, 1 to 26, joined by separator (default -). With zero it is the single digit form instead: A to I for 1 to 9 and zero for 0, so letters like BEF go to ciphers_decode and come back as 256.',

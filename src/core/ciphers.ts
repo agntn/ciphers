@@ -10,6 +10,7 @@ export const builtinCiphers = [
   'beaufort',
   'porta',
   'autokey',
+  'running-key',
   'trithemius',
   'alberti',
   'rail-fence',

@@ -35,7 +35,16 @@ describe('guessFamily', () => {
     expect(guess.letters).toBe(313)
     expect(guess.candidates[0]).toMatchObject({
       families: ['polyalphabetic'],
-      ciphers: ['vigenere', 'gronsfeld', 'beaufort', 'porta', 'autokey', 'trithemius', 'alberti'],
+      ciphers: [
+        'vigenere',
+        'gronsfeld',
+        'beaufort',
+        'porta',
+        'autokey',
+        'running-key',
+        'trithemius',
+        'alberti',
+      ],
       confidence: 'high',
     })
   })

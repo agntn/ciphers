@@ -35,6 +35,7 @@ const PRESENTATION: Record<
   beaufort: { icon: "i-lucide-key-round", blurb: "Subtract the text from a repeating key", sample: "DCODE", options: { key: "KEY" } },
   porta: { icon: "i-lucide-arrow-left-right", blurb: "Thirteen tables, each one trades the halves of A-Z", sample: "DEFEND THE EAST WALL", options: { key: "FORTIFICATION" } },
   autokey: { icon: "i-lucide-key-round", blurb: "The plaintext extends the primer key", sample: "ATTACK AT DAWN", options: { key: "QUEENLY" } },
+  "running-key": { icon: "i-lucide-book-text", blurb: "A page of a book as the key, never repeated", sample: "FLEE AT ONCE", options: { key: "errors can occur in several places" } },
   trithemius: { icon: "i-lucide-list-ordered", blurb: "Shift 0, 1, 2, 3 and on", sample: "HELLO WORLD" },
   alberti: { icon: "i-lucide-disc-3", blurb: "A keyed disk that turns every few letters", sample: "ATTACK AT DAWN", options: { key: "ALBERTI", period: 4 } },
   "rail-fence": { icon: "i-lucide-activity", blurb: "Zigzag over rails, read row by row", sample: "WE ARE DISCOVERED", options: { rails: 3 } },

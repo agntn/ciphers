@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 58 ciphers', () => {
-    expect(ciphers()).toHaveLength(58)
+  it('registers all 59 ciphers', () => {
+    expect(ciphers()).toHaveLength(59)
     for (const name of [
       'caesar',
       'rot13',
@@ -55,6 +55,7 @@ describe('registry', () => {
       'substitution',
       'vigenere',
       'beaufort',
+      'porta',
       'autokey',
       'trithemius',
       'alberti',
@@ -1423,6 +1424,7 @@ describe('edge cases', () => {
     vigenere: { key: 'TEST' },
     substitution: { key: 'ZEBRAS' },
     beaufort: { key: 'TEST' },
+    porta: { key: 'TEST' },
     autokey: { key: 'TEST' },
     alberti: { key: 'TEST', period: 4 },
     playfair: { key: 'TEST' },
@@ -1517,6 +1519,7 @@ describe('edge cases', () => {
       'atbash',
       'vigenere',
       'beaufort',
+      'porta',
       'autokey',
       'trithemius',
       'alberti',
@@ -1613,6 +1616,100 @@ describe('beaufort', () => {
       selfInverse: true,
       family: 'polyalphabetic',
       options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('porta', () => {
+  const porta = create('porta')
+
+  /** Published vector: http://practicalcryptography.com/ciphers/porta-cipher/ */
+  it('matches the ACA example in both directions', () => {
+    const options = { key: 'FORTIFICATION' }
+    const plain = 'DEFENDTHEEASTWALLOFTHECASTLE'
+    const cipher = 'SYNNJSCVRNRLAHUTUKUCVRYRLANY'
+    expect(porta.encode(plain, options).text).toBe(cipher)
+    expect(porta.decode(cipher, options).text).toBe(plain)
+    expect(porta.encode(cipher, options).text).toBe(plain)
+  })
+
+  /** Published tableau: http://practicalcryptography.com/ciphers/porta-cipher/ */
+  it('builds the ACA tables, one per pair of key letters', () => {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const rows: Record<string, string> = {
+      A: 'NOPQRSTUVWXYZABCDEFGHIJKLM',
+      D: 'OPQRSTUVWXYZNMABCDEFGHIJKL',
+      M: 'TUVWXYZNOPQRSHIJKLMABCDEFG',
+      Z: 'ZNOPQRSTUVWXYBCDEFGHIJKLMA',
+    }
+    for (const [key, row] of Object.entries(rows)) {
+      expect(porta.encode(alphabet, { key }).text).toBe(row)
+    }
+  })
+
+  /** Published vector: https://www.dcode.fr/porta-cipher */
+  it('turns the other way with rotation right, as dCode does', () => {
+    const options = { key: 'PORTA', rotation: 'right' }
+    expect(porta.encode('DCODE', options).text).toBe('WVJUR')
+    expect(porta.decode('WVJUR', options).text).toBe('DCODE')
+    expect(porta.decode('WVJUR', options).options).toEqual({
+      ...options,
+      preserveCase: true,
+      stripNonAlpha: false,
+    })
+    expect(porta.encode('DCODE', { key: 'PORTA' }).text).not.toBe('WVJUR')
+  })
+
+  it('advances the key only for ASCII letters and preserves case', () => {
+    const options = { key: 'Forti-fication' }
+    const encoded = porta.encode('Defend the east wall! éſı', options)
+    expect(encoded.text).toBe('Synnjs cvr nrla hutu! éſı')
+    expect(encoded.options).toEqual({
+      ...options,
+      rotation: 'left',
+      preserveCase: true,
+      stripNonAlpha: false,
+    })
+    expect(porta.decode(encoded.text, options).text).toBe('Defend the east wall! éſı')
+    expect(
+      porta.encode('Defend the east wall!', {
+        ...options,
+        preserveCase: false,
+        stripNonAlpha: true,
+      }).text,
+    ).toBe('SYNNJSCVRNRLAHUTU')
+  })
+
+  it('roundtrips the alphabet under both rotations', () => {
+    const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz'
+    for (const rotation of ['left', 'right']) {
+      const options = { key: 'ORANGE', rotation }
+      expect(porta.decode(porta.encode(text, options).text, options).text).toBe(text)
+    }
+  })
+
+  it('rejects missing keys, keys without ASCII letters and unknown rotations', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => porta[operation]('A')).toThrow(MissingOptionError)
+      for (const key of [123, null, '123 !', 'éſıK']) {
+        expect(() => porta[operation]('A', { key })).toThrow(InvalidOptionError)
+      }
+      for (const rotation of ['up', 'LEFT', 1]) {
+        expect(() => porta[operation]('A', { key: 'K', rotation })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('advertises the key, the rotation and the reciprocal transformation', () => {
+    expect(porta.info()).toMatchObject({
+      name: 'porta',
+      selfInverse: true,
+      family: 'polyalphabetic',
+      keyspace: '13^keyLength',
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'rotation', type: 'string', required: false, default: 'left' },
+      ],
     })
   })
 })
@@ -6409,6 +6506,7 @@ describe('info().worksOn', () => {
     substitution: { key: 'ZEBRAS' },
     vigenere: { key: 'LEMON' },
     beaufort: { key: 'KEY' },
+    porta: { key: 'FORTIFICATION' },
     autokey: { key: 'QUEENLY' },
     alberti: { key: 'ALBERTI', period: 4 },
     playfair: { key: 'PLAYFAIR EXAMPLE' },

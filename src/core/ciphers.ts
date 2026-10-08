@@ -7,6 +7,7 @@ export const builtinCiphers = [
   'substitution',
   'vigenere',
   'beaufort',
+  'porta',
   'autokey',
   'trithemius',
   'alberti',

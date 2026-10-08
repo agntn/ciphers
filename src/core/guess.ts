@@ -75,7 +75,14 @@ const AFFINE_INVERSES: ReadonlyArray<readonly [a: number, inverse: number]> = [
 ]
 
 const MONOALPHABETIC = ['caesar', 'atbash', 'affine'] as const
-const POLYALPHABETIC = ['vigenere', 'beaufort', 'autokey', 'trithemius', 'alberti'] as const
+const POLYALPHABETIC = [
+  'vigenere',
+  'beaufort',
+  'porta',
+  'autokey',
+  'trithemius',
+  'alberti',
+] as const
 const BLOCK_16 = ['aes', 'aes-cbc', 'aes-lrw', 'rijndael', 'serpent', 'mars', 'lucifer'] as const
 const BLOCK_8 = [
   'des',

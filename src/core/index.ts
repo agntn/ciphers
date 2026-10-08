@@ -5,6 +5,7 @@ export type {
   SubstitutionOptions,
   VigenereOptions,
   BeaufortOptions,
+  PortaOptions,
   AutokeyOptions,
   AlbertiOptions,
   EnigmaOptions,

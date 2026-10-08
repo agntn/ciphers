@@ -48,6 +48,14 @@ export interface BeaufortOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Porta cipher options. */
+export interface PortaOptions extends CipherBaseOptions {
+  /** Repeating keyword; only ASCII letters are used, ignoring case. Required. */
+  key: string
+  /** Which way the N-Z half turns from table to table: `left` (ACA, default) or `right` (dCode). */
+  rotation?: 'left' | 'right'
+}
+
 /** Autokey cipher options, using plaintext to extend the primer. */
 export interface AutokeyOptions extends CipherBaseOptions {
   /** Primer keyword; only ASCII letters are used, ignoring case. */

@@ -980,6 +980,8 @@ Co2B
       ['key', { cipher: 'hill', text: 'abc', key: 'DDCFX' }],
       ['key', { cipher: 'nihilist', text: '37', square: 'ZEBRAS' }],
       ['key', { cipher: 'nihilist', text: '37', key: '123' }],
+      ['key', { cipher: 'porta', text: 'abc' }],
+      ['key', { cipher: 'porta', text: 'abc', key: '123' }],
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
       ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],

@@ -359,6 +359,7 @@ const cipherInput = Type.Object(
     rotation: Type.Optional(
       Type.Enum(['left', 'right'], { description: OPTION_DESCRIPTIONS.rotation }),
     ),
+    omit: Type.Optional(Type.Enum(['j', 'q'], { description: OPTION_DESCRIPTIONS.omit })),
     iv: Type.Optional(
       Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.iv }),
     ),
@@ -548,6 +549,7 @@ export const encodeTool = defineTool({
     'Vigenère, Gronsfeld (digits 0 to 9 only), Beaufort, Porta, Autokey, Running key, Playfair, Nihilist and Columnar need key, Alberti needs key and period, Four-square (four-square) needs key and secondKey.',
     'Running key (running-key) never repeats its key: the passage needs at least one ASCII letter per letter of the text, and the letters past that are left unused.',
     'Porta (porta) follows the ACA table; a text from dCode with its default table needs rotation right.',
+    'Four-square (four-square) folds J into I; squares without Q, as on the English Wikipedia page, need omit q.',
     'Route (route) needs width, the cells per row. Decoding reads the grid along path from corner, so a grid copied row by row from a puzzle goes to ciphers_decode. Line breaks are not cells.',
     'A1Z26 (a1z26) turns letters into their numbers, 1 to 26, joined by separator (default -). With zero it is the single digit form instead: A to I for 1 to 9 and zero for 0, so letters like BEF go to ciphers_decode and come back as 256.',
     'Book cipher (book) needs book, the whole text both sides count in. Decoding reads every number in order, one per address, or two or three with address line-word or page-line-word, and pick letter takes first letters, as Beale cipher 2 does. Encoding takes the next matching word each time, so a repeated letter gets a new number.',

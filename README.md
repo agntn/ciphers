@@ -166,7 +166,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **rail-fence**              | transposition               |      ✗       | `--rails` (default 3)                                      |
 | **affine**                  | substitution-multiplicative |      ✗       | `--a` (multiplier), `--b` (shift)                          |
 | **playfair**                | digraph                     |      ✗       | `--key` (required)                                         |
-| **four-square**             | digraph                     |      ✗       | `--key`, `--second-key` (both required)                    |
+| **four-square**             | digraph                     |      ✗       | `--key`, `--second-key` (both required), `--omit` (j or q) |
 | **hill**                    | polygraphic                 |      ✗       | `--key` (4 or 9 letters, required)                         |
 | **polybius**                | fractionation               |      ✗       | `--key` (optional)                                         |
 | **nihilist**                | fractionation               |      ✗       | `--key` (required), `--square` (optional)                  |

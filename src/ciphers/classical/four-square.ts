@@ -6,22 +6,54 @@ import {
   MissingOptionError,
   normalizeError,
 } from '../../core/errors.ts'
-import { buildPolybiusSquare, upperCase } from '../../core/utils.ts'
+import { getOpt, upperCase } from '../../core/utils.ts'
 
 /** The letter that fills a short last pair. */
 const PADDING = 'X'
 
-/** The plain square, A-Z without J, row by row. */
-const PLAIN = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'
+/** The letter the squares leave out: J folds into I, Q drops out. */
+type Omitted = 'j' | 'q'
+
+/** The plain square for each omitted letter, row by row. */
+const PLAIN: Readonly<Record<Omitted, string>> = {
+  j: 'ABCDEFGHIKLMNOPQRSTUVWXYZ',
+  q: 'ABCDEFGHIJKLMNOPRSTUVWXYZ',
+}
+
+/**
+ * Capital letters with the omitted one gone: J turns into I, Q vanishes.
+ *
+ * @param letters - Capitals A-Z.
+ * @param omit - The letter the squares leave out.
+ * @returns {string} Letters that all sit in a 25-letter square.
+ */
+function fold(letters: string, omit: Omitted): string {
+  return omit === 'j' ? letters.replaceAll('J', 'I') : letters.replaceAll('Q', '')
+}
 
 /**
  * A keyed square as its 25 letters row by row, built as Playfair builds its table.
  *
  * @param key - Keyword.
- * @returns {string} 25 letters, J left out.
+ * @param omit - The letter the square leaves out.
+ * @returns {string} The keyword's letters, repeats dropped, then the rest of the plain square.
  */
-function keyedSquare(key: string): string {
-  return buildPolybiusSquare(key).square.flat().join('')
+function keyedSquare(key: string, omit: Omitted): string {
+  const letters = fold(key.toUpperCase().replaceAll(/[^A-Z]/g, ''), omit)
+  return [...new Set(letters + PLAIN[omit])].join('')
+}
+
+/**
+ * The `omit` option, J unless it says Q.
+ *
+ * @param options - The call's options.
+ * @returns {Omitted} The letter the squares leave out.
+ * @throws {InvalidOptionError} On anything but `j` or `q`.
+ */
+function omitted(options: Readonly<CipherBaseOptions>): Omitted {
+  const omit = getOpt<unknown>(options, 'omit', 'j')
+  if (omit !== 'j' && omit !== 'q') throw new InvalidOptionError('omit', omit, 'must be j or q')
+  return omit
 }
 
 /**
@@ -44,17 +76,16 @@ function keyword(options: Readonly<CipherBaseOptions>, name: 'key' | 'secondKey'
 }
 
 /**
- * The letters of the text, J as I, cut into pairs; encoding pads a short last pair with X.
+ * The letters of the text, folded into the squares, in pairs; encoding pads a short one with X.
  *
  * @param text - Plaintext or ciphertext.
  * @param operation - Only `encode` pads.
+ * @param omit - The letter the squares leave out.
  * @returns {string[]} Pairs of letters from the 25-letter alphabet.
  * @throws {CipherError} On ciphertext with an odd number of letters.
  */
-function pairs(text: string, operation: 'encode' | 'decode'): string[] {
-  let letters = upperCase(text)
-    .replaceAll(/[^A-Z]/g, '')
-    .replaceAll('J', 'I')
+function pairs(text: string, operation: 'encode' | 'decode', omit: Omitted): string[] {
+  let letters = fold(upperCase(text).replaceAll(/[^A-Z]/g, ''), omit)
   if (letters.length % 2 !== 0) {
     if (operation === 'decode') {
       throw new CipherError(
@@ -94,14 +125,20 @@ function transform(
   try {
     const key = keyword(options, 'key')
     const secondKey = keyword(options, 'secondKey')
-    const plainSquares = [PLAIN, PLAIN] as const
-    const keyedSquares = [keyedSquare(key), keyedSquare(secondKey)] as const
+    const omit = omitted(options)
+    const plainSquares = [PLAIN[omit], PLAIN[omit]] as const
+    const keyedSquares = [keyedSquare(key, omit), keyedSquare(secondKey, omit)] as const
     const [from, to] =
       operation === 'encode' ? [plainSquares, keyedSquares] : [keyedSquares, plainSquares]
-    const output = pairs(text, operation)
+    const output = pairs(text, operation, omit)
       .map((pair) => corners(pair, from, to))
       .join('')
-    return { text: output, cipher: 'four-square', operation, options: { key, secondKey } }
+    return {
+      text: output,
+      cipher: 'four-square',
+      operation,
+      options: omit === 'q' ? { key, secondKey, omit } : { key, secondKey },
+    }
   } catch (error) {
     throw normalizeError(error, 'four-square')
   }
@@ -117,11 +154,11 @@ export class FourSquare extends Cipher {
       name: 'four-square',
       label: 'Four-square',
       description:
-        "Digraph substitution: Delastelle's two plain and two keyed 5×5 squares, each pair read across the corners (I/J share a cell)",
+        "Digraph substitution: Delastelle's two plain and two keyed 5×5 squares, each pair read across the corners (I/J share a cell, or Q is left out)",
       category: 'classical',
       family: 'digraph',
       selfInverse: false,
-      worksOn: 'A-Z in pairs, J as I, X pads an odd length, the rest dropped',
+      worksOn: 'A-Z in pairs, J as I (or Q dropped), X pads an odd length, the rest dropped',
       options: [
         {
           name: 'key',
@@ -136,6 +173,14 @@ export class FourSquare extends Cipher {
           required: true,
           description:
             'Keyword for the keyed square at the bottom left, which gives the second letter',
+        },
+        {
+          name: 'omit',
+          type: 'string',
+          required: false,
+          default: 'j',
+          description:
+            'The letter the squares leave out: j folds J into I, q drops Q from squares and text as Wikipedia does',
         },
       ],
       keyspace: '(25!)² ≈ 2.4×10⁵⁰',

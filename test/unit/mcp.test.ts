@@ -151,6 +151,19 @@ describe('Ciphers MCP server', () => {
     })
     expect(encoded).toEqual({ content: [{ type: 'text', text: 'TIYBFHTIZBSY' }] })
 
+    const wikipedia = { key: 'EXAMPLE', secondKey: 'KEYWORD', text: 'help me obi wan kenobi' }
+    const withoutQ = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'four-square', ...wikipedia, omit: 'q' },
+    })
+    expect(withoutQ).toEqual({ content: [{ type: 'text', text: 'FYGMKYHOBXMFKKKIMD' }] })
+    const capital = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'four-square', ...wikipedia, omit: 'Q' },
+    })
+    expect(capital.isError).toBe(true)
+    expect(onlyText(capital.content)).toContain('omit')
+
     const ignored = await client.callTool({
       name: 'ciphers_encode',
       arguments: { cipher: 'vigenere', text: 'abc', key: 'KEY', secondKey: '123' },

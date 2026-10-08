@@ -128,6 +128,8 @@ export interface FourSquareOptions extends CipherBaseOptions {
   key: string
   /** Keyword for the keyed square at the bottom left. Required. */
   secondKey: string
+  /** The letter the squares leave out: `j` folds J into I (default), `q` drops Q. */
+  omit?: 'j' | 'q'
 }
 
 /** Hill cipher options. */

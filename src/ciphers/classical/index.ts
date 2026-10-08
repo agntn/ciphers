@@ -17,6 +17,7 @@ import { Morse } from './morse.ts'
 import { Nihilist } from './nihilist.ts'
 import { Playfair } from './playfair.ts'
 import { Polybius } from './polybius.ts'
+import { Porta } from './porta.ts'
 import { RailFence } from './rail-fence.ts'
 import { Route } from './route.ts'
 import { StraddlingCheckerboard } from './straddling-checkerboard.ts'
@@ -36,6 +37,7 @@ export const classical: readonly CipherConstructor[] = [
   Substitution,
   Vigenere,
   Beaufort,
+  Porta,
   Autokey,
   Trithemius,
   Alberti,

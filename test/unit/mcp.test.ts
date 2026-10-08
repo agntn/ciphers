@@ -1068,6 +1068,8 @@ Co2B
         'secondKey',
         { cipher: 'quagmire-4', text: 'abc', key: 'SENSORY', secondKey: '1', indicator: 'EXTRA' },
       ],
+      ['secondKey', { cipher: 'chaocipher', text: 'abc', key: 'CHAOS' }],
+      ['key', { cipher: 'chaocipher', text: 'abc', key: '1', secondKey: 'BYRNE' }],
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
       ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],

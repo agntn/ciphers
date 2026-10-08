@@ -9,6 +9,7 @@ import { Bacon } from './bacon.ts'
 import { Book } from './book.ts'
 import { Beaufort } from './beaufort.ts'
 import { Bifid } from './bifid.ts'
+import { Chaocipher } from './chaocipher.ts'
 import { Caesar } from './caesar.ts'
 import { Columnar } from './columnar.ts'
 import { Enigma } from './enigma.ts'
@@ -55,6 +56,7 @@ export const classical: readonly CipherConstructor[] = [
   Quagmire2,
   Quagmire3,
   Quagmire4,
+  Chaocipher,
   RailFence,
   Affine,
   Playfair,

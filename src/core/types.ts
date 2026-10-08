@@ -98,6 +98,14 @@ export interface Quagmire4Options extends QuagmireOptions {
   secondKey: string
 }
 
+/** Chaocipher options. */
+export interface ChaocipherOptions extends CipherBaseOptions {
+  /** The left (ciphertext) alphabet: 26 letters, or a keyword the rest of A-Z follows. Required. */
+  key: string
+  /** The right (plaintext) alphabet: 26 letters, or a keyword the rest of A-Z follows. Required. */
+  secondKey: string
+}
+
 /** Enigma M3 options. */
 export interface EnigmaOptions extends CipherBaseOptions {
   /** Initial rotor positions, left to right. Default: AAA. */

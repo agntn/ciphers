@@ -48,6 +48,7 @@ describe('guessFamily', () => {
         'quagmire-2',
         'quagmire-3',
         'quagmire-4',
+        'chaocipher',
       ],
       confidence: 'high',
     })

@@ -127,7 +127,7 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
   },
   {
-    ciphers: ['four-square', 'two-square'],
+    ciphers: ['four-square', 'two-square', 'chaocipher'],
     required: ['key', 'secondKey'],
     key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
   },
@@ -575,6 +575,7 @@ export const encodeTool = defineTool({
   guidelines: [
     'Vigenère, Gronsfeld (digits 0 to 9 only), Beaufort, Porta, Autokey, Running key, Playfair, Nihilist and Columnar need key, Alberti needs key and period, Four-square (four-square) and Two-square (two-square) need key and secondKey.',
     'Quagmire I to III (quagmire-1, quagmire-2, quagmire-3) need key and indicator, Quagmire IV (quagmire-4) needs secondKey too. The indicator stands under plain A unless indicatorUnder names another letter, as an ACA puzzle sometimes does.',
+    'Chaocipher (chaocipher) needs key, the left (ciphertext) alphabet, and secondKey, the right (plaintext) one, each 26 letters or a keyword the rest of A-Z follows. Both alphabets permute after every letter, so one dropped or extra letter garbles the rest of the text.',
     'Running key (running-key) never repeats its key: the passage needs at least one ASCII letter per letter of the text, and the letters past that are left unused.',
     'Porta (porta) follows the ACA table; a text from dCode with its default table needs rotation right.',
     'Four-square (four-square) folds J into I; squares without Q, as on the English Wikipedia page, need omit q.',

@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 67 ciphers', () => {
-    expect(ciphers()).toHaveLength(67)
+  it('registers all 68 ciphers', () => {
+    expect(ciphers()).toHaveLength(68)
     for (const name of [
       'caesar',
       'rot13',
@@ -65,6 +65,7 @@ describe('registry', () => {
       'quagmire-2',
       'quagmire-3',
       'quagmire-4',
+      'chaocipher',
       'rail-fence',
       'route',
       'affine',
@@ -1626,6 +1627,7 @@ describe('edge cases', () => {
     'quagmire-2': { key: 'TEST', indicator: 'CASE' },
     'quagmire-3': { key: 'TEST', indicator: 'CASE' },
     'quagmire-4': { key: 'TEST', secondKey: 'CASE', indicator: 'KEY' },
+    chaocipher: { key: 'TEST', secondKey: 'CASE' },
     playfair: { key: 'TEST' },
     'four-square': { key: 'TEST', secondKey: 'CASE' },
     'two-square': { key: 'TEST', secondKey: 'CASE' },
@@ -1730,6 +1732,7 @@ describe('edge cases', () => {
       'quagmire-2',
       'quagmire-3',
       'quagmire-4',
+      'chaocipher',
       'rail-fence',
       'affine',
       'columnar',
@@ -6974,6 +6977,89 @@ describe('bytes: hex', () => {
   })
 })
 
+describe('chaocipher', () => {
+  const options = { key: 'HXUCZVAMDSLKPEFJRIGTWOBNYQ', secondKey: 'PTLNBQDEOYSFAVZKGJRIHWXUMC' }
+
+  /** Published vector: the exercise in Rubin, "Chaocipher Revealed: The Algorithm" (2010) */
+  it("matches Rubin's example in both directions", () => {
+    const chaocipher = create('chaocipher')
+    expect(chaocipher.encode('A', options).text).toBe('P')
+    expect(chaocipher.encode('WELLDONEISBETTERTHANWELLSAID', options).text).toBe(
+      'OAHQHCNYNXTSZJRRHJBYHQKSOUJY',
+    )
+    expect(chaocipher.decode('OAHQHCNYNXTSZJRRHJBYHQKSOUJY', options).text).toBe(
+      'WELLDONEISBETTERTHANWELLSAID',
+    )
+  })
+
+  it('permutes only on ASCII letters and preserves case', () => {
+    const encoded = create('chaocipher').encode('Well done, is better than well said! éſı', options)
+    expect(encoded.text).toBe('Oahq hcny, nx tszjrr hjby hqks oujy! éſı')
+    expect(encoded.options).toEqual({ ...options, preserveCase: true, stripNonAlpha: false })
+    expect(create('chaocipher').decode(encoded.text, options).text).toBe(
+      'Well done, is better than well said! éſı',
+    )
+  })
+
+  it('reads a keyword as the keyword, repeats dropped, then the rest of A-Z', () => {
+    const chaocipher = create('chaocipher')
+    const whole = { key: 'CHAOSBDEFGIJKLMNPQRTUVWXYZ', secondKey: 'BYRNEACDFGHIJKLMOPQSTUVWXZ' }
+    const text = 'SILENT YEARS'
+    expect(chaocipher.encode(text, { key: 'chaos!', secondKey: 'Byrne Byrne' }).text).toBe(
+      chaocipher.encode(text, whole).text,
+    )
+  })
+
+  it('gives the same text when both alphabets turn together', () => {
+    const turn = (alphabet: string, by: number): string =>
+      alphabet.slice(by) + alphabet.slice(0, by)
+    const chaocipher = create('chaocipher')
+    for (const by of [1, 13, 25]) {
+      const turned = { key: turn(options.key, by), secondKey: turn(options.secondKey, by) }
+      expect(chaocipher.encode('WELLDONEISBETTERTHANWELLSAID', turned).text).toBe(
+        'OAHQHCNYNXTSZJRRHJBYHQKSOUJY',
+      )
+    }
+  })
+
+  it('roundtrips both cases of the alphabet', () => {
+    const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz'
+    const chaocipher = create('chaocipher')
+    expect(chaocipher.decode(chaocipher.encode(text, options).text, options).text).toBe(text)
+  })
+
+  it('rejects a missing alphabet and one without ASCII letters', () => {
+    const chaocipher = create('chaocipher')
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => chaocipher[operation]('A', { key: options.key })).toThrow(MissingOptionError)
+      expect(() => chaocipher[operation]('A', { secondKey: options.secondKey })).toThrow(
+        MissingOptionError,
+      )
+      for (const bad of [123, null, '123 !', 'éſı']) {
+        expect(() => chaocipher[operation]('A', { ...options, key: bad })).toThrow(
+          InvalidOptionError,
+        )
+        expect(() => chaocipher[operation]('A', { ...options, secondKey: bad })).toThrow(
+          InvalidOptionError,
+        )
+      }
+    }
+  })
+
+  it('advertises both alphabets', () => {
+    expect(create('chaocipher').info()).toMatchObject({
+      name: 'chaocipher',
+      label: 'Chaocipher',
+      selfInverse: false,
+      family: 'polyalphabetic',
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'secondKey', type: 'string', required: true },
+      ],
+    })
+  })
+})
+
 describe('info().worksOn', () => {
   const options: Record<string, CipherBaseOptions> = {
     substitution: { key: 'ZEBRAS' },
@@ -6988,6 +7074,7 @@ describe('info().worksOn', () => {
     'quagmire-2': { key: 'SPRINGFEVER', indicator: 'FLOWER' },
     'quagmire-3': { key: 'AUTOMOBILE', indicator: 'HIGHWAY' },
     'quagmire-4': { key: 'SENSORY', secondKey: 'PERCEPTION', indicator: 'EXTRA' },
+    chaocipher: { key: 'HXUCZVAMDSLKPEFJRIGTWOBNYQ', secondKey: 'PTLNBQDEOYSFAVZKGJRIHWXUMC' },
     playfair: { key: 'PLAYFAIR EXAMPLE' },
     'four-square': { key: 'EXAMPLE', secondKey: 'KEYWORD' },
     'two-square': { key: 'EXAMPLE', secondKey: 'KEYWORD' },

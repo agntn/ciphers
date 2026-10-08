@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 60 ciphers', () => {
-    expect(ciphers()).toHaveLength(60)
+  it('registers all 61 ciphers', () => {
+    expect(ciphers()).toHaveLength(61)
     for (const name of [
       'caesar',
       'rot13',
@@ -58,6 +58,7 @@ describe('registry', () => {
       'beaufort',
       'porta',
       'autokey',
+      'running-key',
       'trithemius',
       'alberti',
       'rail-fence',
@@ -1424,6 +1425,7 @@ describe('edge cases', () => {
   const keyOpts: Record<string, Record<string, unknown>> = {
     vigenere: { key: 'TEST' },
     gronsfeld: { key: '1234' },
+    'running-key': { key: 'errors can occur' },
     substitution: { key: 'ZEBRAS' },
     beaufort: { key: 'TEST' },
     porta: { key: 'TEST' },
@@ -1524,6 +1526,7 @@ describe('edge cases', () => {
       'beaufort',
       'porta',
       'autokey',
+      'running-key',
       'trithemius',
       'alberti',
       'rail-fence',
@@ -1848,6 +1851,79 @@ describe('autokey', () => {
       name: 'autokey',
       family: 'polyalphabetic',
       selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
+describe('running-key', () => {
+  const runningKey = create('running-key')
+  /** Page 63, line 1 of K&R, as the English Wikipedia page quotes it. */
+  const page63 = 'errors can occur in several places. A label has...'
+
+  /** Published vector: https://en.wikipedia.org/wiki/Running_key_cipher#Example */
+  it('matches the Flee at once example on Wikipedia', () => {
+    expect(runningKey.encode('FLEEATONCE', { key: page63 }).text).toBe('JCVSRLQNPS')
+    expect(runningKey.encode('FLEEATONCEWEAREDISCOVERED', { key: page63 }).text).toBe(
+      'JCVSRLQNPSYGUIMQAWXSMECTO',
+    )
+    expect(runningKey.decode('JCVSRLQNPSYGUIMQAWXSMECTO', { key: page63 }).text).toBe(
+      'FLEEATONCEWEAREDISCOVERED',
+    )
+  })
+
+  it('is Vigenère under a key that never has to go round', () => {
+    const text = 'Attack at dawn! Zebra, ŻÓŁW 42'
+    const key = 'Lorem ipsum dolor sit am'
+    expect(runningKey.encode(text, { key }).text).toBe(
+      create('vigenere').encode(text, { key }).text,
+    )
+  })
+
+  it('reports the letters it took and leaves the rest of the passage alone', () => {
+    const encoded = runningKey.encode('Flee at once. We are discovered! éſı', { key: page63 })
+    expect(encoded.text).toBe('Jcvs rl qnps. Yg uim qawxsmecto! éſı')
+    expect(encoded.options).toEqual({ keyUsed: 25, preserveCase: true, stripNonAlpha: false })
+    expect(runningKey.decode(encoded.text, { key: page63 }).text).toBe(
+      'Flee at once. We are discovered! éſı',
+    )
+    expect(
+      runningKey.encode('Flee at once.', { key: page63, preserveCase: false, stripNonAlpha: true })
+        .text,
+    ).toBe('JCVSRLQNPS')
+  })
+
+  it('refuses a key with fewer letters than the text instead of repeating it', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => runningKey[operation]('ATTACKATDAWN', { key: 'LEMON' })).toThrow(
+        new InvalidOptionError(
+          'key',
+          '5 letters',
+          'the text has 12, and a running key never goes round again',
+        ),
+      )
+      expect(runningKey[operation]('ATTACK', { key: 'LEMONS' }).options).toMatchObject({
+        keyUsed: 6,
+      })
+    }
+  })
+
+  it('rejects a missing key and one with no ASCII letter', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => runningKey[operation]('A')).toThrow(MissingOptionError)
+      expect(() => runningKey[operation]('A', { key: '' })).toThrow(MissingOptionError)
+      for (const key of [1234, null, '...', '1234', 'éſı']) {
+        expect(() => runningKey[operation]('A', { key })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('advertises a key as long as the text', () => {
+    expect(runningKey.info()).toMatchObject({
+      name: 'running-key',
+      selfInverse: false,
+      family: 'polyalphabetic',
+      keyspace: '26^textLength',
       options: [{ name: 'key', type: 'string', required: true }],
     })
   })
@@ -6569,6 +6645,7 @@ describe('info().worksOn', () => {
     beaufort: { key: 'KEY' },
     porta: { key: 'FORTIFICATION' },
     autokey: { key: 'QUEENLY' },
+    'running-key': { key: 'errors can occur' },
     alberti: { key: 'ALBERTI', period: 4 },
     playfair: { key: 'PLAYFAIR EXAMPLE' },
     hill: { key: 'DDCF' },

@@ -8,6 +8,7 @@ export type {
   BeaufortOptions,
   PortaOptions,
   AutokeyOptions,
+  RunningKeyOptions,
   AlbertiOptions,
   EnigmaOptions,
   RailFenceOptions,

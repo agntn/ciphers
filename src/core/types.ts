@@ -68,6 +68,12 @@ export interface AutokeyOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Running key cipher options. */
+export interface RunningKeyOptions extends CipherBaseOptions {
+  /** A passage with at least one ASCII letter per letter of the text; only its letters count. Required. */
+  key: string
+}
+
 /** Alberti disk cipher options. */
 export interface AlbertiOptions extends CipherBaseOptions {
   /** Keyword used to construct the movable inner disk. Required. */

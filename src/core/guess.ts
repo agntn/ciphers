@@ -81,6 +81,7 @@ const POLYALPHABETIC = [
   'beaufort',
   'porta',
   'autokey',
+  'running-key',
   'trithemius',
   'alberti',
 ] as const

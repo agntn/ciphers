@@ -73,7 +73,7 @@ function answer(result: {
 
 type CipherOptionRequirement = {
   readonly ciphers: readonly string[]
-  readonly required: readonly ('key' | 'iv' | 'nonce' | 'period' | 'width' | 'book')[]
+  readonly required: readonly ('key' | 'secondKey' | 'iv' | 'nonce' | 'period' | 'width' | 'book')[]
   readonly key?: {
     readonly pattern: RegExp
     readonly error: string
@@ -92,6 +92,10 @@ const TRIPLE_DES_KEY = {
   error: 'must be 32 or 48 hex digits (two-key or three-key Triple DES)',
 }
 
+/** The options a `key` rule checks: `key`, and `secondKey` where the cipher requires it. */
+const KEYWORD = ['key'] as const
+const KEYWORD_PAIR = ['key', 'secondKey'] as const
+
 /** What the schema can't say per cipher: the options it needs and the shape of its key. */
 const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
   {
@@ -102,6 +106,11 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
   {
     ciphers: ['vigenere', 'beaufort', 'porta', 'autokey', 'running-key', 'playfair', 'nihilist'],
     required: ['key'],
+    key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
+  },
+  {
+    ciphers: ['four-square'],
+    required: ['key', 'secondKey'],
     key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
   },
   {
@@ -282,8 +291,13 @@ function cipherInputError(params: Readonly<CipherToolParams>): string | undefine
     }
   }
   const rule = requirement.key
-  if (rule !== undefined && params.key !== undefined && !rule.pattern.test(params.key)) {
-    return `Invalid arguments at /key: ${rule.error}`
+  if (rule !== undefined) {
+    const fields = requirement.required.includes('secondKey') ? KEYWORD_PAIR : KEYWORD
+    const bad = fields.find((field) => {
+      const value = params[field]
+      return value !== undefined && !rule.pattern.test(value)
+    })
+    if (bad !== undefined) return `Invalid arguments at /${bad}: ${rule.error}`
   }
   return digestError(requirement.digests, params)
 }
@@ -332,6 +346,9 @@ const cipherInput = Type.Object(
     ),
     key: Type.Optional(
       Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.key }),
+    ),
+    secondKey: Type.Optional(
+      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.secondKey }),
     ),
     transposition: Type.Optional(
       Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.transposition }),
@@ -528,7 +545,7 @@ export const encodeTool = defineTool({
   description: 'Encode text with an exact-name built-in cipher. ciphers_info lists the options.',
   snippet: 'Use ciphers_encode to encode text with local educational and puzzle ciphers.',
   guidelines: [
-    'Vigenère, Gronsfeld (digits 0 to 9 only), Beaufort, Porta, Autokey, Running key, Playfair, Nihilist and Columnar need key, Alberti needs key and period.',
+    'Vigenère, Gronsfeld (digits 0 to 9 only), Beaufort, Porta, Autokey, Running key, Playfair, Nihilist and Columnar need key, Alberti needs key and period, Four-square (four-square) needs key and secondKey.',
     'Running key (running-key) never repeats its key: the passage needs at least one ASCII letter per letter of the text, and the letters past that are left unused.',
     'Porta (porta) follows the ACA table; a text from dCode with its default table needs rotation right.',
     'Route (route) needs width, the cells per row. Decoding reads the grid along path from corner, so a grid copied row by row from a puzzle goes to ciphers_decode. Line breaks are not cells.',

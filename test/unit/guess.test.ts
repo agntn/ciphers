@@ -117,6 +117,39 @@ describe('guessFamily', () => {
     expect(long.candidates[0]).toMatchObject({ ciphers: ['playfair'], confidence: 'high' })
   })
 
+  it('names four-square for an even count with a doubled pair, next to bifid', () => {
+    const encoded = create('four-square').encode(`${DICKENS} ${DICKENS}`, {
+      key: 'EXAMPLE',
+      secondKey: 'KEYWORD',
+    }).text
+    expect(encoded).toMatch(/^(?:..)*?(.)\1/)
+    expect(ranking(guessFamily(encoded)).slice(0, 2)).toEqual(['bifid:high', 'four-square:high'])
+    expect(ranking(guessFamily(encoded))).not.toContain('playfair:high')
+    expect(
+      guessFamily(encoded).candidates.find(({ ciphers }) => ciphers[0] === 'four-square'),
+    ).toMatchObject({ families: ['digraph'] })
+    expect(ranking(guessFamily(`${encoded}A`)).filter((entry) => entry.startsWith('four'))).toEqual(
+      [],
+    )
+  })
+
+  it('never puts four-square ahead of bifid, whatever the length', () => {
+    const encoded = create('four-square').encode(`${DICKENS} ${DICKENS}`, {
+      key: 'EXAMPLE',
+      secondKey: 'KEYWORD',
+    }).text
+    for (const length of [240, 260, 280]) {
+      const top = ranking(guessFamily(encoded.slice(0, length))).slice(0, 2)
+      expect(top.map((entry) => entry.split(':')[0])).toEqual(['bifid', 'four-square'])
+      expect(new Set(top.map((entry) => entry.split(':')[1])).size).toBe(1)
+    }
+  })
+
+  it('keeps four-square one step behind Playfair when no pair doubles', () => {
+    const encoded = create('playfair').encode(`${DICKENS} ${DICKENS}`, { key: 'MONARCHY' }).text
+    expect(ranking(guessFamily(encoded))).toContain('four-square:medium')
+  })
+
   it('points at Hill for flat blocks with a J, after the periodic ciphers', () => {
     for (const key of ['DDCF', 'GYBNQKURP']) {
       const encoded = create('hill').encode(`${DICKENS} ${DICKENS}`, { key }).text

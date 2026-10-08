@@ -122,6 +122,14 @@ export interface PlayfairOptions extends CipherBaseOptions {
   key: string
 }
 
+/** Four-square cipher options. */
+export interface FourSquareOptions extends CipherBaseOptions {
+  /** Keyword for the keyed square at the top right. Required. */
+  key: string
+  /** Keyword for the keyed square at the bottom left. Required. */
+  secondKey: string
+}
+
 /** Hill cipher options. */
 export interface HillOptions extends CipherBaseOptions {
   /** 4 or 9 letters, the matrix row by row with A as 0. Required. */

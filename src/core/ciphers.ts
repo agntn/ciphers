@@ -16,6 +16,7 @@ export const builtinCiphers = [
   'rail-fence',
   'affine',
   'playfair',
+  'four-square',
   'hill',
   'polybius',
   'nihilist',

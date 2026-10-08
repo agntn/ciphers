@@ -30,6 +30,7 @@ export type CipherToolParams = {
   text: string
   shift?: number
   key?: string
+  secondKey?: string
   transposition?: string
   square?: string
   rotation?: 'left' | 'right'
@@ -135,7 +136,9 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
  */
 export const OPTION_DESCRIPTIONS = {
   category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
-  key: 'Keyword, the cipher alphabet for substitution (26 letters, ? for one left unknown, or a keyword the rest of A-Z follows), the matrix for hill (4 or 9 letters row by row, A as 0), the additive keyword for nihilist, digits 0 to 9 for gronsfeld, a passage with at least one letter per letter of the text for running-key, the passphrase for aes-passphrase and openpgp (any text), or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, 10 to 32 (an even number) for cast5, 32 for rabbit, 2 to 512 (an even number) for rc4, any nonzero even number for xor, 32 or 64 for salsa20, 64 for xsalsa20, chacha20, xchacha20 and chacha20-poly1305. Required by substitution, vigenere, gronsfeld, beaufort, porta, autokey, running-key, alberti, playfair, hill, nihilist, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, aes-passphrase, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent, cast5, openpgp, rabbit, rc4, xor, salsa20, xsalsa20, chacha20, xchacha20 and chacha20-poly1305; optional for polybius, adfgvx, bifid and straddling-checkerboard (the 28 cells row by row, each letter A-Z once and two fillers such as . and /)',
+  key: 'Keyword, the cipher alphabet for substitution (26 letters, ? for one left unknown, or a keyword the rest of A-Z follows), the matrix for hill (4 or 9 letters row by row, A as 0), the additive keyword for nihilist, digits 0 to 9 for gronsfeld, a passage with at least one letter per letter of the text for running-key, the passphrase for aes-passphrase and openpgp (any text), or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, 10 to 32 (an even number) for cast5, 32 for rabbit, 2 to 512 (an even number) for rc4, any nonzero even number for xor, 32 or 64 for salsa20, 64 for xsalsa20, chacha20, xchacha20 and chacha20-poly1305. Required by substitution, vigenere, gronsfeld, beaufort, porta, autokey, running-key, alberti, playfair, four-square, hill, nihilist, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, aes-passphrase, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent, cast5, openpgp, rabbit, rc4, xor, salsa20, xsalsa20, chacha20, xchacha20 and chacha20-poly1305; optional for polybius, adfgvx, bifid and straddling-checkerboard (the 28 cells row by row, each letter A-Z once and two fillers such as . and /)',
+  secondKey:
+    'Four-square only, and required there: keyword for the keyed square at the bottom left, the rest of A-Z after it, J as I. key fills the one at the top right',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
   square:
     'Nihilist only: keyword for the 5×5 square, the rest of A-Z after it (default the plain square)',
@@ -197,6 +200,7 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
   for (const name of [
     'shift',
     'key',
+    'secondKey',
     'transposition',
     'square',
     'rotation',

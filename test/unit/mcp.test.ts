@@ -142,6 +142,22 @@ describe('Ciphers MCP server', () => {
     expect(decoded.isError).not.toBe(true)
   })
 
+  it('takes the second four-square keyword through the protocol', async () => {
+    const client = await connectTestClient()
+    const squares = { key: 'zgptfoihmuwdrcnykeqaxvsbl', secondKey: 'mfnbdcrhsaxyogvituewlqzkp' }
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'four-square', text: 'attack at dawn', ...squares },
+    })
+    expect(encoded).toEqual({ content: [{ type: 'text', text: 'TIYBFHTIZBSY' }] })
+
+    const ignored = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'vigenere', text: 'abc', key: 'KEY', secondKey: '123' },
+    })
+    expect(ignored.isError).not.toBe(true)
+  })
+
   it('refuses a running key shorter than the text through the protocol', async () => {
     const client = await connectTestClient()
     const arguments_ = { cipher: 'running-key', text: 'Flee at once', key: 'errors can' }
@@ -993,6 +1009,10 @@ Co2B
       ['key', { cipher: 'playfair', text: 'abc', key: '123' }],
       ['key', { cipher: 'substitution', text: 'abc' }],
       ['key', { cipher: 'substitution', text: 'abc', key: '123' }],
+      ['key', { cipher: 'four-square', text: 'abc', secondKey: 'KEY' }],
+      ['secondKey', { cipher: 'four-square', text: 'abc', key: 'KEY' }],
+      ['key', { cipher: 'four-square', text: 'abc', key: '123', secondKey: 'KEY' }],
+      ['secondKey', { cipher: 'four-square', text: 'abc', key: 'KEY', secondKey: '123' }],
       ['key', { cipher: 'hill', text: 'abc' }],
       ['key', { cipher: 'hill', text: 'abc', key: 'DDCFX' }],
       ['key', { cipher: 'nihilist', text: '37', square: 'ZEBRAS' }],

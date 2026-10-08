@@ -3,7 +3,8 @@ import { Cipher } from '../../core/cipher.ts'
 import { normalizeError } from '../../core/errors.ts'
 import { upperCase } from '../../core/utils.ts'
 
-const CHAR_TO_MORSE: Record<string, string> = {
+/** International Morse code for each character the table knows, letters in upper case. */
+export const CHAR_TO_MORSE: Readonly<Record<string, string>> = {
   A: '.-',
   B: '-...',
   C: '-.-.',
@@ -60,7 +61,10 @@ const CHAR_TO_MORSE: Record<string, string> = {
   "'": '.----.',
 }
 
-const MORSE_TO_CHAR = new Map(Object.entries(CHAR_TO_MORSE).map(([k, v]) => [v, k]))
+/** The same table read backwards, code to character. */
+export const MORSE_TO_CHAR: ReadonlyMap<string, string> = new Map(
+  Object.entries(CHAR_TO_MORSE).map(([k, v]) => [v, k]),
+)
 
 function encodeMorse(text: string): string {
   return Array.from(text, (c) => {

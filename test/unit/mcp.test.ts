@@ -1070,6 +1070,8 @@ Co2B
       ],
       ['secondKey', { cipher: 'chaocipher', text: 'abc', key: 'CHAOS' }],
       ['key', { cipher: 'chaocipher', text: 'abc', key: '1', secondKey: 'BYRNE' }],
+      ['key', { cipher: 'fractionated-morse', text: 'abc' }],
+      ['key', { cipher: 'fractionated-morse', text: 'abc', key: '1' }],
       ['key', { cipher: 'aes', text: 'abc' }],
       ['key', { cipher: 'aes', text: 'abc', key: 'YELLOW SUBMARINE' }],
       ['key', { cipher: 'aes', text: 'abc', key: '00'.repeat(20) }],

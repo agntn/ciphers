@@ -106,6 +106,12 @@ export interface ChaocipherOptions extends CipherBaseOptions {
   secondKey: string
 }
 
+/** Fractionated Morse options. */
+export interface FractionatedMorseOptions extends CipherBaseOptions {
+  /** The alphabet over the triples: 26 letters, or a keyword the rest of A-Z follows. Required. */
+  key: string
+}
+
 /** Enigma M3 options. */
 export interface EnigmaOptions extends CipherBaseOptions {
   /** Initial rotor positions, left to right. Default: AAA. */

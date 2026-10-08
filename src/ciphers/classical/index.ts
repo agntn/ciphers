@@ -14,6 +14,7 @@ import { Caesar } from './caesar.ts'
 import { Columnar } from './columnar.ts'
 import { Enigma } from './enigma.ts'
 import { FourSquare } from './four-square.ts'
+import { FractionatedMorse } from './fractionated-morse.ts'
 import { Gronsfeld } from './gronsfeld.ts'
 import { Hill } from './hill.ts'
 import { Morse } from './morse.ts'
@@ -66,6 +67,7 @@ export const classical: readonly CipherConstructor[] = [
   Polybius,
   Nihilist,
   Morse,
+  FractionatedMorse,
   Bacon,
   TapCode,
   A1z26,

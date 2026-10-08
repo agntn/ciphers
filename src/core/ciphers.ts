@@ -27,6 +27,7 @@ export const builtinCiphers = [
   'polybius',
   'nihilist',
   'morse',
+  'fractionated-morse',
   'bacon',
   'tap-code',
   'a1z26',

@@ -13,6 +13,7 @@ export type {
   QuagmireOptions,
   Quagmire4Options,
   ChaocipherOptions,
+  FractionatedMorseOptions,
   EnigmaOptions,
   RailFenceOptions,
   RouteOptions,

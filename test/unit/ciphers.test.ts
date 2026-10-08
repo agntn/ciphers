@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 68 ciphers', () => {
-    expect(ciphers()).toHaveLength(68)
+  it('registers all 69 ciphers', () => {
+    expect(ciphers()).toHaveLength(69)
     for (const name of [
       'caesar',
       'rot13',
@@ -75,6 +75,7 @@ describe('registry', () => {
       'hill',
       'polybius',
       'nihilist',
+      'fractionated-morse',
       'a1z26',
       'book',
       'straddling-checkerboard',
@@ -874,6 +875,97 @@ describe('morse', () => {
   })
 })
 
+describe('fractionated-morse', () => {
+  const fractionated = create('fractionated-morse')
+  const plain = { key: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' }
+
+  /** Published vector: the COME AT ONCE example on the ACA's Fractionated Morse page */
+  it("matches the ACA's example in both directions", () => {
+    expect(fractionated.encode('Come at once', { key: 'ROUNDTABLE' }).text).toBe('CBIILTMHVVFL')
+    expect(fractionated.decode('CBIIL TMHVV FL', { key: 'ROUNDTABLE' }).text).toBe('COME AT ONCE')
+  })
+
+  /** Published vector: http://practicalcryptography.com/ciphers/fractionated-morse-cipher/ */
+  it('matches the Practical Cryptography example over a whole alphabet', () => {
+    const key = { key: 'ROUNDTABLECFGHIJKMPQSVWXYZ' }
+    expect(fractionated.encode('defend the east', key).text).toBe('ESOAVVLJRSSTRX')
+    expect(fractionated.decode('ESOAVVLJRSSTRX', key).text).toBe('DEFEND THE EAST')
+    expect(fractionated.decode('esoavvljrsstrx', { key: 'Round Table!' }).text).toBe(
+      'DEFEND THE EAST',
+    )
+  })
+
+  /** Practical Cryptography and dCode: IS to IZ and RS to RZ never occur. */
+  it('refuses the pairs that would spell xxx', () => {
+    for (const pair of ['IS', 'IZ', 'RS', 'RZ']) {
+      expect(() => fractionated.decode(pair, plain)).toThrow(
+        new CipherError(
+          'Invalid fractionated Morse code: three x in a row, which no text gives; check the key',
+        ),
+      )
+    }
+  })
+
+  it('refuses Morse that starts with x or spells no character', () => {
+    expect(() => fractionated.decode('S', plain)).toThrow(
+      new CipherError(
+        'Invalid fractionated Morse code: it starts with x, which no text gives; check the key',
+      ),
+    )
+    expect(() => fractionated.decode('AA', plain)).toThrow(
+      new CipherError(
+        'Invalid fractionated Morse code: no character is ...... in Morse; check the key',
+      ),
+    )
+  })
+
+  it('enciphers letters and digits, splits words on spaces and drops the rest', () => {
+    const encoded = fractionated.encode('  SOS, 1984!\tcall\n now ', { key: 'ROUNDTABLE' })
+    expect(encoded.options).toEqual({ key: 'ROUNDTABLE' })
+    expect(fractionated.decode(encoded.text, { key: 'ROUNDTABLE' }).text).toBe('SOS 1984 CALL NOW')
+    expect(fractionated.encode('Come at once.', { key: 'ROUNDTABLE' }).text).toBe('CBIILTMHVVFL')
+    expect(fractionated.encode('Ça va ßſı', plain).text).toBe(
+      fractionated.encode('a va', plain).text,
+    )
+    const ab = fractionated.encode('AB', plain).text
+    expect(fractionated.decode(`${ab}ſı`, plain).text).toBe('AB')
+  })
+
+  it('pads the last triple with x and reads the padding back as nothing', () => {
+    for (const text of ['E', 'EE', 'EEE', 'E E', 'TEST TEST']) {
+      const encoded = fractionated.encode(text, plain).text
+      expect(encoded).toMatch(/^[A-Z]+$/)
+      expect(fractionated.decode(encoded, plain).text).toBe(text)
+    }
+  })
+
+  it('gives empty text for text without a letter, both ways', () => {
+    expect(fractionated.encode(' ,.! ', plain).text).toBe('')
+    expect(fractionated.decode(' 123 ', plain).text).toBe('')
+  })
+
+  it('rejects a missing key and one without ASCII letters', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => fractionated[operation]('A')).toThrow(MissingOptionError)
+      expect(() => fractionated[operation]('A', { key: '' })).toThrow(MissingOptionError)
+      for (const bad of [123, null, '123 !', 'éſı']) {
+        expect(() => fractionated[operation]('A', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('advertises its key', () => {
+    expect(fractionated.info()).toMatchObject({
+      name: 'fractionated-morse',
+      label: 'Fractionated Morse',
+      category: 'classical',
+      family: 'fractionation',
+      selfInverse: false,
+      options: [{ name: 'key', type: 'string', required: true }],
+    })
+  })
+})
+
 describe('bacon', () => {
   const bacon = create('bacon')
 
@@ -1633,6 +1725,7 @@ describe('edge cases', () => {
     'two-square': { key: 'TEST', secondKey: 'CASE' },
     hill: { key: 'TEST' },
     nihilist: { key: 'TEST' },
+    'fractionated-morse': { key: 'TEST' },
     columnar: { key: 'TEST' },
     route: { width: 3 },
     book: { book: 'The 123 tests' },
@@ -7080,6 +7173,7 @@ describe('info().worksOn', () => {
     'two-square': { key: 'EXAMPLE', secondKey: 'KEYWORD' },
     hill: { key: 'DDCF' },
     nihilist: { key: 'RUSSIAN', square: 'ZEBRAS' },
+    'fractionated-morse': { key: 'ROUNDTABLE' },
     columnar: { key: 'ZEBRA' },
     route: { width: 3 },
   }

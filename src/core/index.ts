@@ -12,6 +12,7 @@ export type {
   AlbertiOptions,
   QuagmireOptions,
   Quagmire4Options,
+  ChaocipherOptions,
   EnigmaOptions,
   RailFenceOptions,
   RouteOptions,

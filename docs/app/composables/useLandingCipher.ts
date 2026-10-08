@@ -58,6 +58,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "quagmire-4",
   "des",
   "desx",
+  "chaocipher",
   "idea",
   "lucifer",
   "mars",

@@ -42,6 +42,7 @@ const PRESENTATION: Record<
   "quagmire-2": { icon: "i-lucide-table-2", blurb: "Straight plain alphabet, keyed cipher alphabet, same slide", sample: "IN THE QUAG TWO", options: { key: "SPRINGFEVER", indicator: "FLOWER" } },
   "quagmire-3": { icon: "i-lucide-sheet", blurb: "One keyed alphabet on both sides of the tableau", sample: "THE SAME KEYED ALPHABET", options: { key: "AUTOMOBILE", indicator: "HIGHWAY" } },
   "quagmire-4": { icon: "i-lucide-rows-3", blurb: "Three keywords: plain alphabet, cipher alphabet, indicator", sample: "THIS ONE EMPLOYS THREE KEYWORDS", options: { key: "SENSORY", secondKey: "PERCEPTION", indicator: "EXTRA", indicatorUnder: "S" } },
+  chaocipher: { icon: "i-lucide-cog", blurb: "Two disks that reshuffle after every letter", sample: "WELL DONE IS BETTER THAN WELL SAID", options: { key: "HXUCZVAMDSLKPEFJRIGTWOBNYQ", secondKey: "PTLNBQDEOYSFAVZKGJRIHWXUMC" } },
   "rail-fence": { icon: "i-lucide-activity", blurb: "Zigzag over rails, read row by row", sample: "WE ARE DISCOVERED", options: { rails: 3 } },
   affine: { icon: "i-lucide-calculator", blurb: "a·x + b mod 26", sample: "AFFINE CIPHER", options: { a: 5, b: 8 } },
   playfair: { icon: "i-lucide-grid-2x2", blurb: "Letter pairs through a keyed 5×5 table", sample: "HIDE THE GOLD", options: { key: "PLAYFAIR EXAMPLE" } },

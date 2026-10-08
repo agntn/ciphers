@@ -17,6 +17,7 @@ export const builtinCiphers = [
   'quagmire-2',
   'quagmire-3',
   'quagmire-4',
+  'chaocipher',
   'rail-fence',
   'affine',
   'playfair',

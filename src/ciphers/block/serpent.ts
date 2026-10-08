@@ -18,7 +18,7 @@ const SBOXES: readonly (readonly number[])[] = [
   [1, 13, 15, 0, 14, 8, 2, 11, 7, 4, 12, 10, 9, 3, 5, 6],
 ]
 
-const INVERSE_SBOXES = SBOXES.map((box) => {
+const INVERSE_SBOXES = /* @__PURE__ */ SBOXES.map((box) => {
   const inverse = Array.from<number>({ length: 16 })
   for (const [input, output] of box.entries()) inverse[output] = input
   return inverse

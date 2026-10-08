@@ -50,6 +50,45 @@ function rolldownEntry(): string {
   return path.join(pnpm, latest, 'node_modules/rolldown/dist/index.mjs')
 }
 
+/* Source files kept for one root import when ours count as one chunk, as in `dist/index.mjs`. */
+async function keptModules(name: string): Promise<string[]> {
+  const { rolldown } = (await import(pathToFileURL(rolldownEntry()).href)) as {
+    rolldown: (options: object) => Promise<{
+      generate: (options: Readonly<{ format: 'esm' }>) => Promise<{
+        output: [{ modules: Readonly<Record<string, Readonly<{ renderedLength: number }>>> }]
+      }>
+      close: () => Promise<void>
+    }>
+  }
+  const root = fileURLToPath(new URL('../../', import.meta.url))
+  const build = await rolldown({
+    input: 'entry',
+    logLevel: 'silent',
+    treeshake: {
+      moduleSideEffects: (id: string) => (id.includes('/node_modules/') ? null : true),
+    },
+    plugins: [
+      {
+        name: 'entry',
+        resolveId: (id: string) => (id === 'entry' ? id : null),
+        load: (id: string) =>
+          id === 'entry'
+            ? `import { ${name} } from ${JSON.stringify(path.join(root, 'src/index.ts'))}\nconsole.log(${name})`
+            : null,
+      },
+    ],
+  })
+  try {
+    const { output } = await build.generate({ format: 'esm' })
+    return Object.entries(output[0].modules)
+      .filter(([, module]) => module.renderedLength > 0)
+      .map(([id]) => path.relative(root, id))
+      .filter((file) => file.startsWith('src/'))
+  } finally {
+    await build.close()
+  }
+}
+
 describe('registry without import side effects', () => {
   it('lists every built-in without a side-effect import', () => {
     expect(ciphers()).toEqual([...builtinCiphers])
@@ -87,6 +126,15 @@ describe('registry without import side effects', () => {
       expect(readFileSync(file, 'utf8'), file).not.toMatch(/\bregister\s*\(/)
     }
   })
+
+  it.each(['analyzeFrequency', 'estimatePeriod', 'readHiddenText', 'dragCrib', 'recoverKey'])(
+    'bundles %s without a single cipher',
+    async (name) => {
+      const kept = await keptModules(name)
+      expect(kept).toContain('src/core/frequency.ts')
+      expect(kept.filter((file) => file.startsWith('src/ciphers/'))).toEqual([])
+    },
+  )
 
   it('keeps the registry when a bundler assumes no import side effects', async () => {
     const { rolldown } = (await import(pathToFileURL(rolldownEntry()).href)) as {

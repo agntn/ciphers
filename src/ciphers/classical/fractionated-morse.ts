@@ -13,9 +13,11 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const SYMBOLS = ['.', '-', 'x'] as const
 
 /** The 26 triples in the ACA's order, dot before dash before x; `xxx` never happens. */
-const TRIPLES: readonly string[] = SYMBOLS.flatMap((first) =>
-  SYMBOLS.flatMap((second) => SYMBOLS.map((third) => first + second + third)),
-).filter((triple) => triple !== 'xxx')
+const TRIPLES: readonly string[] = /* @__PURE__ */ SYMBOLS.flatMap((first) =>
+  SYMBOLS.flatMap((second) =>
+    SYMBOLS.map((third) => first + second + third).filter((triple) => triple !== 'xxx'),
+  ),
+)
 
 /**
  * The keyed alphabet: the keyword's letters, repeats dropped, then the rest of A-Z.

@@ -4,4 +4,7 @@ import { classical } from './classical/index.ts'
 import { stream } from './stream/index.ts'
 
 /** Every cipher the package ships, category by category. Not in this list, not in the registry. */
-export const builtins: readonly CipherConstructor[] = [...classical, ...block, ...stream]
+export const builtins: readonly CipherConstructor[] = /* @__PURE__ */ classical.concat(
+  block,
+  stream,
+)

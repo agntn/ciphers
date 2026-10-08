@@ -96,7 +96,7 @@ const OTHER_ALGORITHMS: Readonly<Record<number, string>> = {
   13: 'Camellia-256',
 }
 
-const ALGORITHM_NAMES = ALGORITHMS.map((algorithm) => algorithm.name)
+const ALGORITHM_NAMES = /* @__PURE__ */ ALGORITHMS.map((algorithm) => algorithm.name)
 
 /** Compression ids of RFC 4880 §9.3, each with what decompresses it under an output limit. */
 const COMPRESSION: Readonly<
@@ -462,23 +462,17 @@ function dropCarriageReturns(data: Bytes): number[] {
  * @returns {Literal} The data, its file name and the compression it came out of.
  */
 function findLiteral(bytes: Bytes, depth: number): Literal {
+  /** Packets allowed beside the literal data; RFC 9580 pads SEIPD v2. */
+  const skipped: readonly number[] = [TAG.onePassSignature, TAG.signature, TAG.marker, TAG.padding]
   for (const packet of readPackets(bytes)) {
     if (packet.tag === TAG.literal) return readLiteral(packet.body)
     if (packet.tag === TAG.compressed) return openCompressed(packet, depth)
-    if (!SKIPPED_INSIDE.has(packet.tag)) {
+    if (!skipped.includes(packet.tag)) {
       throw new CipherError(`Packet tag ${packet.tag} is not expected inside the encrypted data`)
     }
   }
   throw new CipherError('The encrypted data holds no literal data packet')
 }
-
-/** Packets the encrypted data may hold besides the literal data; RFC 9580 pads SEIPD v2. */
-const SKIPPED_INSIDE: ReadonlySet<number> = new Set([
-  TAG.onePassSignature,
-  TAG.signature,
-  TAG.marker,
-  TAG.padding,
-])
 
 function openCompressed(packet: Packet, depth: number): Literal {
   if (depth >= MAX_NESTING) {

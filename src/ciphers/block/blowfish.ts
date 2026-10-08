@@ -150,7 +150,7 @@ const BLOWFISH: BlockMode = {
   label: 'Blowfish ECB',
   mode: 'ecb',
   blockSize: BLOCK_SIZE,
-  keyDigits: Array.from({ length: 53 }, (_, i) => 8 + 2 * i),
+  keyDigits: /* @__PURE__ */ Array.from({ length: 53 }, (_, i) => 8 + 2 * i),
   keyError: 'must be an even number of hex digits from 8 to 112 (a 32 to 448-bit Blowfish key)',
   run: blowfishEcb,
 }

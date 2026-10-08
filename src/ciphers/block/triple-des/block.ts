@@ -10,8 +10,11 @@ const INITIAL_PERMUTATION = [
   45, 37, 29, 21, 13, 5, 63, 55, 47, 39, 31, 23, 15, 7,
 ] as const
 
-const FINAL_PERMUTATION: number[] = []
-for (const [i, position] of INITIAL_PERMUTATION.entries()) FINAL_PERMUTATION[position - 1] = i + 1
+/** IP⁻¹, the permutation that undoes the initial one. */
+const FINAL_PERMUTATION: Bits = /* @__PURE__ */ Array.from(
+  INITIAL_PERMUTATION,
+  (_, i) => INITIAL_PERMUTATION.findIndex((position) => position === i + 1) + 1,
+)
 
 const EXPANSION = [
   32, 1, 2, 3, 4, 5, 4, 5, 6, 7, 8, 9, 8, 9, 10, 11, 12, 13, 12, 13, 14, 15, 16, 17, 16, 17, 18, 19,

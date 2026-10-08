@@ -62,8 +62,8 @@ export const CHAR_TO_MORSE: Readonly<Record<string, string>> = {
 }
 
 /** The same table read backwards, code to character. */
-export const MORSE_TO_CHAR: ReadonlyMap<string, string> = new Map(
-  Object.entries(CHAR_TO_MORSE).map(([k, v]) => [v, k]),
+export const MORSE_TO_CHAR: ReadonlyMap<string, string> = /* @__PURE__ */ new Map(
+  /* @__PURE__ */ Object.entries(CHAR_TO_MORSE).map(([k, v]) => [v, k]),
 )
 
 function encodeMorse(text: string): string {

@@ -9,7 +9,7 @@ const BLOCK_SIZE = 8
  * @param table - 256 words in hex, separated by whitespace.
  * @returns {number[]} The words.
  */
-function words(table: string): number[] {
+/* @__NO_SIDE_EFFECTS__ */ function words(table: string): number[] {
   return table
     .trim()
     .split(/\s+/)
@@ -463,7 +463,7 @@ const CAST5: BlockMode = {
   label: 'CAST5 ECB',
   mode: 'ecb',
   blockSize: BLOCK_SIZE,
-  keyDigits: Array.from({ length: 12 }, (_, i) => 10 + 2 * i),
+  keyDigits: /* @__PURE__ */ Array.from({ length: 12 }, (_, i) => 10 + 2 * i),
   keyError: 'must be an even number of hex digits from 10 to 32 (a 40 to 128-bit CAST5 key)',
   run: cast5Ecb,
 }

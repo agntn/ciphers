@@ -578,6 +578,39 @@ describe('four-square', () => {
 
   it('reports both keywords back', () => {
     expect(fourSquare.encode('AT', squares).options).toEqual(squares)
+    expect(fourSquare.encode('AT', { ...squares, omit: 'q' }).options).toEqual({
+      ...squares,
+      omit: 'q',
+    })
+  })
+
+  /** Published vectors: https://en.wikipedia.org/wiki/Four-square_cipher */
+  it('takes HELP ME OBI WAN KENOBI to the Wikipedia ciphertext with Q left out', () => {
+    const keys = { key: 'EXAMPLE', secondKey: 'KEYWORD', omit: 'q' }
+    expect(fourSquare.encode('help me obi wan kenobi', keys).text).toBe('FYGMKYHOBXMFKKKIMD')
+    expect(fourSquare.decode('FYGMKYHOBXMFKKKIMD', keys).text).toBe('HELPMEOBIWANKENOBI')
+  })
+
+  it('keeps J and drops Q from the text and the keywords when Q is left out', () => {
+    const keys = { key: 'EXAMPLE', secondKey: 'KEYWORD', omit: 'q' }
+    const ciphertext = fourSquare.encode('Jam quiz', keys).text
+    expect(ciphertext).toBe(fourSquare.encode('JAMUIZ', keys).text)
+    expect(fourSquare.decode(ciphertext, keys).text).toBe('JAMUIZ')
+    expect(fourSquare.encode('HELPME', { ...keys, key: 'QEXQAMPLE' }).text).toBe(
+      fourSquare.encode('HELPME', keys).text,
+    )
+  })
+
+  it('folds J into I unless told otherwise', () => {
+    const keys = { key: 'EXAMPLE', secondKey: 'KEYWORD' }
+    expect(fourSquare.encode('help me obi wan kenobi', { ...keys, omit: 'j' }).text).toBe(
+      fourSquare.encode('help me obi wan kenobi', keys).text,
+    )
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const omit of ['Q', 'i', '', 1]) {
+        expect(() => fourSquare[operation]('AT', { ...keys, omit })).toThrow(InvalidOptionError)
+      }
+    }
   })
 })
 

@@ -36,6 +36,8 @@ export type CipherToolParams = {
   rotation?: 'left' | 'right'
   omit?: 'j' | 'q'
   orientation?: 'vertical' | 'horizontal'
+  indicator?: string
+  indicatorUnder?: string
   iv?: string
   tweak?: string
   nonce?: string
@@ -138,9 +140,9 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
  */
 export const OPTION_DESCRIPTIONS = {
   category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
-  key: 'Keyword, the cipher alphabet for substitution (26 letters, ? for one left unknown, or a keyword the rest of A-Z follows), the matrix for hill (4 or 9 letters row by row, A as 0), the additive keyword for nihilist, digits 0 to 9 for gronsfeld, a passage with at least one letter per letter of the text for running-key, the passphrase for aes-passphrase and openpgp (any text), or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, 10 to 32 (an even number) for cast5, 32 for rabbit, 2 to 512 (an even number) for rc4, any nonzero even number for xor, 32 or 64 for salsa20, 64 for xsalsa20, chacha20, xchacha20 and chacha20-poly1305. Required by substitution, vigenere, gronsfeld, beaufort, porta, autokey, running-key, alberti, playfair, four-square, two-square, hill, nihilist, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, aes-passphrase, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent, cast5, openpgp, rabbit, rc4, xor, salsa20, xsalsa20, chacha20, xchacha20 and chacha20-poly1305; optional for polybius, adfgvx, bifid and straddling-checkerboard (the 28 cells row by row, each letter A-Z once and two fillers such as . and /)',
+  key: 'Keyword, the cipher alphabet for substitution (26 letters, ? for one left unknown, or a keyword the rest of A-Z follows), the matrix for hill (4 or 9 letters row by row, A as 0), the additive keyword for nihilist, digits 0 to 9 for gronsfeld, a passage with at least one letter per letter of the text for running-key, the passphrase for aes-passphrase and openpgp (any text), or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, 10 to 32 (an even number) for cast5, 32 for rabbit, 2 to 512 (an even number) for rc4, any nonzero even number for xor, 32 or 64 for salsa20, 64 for xsalsa20, chacha20, xchacha20 and chacha20-poly1305. Required by substitution, vigenere, gronsfeld, beaufort, porta, autokey, running-key, alberti, quagmire-1, quagmire-2, quagmire-3, quagmire-4, playfair, four-square, two-square, hill, nihilist, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, aes-passphrase, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent, cast5, openpgp, rabbit, rc4, xor, salsa20, xsalsa20, chacha20, xchacha20 and chacha20-poly1305; optional for polybius, adfgvx, bifid and straddling-checkerboard (the 28 cells row by row, each letter A-Z once and two fillers such as . and /)',
   secondKey:
-    'Four-square and two-square only, and required there: keyword for the second keyed square, the rest of A-Z after it, J as I unless omit is q. That is the bottom left square of four-square, where key fills the top right, and the bottom or right square of two-square, where key fills the top or left',
+    'Four-square, two-square and quagmire-4 only, and required there: keyword for the second keyed square or alphabet, the rest of A-Z after it. That is the bottom left square of four-square, where key fills the top right, the bottom or right square of two-square, where key fills the top or left, both with J as I unless omit is q, and the cipher alphabet of quagmire-4, where key keys the plain one',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
   square:
     'Nihilist only: keyword for the 5×5 square, the rest of A-Z after it (default the plain square)',
@@ -149,6 +151,10 @@ export const OPTION_DESCRIPTIONS = {
   omit: 'Four-square and two-square only: the letter their 5×5 squares leave out, j to fold J into I (default) or q to drop Q from squares and text, as the English Wikipedia example does',
   orientation:
     'Two-square only: vertical stacks the squares and lets a pair in one column through as it was (default), horizontal sets them side by side and lets a pair in one row through reversed, as the ACA and dCode do',
+  indicator:
+    'Quagmire only, and required there: the indicator keyword, written down the column under indicatorUnder; each letter sets the cipher row for one letter of the text, in turn',
+  indicatorUnder:
+    'Quagmire only: the plain letter the indicator keyword stands under, one letter from A to Z (default A)',
   iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it). Openpgp encoding only: the random first block, 16 digits or 32 for AES (default random)',
   endian:
     'Rabbit only: byte order of key, IV and keystream, big as in RFC 4503 and CyberChef (default) or little as in Crypto++',
@@ -211,6 +217,8 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'rotation',
     'omit',
     'orientation',
+    'indicator',
+    'indicatorUnder',
     'iv',
     'tweak',
     'nonce',

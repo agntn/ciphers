@@ -73,7 +73,16 @@ function answer(result: {
 
 type CipherOptionRequirement = {
   readonly ciphers: readonly string[]
-  readonly required: readonly ('key' | 'secondKey' | 'iv' | 'nonce' | 'period' | 'width' | 'book')[]
+  readonly required: readonly (
+    | 'key'
+    | 'secondKey'
+    | 'indicator'
+    | 'iv'
+    | 'nonce'
+    | 'period'
+    | 'width'
+    | 'book'
+  )[]
   readonly key?: {
     readonly pattern: RegExp
     readonly error: string
@@ -92,9 +101,8 @@ const TRIPLE_DES_KEY = {
   error: 'must be 32 or 48 hex digits (two-key or three-key Triple DES)',
 }
 
-/** The options a `key` rule checks: `key`, and `secondKey` where the cipher requires it. */
-const KEYWORD = ['key'] as const
-const KEYWORD_PAIR = ['key', 'secondKey'] as const
+/** The options a `key` rule checks: `key`, plus `secondKey` and `indicator` where required. */
+const KEYWORDS = ['key', 'secondKey', 'indicator'] as const
 
 /** What the schema can't say per cipher: the options it needs and the shape of its key. */
 const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
@@ -106,6 +114,16 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
   {
     ciphers: ['vigenere', 'beaufort', 'porta', 'autokey', 'running-key', 'playfair', 'nihilist'],
     required: ['key'],
+    key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
+  },
+  {
+    ciphers: ['quagmire-1', 'quagmire-2', 'quagmire-3'],
+    required: ['key', 'indicator'],
+    key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
+  },
+  {
+    ciphers: ['quagmire-4'],
+    required: ['key', 'secondKey', 'indicator'],
     key: { pattern: /[A-Za-z]/, error: 'must contain at least one ASCII letter' },
   },
   {
@@ -292,7 +310,7 @@ function cipherInputError(params: Readonly<CipherToolParams>): string | undefine
   }
   const rule = requirement.key
   if (rule !== undefined) {
-    const fields = requirement.required.includes('secondKey') ? KEYWORD_PAIR : KEYWORD
+    const fields = KEYWORDS.filter((field) => requirement.required.includes(field))
     const bad = fields.find((field) => {
       const value = params[field]
       return value !== undefined && !rule.pattern.test(value)
@@ -362,6 +380,12 @@ const cipherInput = Type.Object(
     omit: Type.Optional(Type.Enum(['j', 'q'], { description: OPTION_DESCRIPTIONS.omit })),
     orientation: Type.Optional(
       Type.Enum(['vertical', 'horizontal'], { description: OPTION_DESCRIPTIONS.orientation }),
+    ),
+    indicator: Type.Optional(
+      Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.indicator }),
+    ),
+    indicatorUnder: Type.Optional(
+      Type.String({ pattern: '^[A-Za-z]$', description: OPTION_DESCRIPTIONS.indicatorUnder }),
     ),
     iv: Type.Optional(
       Type.String({ maxLength: MAX_KEY_LENGTH, description: OPTION_DESCRIPTIONS.iv }),
@@ -550,6 +574,7 @@ export const encodeTool = defineTool({
   snippet: 'Use ciphers_encode to encode text with local educational and puzzle ciphers.',
   guidelines: [
     'Vigenère, Gronsfeld (digits 0 to 9 only), Beaufort, Porta, Autokey, Running key, Playfair, Nihilist and Columnar need key, Alberti needs key and period, Four-square (four-square) and Two-square (two-square) need key and secondKey.',
+    'Quagmire I to III (quagmire-1, quagmire-2, quagmire-3) need key and indicator, Quagmire IV (quagmire-4) needs secondKey too. The indicator stands under plain A unless indicatorUnder names another letter, as an ACA puzzle sometimes does.',
     'Running key (running-key) never repeats its key: the passage needs at least one ASCII letter per letter of the text, and the letters past that are left unused.',
     'Porta (porta) follows the ACA table; a text from dCode with its default table needs rotation right.',
     'Four-square (four-square) folds J into I; squares without Q, as on the English Wikipedia page, need omit q.',

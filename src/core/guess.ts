@@ -88,6 +88,10 @@ const POLYALPHABETIC = [
   'running-key',
   'trithemius',
   'alberti',
+  'quagmire-1',
+  'quagmire-2',
+  'quagmire-3',
+  'quagmire-4',
 ] as const
 const BLOCK_16 = ['aes', 'aes-cbc', 'aes-lrw', 'rijndael', 'serpent', 'mars', 'lucifer'] as const
 const BLOCK_8 = [

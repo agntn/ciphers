@@ -82,6 +82,22 @@ export interface AlbertiOptions extends CipherBaseOptions {
   period: number
 }
 
+/** Quagmire I, II and III options. */
+export interface QuagmireOptions extends CipherBaseOptions {
+  /** Keyword for the keyed alphabet: plain for I, cipher for II, both for III. Required. */
+  key: string
+  /** Indicator keyword; each letter sets the cipher row for one letter of the text. Required. */
+  indicator: string
+  /** The plain letter the indicator keyword stands under. Default: `A`. */
+  indicatorUnder?: string
+}
+
+/** Quagmire IV options. */
+export interface Quagmire4Options extends QuagmireOptions {
+  /** Keyword for the cipher alphabet; `key` keys the plain one. Required. */
+  secondKey: string
+}
+
 /** Enigma M3 options. */
 export interface EnigmaOptions extends CipherBaseOptions {
   /** Initial rotor positions, left to right. Default: AAA. */

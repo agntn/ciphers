@@ -44,6 +44,10 @@ describe('guessFamily', () => {
         'running-key',
         'trithemius',
         'alberti',
+        'quagmire-1',
+        'quagmire-2',
+        'quagmire-3',
+        'quagmire-4',
       ],
       confidence: 'high',
     })

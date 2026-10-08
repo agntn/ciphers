@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 63 ciphers', () => {
-    expect(ciphers()).toHaveLength(63)
+  it('registers all 67 ciphers', () => {
+    expect(ciphers()).toHaveLength(67)
     for (const name of [
       'caesar',
       'rot13',
@@ -61,6 +61,10 @@ describe('registry', () => {
       'running-key',
       'trithemius',
       'alberti',
+      'quagmire-1',
+      'quagmire-2',
+      'quagmire-3',
+      'quagmire-4',
       'rail-fence',
       'route',
       'affine',
@@ -1618,6 +1622,10 @@ describe('edge cases', () => {
     porta: { key: 'TEST' },
     autokey: { key: 'TEST' },
     alberti: { key: 'TEST', period: 4 },
+    'quagmire-1': { key: 'TEST', indicator: 'CASE' },
+    'quagmire-2': { key: 'TEST', indicator: 'CASE' },
+    'quagmire-3': { key: 'TEST', indicator: 'CASE' },
+    'quagmire-4': { key: 'TEST', secondKey: 'CASE', indicator: 'KEY' },
     playfair: { key: 'TEST' },
     'four-square': { key: 'TEST', secondKey: 'CASE' },
     'two-square': { key: 'TEST', secondKey: 'CASE' },
@@ -1718,6 +1726,10 @@ describe('edge cases', () => {
       'running-key',
       'trithemius',
       'alberti',
+      'quagmire-1',
+      'quagmire-2',
+      'quagmire-3',
+      'quagmire-4',
       'rail-fence',
       'affine',
       'columnar',
@@ -1961,6 +1973,142 @@ describe('porta', () => {
       options: [
         { name: 'key', type: 'string', required: true },
         { name: 'rotation', type: 'string', required: false, default: 'left' },
+      ],
+    })
+  })
+})
+
+describe('quagmire', () => {
+  const vectors = [
+    {
+      name: 'quagmire-1',
+      options: { key: 'SPRINGFEVER', indicator: 'FLOWER' },
+      plain:
+        'The Quag One is a periodic cipher with a keyed plain alphabet run against a straight cipher alphabet.',
+      cipher: 'QPMGQRBUJUYIFDMPYAIFQYYJJJHJYCJLUUTPIDVWYMFSGAESDWHIZRBLIRVCFCZPELBPZYYJJJHWLJJLPUP',
+    },
+    {
+      name: 'quagmire-2',
+      options: { key: 'SPRINGFEVER', indicator: 'FLOWER' },
+      plain: 'In the Quag Two a straight plain alphabet is run against a keyed cipher alphabet.',
+      cipher: 'JICICOSLYKILFVCHEBDXCCORJIOEWAFMWKKTXBGWHRJIBKEDBJWZABUXWHEHUXOXCU',
+    },
+    {
+      name: 'quagmire-3',
+      options: { key: 'AUTOMOBILE', indicator: 'HIGHWAY' },
+      plain: 'The same keyed alphabet is used for plain and cipher alphabets.',
+      cipher: 'KRSLWMITJDVIABMRGQMTMLLIVIFUIXRHTNYONVRHHIIIRMCAOVEI',
+    },
+    {
+      name: 'quagmire-4',
+      options: {
+        key: 'SENSORY',
+        secondKey: 'PERCEPTION',
+        indicator: 'EXTRA',
+        indicatorUnder: 'S',
+      },
+      plain: 'This one employs three keywords',
+      cipher: 'VBMRFCYISPMPBRRHEICXRREIGDX',
+    },
+  ] as const
+
+  /** Published vectors: QuagmireI.pdf to QuagmireIV.pdf in cryptogram.org/downloads/aca.info */
+  it.each(vectors)('matches the ACA example for $name in both directions', (vector) => {
+    const cipher = create(vector.name)
+    const letters = vector.plain.replaceAll(/[^A-Za-z]/g, '').toUpperCase()
+    const flat = { ...vector.options, preserveCase: false, stripNonAlpha: true }
+    expect(cipher.encode(vector.plain, flat).text).toBe(vector.cipher)
+    expect(cipher.decode(vector.cipher, vector.options).text).toBe(letters)
+  })
+
+  it('reads the indicator under indicatorUnder, plain A by default', () => {
+    const quagmire4 = create('quagmire-4')
+    const options = { key: 'SENSORY', secondKey: 'PERCEPTION', indicator: 'EXTRA' }
+    expect(quagmire4.encode('THISONE', options).text).not.toBe('VBMRFCY')
+    expect(quagmire4.encode('THISONE', { ...options, indicatorUnder: 's' }).text).toBe('VBMRFCY')
+  })
+
+  it('advances the indicator only for ASCII letters and preserves case', () => {
+    const options = { key: 'Spring-fever', indicator: 'flower!' }
+    const encoded = create('quagmire-1').encode('The Quag One! éſı', options)
+    expect(encoded.text).toBe('Qpm Gqrb Uju! éſı')
+    expect(encoded.options).toEqual({
+      ...options,
+      indicatorUnder: 'A',
+      preserveCase: true,
+      stripNonAlpha: false,
+    })
+    expect(create('quagmire-1').decode('Qpm Gqrb Uju! éſı', options).text).toBe('The Quag One! éſı')
+  })
+
+  it('reports secondKey for Quagmire IV only', () => {
+    expect(create('quagmire-4').encode('A', vectors[3].options).options).toEqual({
+      ...vectors[3].options,
+      preserveCase: true,
+      stripNonAlpha: false,
+    })
+    expect(
+      create('quagmire-3').encode('A', { ...vectors[2].options, secondKey: 'X' }).options,
+    ).not.toHaveProperty('secondKey')
+  })
+
+  it('roundtrips both cases of the alphabet under every type', () => {
+    const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz'
+    for (const vector of vectors) {
+      const cipher = create(vector.name)
+      expect(cipher.decode(cipher.encode(text, vector.options).text, vector.options).text).toBe(
+        text,
+      )
+    }
+  })
+
+  it('rejects missing keywords, keywords without ASCII letters and a bad indicatorUnder', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const vector of vectors) {
+        const cipher = create(vector.name)
+        expect(() => cipher[operation]('A', { indicator: 'K' })).toThrow(MissingOptionError)
+        expect(() => cipher[operation]('A', { key: 'K' })).toThrow(MissingOptionError)
+        for (const key of [123, null, '123 !', 'éſı']) {
+          expect(() => cipher[operation]('A', { ...vector.options, key })).toThrow(
+            InvalidOptionError,
+          )
+          expect(() => cipher[operation]('A', { ...vector.options, indicator: key })).toThrow(
+            InvalidOptionError,
+          )
+        }
+        for (const indicatorUnder of ['', 'AB', '1', 'é', 1]) {
+          expect(() => cipher[operation]('A', { ...vector.options, indicatorUnder })).toThrow(
+            InvalidOptionError,
+          )
+        }
+      }
+      expect(() =>
+        create('quagmire-4')[operation]('A', { key: 'SENSORY', indicator: 'EXTRA' }),
+      ).toThrow(MissingOptionError)
+    }
+  })
+
+  it('advertises the keywords each type keys its alphabets with', () => {
+    expect(create('quagmire-1').info()).toMatchObject({
+      name: 'quagmire-1',
+      label: 'Quagmire I',
+      selfInverse: false,
+      family: 'polyalphabetic',
+      keyspace: '26! × 26^indicatorLength',
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'indicator', type: 'string', required: true },
+        { name: 'indicatorUnder', type: 'string', required: false, default: 'A' },
+      ],
+    })
+    expect(create('quagmire-4').info()).toMatchObject({
+      label: 'Quagmire IV',
+      keyspace: '(26!)² × 26^indicatorLength',
+      options: [
+        { name: 'key', required: true },
+        { name: 'secondKey', required: true },
+        { name: 'indicator', required: true },
+        { name: 'indicatorUnder', required: false },
       ],
     })
   })
@@ -6836,6 +6984,10 @@ describe('info().worksOn', () => {
     autokey: { key: 'QUEENLY' },
     'running-key': { key: 'errors can occur' },
     alberti: { key: 'ALBERTI', period: 4 },
+    'quagmire-1': { key: 'SPRINGFEVER', indicator: 'FLOWER' },
+    'quagmire-2': { key: 'SPRINGFEVER', indicator: 'FLOWER' },
+    'quagmire-3': { key: 'AUTOMOBILE', indicator: 'HIGHWAY' },
+    'quagmire-4': { key: 'SENSORY', secondKey: 'PERCEPTION', indicator: 'EXTRA' },
     playfair: { key: 'PLAYFAIR EXAMPLE' },
     'four-square': { key: 'EXAMPLE', secondKey: 'KEYWORD' },
     'two-square': { key: 'EXAMPLE', secondKey: 'KEYWORD' },

@@ -10,6 +10,8 @@ export type {
   AutokeyOptions,
   RunningKeyOptions,
   AlbertiOptions,
+  QuagmireOptions,
+  Quagmire4Options,
   EnigmaOptions,
   RailFenceOptions,
   RouteOptions,

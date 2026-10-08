@@ -20,6 +20,10 @@ import { Nihilist } from './nihilist.ts'
 import { Playfair } from './playfair.ts'
 import { Polybius } from './polybius.ts'
 import { Porta } from './porta.ts'
+import { Quagmire1 } from './quagmire-1.ts'
+import { Quagmire2 } from './quagmire-2.ts'
+import { Quagmire3 } from './quagmire-3.ts'
+import { Quagmire4 } from './quagmire-4.ts'
 import { RailFence } from './rail-fence.ts'
 import { Route } from './route.ts'
 import { RunningKey } from './running-key.ts'
@@ -47,6 +51,10 @@ export const classical: readonly CipherConstructor[] = [
   RunningKey,
   Trithemius,
   Alberti,
+  Quagmire1,
+  Quagmire2,
+  Quagmire3,
+  Quagmire4,
   RailFence,
   Affine,
   Playfair,

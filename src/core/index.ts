@@ -4,6 +4,7 @@ export type {
   CaesarOptions,
   SubstitutionOptions,
   VigenereOptions,
+  GronsfeldOptions,
   BeaufortOptions,
   PortaOptions,
   AutokeyOptions,

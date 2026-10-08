@@ -12,6 +12,7 @@ import { Bifid } from './bifid.ts'
 import { Caesar } from './caesar.ts'
 import { Columnar } from './columnar.ts'
 import { Enigma } from './enigma.ts'
+import { Gronsfeld } from './gronsfeld.ts'
 import { Hill } from './hill.ts'
 import { Morse } from './morse.ts'
 import { Nihilist } from './nihilist.ts'
@@ -36,6 +37,7 @@ export const classical: readonly CipherConstructor[] = [
   Atbash,
   Substitution,
   Vigenere,
+  Gronsfeld,
   Beaufort,
   Porta,
   Autokey,

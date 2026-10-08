@@ -60,6 +60,12 @@ describe('recoverKey', () => {
     expect(top(ciphertext, { cipher: 'vigenere' })).toEqual(['BOHEMIA', SCANDAL])
   })
 
+  it('reads a Gronsfeld key back as the Vigenère key with letters A to J', () => {
+    const ciphertext = create('gronsfeld').encode(SCANDAL, { key: '31415' }).text
+
+    expect(top(ciphertext, { cipher: 'vigenere' })).toEqual(['DBEBF', SCANDAL])
+  })
+
   it("reads Stinson's Example 1.11 under JANET", () => {
     const [key, text] = top(STINSON, { cipher: 'vigenere' })
 

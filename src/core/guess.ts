@@ -398,7 +398,7 @@ function hexBytes(reading: Readonly<Reading>): FamilyCandidate[] {
  * A1Z26: numbers 1 to 26 with something between them, which tells them from hex and plain numbers.
  *
  * @param reading - The text.
- * @returns {FamilyCandidate[]} A1Z26, or nothing.
+ * @returns {FamilyCandidate[]} A1Z26, and Nihilist too when every number is 22 to 26, or nothing.
  */
 function alphabetNumbers(reading: Readonly<Reading>): FamilyCandidate[] {
   const { text, symbols } = reading
@@ -412,7 +412,7 @@ function alphabetNumbers(reading: Readonly<Reading>): FamilyCandidate[] {
     separator === '-' || separator.length > 10
       ? 'Numbers 1 to 26, one letter each.'
       : `Numbers 1 to 26, one letter each, mostly split by ${JSON.stringify(separator)}: pass that as separator to join the words.`
-  return [candidate(['a1z26'], byLayout(symbols), signal)]
+  return [candidate(['a1z26'], byLayout(symbols), signal), ...nihilist(reading)]
 }
 
 /**

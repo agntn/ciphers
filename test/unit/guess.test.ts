@@ -150,6 +150,35 @@ describe('guessFamily', () => {
     expect(ranking(guessFamily(encoded))).toContain('four-square:medium')
   })
 
+  it('puts two-square ahead of four-square when its pairs show through', () => {
+    const keys = { key: 'DIALOGUE', secondKey: 'BIOGRAPHY' }
+    for (const orientation of ['vertical', 'horizontal']) {
+      const encoded = create('two-square').encode(DICKENS, { ...keys, orientation }).text
+      const guess = guessFamily(encoded)
+      const names = guess.candidates.map(({ ciphers }) => ciphers[0])
+      expect(names.indexOf('two-square')).toBeLessThan(names.indexOf('four-square'))
+      expect(guess.candidates.find(({ ciphers }) => ciphers[0] === 'two-square')?.signal).toContain(
+        `a ${orientation} two-square`,
+      )
+    }
+  })
+
+  it('keeps two-square one step behind four-square when nothing shows through', () => {
+    const encoded = create('four-square').encode(`${DICKENS} ${DICKENS}`, {
+      key: 'EXAMPLE',
+      secondKey: 'KEYWORD',
+    }).text
+    expect(ranking(guessFamily(encoded)).slice(0, 3)).toEqual([
+      'bifid:high',
+      'four-square:high',
+      'two-square:medium',
+    ])
+    const polish = guessFamily(encoded, 'pl').candidates.find(
+      ({ ciphers }) => ciphers[0] === 'two-square',
+    )
+    expect(polish?.signal).toContain('no pl pair table')
+  })
+
   it('points at Hill for flat blocks with a J, after the periodic ciphers', () => {
     for (const key of ['DDCF', 'GYBNQKURP']) {
       const encoded = create('hill').encode(`${DICKENS} ${DICKENS}`, { key }).text

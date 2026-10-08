@@ -42,6 +42,7 @@ const PRESENTATION: Record<
   affine: { icon: "i-lucide-calculator", blurb: "a·x + b mod 26", sample: "AFFINE CIPHER", options: { a: 5, b: 8 } },
   playfair: { icon: "i-lucide-grid-2x2", blurb: "Letter pairs through a keyed 5×5 table", sample: "HIDE THE GOLD", options: { key: "PLAYFAIR EXAMPLE" } },
   "four-square": { icon: "i-lucide-layout-grid", blurb: "Letter pairs across two plain and two keyed squares", sample: "ATTACK AT DAWN", options: { key: "EXAMPLE", secondKey: "KEYWORD" } },
+  "two-square": { icon: "i-lucide-rows-2", blurb: "Letter pairs across two keyed squares, one in five left alone", sample: "HELP ME OBI WAN KENOBI", options: { key: "EXAMPLE", secondKey: "KEYWORD" } },
   hill: { icon: "i-lucide-brackets", blurb: "Letter blocks times a key matrix, mod 26", sample: "ACT CAT", options: { key: "GYBNQKURP" } },
   polybius: { icon: "i-lucide-grid-3x3", blurb: "Each letter becomes a row and a column", sample: "HELLO" },
   nihilist: { icon: "i-lucide-grid-2x2-plus", blurb: "Square numbers plus a keyword, no wrap at 100", sample: "DYNAMITE WINTER PALACE", options: { key: "RUSSIAN", square: "ZEBRAS" } },

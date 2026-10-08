@@ -45,8 +45,8 @@ import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
 describe('registry', () => {
-  it('registers all 62 ciphers', () => {
-    expect(ciphers()).toHaveLength(62)
+  it('registers all 63 ciphers', () => {
+    expect(ciphers()).toHaveLength(63)
     for (const name of [
       'caesar',
       'rot13',
@@ -66,6 +66,7 @@ describe('registry', () => {
       'affine',
       'playfair',
       'four-square',
+      'two-square',
       'hill',
       'polybius',
       'nihilist',
@@ -611,6 +612,95 @@ describe('four-square', () => {
         expect(() => fourSquare[operation]('AT', { ...keys, omit })).toThrow(InvalidOptionError)
       }
     }
+  })
+})
+
+describe('two-square', () => {
+  const twoSquare = create('two-square')
+  const keys = { key: 'EXAMPLE', secondKey: 'KEYWORD' }
+  const aca = { key: 'DIALOGUE', secondKey: 'BIOGRAPHY', orientation: 'horizontal' }
+
+  /** Published vectors: https://en.wikipedia.org/wiki/Two-square_cipher */
+  it('takes HELP ME OBI WAN KENOBI to the Wikipedia ciphertext with Q left out', () => {
+    expect(twoSquare.encode('help me obi wan kenobi', { ...keys, omit: 'q' }).text).toBe(
+      'HEDLXWSDJYANHOTKDG',
+    )
+    expect(twoSquare.decode('HEDLXWSDJYANHOTKDG', { ...keys, omit: 'q' }).text).toBe(
+      'HELPMEOBIWANKENOBI',
+    )
+  })
+
+  /** Published vectors: https://crypto.interactive-maths.com/two-square-cipher.html */
+  it('takes the same message to the Crypto Corner ciphertext with J as I', () => {
+    expect(twoSquare.encode('help me obi wan kenobi', keys).text).toBe('HECMXWSRKYXPHWNODG')
+    expect(twoSquare.decode('HECMXWSRKYXPHWNODG', keys).text).toBe('HELPMEOBIWANKENOBI')
+  })
+
+  it('lets a pair in one column through as it was when the squares are stacked', () => {
+    const wikipedia = { ...keys, omit: 'q' }
+    expect(twoSquare.encode('HE', wikipedia).text).toBe('HE')
+    expect(twoSquare.encode('LP', wikipedia).text).toBe('DL')
+    expect(twoSquare.encode('DL', wikipedia).text).toBe('LP')
+  })
+
+  /** Published vectors: https://www.cryptogram.org/downloads/aca.info/ciphers/TwoSquare.pdf */
+  it('takes the ACA example side by side and reverses a pair in one row', () => {
+    expect(twoSquare.encode('an ot he rd ig ra ph ic se tu px', aca).text).toBe(
+      'IRRTEHMKGIMEQGRUNMMZSV',
+    )
+    expect(twoSquare.decode('IR RT EH MK GI ME QG RU NM MZ SV', aca).text).toBe(
+      'ANOTHERDIGRAPHICSETUPX',
+    )
+  })
+
+  /** Published vectors: https://www.dcode.fr/two-square-cipher */
+  it('reads the dCode example side by side', () => {
+    const dcode = { key: 'KEY', secondKey: 'WORD', orientation: 'horizontal' }
+    expect(twoSquare.decode('CDLBAV', dcode).text).toBe('DCODEZ')
+    expect(twoSquare.encode('DCODEZ', dcode).text).toBe('CDLBAV')
+  })
+
+  it('folds J into I and pads an odd length with X', () => {
+    expect(twoSquare.encode('Jumbo', keys).text).toBe(twoSquare.encode('IUMBOX', keys).text)
+    expect(twoSquare.decode(twoSquare.encode('Jumbo', keys).text, keys).text).toBe('IUMBOX')
+    expect(twoSquare.decode(twoSquare.encode('Jumbo', aca).text, aca).text).toBe('IUMBOX')
+    expect(twoSquare.encode('', keys).text).toBe('')
+  })
+
+  it('refuses ciphertext with an odd number of letters', () => {
+    expect(() => twoSquare.decode('HED', keys)).toThrow(CipherError)
+    expect(() => twoSquare.decode('HED', keys)).toThrow(/two-square ciphertext: 3 letters/)
+  })
+
+  it('needs both keywords, each with a letter', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => twoSquare[operation]('AT', { secondKey: 'KEY' })).toThrow(MissingOptionError)
+      expect(() => twoSquare[operation]('AT', { key: 'KEY' })).toThrow(/secondKey/)
+      expect(() => twoSquare[operation]('AT', { key: 'KEY', secondKey: '1' })).toThrow(
+        InvalidOptionError,
+      )
+    }
+  })
+
+  it('stacks the squares unless told otherwise, and refuses another layout', () => {
+    expect(twoSquare.encode('LP', { ...keys, orientation: 'vertical' }).text).toBe('CM')
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const orientation of ['Horizontal', 'diagonal', '', 1]) {
+        expect(() => twoSquare[operation]('AT', { ...keys, orientation })).toThrow(
+          InvalidOptionError,
+        )
+      }
+    }
+  })
+
+  it('reports the layout and the left out letter only when they are not the default', () => {
+    expect(twoSquare.encode('AT', keys).options).toEqual(keys)
+    expect(twoSquare.encode('AT', { ...keys, orientation: 'vertical', omit: 'j' }).options).toEqual(
+      keys,
+    )
+    expect(
+      twoSquare.encode('AT', { ...keys, orientation: 'horizontal', omit: 'q' }).options,
+    ).toEqual({ ...keys, orientation: 'horizontal', omit: 'q' })
   })
 })
 
@@ -1530,6 +1620,7 @@ describe('edge cases', () => {
     alberti: { key: 'TEST', period: 4 },
     playfair: { key: 'TEST' },
     'four-square': { key: 'TEST', secondKey: 'CASE' },
+    'two-square': { key: 'TEST', secondKey: 'CASE' },
     hill: { key: 'TEST' },
     nihilist: { key: 'TEST' },
     columnar: { key: 'TEST' },
@@ -6747,6 +6838,7 @@ describe('info().worksOn', () => {
     alberti: { key: 'ALBERTI', period: 4 },
     playfair: { key: 'PLAYFAIR EXAMPLE' },
     'four-square': { key: 'EXAMPLE', secondKey: 'KEYWORD' },
+    'two-square': { key: 'EXAMPLE', secondKey: 'KEYWORD' },
     hill: { key: 'DDCF' },
     nihilist: { key: 'RUSSIAN', square: 'ZEBRAS' },
     columnar: { key: 'ZEBRA' },

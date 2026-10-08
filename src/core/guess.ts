@@ -3,6 +3,7 @@ import {
   letterLogProbabilities,
   referenceCoincidences,
   referenceFits,
+  transparentPairScore,
   type FrequencyLanguage,
 } from './frequency.ts'
 import { create } from './registry.ts'
@@ -54,6 +55,9 @@ const KEY_LEAD = 0.1
 
 /** Below this fraction the text is as flat as random letters: rotor and long running keys. */
 const FLAT = 0.2
+
+/** Pairs show above `-TRANSPARENT / √letters`, as a four-square's do about one time in eight. */
+const TRANSPARENT = 0.6
 
 /** Fewest letters the statistics read at all. */
 const MIN_LETTERS = 10
@@ -561,10 +565,10 @@ function keyThatReads(reading: Readonly<Reading>): FamilyCandidate[] {
 }
 
 /**
- * Playfair, four-square and bifid: the 5×5 squares leave no J, and only Playfair never pairs a letter with itself.
+ * Playfair, four-square, two-square and bifid: no J in the squares, only Playfair never doubles.
  *
  * @param reading - The text.
- * @returns {FamilyCandidate[]} Any of the three, or nothing.
+ * @returns {FamilyCandidate[]} Any of the four, or nothing.
  */
 function square(reading: Readonly<Reading>): FamilyCandidate[] {
   const { symbols, letters, lift } = reading
@@ -582,8 +586,54 @@ function square(reading: Readonly<Reading>): FamilyCandidate[] {
   return [
     ...(even && !doubled ? [playfair] : []),
     ...(stirred === undefined ? [] : [stirred]),
-    ...(even ? [fourSquare(letters, doubled ? stirred?.confidence : lower(pairs), pairs)] : []),
+    ...(even
+      ? keyedPairs(
+          reading,
+          fourSquare(letters, doubled ? stirred?.confidence : lower(pairs), pairs),
+        )
+      : []),
   ]
+}
+
+/**
+ * Four-square and two-square, two-square first and as sure only when its pairs show through.
+ *
+ * @param reading - The text.
+ * @param four - The four-square candidate.
+ * @returns {FamilyCandidate[]} Both, in that order.
+ */
+function keyedPairs(
+  reading: Readonly<Reading>,
+  four: Readonly<FamilyCandidate>,
+): FamilyCandidate[] {
+  const { letters, language } = reading
+  const through = showThrough(reading)
+  if (through === 'unread' || through === 'hidden') {
+    const why =
+      through === 'unread'
+        ? `no ${language} pair table to spot them`
+        : `too few pairs here read as ${language} to say so`
+    const signal = `${letters} letters, an even count with no J. A two-square lets about one pair in five through, but ${why}.`
+    return [four, candidate(['two-square'], lower(four.confidence), signal)]
+  }
+  const order = through === 'horizontal' ? 'back to front' : 'as they stand'
+  const signal = `${letters} letters, an even count with no J, and more pairs read as ${language} ${order} than another digraph cipher leaves: a ${through} two-square lets one in five through.`
+  return [candidate(['two-square'], four.confidence, signal), four]
+}
+
+/**
+ * Whether pairs show through, straight under stacked squares or reversed side by side.
+ *
+ * @param reading - The text.
+ * @returns {'vertical' | 'horizontal' | 'hidden' | 'unread'} The layout, or why none shows.
+ */
+function showThrough(reading: Readonly<Reading>): 'vertical' | 'horizontal' | 'hidden' | 'unread' {
+  const { text, language, letters } = reading
+  const straight = transparentPairScore(text, language, false)
+  const reversed = transparentPairScore(text, language, true)
+  if (straight === undefined || reversed === undefined) return 'unread'
+  if (Math.max(straight, reversed) <= -TRANSPARENT / Math.sqrt(letters)) return 'hidden'
+  return straight >= reversed ? 'vertical' : 'horizontal'
 }
 
 /**

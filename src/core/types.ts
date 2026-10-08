@@ -132,6 +132,18 @@ export interface FourSquareOptions extends CipherBaseOptions {
   omit?: 'j' | 'q'
 }
 
+/** Two-square cipher options. */
+export interface TwoSquareOptions extends CipherBaseOptions {
+  /** Keyword for the top square, or the left one side by side. Required. */
+  key: string
+  /** Keyword for the bottom square, or the right one side by side. Required. */
+  secondKey: string
+  /** `vertical` stacks the squares (default), `horizontal` sets them side by side. */
+  orientation?: 'vertical' | 'horizontal'
+  /** The letter the squares leave out: `j` folds J into I (default), `q` drops Q. */
+  omit?: 'j' | 'q'
+}
+
 /** Hill cipher options. */
 export interface HillOptions extends CipherBaseOptions {
   /** 4 or 9 letters, the matrix row by row with A as 0. Required. */

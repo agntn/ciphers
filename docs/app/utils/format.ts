@@ -14,16 +14,24 @@ export function shellArg(value: string): string {
   return /^[\w./:@-]+$/u.test(value) ? value : `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
-/** Cipher option values as CLI flags: `--key LEMON --period 4`. */
+/** The CLI flag for an option, `blockSize` as `block-size`, as `@agntn/tools` spells it. */
+export function flagName(name: string): string {
+  return name
+    .replaceAll(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replaceAll("_", "-")
+    .toLowerCase();
+}
+
+/** Cipher option values as CLI flags: `--key LEMON --block-size 160`. */
 export function optionFlags(options: Record<string, unknown>): string {
   return Object.entries(options)
     .filter(([, value]) => value !== undefined && value !== "" && value !== null)
     .map(([name, value]) =>
       typeof value === "boolean"
         ? value
-          ? `--${name}`
-          : `--no-${name}`
-        : `--${name} ${shellArg(String(value))}`,
+          ? `--${flagName(name)}`
+          : `--no-${flagName(name)}`
+        : `--${flagName(name)} ${shellArg(String(value))}`,
     )
     .join(" ");
 }

@@ -5,7 +5,7 @@ import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
 /** NIST SP 800-38E caps one data unit at 2^20 AES blocks, 16 MiB. */
-const MAX_BYTES = BLOCK_SIZE * 2 ** 20
+const MAX_BYTES = 16 * 2 ** 20
 
 /**
  * Multiply a tweak by α, the polynomial x, in GF(2^128) modulo x^128 + x^7 + x^2 + x + 1. XTS

@@ -37,7 +37,7 @@ const RC4: BlockMode = {
   label: 'RC4',
   blockSize: 1,
   padding: false,
-  keyDigits: Array.from({ length: 256 }, (_, i) => 2 + 2 * i),
+  keyDigits: /* @__PURE__ */ Array.from({ length: 256 }, (_, i) => 2 + 2 * i),
   keyError: 'must be an even number of hex digits from 2 to 512 (a 1 to 256-byte RC4 key)',
   run: (data, key) => rc4(data, key),
 }

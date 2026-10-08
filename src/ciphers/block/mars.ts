@@ -245,7 +245,7 @@ const MARS: BlockMode = {
   label: 'MARS ECB',
   mode: 'ecb',
   blockSize: BLOCK_SIZE,
-  keyDigits: Array.from({ length: 11 }, (_, i) => 32 + 8 * i),
+  keyDigits: /* @__PURE__ */ Array.from({ length: 11 }, (_, i) => 32 + 8 * i),
   keyError: 'must be 32 to 112 hex digits in steps of 8 (a MARS key of 4 to 14 words)',
   run: marsEcb,
 }

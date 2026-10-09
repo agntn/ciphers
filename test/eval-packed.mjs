@@ -119,6 +119,10 @@ try {
   run('tar', ['-xzf', tarball, '-C', temporaryRoot])
 
   const packageRoot = path.join(temporaryRoot, 'package')
+  const maps = (await readdir(packageRoot, { recursive: true })).filter((file) =>
+    file.endsWith('.map'),
+  )
+  assert.deepEqual(maps, [], `obuild's remove-comments points these maps at the wrong lines`)
   /** @type {unknown} */
   const manifest = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'))
   assert.ok(

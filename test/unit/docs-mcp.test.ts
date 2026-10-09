@@ -71,11 +71,6 @@ async function stdioClient(): Promise<Client> {
   return client
 }
 
-/* What a model reads from an answer. The two SDKs fill the rest differently. */
-function answer(result: Readonly<Record<string, unknown>>): object {
-  return { content: result['content'], isError: result['isError'] === true }
-}
-
 describe('docs MCP tools', () => {
   it('serves every tool `ciphers mcp` lists after the Docus page tools', async () => {
     const { tools: stdio } = await (await stdioClient()).listTools()
@@ -99,7 +94,7 @@ describe('docs MCP tools', () => {
     const stdio = await stdioClient()
     for (const [name, args] of CALLS) {
       const served = await docs.callTool({ name, arguments: args })
-      expect(answer(served), name).toEqual(answer(await stdio.callTool({ name, arguments: args })))
+      expect(served, name).toEqual(await stdio.callTool({ name, arguments: args }))
     }
   })
 
@@ -108,15 +103,11 @@ describe('docs MCP tools', () => {
     const stdio = await stdioClient()
     const listed = await docs.callTool({ name: 'ciphers_info' })
     expect(listed.isError).toBeFalsy()
-    expect(answer(listed)).toEqual(
-      answer(await stdio.callTool({ name: 'ciphers_info', arguments: {} })),
-    )
+    expect(listed).toEqual(await stdio.callTool({ name: 'ciphers_info', arguments: {} }))
 
     const required = await docs.callTool({ name: 'ciphers_frequency' })
     expect(required.isError).toBe(true)
-    expect(answer(required)).toEqual(
-      answer(await stdio.callTool({ name: 'ciphers_frequency', arguments: {} })),
-    )
+    expect(required).toEqual(await stdio.callTool({ name: 'ciphers_frequency', arguments: {} }))
   })
 
   it("refuses bad arguments in `ciphers mcp`'s words, bidi and line separators as spaces", async () => {
@@ -131,9 +122,7 @@ describe('docs MCP tools', () => {
     for (const args of calls) {
       const refused = await docs.callTool({ name: 'ciphers_encode', arguments: args })
       expect(refused.isError).toBe(true)
-      expect(answer(refused)).toEqual(
-        answer(await stdio.callTool({ name: 'ciphers_encode', arguments: args })),
-      )
+      expect(refused).toEqual(await stdio.callTool({ name: 'ciphers_encode', arguments: args }))
       expect(JSON.stringify(refused.content)).not.toMatch(/[\u202E\u2028]/u)
     }
   })

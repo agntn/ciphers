@@ -33,8 +33,4 @@ export default defineConfig({
     semi: false,
     singleQuote: true,
   },
-  test: {
-    /** The docs helper reaches the server through Nuxt's `#mcp` alias. */
-    alias: { '#mcp': fileURLToPath(new URL('src/mcp.ts', import.meta.url)) },
-  },
 })

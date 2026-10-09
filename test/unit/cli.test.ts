@@ -86,18 +86,18 @@ describe('CLI refusals', () => {
     )
   })
 
-  it('refuses what the schema refuses, the way every other host does', () => {
+  it('refuses what the schema refuses, naming the flag that was typed', () => {
     expectRefusal(
       ['ciphers', '--category', 'hash'],
-      'Invalid arguments at /category: must be one of classical, block, stream',
+      'Invalid arguments at --category: must be one of classical, block, stream',
     )
     expectRefusal(
       ['frequency', 'HELLO', '--lang', 'de'],
-      'Invalid arguments at /lang: must be one of en, pl, ja',
+      'Invalid arguments at --lang: must be one of en, pl, ja',
     )
     expectRefusal(
       ['period', 'ABCDEF', '--max-period', '1'],
-      'Invalid arguments at /maxPeriod: must be >= 2',
+      'Invalid arguments at --max-period: must be >= 2',
     )
   })
 

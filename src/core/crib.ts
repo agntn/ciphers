@@ -1,6 +1,6 @@
 import { fromHex } from './block-mode.ts'
 import { InvalidOptionError } from './errors.ts'
-import { assertLanguage, letterLogProbabilities, type FrequencyLanguage } from './frequency.ts'
+import { assertLanguage, languageTables, type FrequencyLanguage } from './frequency.ts'
 
 /** A crib taken as right: `text` sits in ciphertext `message` (from 0) from byte `offset` on. */
 export interface CribPlacement {
@@ -69,7 +69,7 @@ const NOT_TEXT = Math.log(0.000_001)
  */
 function byteLog(byte: number, language: FrequencyLanguage): number {
   const character = String.fromCodePoint(byte)
-  const letter = letterLogProbabilities[language].get(character.toUpperCase())
+  const letter = languageTables(language).letterLogs.get(character.toUpperCase())
   if (letter !== undefined && byte < 0x80) {
     return (character === character.toUpperCase() ? UPPER_SHARE : LOWER_SHARE) + letter
   }

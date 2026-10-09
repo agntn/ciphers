@@ -1,4 +1,4 @@
-import { letterLogProbabilities } from './frequency.ts'
+import { languageTables } from './frequency.ts'
 
 /** Natural-log step between two levels of the quadgram table. */
 export const QUADGRAM_STEP = 0.25
@@ -723,7 +723,7 @@ export function quadgramLevels(): Uint8Array {
  */
 function missingLevels(): Uint8Array {
   const logs = Array.from({ length: 26 }, (_, code) =>
-    letterLogProbabilities.en.get(String.fromCodePoint(65 + code))!,
+    languageTables('en').letterLogs.get(String.fromCodePoint(65 + code))!,
   )
   const common = Math.max(...logs) * 4
   const levels = new Uint8Array(26 ** 4)

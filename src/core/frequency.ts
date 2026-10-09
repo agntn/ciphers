@@ -203,24 +203,6 @@ function pairLogProbabilities(table: string): Map<string, number> {
   return new Map([...counts].map(([pair, count]) => [pair, Math.log(count / total)]))
 }
 
-const frequencyReferences: Record<FrequencyLanguage, string> = {
-  en: frequencyOrder(letterPercentages.en),
-  pl: frequencyOrder(letterPercentages.pl),
-  ja: frequencyOrder(letterPercentages.ja),
-}
-
-export const referenceCoincidences: Record<FrequencyLanguage, number> = {
-  en: expectedCoincidence(letterPercentages.en),
-  pl: expectedCoincidence(letterPercentages.pl),
-  ja: expectedCoincidence(letterPercentages.ja),
-}
-
-export const letterLogProbabilities: Record<FrequencyLanguage, ReadonlyMap<string, number>> = {
-  en: logProbabilities(letterPercentages.en),
-  pl: logProbabilities(letterPercentages.pl),
-  ja: logProbabilities(letterPercentages.ja),
-}
-
 /**
  * The `fit` plaintext scores on average: each letter's log probability, weighted by its share.
  *
@@ -233,16 +215,57 @@ function expectedFit(percentages: Readonly<Record<string, number>>): number {
   return values.reduce((sum, percent) => sum + (percent / total) * Math.log(percent / total), 0)
 }
 
-export const referenceFits: Record<FrequencyLanguage, number> = {
-  en: expectedFit(letterPercentages.en),
-  pl: expectedFit(letterPercentages.pl),
-  ja: expectedFit(letterPercentages.ja),
+/** Letter pair counts per language; only English has them. */
+const pairCounts: Partial<Record<FrequencyLanguage, string>> = { en: englishPairs }
+
+/** Everything the analysis reads about one language, derived from its counts. */
+export interface LanguageTables {
+  /** All 26 letters, most frequent first. */
+  readonly order: string
+  /** Natural-log probability of each letter. */
+  readonly letterLogs: ReadonlyMap<string, number>
+  /** Index of coincidence of plaintext in the language. */
+  readonly ic: number
+  /** The `fit` plaintext scores on average. */
+  readonly fit: number
+  /** Natural-log probability of each letter pair; absent without a pair table. */
+  readonly pairLogs?: ReadonlyMap<string, number>
+  /** Lift of each letter pair over its letters drawn apart; absent without a pair table. */
+  readonly pairLifts?: ReadonlyMap<string, number>
 }
 
-const letterPairLogProbabilities: Partial<Record<FrequencyLanguage, ReadonlyMap<string, number>>> =
-  {
-    en: pairLogProbabilities(englishPairs),
+/** Tables built so far. Built on import, they'd ride along with every root import. */
+const builtTables: Partial<Record<FrequencyLanguage, LanguageTables>> = {}
+
+/**
+ * Derive the tables of a language from its counts.
+ *
+ * @param language - Language to build.
+ * @returns {LanguageTables} Its tables.
+ */
+function buildTables(language: FrequencyLanguage): LanguageTables {
+  const percentages = letterPercentages[language]
+  const letters = {
+    order: frequencyOrder(percentages),
+    letterLogs: logProbabilities(percentages),
+    ic: expectedCoincidence(percentages),
+    fit: expectedFit(percentages),
   }
+  const counts = pairCounts[language]
+  if (counts === undefined) return letters
+  const pairLogs = pairLogProbabilities(counts)
+  return { ...letters, pairLogs, pairLifts: pairLifts([...pairLogs]) }
+}
+
+/**
+ * The tables of a language, built on first use and kept.
+ *
+ * @param language - Language to look up.
+ * @returns {LanguageTables} Its tables.
+ */
+export function languageTables(language: FrequencyLanguage): LanguageTables {
+  return (builtTables[language] ??= buildTables(language))
+}
 
 /**
  * Mean log probability of the letter pairs inside the words of an uppercased text.
@@ -252,7 +275,7 @@ const letterPairLogProbabilities: Partial<Record<FrequencyLanguage, ReadonlyMap<
  * @returns {number | undefined} The mean, or `undefined` without a pair table or a two-letter word.
  */
 function meanPairLog(upper: string, language: FrequencyLanguage): number | undefined {
-  const pairLogs = letterPairLogProbabilities[language]
+  const { pairLogs } = languageTables(language)
   if (pairLogs === undefined) return undefined
   let pairs = 0
   let logProbability = 0
@@ -269,26 +292,24 @@ function meanPairLog(upper: string, language: FrequencyLanguage): number | undef
  * How much likelier each pair is than its two letters drawn apart: log P(ab) - log P(a·) - log P(·b),
  * with both marginals summed from the same table.
  *
- * @param pairLogs - Log probability of every pair.
+ * @param pairLogs - Every pair with its log probability.
  * @returns {Map<string, number>} The lift of every pair.
  */
-function pairLifts(pairLogs: Readonly<Record<string, number>>): Map<string, number> {
+function pairLifts(
+  pairLogs: readonly (readonly [pair: string, log: number])[],
+): Map<string, number> {
   const firsts = new Map<string, number>()
   const seconds = new Map<string, number>()
-  for (const [pair, log] of Object.entries(pairLogs)) {
+  for (const [pair, log] of pairLogs) {
     firsts.set(pair[0]!, (firsts.get(pair[0]!) ?? 0) + Math.exp(log))
     seconds.set(pair[1]!, (seconds.get(pair[1]!) ?? 0) + Math.exp(log))
   }
   return new Map(
-    Object.entries(pairLogs).map(([pair, log]) => [
+    pairLogs.map(([pair, log]) => [
       pair,
       log - Math.log(firsts.get(pair[0]!)!) - Math.log(seconds.get(pair[1]!)!),
     ]),
   )
-}
-
-const letterPairLifts: Partial<Record<FrequencyLanguage, ReadonlyMap<string, number>>> = {
-  en: pairLifts(Object.fromEntries(letterPairLogProbabilities.en!)),
 }
 
 /**
@@ -301,7 +322,7 @@ const letterPairLifts: Partial<Record<FrequencyLanguage, ReadonlyMap<string, num
  * @returns {number | undefined} The mean, or `undefined` without a pair table or two letters.
  */
 export function meanPairLift(text: string, language: FrequencyLanguage): number | undefined {
-  const lifts = letterPairLifts[language]
+  const lifts = languageTables(language).pairLifts
   const upper = text.toUpperCase().replaceAll(/[^A-Z]/g, '')
   if (lifts === undefined || upper.length < 2) return undefined
   let lift = 0
@@ -343,7 +364,7 @@ export function transparentPairScore(
   language: FrequencyLanguage,
   reversed: boolean,
 ): number | undefined {
-  const pairLogs = letterPairLogProbabilities[language]
+  const { pairLogs } = languageTables(language)
   const letters = text.toUpperCase().replaceAll(/[^A-Z]/g, '')
   if (pairLogs === undefined || letters.length < 2) return undefined
   const pairs = (letters.match(/../g) ?? []).map((pair) => (reversed ? pair[1]! + pair[0]! : pair))
@@ -393,12 +414,12 @@ export function analyzeFrequency(
   }
 
   const total = letters.length
-  const letterLogs = letterLogProbabilities[language]
+  const tables = languageTables(language)
   let coincidences = 0
   let logProbability = 0
   for (const [character, count] of frequencies) {
     coincidences += count * (count - 1)
-    logProbability += count * letterLogs.get(character)!
+    logProbability += count * tables.letterLogs.get(character)!
   }
 
   const pairFit = meanPairLog(upper, language)
@@ -407,9 +428,9 @@ export function analyzeFrequency(
     total,
     language,
     counts: [...frequencies.entries()].sort((left, right) => right[1] - left[1]),
-    reference: frequencyReferences[language],
+    reference: tables.order,
     ...(total < 2 ? {} : { ic: coincidences / (total * (total - 1)) }),
-    referenceIc: referenceCoincidences[language],
+    referenceIc: tables.ic,
     fit: logProbability / total,
     ...(pairFit === undefined ? {} : { pairFit }),
   }

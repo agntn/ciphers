@@ -1,5 +1,5 @@
 import { InvalidOptionError } from './errors.ts'
-import { assertLanguage, letterLogProbabilities, type FrequencyLanguage } from './frequency.ts'
+import { assertLanguage, languageTables, type FrequencyLanguage } from './frequency.ts'
 import { estimatePeriod } from './period.ts'
 import {
   ENGLISH_QUADGRAM_FIT,
@@ -146,7 +146,7 @@ function scorer(language: FrequencyLanguage): Scorer {
     }
   }
   const logs = Array.from({ length: 26 }, (_, code) =>
-    letterLogProbabilities[language].get(String.fromCodePoint(65 + code))!,
+    languageTables(language).letterLogs.get(String.fromCodePoint(65 + code))!,
   )
   const total = (codes: ArrayLike<number>, length = codes.length): number => {
     let sum = 0
@@ -293,7 +293,7 @@ function chiSquaredKey(
   language: FrequencyLanguage,
 ): number[] {
   const expected = Array.from({ length: 26 }, (_, code) =>
-    Math.exp(letterLogProbabilities[language].get(String.fromCodePoint(65 + code))!),
+    Math.exp(languageTables(language).letterLogs.get(String.fromCodePoint(65 + code))!),
   )
   return Array.from({ length: period }, (_, column) => {
     const counts = Array.from<number>({ length: 26 }).fill(0)

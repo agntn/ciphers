@@ -1,10 +1,5 @@
 import { InvalidOptionError } from './errors.ts'
-import {
-  assertLanguage,
-  letterLogProbabilities,
-  referenceCoincidences,
-  type FrequencyLanguage,
-} from './frequency.ts'
+import { assertLanguage, languageTables, type FrequencyLanguage } from './frequency.ts'
 
 /** Periods the analysis tries unless told otherwise. */
 export const DEFAULT_MAX_PERIOD = 20
@@ -89,7 +84,7 @@ function meanCoincidence(columns: readonly (readonly number[])[]): number {
  * @returns {string} One key letter per column, A for no shift.
  */
 function columnKey(columns: readonly (readonly number[])[], language: FrequencyLanguage): string {
-  const logs = letterLogProbabilities[language]
+  const logs = languageTables(language).letterLogs
   const logByCode = Array.from({ length: 26 }, (_, code) =>
     logs.get(String.fromCodePoint(65 + code))!,
   )
@@ -152,7 +147,7 @@ export function estimatePeriod(
     text.matchAll(/[A-Za-z]/g),
     ([letter]) => letter.toUpperCase().codePointAt(0)! - 65,
   )
-  const referenceIc = referenceCoincidences[language]
+  const referenceIc = languageTables(language).ic
 
   const limit = Math.min(maxPeriod, Math.floor(codes.length / 2))
   const icByPeriod = new Map<number, number>()

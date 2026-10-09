@@ -1,8 +1,6 @@
 import {
   assertLanguage,
-  letterLogProbabilities,
-  referenceCoincidences,
-  referenceFits,
+  languageTables,
   transparentPairScore,
   type FrequencyLanguage,
 } from './frequency.ts'
@@ -218,12 +216,12 @@ function letterCounts(text: string): { counts: number[]; letters: number } {
  * @returns {number} Near zero for the language, around -1 for scrambled letters.
  */
 function fitGap(counts: readonly number[], letters: number, language: FrequencyLanguage): number {
-  const logs = letterLogProbabilities[language]
+  const { letterLogs, fit } = languageTables(language)
   let score = 0
   counts.forEach((count, code) => {
-    score += count * logs.get(String.fromCodePoint(65 + code))!
+    score += count * letterLogs.get(String.fromCodePoint(65 + code))!
   })
-  return score / letters - referenceFits[language]
+  return score / letters - fit
 }
 
 /**
@@ -245,7 +243,7 @@ function read(text: string, language: FrequencyLanguage): Reading {
     counts,
     letters,
     ic,
-    lift: (ic - RANDOM_IC) / (referenceCoincidences[language] - RANDOM_IC),
+    lift: (ic - RANDOM_IC) / (languageTables(language).ic - RANDOM_IC),
     gap: letters === 0 ? Number.NaN : fitGap(counts, letters, language),
   }
 }
@@ -737,7 +735,7 @@ function severalAlphabets(reading: Readonly<Reading>): FamilyCandidate[] {
     candidate(
       POLYALPHABETIC,
       confidence,
-      `IoC ${ic.toFixed(4)} sits below ${language} plaintext (~${referenceCoincidences[language].toFixed(3)}) toward uniform random (~0.038), so several alphabets take turns.`,
+      `IoC ${ic.toFixed(4)} sits below ${language} plaintext (~${languageTables(language).ic.toFixed(3)}) toward uniform random (~0.038), so several alphabets take turns.`,
     ),
   ]
   if (lift < FLAT) {
@@ -827,7 +825,7 @@ export function guessFamily(text: string, language: FrequencyLanguage = 'en'): F
     letters: reading.letters,
     language,
     ...(decided || reading.letters < 2 ? {} : { ic: reading.ic }),
-    referenceIc: referenceCoincidences[language],
+    referenceIc: languageTables(language).ic,
     candidates,
   }
 }

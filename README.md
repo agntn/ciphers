@@ -126,7 +126,7 @@ ciphers info bifid
 
 A cipher's options are its flags: `--key`, `--second-key`, `--indicator`, `--transposition`, `--square`, `--rotation`, `--shift`, `--rails`, `--period`, `--letters`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
 
-Each command is one of the agent tools, built by `runCli` from [`@agntn/tools`](https://tools.agntn.dev/guide/cli). So the CLI refuses exactly what a model gets refused, in the same words, and `--json` prints the details a model gets. Morse that starts with a dash? Just type it. `-.-.` spells no flag, so it's read as the text, and a misspelled flag after it still gets refused.
+Each command is one of the agent tools, built by `runCli` from [`@agntn/tools`](https://tools.agntn.dev/guide/cli). So the CLI refuses exactly what a model gets refused, and `--json` prints the details a model gets. The refusal just speaks your dialect: `--max-period` here, `/maxPeriod` for a model. Morse that starts with a dash? Just type it. `-.-.` spells no flag, so it's read as the text, and a misspelled flag after it still gets refused.
 
 ## 🧠 Library
 

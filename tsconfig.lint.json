@@ -8,7 +8,7 @@
     "declarationMap": false,
     "noEmit": true,
     "rootDir": ".",
-    "paths": { "#mcp": ["./src/mcp.ts"] }
+    "paths": { "@agntn/tools/toolkit": ["./node_modules/@agntn/tools/dist/toolkit.d.mts"] }
   },
   "include": [
     "build.config.ts",

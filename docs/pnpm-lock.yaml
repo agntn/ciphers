@@ -18,14 +18,11 @@ importers:
         specifier: 0.6.6
         version: 0.6.6(ai@7.0.92(zod@4.6.5))
       '@agntn/tools':
-        specifier: 0.2.2
-        version: 0.2.2(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))
+        specifier: 0.2.3
+        version: 0.2.3(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))(zod@4.6.5)
       '@modelcontextprotocol/sdk':
         specifier: 1.30.1
         version: 1.30.1(@cfworker/json-schema@4.1.1)(zod@4.6.5)
-      '@modelcontextprotocol/server':
-        specifier: 2.2.0
-        version: 2.2.0
       agents:
         specifier: 0.24.0
         version: 0.24.0(@babel/core@7.29.7)(@babel/runtime@7.29.7)(@modelcontextprotocol/client@2.0.0)(@modelcontextprotocol/sdk@1.30.1(@cfworker/json-schema@4.1.1)(zod@4.6.5))(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))(rolldown@1.2.7)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.0))(zod@4.6.5)
@@ -155,8 +152,8 @@ packages:
       ai:
         optional: true
 
-  '@agntn/tools@0.2.2':
-    resolution: {integrity: sha512-gTXdnJCsQnjQ5pgmRaWGdSIRkFhKyfiNZvXiTI01Er1Y/NaM24GD+jy3N/5KijBB25gjikIxDg7ZN6z4oxes+A==}
+  '@agntn/tools@0.2.3':
+    resolution: {integrity: sha512-SyLKX2cHvchI2tLItMw/YFNS+j2Cb85eSi3QkN5oqXUSL0aMa1tznRRG45zlxYZaHTTqsezhPv6jKArW2eE1Kw==}
     engines: {node: '>=26'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.84.2 <2'
@@ -164,6 +161,7 @@ packages:
       '@oh-my-pi/pi-coding-agent': '>=18.0.0 <19'
       ai: '>=7.0.0 <8'
       h3-mcp: '>=0.2.0 <0.3'
+      zod: '>=4.1.13 <5'
     peerDependenciesMeta:
       '@earendil-works/pi-coding-agent':
         optional: true
@@ -174,6 +172,8 @@ packages:
       ai:
         optional: true
       h3-mcp:
+        optional: true
+      zod:
         optional: true
 
   '@ai-sdk/gateway@4.0.74':
@@ -7708,10 +7708,11 @@ snapshots:
       '@modelcontextprotocol/server': 2.2.0
       ai: 7.0.92(zod@4.5.4)
 
-  '@agntn/tools@0.2.2(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))':
+  '@agntn/tools@0.2.3(@modelcontextprotocol/server@2.2.0)(ai@7.0.92(zod@4.6.5))(zod@4.6.5)':
     optionalDependencies:
       '@modelcontextprotocol/server': 2.2.0
       ai: 7.0.92(zod@4.5.4)
+      zod: 4.6.5
 
   '@ai-sdk/gateway@4.0.74(zod@4.5.4)':
     dependencies:

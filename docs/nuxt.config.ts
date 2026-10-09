@@ -12,10 +12,11 @@ export default defineNuxtConfig({
     "@agntn/ciphers": resolve(librarySource, "index.ts"),
     /** The text the agent tools answer with; the module imports only the library, so the page runs it too. */
     "#tool-operations": resolve(librarySource, "tool-operations.ts"),
-    /** `toolListings` and `callTool` for the tools under server/mcp/tools/. Worker only. */
-    "#mcp": resolve(librarySource, "mcp.ts"),
-    /** The tool layer under src/tools.ts and src/mcp.ts, from the copy this directory installs. */
-    "@agntn/tools/mcp": resolve(import.meta.dirname, "node_modules/@agntn/tools/dist/mcp.mjs"),
+    /** src/tools.ts and the /mcp adapter share this copy, so both know one `ToolInputError`. */
+    "@agntn/tools/toolkit": resolve(
+      import.meta.dirname,
+      "node_modules/@agntn/tools/dist/toolkit.mjs",
+    ),
     "@agntn/tools": resolve(import.meta.dirname, "node_modules/@agntn/tools/dist/index.mjs"),
     /** The checksums @agntn/compressions imports. The package alias below would swallow them. */
     "@agntn/hashes/adler32": resolve(

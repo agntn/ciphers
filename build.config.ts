@@ -13,6 +13,8 @@ export default defineBuildConfig({
         './src/mcp.ts',
         './src/tools.ts',
       ],
+      /** obuild's remove-comments throws the JS maps off. Type maps want a src/ npm never gets. */
+      dts: { sourcemap: false },
     },
   ],
 })

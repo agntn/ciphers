@@ -44,6 +44,10 @@ import { poly1305 } from '../../src/ciphers/stream/chacha/poly1305.ts'
 import { chacha20, chacha20Poly1305, xchacha20 } from '../../src/chacha.ts'
 import { salsa20, xsalsa20 } from '../../src/salsa.ts'
 
+const hex = (value: string) =>
+  Array.from(value.replaceAll(' ', '').match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
+const bytes = (value: string) => Uint8Array.from(hex(value))
+
 describe('registry', () => {
   it('registers all 69 ciphers', () => {
     expect(ciphers()).toHaveLength(69)
@@ -156,7 +160,6 @@ describe('caesar', () => {
   it('preserveCase=false normalizes to uppercase', () => {
     const result = caesar.encode('Hello World', { preserveCase: false, shift: 3 })
     expect(result.text).toBe('KHOOR ZRUOG')
-    expect(result.text).toBe(result.text.toUpperCase())
   })
 
   it('stripNonAlpha=true removes non-alpha', () => {
@@ -2393,8 +2396,6 @@ describe('block modes', () => {
 
 describe('aes', () => {
   const aes = create('aes')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key128 = '2b7e151628aed2a6abf7158809cf4f3c'
 
   /** FIPS-197 Appendix C: one block under a 128, 192 and 256-bit key. */
@@ -2435,7 +2436,6 @@ describe('aes', () => {
 
   /** NIST SP 800-38A, F.1.3 and F.1.4: ECB-AES192 over four blocks, as bytes. */
   it('runs ECB on raw bytes from the aes subpath', () => {
-    const bytes = (value: string) => Uint8Array.from(hex(value))
     const key = bytes('8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b')
     const plaintext = bytes(
       '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710',
@@ -2472,7 +2472,6 @@ describe('aes', () => {
 
   /** Geth's `wikipage_test_vector_pbkdf2` keystore, its PBKDF2 key half from `openssl kdf`. */
   it('runs CTR on raw bytes from the aes subpath', () => {
-    const bytes = (value: string) => Uint8Array.from(hex(value))
     const key = bytes('f06d69cdc7da0faffb1008270bca38f5')
     const iv = bytes('6087dab2f9fdbbfaddc31a909735c1e6')
     const ciphertext = bytes('5318b4d5bcd28de64ee5559e671353e16f075ecae9f99c7a79a38af5f869aa46')
@@ -2485,7 +2484,6 @@ describe('aes', () => {
 
   /** `openssl enc -aes-128-ctr` over 40 `A`s from `ff..fe`, the third block on a zero counter. */
   it('wraps the CTR counter and cuts a short last block', () => {
-    const bytes = (value: string) => Uint8Array.from(hex(value))
     const key = bytes('2b7e151628aed2a6abf7158809cf4f3c')
     const counter = bytes('ff'.repeat(15) + 'fe')
     const text = new TextEncoder().encode('A'.repeat(40))
@@ -2528,11 +2526,10 @@ describe('aes', () => {
   })
 
   it('gives equal ciphertext blocks for equal plaintext blocks', () => {
-    const { text } = aes.encode('A'.repeat(32), { key: '000102030405060708090a0b0c0d0e0f' })
-    expect(text).toBe(
-      'dd4b1a0b47daa7067d0b59d95d58a6aedd4b1a0b47daa7067d0b59d95d58a6ae954f64f2e4e86e9eee82d20216684899',
+    const block = 'dd4b1a0b47daa7067d0b59d95d58a6ae'
+    expect(aes.encode('A'.repeat(32), { key: '000102030405060708090a0b0c0d0e0f' }).text).toBe(
+      `${block}${block}954f64f2e4e86e9eee82d20216684899`,
     )
-    expect(text.slice(0, 32)).toBe(text.slice(32, 64))
   })
 
   it('reads hex keys and ciphertext in any case and with spaces', () => {
@@ -2586,8 +2583,6 @@ describe('aes', () => {
 
 describe('aes-cbc', () => {
   const cbc = create('aes-cbc')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '2b7e151628aed2a6abf7158809cf4f3c'
   const iv = '000102030405060708090a0b0c0d0e0f'
 
@@ -2656,7 +2651,6 @@ describe('aes-cbc', () => {
     expect(text).toBe(
       'ab74350f2f19b4ea4de050762e12dbc18d2f731d5ae2fa0858814a0e6df219ca25292ca5cf9e35a0afb9452d5c640c6e',
     )
-    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
   })
 
   it('rejects keys and IVs it cannot read', () => {
@@ -2704,8 +2698,6 @@ describe('aes-cbc', () => {
 
 describe('aes-cfb', () => {
   const cfb = create('aes-cfb')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '2b7e151628aed2a6abf7158809cf4f3c'
   const iv = '000102030405060708090a0b0c0d0e0f'
 
@@ -2789,7 +2781,6 @@ describe('aes-cfb', () => {
   it('gives different ciphertext blocks for equal plaintext blocks', () => {
     const { text } = cfb.encode('A'.repeat(32), { key, iv })
     expect(text).toBe('11bf268dd82c73f79b4876a8daeead21975761a0d16d3f5fe3fcc49d988f750a')
-    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
   })
 
   /** The key was searched with `openssl enc -aes-128-cfb8`: AES of the zero block starts with 0x00. */
@@ -2854,8 +2845,6 @@ describe('aes-cfb', () => {
 
 describe('aes-ofb', () => {
   const ofb = create('aes-ofb')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '2b7e151628aed2a6abf7158809cf4f3c'
   const iv = '000102030405060708090a0b0c0d0e0f'
 
@@ -2907,7 +2896,6 @@ describe('aes-ofb', () => {
   it('feeds each keystream block back as the next input', () => {
     const { text } = ofb.encode('A'.repeat(32), { key, iv })
     expect(text).toBe('11bf268dd82c73f79b4876a8daeead2198e59b9b49d362de2aca7c37c1a01735')
-    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
     const next = ofb.encode('A'.repeat(16), { key, iv: '50fe67cc996d32b6da0937e99bafec60' })
     expect(next.text).toBe(text.slice(32))
   })
@@ -2988,8 +2976,6 @@ describe('aes-ofb', () => {
 
 describe('aes-ctr', () => {
   const ctr = create('aes-ctr')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '2b7e151628aed2a6abf7158809cf4f3c'
   const iv = '000102030405060708090a0b0c0d0e0f'
 
@@ -3039,7 +3025,6 @@ describe('aes-ctr', () => {
   it('gives different ciphertext blocks for equal plaintext blocks', () => {
     const { text } = ctr.encode('A'.repeat(32), { key, iv })
     expect(text).toBe('11bf268dd82c73f79b4876a8daeead21ee60cf0fc6a2d2eb9b700aa53ab6e21e')
-    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
   })
 
   /** Expected value from `openssl enc -aes-128-ctr`, which carries across all 128 bits. */
@@ -3107,8 +3092,6 @@ describe('aes-ctr', () => {
 
 describe('aes-ccm', () => {
   const ccm = create('aes-ccm')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '2b7e151628aed2a6abf7158809cf4f3c'
   const nonce = '000102030405060708090a0b'
   const dawn = '9038dc3aa03594330d2d4dca3cb9f3d0bc51521e4e075cf5099b1b92fa10'
@@ -3278,8 +3261,6 @@ describe('aes-ccm', () => {
 
 describe('aes-ocb', () => {
   const ocb = create('aes-ocb')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const bytes = (length: number) => Array.from({ length }, (_, i) => i)
   const key = '2b7e151628aed2a6abf7158809cf4f3c'
   const nonce = '000102030405060708090a0b'
@@ -3475,8 +3456,6 @@ describe('aes-ocb', () => {
 
 describe('aes-lrw', () => {
   const lrw = create('aes-lrw')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '4562ac25f828176d4c268414b5680185258e2a05e73e9d03ee5a830ccc094c87'
   const first = '00000000000000000000000000000001'
 
@@ -3581,7 +3560,6 @@ describe('aes-lrw', () => {
     expect(text).toBe(
       '709a0bafa03db466980baedc25c44ea7c622af990436ec152db2ae69dc4d779d52b4776b71f7dd0556849ba9297439ac',
     )
-    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
     const wrapped = lrw.encode('A'.repeat(32), { key, tweak: 'f'.repeat(32) })
     expect(wrapped.text).toBe(
       'ef5723a829c6cfb1f87e78859fce222017e6b62907b5e98337c96c14a8e1eb79f383e8ba9d88d4028a79e0b3dd85e012',
@@ -3625,8 +3603,6 @@ describe('aes-lrw', () => {
 
 describe('aes-xts', () => {
   const xts = create('aes-xts')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '2718281828459045235360287471352631415926535897932384626433832795'
   const unit = '00000000000000000000000000000000'
 
@@ -3773,7 +3749,6 @@ describe('aes-xts', () => {
   it('gives different ciphertext blocks for equal plaintext blocks', () => {
     const { text } = xts.encode('A'.repeat(32), { key })
     expect(text).toBe('553b7ea31ee5c66988f4c64b648b916ab6e36231df232d2904af9a73289419fb')
-    expect(text.slice(0, 32)).not.toBe(text.slice(32, 64))
   })
 
   it('refuses text and ciphertext shorter than one block', () => {
@@ -3833,8 +3808,6 @@ describe('aes-xts', () => {
 
 describe('aes-cbc-mac', () => {
   const mac = create('aes-cbc-mac')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '2b7e151628aed2a6abf7158809cf4f3c'
   const dawn = '41545441434b204154204441574e' + '1efa905609cc69e415825c40f80501e8'
 
@@ -4060,8 +4033,6 @@ describe('aes-passphrase', () => {
 
 describe('rijndael', () => {
   const rijndael = create('rijndael')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key256 = '2b7e151628aed2a6abf7158809cf4f3c762e7160f38b4da56a784d9045190cfe'
 
   /**
@@ -4139,8 +4110,6 @@ describe('rijndael', () => {
       '256/224': '6aa5f34d6fded63dcab2d3b428c652366c09c52866def001c79694e565d688fd',
       '256/256': '6fa162f7605b8d0392fcc5f9176f6509a4672cdf50e62e9416bc905bb339030f',
     }
-    const toHex = (bytes: readonly number[]) =>
-      bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
     for (const [sizes, digest] of Object.entries(digests)) {
       const [block, key] = sizes.split('/').map(Number) as [number, number]
       const bits = BigInt(block)
@@ -4156,7 +4125,6 @@ describe('rijndael', () => {
         expect(rijndaelEcb(ciphertext, zeroKey, 'decrypt', block / 8)).toEqual(plaintext)
         lines += `${toHex(ciphertext)}\n`
       }
-      expect(plaintexts).toHaveLength(2 * block)
       expect(createHash('sha256').update(lines).digest('hex'), sizes).toBe(digest)
     }
   })
@@ -4248,8 +4216,6 @@ describe('rijndael', () => {
 
 describe('des', () => {
   const des = create('des')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0123456789abcdef'
 
   /** FIPS 81 Appendix B, Table B1: ECB over "Now is the time for all " under 0123456789abcdef. */
@@ -4311,9 +4277,8 @@ describe('des', () => {
   })
 
   it('gives equal ciphertext blocks for equal plaintext blocks', () => {
-    const { text } = des.encode('A'.repeat(16), { key })
-    expect(text).toBe('a827de10956a609da827de10956a609d086f9a1d74c94d4e')
-    expect(text.slice(0, 16)).toBe(text.slice(16, 32))
+    const block = 'a827de10956a609d'
+    expect(des.encode('A'.repeat(16), { key }).text).toBe(`${block}${block}086f9a1d74c94d4e`)
   })
 
   it('reads hex keys and ciphertext in any case and with spaces', () => {
@@ -4371,8 +4336,6 @@ describe('des', () => {
 
 describe('desx', () => {
   const desx = create('desx')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0123456789abcdeff0e1d2c3b4a596871122334455667788'
 
   /**
@@ -4433,9 +4396,8 @@ describe('desx', () => {
   })
 
   it('gives equal ciphertext blocks for equal plaintext blocks', () => {
-    const { text } = desx.encode('A'.repeat(16), { key })
-    expect(text).toBe('7df87a008ee599617df87a008ee59961f5cb6e9d23564414')
-    expect(text.slice(0, 16)).toBe(text.slice(16, 32))
+    const block = '7df87a008ee59961'
+    expect(desx.encode('A'.repeat(16), { key }).text).toBe(`${block}${block}f5cb6e9d23564414`)
   })
 
   it('reads hex keys and ciphertext in any case and with spaces', () => {
@@ -4493,8 +4455,6 @@ describe('desx', () => {
 
 describe('triple-des', () => {
   const tripleDes = create('triple-des')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0123456789abcdef23456789abcdef01456789abcdef0123'
 
   /** NIST SP 800-67 example: three keys over three blocks of "The qufck brown fox jump". */
@@ -4555,9 +4515,8 @@ describe('triple-des', () => {
   })
 
   it('gives equal ciphertext blocks for equal plaintext blocks', () => {
-    const { text } = tripleDes.encode('A'.repeat(16), { key })
-    expect(text).toBe('9f6ca443ceebf4249f6ca443ceebf424832846b52f9e213d')
-    expect(text.slice(0, 16)).toBe(text.slice(16, 32))
+    const block = '9f6ca443ceebf424'
+    expect(tripleDes.encode('A'.repeat(16), { key }).text).toBe(`${block}${block}832846b52f9e213d`)
   })
 
   it('reads hex keys and ciphertext in any case and with spaces', () => {
@@ -4618,8 +4577,6 @@ describe('triple-des', () => {
 
 describe('triple-des-cbc', () => {
   const cbc = create('triple-des-cbc')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0123456789abcdef23456789abcdef01456789abcdef0123'
   const iv = '0001020304050607'
 
@@ -4680,7 +4637,6 @@ describe('triple-des-cbc', () => {
     expect(text.slice(0, 16)).toBe(
       create('triple-des').encode('A'.repeat(16), { key }).text.slice(0, 16),
     )
-    expect(text.slice(0, 16)).not.toBe(text.slice(16, 32))
   })
 
   it('reads hex keys, IVs and ciphertext in any case and with spaces', () => {
@@ -4740,8 +4696,6 @@ describe('triple-des-cbc', () => {
 
 describe('blowfish', () => {
   const blowfish = create('blowfish')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0123456789abcdeff0e1d2c3b4a59687'
 
   /** Eric Young's ECB vectors, published with Schneier's reference code (vectors.txt). */
@@ -4851,9 +4805,8 @@ describe('blowfish', () => {
   })
 
   it('gives equal ciphertext blocks for equal plaintext blocks', () => {
-    const { text } = blowfish.encode('A'.repeat(16), { key })
-    expect(text).toBe('8e9fdf91ed9fbd738e9fdf91ed9fbd7310c9d9248e4c6405')
-    expect(text.slice(0, 16)).toBe(text.slice(16, 32))
+    const block = '8e9fdf91ed9fbd73'
+    expect(blowfish.encode('A'.repeat(16), { key }).text).toBe(`${block}${block}10c9d9248e4c6405`)
   })
 
   it('reads hex keys and ciphertext in any case and with spaces', () => {
@@ -4914,8 +4867,6 @@ describe('blowfish', () => {
 
 describe('idea', () => {
   const idea = create('idea')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '00010002000300040005000600070008'
 
   /**
@@ -4959,9 +4910,8 @@ describe('idea', () => {
   })
 
   it('gives equal ciphertext blocks for equal plaintext blocks', () => {
-    const { text } = idea.encode('A'.repeat(16), { key })
-    expect(text).toBe('14e5708749b11c0914e5708749b11c0946e751f52a939266')
-    expect(text.slice(0, 16)).toBe(text.slice(16, 32))
+    const block = '14e5708749b11c09'
+    expect(idea.encode('A'.repeat(16), { key }).text).toBe(`${block}${block}46e751f52a939266`)
   })
 
   it('reads hex keys and ciphertext in any case and with spaces', () => {
@@ -5020,8 +4970,6 @@ describe('idea', () => {
 
 describe('lucifer', () => {
   const lucifer = create('lucifer')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0123456789abcdeffedcba9876543210'
 
   /**
@@ -5061,11 +5009,10 @@ describe('lucifer', () => {
   })
 
   it('gives equal ciphertext blocks for equal plaintext blocks', () => {
-    const { text } = lucifer.encode('A'.repeat(32), { key })
-    expect(text).toBe(
-      '82b100ca638d465d5b4f3ab021dd3aa082b100ca638d465d5b4f3ab021dd3aa0c08ecb7db68c5dadbe4ccb075fe83d4c',
+    const block = '82b100ca638d465d5b4f3ab021dd3aa0'
+    expect(lucifer.encode('A'.repeat(32), { key }).text).toBe(
+      `${block}${block}c08ecb7db68c5dadbe4ccb075fe83d4c`,
     )
-    expect(text.slice(0, 32)).toBe(text.slice(32, 64))
   })
 
   it('reads hex keys and ciphertext in any case and with spaces', () => {
@@ -5126,8 +5073,6 @@ describe('lucifer', () => {
 
 describe('mars', () => {
   const mars = create('mars')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0123456789abcdeffedcba9876543210'
 
   /** IBM's known answers for the tweaked key schedule, as Crypto++ ships them in `mars.txt`. */
@@ -5287,8 +5232,6 @@ describe('mars', () => {
 
 describe('serpent', () => {
   const serpent = create('serpent')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0123456789abcdeffedcba9876543210'
 
   /** From Botan's `serpent.vec`, which libgcrypt's Serpent agrees with in the same byte order. */
@@ -5319,8 +5262,6 @@ describe('serpent', () => {
    * bit of the first byte. The digests cover the file's ciphertexts in that order, one per line.
    */
   it("runs every single-bit vector in Botan's file", () => {
-    const toHex = (bytes: readonly number[]) =>
-      bytes.map((byte) => byte.toString(16).padStart(2, '0')).join('')
     const oneBit = (length: number, bit: number) => {
       const bytes = Array.from<number>({ length }).fill(0)
       bytes[bit >>> 3] = 0x80 >>> (bit & 7)
@@ -5449,8 +5390,6 @@ describe('serpent', () => {
 
 describe('cast5', () => {
   const cast5 = create('cast5')
-  const hex = (value: string) =>
-    Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0123456712345678234567893456789a'
 
   /** RFC 2144 B.1. A key of 80 bits or less runs 12 rounds, not 16. */
@@ -6218,8 +6157,6 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
 
 describe('rabbit', () => {
   const rabbitCipher = create('rabbit')
-  const hex = (value: string) =>
-    Array.from(value.replaceAll(' ', '').match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const zeros = Array.from({ length: 48 }, () => 0)
   const key = '912813292e3d36fe3bfc62f1dc51c3ac'
 
@@ -6399,8 +6336,6 @@ describe('rabbit', () => {
 
 describe('rc4', () => {
   const rc4Cipher = create('rc4')
-  const hex = (value: string) =>
-    Array.from(value.replaceAll(' ', '').match(/../g) ?? [], (pair) => Number.parseInt(pair, 16))
   const key = '0102030405060708090a0b0c0d0e0f10'
 
   /** RFC 6229 section 2: keystream at offsets 0, 1008 and 4096 for a 40, 128 and 256-bit key. */
@@ -6605,6 +6540,8 @@ describe('salsa20', () => {
       const options = { key, nonce: zeros(8), bytes: 'hex' }
       expect(salsa.encode(zeros(64), options).text).toBe(keystream)
       expect(salsa.decode(keystream, options).text).toBe(zeros(64))
+      const stream = salsa20(new Uint8Array(64), Uint8Array.from(hex(key)), new Uint8Array(8))
+      expect(Buffer.from(stream).toString('hex')).toBe(keystream)
     }
   })
 
@@ -6612,18 +6549,19 @@ describe('salsa20', () => {
   it('carries the block counter past 32 bits', () => {
     const options = { key: zeros(32), nonce: zeros(8), counter: 0xffffffff, bytes: 'hex' }
     const result = salsa.encode(zeros(1024), options)
+    const digest = '81cf4342209a91783f1c2286b09a60ef8e1f318be782b143bd17facdee6f002f'
     expect(result.text.slice(0, 256)).toBe(
       '59fc4dd73f4b7b28ce1b0ef562bab604824076898a800797b59902a99f3122545231e85b887ffa19f71f24aaf352dc6afe47281d8f546c9d419194479a369392b65fc777c4f950ec0274ff0ffbb0a6e3ededf78477e94945e87f26e3162bf6a1050933421833f249da1162db6e92a7678505190c80dc46350b81e831f974b28c',
     )
-    expect(createHash('sha256').update(Buffer.from(result.text, 'hex')).digest('hex')).toBe(
-      '81cf4342209a91783f1c2286b09a60ef8e1f318be782b143bd17facdee6f002f',
-    )
+    expect(createHash('sha256').update(Buffer.from(result.text, 'hex')).digest('hex')).toBe(digest)
     expect(result.options).toEqual({
       key: zeros(32),
       nonce: zeros(8),
       counter: 0xffffffff,
       bytes: 'hex',
     })
+    const stream = salsa20(new Uint8Array(1024), new Uint8Array(32), new Uint8Array(8), 0xffffffff)
+    expect(createHash('sha256').update(stream).digest('hex')).toBe(digest)
   })
 
   it('round-trips UTF-8 text and reports nonce and counter', () => {
@@ -6682,6 +6620,8 @@ describe('xsalsa20', () => {
       '27b8cfe81416a76301fd1eec6a4d99675069b2da2776c360db1bdfea7c0aa613913e10f7a60fec04d11e65f2d64e'
     expect(xsalsa.encode(plaintext, options).text).toBe(ciphertext)
     expect(xsalsa.decode(ciphertext, options).text).toBe(plaintext)
+    const encrypted = xsalsa20(bytes(plaintext), bytes(options.key), bytes(options.nonce))
+    expect(Buffer.from(encrypted).toString('hex')).toBe(ciphertext)
   })
 
   it('takes only a 256-bit key and a 192-bit nonce', () => {
@@ -6740,6 +6680,13 @@ describe('chacha20', () => {
       '62e6347f95ed87a45ffae7426f27a1df5fb69110044c0d73118effa95b01e5cf166d3df2d721caf9b21e5fb14c616871fd84c54f9d65b283196c7fe4f60553ebf39c6402c42234e32a356b3e764312a61a5532055716ead6962568f87d3f3f7704c6a8d1bcd1bf4d50d6154b6da731b187b58dfd728afa36757a797ac188d1'
     expect(chacha.encode(jabberwocky, options).text).toBe(ciphertext)
     expect(chacha.decode(ciphertext, options).text).toBe(jabberwocky)
+    const encrypted = chacha20(
+      Buffer.from(jabberwocky),
+      bytes(options.key),
+      bytes(options.nonce),
+      42,
+    )
+    expect(Buffer.from(encrypted).toString('hex')).toBe(ciphertext)
   })
 
   it('refuses a counter the text runs past', () => {
@@ -6807,6 +6754,8 @@ describe('xchacha20', () => {
       expect(ciphertext.slice(0, 64)).toBe(start)
       expect(createHash('sha256').update(Buffer.from(ciphertext, 'hex')).digest('hex')).toBe(digest)
       expect(xchacha.decode(ciphertext, { key, nonce, counter }).text).toBe(dhole)
+      const encrypted = xchacha20(Buffer.from(dhole), bytes(key), bytes(nonce), counter)
+      expect(createHash('sha256').update(encrypted).digest('hex')).toBe(digest)
     }
     expect(xchacha.decode('00'.repeat(32), { key, nonce, bytes: 'hex' }).text).toBe(
       '1131ce9a2a20ae0d67c8935c7789fa1025c9e5bb720fb96f11354fb97af0bd9a',
@@ -6884,6 +6833,16 @@ describe('chacha20-poly1305', () => {
       options: { key, nonce, aad },
     })
     expect(aead.decode(sealed, { key, nonce, aad }).text).toBe(sunscreen)
+    const encrypted = chacha20Poly1305(
+      Buffer.from(sunscreen),
+      bytes(key),
+      bytes(nonce),
+      'encrypt',
+      bytes(aad),
+    )
+    expect(Buffer.from(encrypted).toString('hex')).toBe(sealed)
+    const opened = chacha20Poly1305(encrypted, bytes(key), bytes(nonce), 'decrypt', bytes(aad))
+    expect(Buffer.from(opened).toString()).toBe(sunscreen)
   })
 
   /** RFC 8439 A.5: a received ciphertext and tag that open to text with curly quotes. */
@@ -6924,43 +6883,19 @@ describe('chacha20-poly1305', () => {
 })
 
 describe('chacha and salsa subpaths', () => {
-  const bytes = (value: string) => Uint8Array.from(fromHex(value))
-  const key = bytes('1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0')
+  const key = Uint8Array.from(
+    hex('1c9240a5eb55d38af333888604f6b5f0473917c1402b80099dca5cbc207075c0'),
+  )
 
-  it('run the same streams on raw bytes', () => {
-    const data = new TextEncoder().encode("'Twas brillig")
-    const nonce = bytes('000000000000000000000002')
-    const encrypted = chacha20(data, key, nonce, 42)
-    expect(toHex([...encrypted])).toBe(
-      create('chacha20').encode("'Twas brillig", {
-        key: toHex([...key]),
-        nonce: '000000000000000000000002',
-        counter: 42,
-      }).text,
-    )
-    expect(chacha20(encrypted, key, nonce, 42)).toEqual(data)
-    expect(chacha20(new Uint8Array(), key, nonce)).toEqual(new Uint8Array())
-    const longNonce = bytes('00'.repeat(24))
-    expect(xchacha20(xchacha20(data, key, longNonce), key, longNonce)).toEqual(data)
-    expect(
-      salsa20(
-        salsa20(data, key.subarray(0, 16), bytes('00'.repeat(8))),
-        key.subarray(0, 16),
-        bytes('00'.repeat(8)),
-      ),
-    ).toEqual(data)
-    expect(xsalsa20(xsalsa20(data, key, longNonce, 7), key, longNonce, 7)).toEqual(data)
+  it('give nothing back for no data', () => {
+    expect(chacha20(new Uint8Array(), key, new Uint8Array(12))).toEqual(new Uint8Array())
   })
 
-  it('seals and opens with ChaCha20-Poly1305', () => {
-    const data = new TextEncoder().encode('sunscreen')
-    const nonce = bytes('070000004041424344454647')
-    const aad = bytes('50515253')
-    const sealedBytes = chacha20Poly1305(data, key, nonce, 'encrypt', aad)
-    expect(sealedBytes).toHaveLength(data.length + 16)
-    expect(chacha20Poly1305(sealedBytes, key, nonce, 'decrypt', aad)).toEqual(data)
-    expect(() => chacha20Poly1305(sealedBytes, key, nonce, 'decrypt')).toThrow(/Tag does not match/)
-    expect(() => chacha20Poly1305(data, key, nonce, 'sign' as 'encrypt')).toThrow(
+  it("refuse a missing aad and a direction ChaCha20-Poly1305 doesn't know", () => {
+    const nonce = new Uint8Array(12)
+    const sealed = chacha20Poly1305(new Uint8Array(3), key, nonce, 'encrypt', new Uint8Array(4))
+    expect(() => chacha20Poly1305(sealed, key, nonce, 'decrypt')).toThrow(/Tag does not match/)
+    expect(() => chacha20Poly1305(sealed, key, nonce, 'sign' as 'encrypt')).toThrow(
       InvalidOptionError,
     )
   })

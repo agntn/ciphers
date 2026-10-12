@@ -50,6 +50,31 @@ describe('LruCache', () => {
     expect(c.get('b')).toBeUndefined()
     expect(c.get('c')).toBe(3)
   })
+
+  it('has() reports presence', () => {
+    const c = new LruCache<string, number>(2)
+    c.set('x', 10)
+    expect(c.has('x')).toBe(true)
+    expect(c.has('y')).toBe(false)
+  })
+
+  it('clear() empties the cache', () => {
+    const c = new LruCache<string, number>(2)
+    c.set('a', 1)
+    c.set('b', 2)
+    c.clear()
+    expect(c.size).toBe(0)
+    expect(c.get('a')).toBeUndefined()
+  })
+
+  it('size tracks entries', () => {
+    const c = new LruCache<string, number>(3)
+    expect(c.size).toBe(0)
+    c.set('a', 1)
+    expect(c.size).toBe(1)
+    c.set('b', 2)
+    expect(c.size).toBe(2)
+  })
 })
 
 describe('cipherCacheKey', () => {
@@ -74,6 +99,16 @@ describe('cipherCacheKey', () => {
 
   it('distinguishes different operations', () => {
     expect(cipherCacheKey('encode', 'x')).not.toBe(cipherCacheKey('decode', 'x'))
+  })
+
+  it('distinguishes different texts', () => {
+    expect(cipherCacheKey('encode', 'HELLO')).not.toBe(cipherCacheKey('encode', 'WORLD'))
+  })
+
+  it('distinguishes different keys', () => {
+    expect(cipherCacheKey('encode', 'x', { key: 'AAA' })).not.toBe(
+      cipherCacheKey('encode', 'x', { key: 'BBB' }),
+    )
   })
 })
 
@@ -115,16 +150,15 @@ describe('buildPolybiusSquare', () => {
 })
 
 describe('processBaseOptions', () => {
-  it('returns processBaseOptions result with both options', () => {
-    const r = processBaseOptions({})
-    expect(typeof r.preserveCase).toBe('boolean')
-    expect(typeof r.stripNonAlpha).toBe('boolean')
+  it('leaves the text alone by default', () => {
+    expect(processBaseOptions({})).toEqual({ preserveCase: true, stripNonAlpha: false })
   })
 
   it('respects explicit options', () => {
-    const r = processBaseOptions({ preserveCase: true, stripNonAlpha: false })
-    expect(r.preserveCase).toBe(true)
-    expect(r.stripNonAlpha).toBe(false)
+    expect(processBaseOptions({ preserveCase: false, stripNonAlpha: true })).toEqual({
+      preserveCase: false,
+      stripNonAlpha: true,
+    })
   })
 })
 

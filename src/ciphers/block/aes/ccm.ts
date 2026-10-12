@@ -6,6 +6,7 @@ import {
   type BlockMode,
   type Bytes,
   BlockCipher,
+  xorBytes,
   fromHex,
   readHex,
 } from '../../../core/block-mode.ts'
@@ -19,10 +20,6 @@ export const CCM_TAG_LENGTHS = [32, 48, 64, 80, 96, 112, 128] as const
 
 /** How long the CCM tag is, in bits. */
 export type CcmTagLength = (typeof CCM_TAG_LENGTHS)[number]
-
-function xor(a: Bytes, b: Bytes): number[] {
-  return a.map((byte, i) => byte ^ b[i]!)
-}
 
 // Big-endian bytes of `value`, `length` of them.
 function bigEndian(value: number, length: number): number[] {
@@ -75,7 +72,7 @@ function cbcMac(
   ]
   let mac: Bytes = Array.from({ length: BLOCK_SIZE }, () => 0)
   for (let offset = 0; offset < blocks.length; offset += BLOCK_SIZE) {
-    mac = encrypt(xor(blocks.slice(offset, offset + BLOCK_SIZE), mac))
+    mac = encrypt(xorBytes(blocks.slice(offset, offset + BLOCK_SIZE), mac))
   }
   return mac.slice(0, tagBytes)
 }
@@ -124,7 +121,7 @@ export function aesCcm(
   // and the whole-block increment of CTR gives the same counter blocks as §A.3.
   if (operation === 'encrypt') {
     const tag = cbcMac(encrypt, nonce, aad, data, tagBytes)
-    return [...aesCtr(data, key, counter(1)), ...xor(tag, tagMask)]
+    return [...aesCtr(data, key, counter(1)), ...xorBytes(tag, tagMask)]
   }
   const plaintext = aesCtr(data.slice(0, payloadLength), key, counter(1))
   const tag = cbcMac(encrypt, nonce, aad, plaintext, tagBytes)

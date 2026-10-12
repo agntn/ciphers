@@ -94,6 +94,78 @@ export function fromHex(digits: string): number[] {
 }
 
 /**
+ * XOR two runs of bytes, as long as the first.
+ *
+ * @param a - Any bytes.
+ * @param b - At least as many bytes.
+ * @returns {number[]} `a ^ b`.
+ */
+export function xorBytes(a: Bytes, b: Bytes): number[] {
+  return a.map((byte, i) => byte ^ b[i]!)
+}
+
+/** A block cipher mode over whole blocks under one key, such as `aesEcb`. */
+export type EcbFunction = (data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt') => number[]
+
+/** A block cipher mode that also takes an IV of one block, such as `aesCbc`. */
+export type CbcFunction = (
+  data: Bytes,
+  key: Bytes,
+  operation: 'encrypt' | 'decrypt',
+  iv: Bytes,
+) => number[]
+
+/**
+ * ECB over any block cipher: every block on its own, so equal blocks in give equal blocks out.
+ *
+ * @param cipher - The block cipher.
+ * @param blockSize - Block length in bytes.
+ * @returns {EcbFunction} ECB over whole blocks.
+ */
+/* @__NO_SIDE_EFFECTS__ */ export function blockEcb(
+  cipher: BlockFunction,
+  blockSize: number,
+): EcbFunction {
+  return (data, key, operation) => {
+    const transform = cipher(key, operation)
+    const output: number[] = []
+    for (let offset = 0; offset < data.length; offset += blockSize) {
+      output.push(...transform(data.slice(offset, offset + blockSize)))
+    }
+    return output
+  }
+}
+
+/**
+ * CBC as NIST SP 800-38A §6.2 defines it, over any block cipher.
+ *
+ * @param cipher - The block cipher.
+ * @param blockSize - Block length in bytes.
+ * @returns {CbcFunction} CBC over whole blocks.
+ */
+/* @__NO_SIDE_EFFECTS__ */ export function blockCbc(
+  cipher: BlockFunction,
+  blockSize: number,
+): CbcFunction {
+  return (data, key, operation, iv) => {
+    const transform = cipher(key, operation)
+    const output: number[] = []
+    let previous = iv
+    for (let offset = 0; offset < data.length; offset += blockSize) {
+      const block = data.slice(offset, offset + blockSize)
+      if (operation === 'encrypt') {
+        previous = transform(xorBytes(block, previous))
+        output.push(...previous)
+      } else {
+        output.push(...xorBytes(transform(block), previous))
+        previous = block
+      }
+    }
+    return output
+  }
+}
+
+/**
  * Read the required `iv` option: one block of hex digits, case and whitespace ignored.
  *
  * @param options - The options passed to the cipher.

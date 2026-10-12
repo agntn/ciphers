@@ -7,6 +7,7 @@ import {
   type BlockMode,
   type Bytes,
   BlockCipher,
+  xorBytes,
   fromHex,
   readHex,
 } from '../../../core/block-mode.ts'
@@ -19,10 +20,6 @@ export const OCB_TAG_LENGTHS = [64, 96, 128] as const
 
 /** How long the OCB tag is, in bits. */
 export type OcbTagLength = (typeof OCB_TAG_LENGTHS)[number]
-
-function xor(a: Bytes, b: Bytes): number[] {
-  return a.map((byte, i) => byte ^ b[i]!)
-}
 
 /**
  * RFC 7253 §2: shift the 128-bit string left by one bit, and when a one fell off the top, XOR
@@ -89,14 +86,14 @@ function hash(encrypt: (block: Bytes) => Bytes, l: Masks, aad: Bytes): Bytes {
   let offset: Bytes = sum
   const whole = Math.floor(aad.length / BLOCK_SIZE)
   for (let i = 1; i <= whole; i++) {
-    offset = xor(offset, l.at(ntz(i)))
+    offset = xorBytes(offset, l.at(ntz(i)))
     const block = aad.slice((i - 1) * BLOCK_SIZE, i * BLOCK_SIZE)
-    sum = xor(sum, encrypt(xor(block, offset)))
+    sum = xorBytes(sum, encrypt(xorBytes(block, offset)))
   }
   const rest = aad.slice(whole * BLOCK_SIZE)
   if (rest.length > 0) {
-    offset = xor(offset, l.star)
-    sum = xor(sum, encrypt(xor(padOne(rest), offset)))
+    offset = xorBytes(offset, l.star)
+    sum = xorBytes(sum, encrypt(xorBytes(padOne(rest), offset)))
   }
   return sum
 }
@@ -118,7 +115,7 @@ function initialOffset(encrypt: (block: Bytes) => Bytes, nonce: Bytes, tagLength
   for (const [i, byte] of nonce.entries()) block[BLOCK_SIZE - nonce.length + i] = byte
   const bottom = block[BLOCK_SIZE - 1]! & 0x3f
   const top = encrypt([...block.slice(0, -1), block[BLOCK_SIZE - 1]! & 0xc0])
-  const stretch = [...top, ...xor(top.slice(0, 8), top.slice(1, 9))]
+  const stretch = [...top, ...xorBytes(top.slice(0, 8), top.slice(1, 9))]
   const shift = bottom & 7
   const start = bottom >> 3
   return Array.from({ length: BLOCK_SIZE }, (_, i) =>
@@ -199,21 +196,24 @@ export function blockOcb(
   const output: number[] = []
   const whole = Math.floor(length / BLOCK_SIZE)
   for (let i = 1; i <= whole; i++) {
-    offset = xor(offset, l.at(ntz(i)))
+    offset = xorBytes(offset, l.at(ntz(i)))
     const block = data.slice((i - 1) * BLOCK_SIZE, i * BLOCK_SIZE)
-    const result = xor(offset, transform(xor(block, offset)))
-    checksum = xor(checksum, operation === 'encrypt' ? block : result)
+    const result = xorBytes(offset, transform(xorBytes(block, offset)))
+    checksum = xorBytes(checksum, operation === 'encrypt' ? block : result)
     output.push(...result)
   }
   const rest = data.slice(whole * BLOCK_SIZE, length)
   if (rest.length > 0) {
-    offset = xor(offset, l.star)
+    offset = xorBytes(offset, l.star)
     const pad = encrypt(offset)
     const result = rest.map((byte, i) => byte ^ pad[i]!)
-    checksum = xor(checksum, padOne(operation === 'encrypt' ? rest : result))
+    checksum = xorBytes(checksum, padOne(operation === 'encrypt' ? rest : result))
     output.push(...result)
   }
-  const tag = xor(encrypt(xor(xor(checksum, offset), l.dollar)), hash(encrypt, l, aad))
+  const tag = xorBytes(
+    encrypt(xorBytes(xorBytes(checksum, offset), l.dollar)),
+    hash(encrypt, l, aad),
+  )
 
   if (operation === 'encrypt') return [...output, ...tag.slice(0, tagBytes)]
   return sameTag(tag, data.slice(length)) ? output : undefined

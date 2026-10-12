@@ -1,5 +1,11 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  blockEcb,
+} from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
 
@@ -377,22 +383,8 @@ export function camelliaBlock(
   }
 }
 
-/**
- * Run each 16-byte block through Camellia on its own, the way ECB does.
- *
- * @param data - Whole blocks to transform.
- * @param key - 16, 24 or 32 key bytes.
- * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
- */
-export function camelliaEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const block = camelliaBlock(key, operation)
-  const result: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    result.push(...block(data.slice(offset, offset + BLOCK_SIZE)))
-  }
-  return result
-}
+/** Camellia on each 16-byte block alone, the way ECB does. */
+export const camelliaEcb = blockEcb(camelliaBlock, BLOCK_SIZE)
 
 const CAMELLIA: BlockMode = {
   name: 'camellia',

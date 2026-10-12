@@ -1,34 +1,34 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  blockEcb,
+  xorBytes,
+} from '../../core/block-mode.ts'
 import { desBlock } from './triple-des/block.ts'
 
 const BLOCK_SIZE = 8
 
-function xor(a: Bytes, b: Bytes): number[] {
-  return a.map((byte, i) => byte ^ b[i]!)
-}
-
 /**
- * Run each 8-byte block through DESX on its own, the way ECB does: XOR with the input whitening
- * key, single DES, XOR with the output whitening key. The 24 key bytes are laid out as OpenSSL's
- * `desx-cbc` takes them, the DES key first, then the input and output whitening keys.
+ * DESX on one block: XOR with the input whitening key, single DES, XOR with the output whitening
+ * key. The 24 key bytes come as OpenSSL's `desx-cbc` takes them: DES key, input key, output key.
  *
- * @param data - Whole blocks to transform.
- * @param key - 24 key bytes: DES key, input whitening, output whitening.
+ * @param key - 24 key bytes.
  * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
+ * @returns {(block: Bytes) => number[]} DESX on one 8-byte block.
  */
-export function desxEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
+function desxBlock(key: Bytes, operation: 'encrypt' | 'decrypt'): (block: Bytes) => number[] {
   const transform = desBlock(key.slice(0, 8), operation)
   const input = key.slice(8, 16)
   const output = key.slice(16, 24)
   const [before, after] = operation === 'encrypt' ? [input, output] : [output, input]
-  const result: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    result.push(...xor(transform(xor(data.slice(offset, offset + BLOCK_SIZE), before)), after))
-  }
-  return result
+  return (block) => xorBytes(transform(xorBytes(block, before)), after)
 }
+
+/** DESX on each 8-byte block alone, the way ECB does. */
+export const desxEcb = blockEcb(desxBlock, BLOCK_SIZE)
 
 const DESX: BlockMode = {
   name: 'desx',

@@ -1,6 +1,6 @@
 import { Sha256Hasher, hkdf } from '@agntn/hashes'
 import { CipherError } from '../../../core/errors.ts'
-import type { BlockFunction, Bytes } from '../../../core/block-mode.ts'
+import { type BlockFunction, type Bytes, xorBytes } from '../../../core/block-mode.ts'
 import { blockCtr } from '../aes/ctr.ts'
 import { blockOcb } from '../aes/ocb.ts'
 
@@ -22,10 +22,6 @@ export interface AeadMode {
     aad: Bytes,
     sealed: Bytes,
   ) => number[] | undefined
-}
-
-function xor(a: Bytes, b: Bytes): number[] {
-  return a.map((byte, i) => byte ^ b[i]!)
 }
 
 /**
@@ -62,14 +58,14 @@ function cmac(encrypt: (block: Bytes) => Bytes, message: Bytes): number[] {
   const k1 = double(encrypt(Array.from({ length: BLOCK_SIZE }, () => 0)))
   const whole = message.length % BLOCK_SIZE === 0
   const last = whole
-    ? xor(message.slice(-BLOCK_SIZE), k1)
-    : xor(padLast(message.slice(message.length - (message.length % BLOCK_SIZE))), double(k1))
+    ? xorBytes(message.slice(-BLOCK_SIZE), k1)
+    : xorBytes(padLast(message.slice(message.length - (message.length % BLOCK_SIZE))), double(k1))
   let mac: Bytes = Array.from({ length: BLOCK_SIZE }, () => 0)
   const head = message.length - (whole ? BLOCK_SIZE : message.length % BLOCK_SIZE)
   for (let at = 0; at < head; at += BLOCK_SIZE) {
-    mac = encrypt(xor(mac, message.slice(at, at + BLOCK_SIZE)))
+    mac = encrypt(xorBytes(mac, message.slice(at, at + BLOCK_SIZE)))
   }
-  return [...encrypt(xor(mac, last))]
+  return [...encrypt(xorBytes(mac, last))]
 }
 
 function padLast(bytes: Bytes): number[] {
@@ -98,7 +94,7 @@ function openEax(
     cmac(encrypt, [...Array.from({ length: BLOCK_SIZE - 1 }, () => 0), tweak, ...data])
   const ciphertext = sealed.slice(0, -TAG_LENGTH)
   const counter = omac(0, nonce)
-  const tag = xor(xor(counter, omac(1, aad)), omac(2, ciphertext))
+  const tag = xorBytes(xorBytes(counter, omac(1, aad)), omac(2, ciphertext))
   if (!sameTag(tag, sealed.slice(-TAG_LENGTH))) return undefined
   return blockCtr(cipher, ciphertext, key, counter)
 }
@@ -184,7 +180,7 @@ function openGcm(
   const encrypt = cipher(key, 'encrypt')
   const ciphertext = sealed.slice(0, -TAG_LENGTH)
   const h = toBigInt(encrypt(Array.from({ length: BLOCK_SIZE }, () => 0)))
-  const tag = xor(encrypt([...nonce, 0, 0, 0, 1]), ghash(h, aad, ciphertext))
+  const tag = xorBytes(encrypt([...nonce, 0, 0, 0, 1]), ghash(h, aad, ciphertext))
   if (!sameTag(tag, sealed.slice(-TAG_LENGTH))) return undefined
   return blockCtr(cipher, ciphertext, key, [...nonce, 0, 0, 0, 2])
 }
@@ -292,7 +288,7 @@ function packetChunking(data: AeadData, sessionKey: Bytes): Chunking {
   const head = header(data)
   return {
     key: sessionKey,
-    nonce: (index) => [...data.iv.slice(0, -8), ...xor(data.iv.slice(-8), uint64(index))],
+    nonce: (index) => [...data.iv.slice(0, -8), ...xorBytes(data.iv.slice(-8), uint64(index))],
     aad: (index) => [...head, ...uint64(index)],
     finalAad: (index, total) => [...head, ...uint64(index), ...uint64(total)],
   }

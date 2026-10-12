@@ -2,8 +2,8 @@ import type { CipherInfo } from '../../../core/types.ts'
 import {
   BYTES_OPTION,
   type BlockMode,
-  type Bytes,
   BlockCipher,
+  blockCbc,
   fromHex,
   readIv,
 } from '../../../core/block-mode.ts'
@@ -11,42 +11,8 @@ import { tripleDesBlock } from './block.ts'
 
 const BLOCK_SIZE = 8
 
-function xor(a: Bytes, b: Bytes): number[] {
-  return a.map((byte, i) => byte ^ b[i]!)
-}
-
-/**
- * CBC as NIST SP 800-38A §6.2 defines it, over the 8-byte Triple DES block: every plaintext
- * block is XORed with the ciphertext block before it, the first one with the IV, and then
- * encrypted. Equal plaintext blocks stop giving equal ciphertext blocks.
- *
- * @param data - Whole 8-byte blocks to transform.
- * @param key - 16 or 24 key bytes.
- * @param operation - Encrypt or decrypt.
- * @param iv - The 8-byte initialization vector.
- * @returns {number[]} The transformed blocks.
- */
-export function tripleDesCbc(
-  data: Bytes,
-  key: Bytes,
-  operation: 'encrypt' | 'decrypt',
-  iv: Bytes,
-): number[] {
-  const transform = tripleDesBlock(key, operation)
-  const output: number[] = []
-  let previous = iv
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    const block = data.slice(offset, offset + BLOCK_SIZE)
-    if (operation === 'encrypt') {
-      previous = transform(xor(block, previous))
-      output.push(...previous)
-    } else {
-      output.push(...xor(transform(block), previous))
-      previous = block
-    }
-  }
-  return output
-}
+/** CBC of NIST SP 800-38A §6.2 over Triple DES, each block XORed with the one before it. */
+export const tripleDesCbc = blockCbc(tripleDesBlock, BLOCK_SIZE)
 
 const TRIPLE_DES_CBC: BlockMode = {
   name: 'triple-des-cbc',

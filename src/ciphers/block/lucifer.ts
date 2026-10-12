@@ -1,5 +1,11 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  blockEcb,
+} from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
 const ROUNDS = 16
@@ -59,21 +65,11 @@ function crypt(block: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): numb
   return [...upper, ...lower]
 }
 
-/**
- * Run each 16-byte block through Lucifer on its own, the way ECB does.
- *
- * @param data - Whole blocks to transform.
- * @param key - 16 key bytes.
- * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
- */
-export function luciferEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const result: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    result.push(...crypt(data.slice(offset, offset + BLOCK_SIZE), key, operation))
-  }
-  return result
-}
+/** Lucifer on each 16-byte block alone, the way ECB does. */
+export const luciferEcb = blockEcb(
+  (key, operation) => (block) => crypt(block, key, operation),
+  BLOCK_SIZE,
+)
 
 const LUCIFER: BlockMode = {
   name: 'lucifer',

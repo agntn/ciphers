@@ -1,26 +1,11 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import { BYTES_OPTION, type BlockMode, BlockCipher, blockEcb } from '../../core/block-mode.ts'
 import { desBlock } from './triple-des/block.ts'
 
 const BLOCK_SIZE = 8
 
-/**
- * Run each 8-byte block through single DES on its own, the way ECB does. Equal plaintext blocks
- * come out as equal ciphertext blocks.
- *
- * @param data - Whole blocks to transform.
- * @param key - 8 key bytes.
- * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
- */
-export function desEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const transform = desBlock(key, operation)
-  const output: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    output.push(...transform(data.slice(offset, offset + BLOCK_SIZE)))
-  }
-  return output
-}
+/** Single DES on each 8-byte block alone, the way ECB does. */
+export const desEcb = blockEcb(desBlock, BLOCK_SIZE)
 
 const DES: BlockMode = {
   name: 'des',

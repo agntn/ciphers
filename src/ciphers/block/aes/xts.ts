@@ -1,6 +1,12 @@
 import type { CipherInfo, CipherBaseOptions } from '../../../core/types.ts'
 import { CipherError, InvalidOptionError } from '../../../core/errors.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  xorBytes,
+} from '../../../core/block-mode.ts'
 import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
@@ -19,10 +25,6 @@ function double(tweak: Bytes): number[] {
   const next = tweak.map((byte, i) => ((byte << 1) | (i > 0 ? tweak[i - 1]! >> 7 : 0)) & 0xff)
   if (tweak[BLOCK_SIZE - 1]! >> 7) next[0]! ^= 0x87
   return next
-}
-
-function xor(a: Bytes, b: Bytes): number[] {
-  return a.map((byte, i) => byte ^ b[i]!)
 }
 
 /**
@@ -76,7 +78,7 @@ export function aesXts(
   const tweaks: Bytes[] = [aesBlock(key.slice(half), 'encrypt')(unitBytes)]
   const blocks = Math.ceil(data.length / BLOCK_SIZE)
   while (tweaks.length < blocks) tweaks.push(double(tweaks.at(-1)!))
-  const step = (block: Bytes, tweak: Bytes) => xor(transform(xor(block, tweak)), tweak)
+  const step = (block: Bytes, tweak: Bytes) => xorBytes(transform(xorBytes(block, tweak)), tweak)
 
   const tail = data.length % BLOCK_SIZE
   const whole = tail === 0 ? blocks : blocks - 2

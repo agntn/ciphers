@@ -2,8 +2,8 @@ import type { CipherInfo } from '../../../core/types.ts'
 import {
   BYTES_OPTION,
   type BlockMode,
-  type Bytes,
   BlockCipher,
+  blockCbc,
   fromHex,
   readIv,
 } from '../../../core/block-mode.ts'
@@ -11,42 +11,8 @@ import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
 
-function xor(a: Bytes, b: Bytes): number[] {
-  return a.map((byte, i) => byte ^ b[i]!)
-}
-
-/**
- * CBC as NIST SP 800-38A §6.2 defines it: every plaintext block is XORed with the ciphertext
- * block before it, the first one with the IV, and then encrypted. Equal plaintext blocks stop
- * giving equal ciphertext blocks, and a change in one block carries into every later one.
- *
- * @param data - Whole 16-byte blocks to transform.
- * @param key - 16, 24 or 32 key bytes, or up to 128 for aes-passphrase.
- * @param operation - Encrypt or decrypt.
- * @param iv - The 16-byte initialization vector.
- * @returns {number[]} The transformed blocks.
- */
-export function aesCbc(
-  data: Bytes,
-  key: Bytes,
-  operation: 'encrypt' | 'decrypt',
-  iv: Bytes,
-): number[] {
-  const transform = aesBlock(key, operation)
-  const output: number[] = []
-  let previous = iv
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    const block = data.slice(offset, offset + BLOCK_SIZE)
-    if (operation === 'encrypt') {
-      previous = transform(xor(block, previous))
-      output.push(...previous)
-    } else {
-      output.push(...xor(transform(block), previous))
-      previous = block
-    }
-  }
-  return output
-}
+/** CBC of NIST SP 800-38A §6.2 over AES, each block XORed with the one before it. */
+export const aesCbc = blockCbc(aesBlock, BLOCK_SIZE)
 
 const AES_CBC: BlockMode = {
   name: 'aes-cbc',

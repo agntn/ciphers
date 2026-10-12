@@ -447,7 +447,7 @@ export interface OpenPgpOptions extends ByteCipherOptions {
   count?: number
   /** Encoding only: 16 hex digits. Default: random. */
   salt?: string
-  /** Encoding only: the random first block, 16 hex digits, or 32 for AES. Default: random. */
+  /** Encoding only: the first block, 16 hex digits or 32 for AES and Camellia. Default: random. */
   iv?: string
 }
 

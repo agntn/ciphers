@@ -165,7 +165,7 @@ export const OPTION_DESCRIPTIONS = {
     'Quagmire only, and required there: the indicator keyword, written down the column under indicatorUnder; each letter sets the cipher row for one letter of the text, in turn',
   indicatorUnder:
     'Quagmire only: the plain letter the indicator keyword stands under, one letter from A to Z (default A)',
-  iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it). Openpgp encoding only: the random first block, 16 digits or 32 for AES (default random)',
+  iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it). Openpgp encoding only: the random first block, 16 digits or 32 for AES and Camellia (default random)',
   endian:
     'Rabbit only: byte order of key, IV and keystream, big as in RFC 4503 and CyberChef (default) or little as in Crypto++',
   bytes:

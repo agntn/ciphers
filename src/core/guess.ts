@@ -101,6 +101,7 @@ const BLOCK_16 = [
   'mars',
   'lucifer',
   'camellia',
+  'aria',
 ] as const
 const BLOCK_8 = [
   'des',

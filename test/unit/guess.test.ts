@@ -255,6 +255,7 @@ describe('guessFamily', () => {
     expect(guessFamily('4fd50f17717460459c4924d6c54d4881').candidates[0]?.ciphers).toContain(
       'camellia',
     )
+    expect(guessFamily('e372f8a14e6654bc1f325283f65fea91').candidates[0]?.ciphers).toContain('aria')
     expect(ranking(guessFamily('85E813540F0AB405'))).toEqual(['des:high', 'aes-ctr:low'])
     expect(ranking(guessFamily('6e4c6ff5b2ba'))).toEqual(['aes-ctr:high'])
     expect(guessFamily('69c4e0d86a7b0430d8cdb78070b4c55a')).not.toHaveProperty('ic')

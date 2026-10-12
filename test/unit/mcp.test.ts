@@ -423,6 +423,23 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  /** Expected values from `openssl enc -aria-128-ecb`. */
+  it('discovers and executes ARIA through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'aria' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(aria) — block, substitution-permutation')
+    const key = '01234567 89abcdef fedcba98 76543210'
+    for (const [name, text, expected] of [
+      ['ciphers_encode', 'ATTACK AT DAWN', 'e372f8a14e6654bc1f325283f65fea91'],
+      ['ciphers_decode', 'e372f8a14e6654bc1f325283f65fea91', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({ name, arguments: { cipher: 'aria', text, key } })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
   it('opens the CryptoJS passphrase format through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -1152,6 +1169,9 @@ Co2B
       ['key', { cipher: 'camellia', text: 'abc' }],
       ['key', { cipher: 'camellia', text: 'abc', key: '00'.repeat(20) }],
       ['key', { cipher: 'camellia', text: 'abc', key: '00'.repeat(33) }],
+      ['key', { cipher: 'aria', text: 'abc' }],
+      ['key', { cipher: 'aria', text: 'abc', key: '00'.repeat(20) }],
+      ['key', { cipher: 'aria', text: 'abc', key: '00'.repeat(33) }],
       ['algorithm', { cipher: 'openpgp', text: 'abc', key: 'k', algorithm: 'twofish' }],
       ['count', { cipher: 'openpgp', text: 'abc', key: 'k', count: 1023 }],
       ['key', { cipher: 'rabbit', text: 'abc' }],

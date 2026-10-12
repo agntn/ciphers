@@ -3,6 +3,7 @@ import { getOpt } from '../../../core/types.ts'
 import { CipherError, InvalidOptionError, MissingOptionError } from '../../../core/errors.ts'
 import {
   BYTES_OPTION,
+  type BlockFunction,
   type BlockMode,
   type Bytes,
   BlockCipher,
@@ -151,15 +152,46 @@ export function aesOcb(
   aad: Bytes,
   tagLength: OcbTagLength,
 ): number[] {
-  const encrypt = aesBlock(key, 'encrypt')
-  const transform = operation === 'encrypt' ? encrypt : aesBlock(key, 'decrypt')
   const tagBytes = tagLength / 8
-  const length = operation === 'encrypt' ? data.length : data.length - tagBytes
-  if (length < 0) {
+  if (operation === 'decrypt' && data.length < tagBytes) {
     throw new CipherError(
       `[aes-ocb] Ciphertext must end in a ${tagBytes}-byte tag, got ${data.length} bytes`,
     )
   }
+  const result = blockOcb(aesBlock, data, key, operation, nonce, aad, tagLength)
+  if (!result) {
+    throw new CipherError(
+      '[aes-ocb] Tag does not match: wrong key, nonce, aad or tagLength, or the ciphertext was changed',
+    )
+  }
+  return result
+}
+
+/**
+ * The same OCB over any cipher with 16-byte blocks, so OpenPGP can run Camellia through it too.
+ *
+ * @param cipher - The block cipher.
+ * @param data - Plaintext, or ciphertext ending in a whole tag.
+ * @param key - A key `cipher` takes.
+ * @param operation - Which way to go.
+ * @param nonce - 1 to 15 bytes.
+ * @param aad - Associated data, possibly empty.
+ * @param tagLength - Tag length in bits.
+ * @returns {number[] | undefined} Ciphertext and tag, the plaintext, or nothing when the tag fails.
+ */
+export function blockOcb(
+  cipher: BlockFunction,
+  data: Bytes,
+  key: Bytes,
+  operation: 'encrypt' | 'decrypt',
+  nonce: Bytes,
+  aad: Bytes,
+  tagLength: OcbTagLength,
+): number[] | undefined {
+  const encrypt = cipher(key, 'encrypt')
+  const transform = operation === 'encrypt' ? encrypt : cipher(key, 'decrypt')
+  const tagBytes = tagLength / 8
+  const length = operation === 'encrypt' ? data.length : data.length - tagBytes
 
   const l = masks(encrypt)
   let offset: Bytes = initialOffset(encrypt, nonce, tagLength)
@@ -184,18 +216,12 @@ export function aesOcb(
   const tag = xor(encrypt(xor(xor(checksum, offset), l.dollar)), hash(encrypt, l, aad))
 
   if (operation === 'encrypt') return [...output, ...tag.slice(0, tagBytes)]
-  checkTag(tag, data.slice(length))
-  return output
+  return sameTag(tag, data.slice(length)) ? output : undefined
 }
 
 // Compare every byte before deciding, so the time taken does not depend on where they differ.
-function checkTag(tag: Bytes, received: Bytes): void {
-  const difference = received.reduce((sum, byte, i) => sum | (byte ^ tag[i]!), 0)
-  if (difference !== 0) {
-    throw new CipherError(
-      '[aes-ocb] Tag does not match: wrong key, nonce, aad or tagLength, or the ciphertext was changed',
-    )
-  }
+function sameTag(tag: Bytes, received: Bytes): boolean {
+  return received.reduce((sum, byte, i) => sum | (byte ^ tag[i]!), 0) === 0
 }
 
 type OcbSettings = { nonce: string; tagLength: OcbTagLength; aad: string }

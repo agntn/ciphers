@@ -498,9 +498,23 @@ const cipherInput = Type.Object(
       ),
     ),
     algorithm: Type.Optional(
-      Type.Enum(['idea', '3des', 'cast5', 'blowfish', 'aes128', 'aes192', 'aes256'], {
-        description: OPTION_DESCRIPTIONS.algorithm,
-      }),
+      Type.Enum(
+        [
+          'idea',
+          '3des',
+          'cast5',
+          'blowfish',
+          'aes128',
+          'aes192',
+          'aes256',
+          'camellia128',
+          'camellia192',
+          'camellia256',
+        ],
+        {
+          description: OPTION_DESCRIPTIONS.algorithm,
+        },
+      ),
     ),
     count: Type.Optional(
       Type.Integer({ minimum: 1024, maximum: 65_011_712, description: OPTION_DESCRIPTIONS.count }),

@@ -8,6 +8,7 @@ import { Cipher } from '../../../core/cipher.ts'
 import { CipherError, InvalidOptionError, normalizeError } from '../../../core/errors.ts'
 import {
   BYTES_OPTION,
+  type BlockFunction,
   type Bytes,
   type PlainBytes,
   fromHex,
@@ -21,6 +22,7 @@ import { aesBlock } from '../aes/block.ts'
 import { readPassphrase } from '../aes/passphrase.ts'
 import { tripleDesBlock } from '../triple-des/block.ts'
 import { blowfishBlock } from '../blowfish.ts'
+import { camelliaBlock } from '../camellia.ts'
 import { cast5Block } from '../cast5.ts'
 import { ideaBlock } from '../idea.ts'
 import { type AeadData, type AeadMode, aeadById, openAeadData, openSealed } from './aead.ts'
@@ -60,29 +62,20 @@ interface Algorithm {
   readonly name: string
   readonly keySize: number
   readonly blockSize: number
-  readonly encrypt: (key: Bytes) => (block: Bytes) => Bytes
+  readonly block: BlockFunction
 }
 
 const ALGORITHMS: readonly Algorithm[] = [
-  { id: 1, name: 'idea', keySize: 16, blockSize: 8, encrypt: (key) => ideaBlock(key, 'encrypt') },
-  {
-    id: 2,
-    name: '3des',
-    keySize: 24,
-    blockSize: 8,
-    encrypt: (key) => tripleDesBlock(key, 'encrypt'),
-  },
-  { id: 3, name: 'cast5', keySize: 16, blockSize: 8, encrypt: (key) => cast5Block(key, 'encrypt') },
-  {
-    id: 4,
-    name: 'blowfish',
-    keySize: 16,
-    blockSize: 8,
-    encrypt: (key) => blowfishBlock(key, 'encrypt'),
-  },
-  { id: 7, name: 'aes128', keySize: 16, blockSize: 16, encrypt: (key) => aesBlock(key, 'encrypt') },
-  { id: 8, name: 'aes192', keySize: 24, blockSize: 16, encrypt: (key) => aesBlock(key, 'encrypt') },
-  { id: 9, name: 'aes256', keySize: 32, blockSize: 16, encrypt: (key) => aesBlock(key, 'encrypt') },
+  { id: 1, name: 'idea', keySize: 16, blockSize: 8, block: ideaBlock },
+  { id: 2, name: '3des', keySize: 24, blockSize: 8, block: tripleDesBlock },
+  { id: 3, name: 'cast5', keySize: 16, blockSize: 8, block: cast5Block },
+  { id: 4, name: 'blowfish', keySize: 16, blockSize: 8, block: blowfishBlock },
+  { id: 7, name: 'aes128', keySize: 16, blockSize: 16, block: aesBlock },
+  { id: 8, name: 'aes192', keySize: 24, blockSize: 16, block: aesBlock },
+  { id: 9, name: 'aes256', keySize: 32, blockSize: 16, block: aesBlock },
+  { id: 11, name: 'camellia128', keySize: 16, blockSize: 16, block: camelliaBlock },
+  { id: 12, name: 'camellia192', keySize: 24, blockSize: 16, block: camelliaBlock },
+  { id: 13, name: 'camellia256', keySize: 32, blockSize: 16, block: camelliaBlock },
 ]
 
 /** Ids a message may name that have no block function here. */
@@ -91,9 +84,6 @@ const OTHER_ALGORITHMS: Readonly<Record<number, string>> = {
   5: 'SAFER-SK',
   6: 'DES/SK',
   10: 'Twofish',
-  11: 'Camellia-128',
-  12: 'Camellia-192',
-  13: 'Camellia-256',
 }
 
 const ALGORITHM_NAMES = /* @__PURE__ */ ALGORITHMS.map((algorithm) => algorithm.name)
@@ -189,7 +179,7 @@ function cfb(
   data: Bytes,
   operation: 'encrypt' | 'decrypt',
 ): number[] {
-  const encrypt = algorithm.encrypt(key)
+  const encrypt = algorithm.block(key, 'encrypt')
   const output: number[] = []
   let previous: Bytes = Array.from<number>({ length: algorithm.blockSize }).fill(0)
   for (let at = 0; at < data.length; at += algorithm.blockSize) {
@@ -318,7 +308,14 @@ function sealedSessionKey(
           ),
         ]
       : derived
-  const key = openSealed(aead.mode, kek, aead.nonce, head, skesk.encryptedKey)
+  const key = openSealed(
+    aead.mode,
+    skesk.algorithm.block,
+    kek,
+    aead.nonce,
+    head,
+    skesk.encryptedKey,
+  )
   return key && { key }
 }
 
@@ -385,6 +382,7 @@ function aeadData(packet: Packet): EncryptedData {
     tag,
     version: body[0]!,
     algorithm: algorithm.id,
+    cipher: algorithm.block,
     keySize: algorithm.keySize,
     mode,
     chunkOctet: body[3] ?? 0,
@@ -733,7 +731,7 @@ export class OpenPgp extends Cipher {
       name: 'openpgp',
       label: 'OpenPGP (passphrase)',
       description:
-        'A passphrase-protected OpenPGP message, RFC 4880, what gpg --symmetric writes: an S2K turns the passphrase into the key, CFB encrypts a literal data packet behind a random block, and an MDC (SHA-1) catches changes. Decoding reads armored or bare packets with IDEA, Triple DES, CAST5, Blowfish or AES, ZIP, ZLIB or BZip2 compression and an encrypted session key, and the AEAD messages too, the OCB GnuPG writes and the EAX, OCB and GCM of RFC 9580; encoding writes armor GnuPG opens. UTF-8 text in, armor out',
+        'A passphrase-protected OpenPGP message, RFC 4880, what gpg --symmetric writes: an S2K turns the passphrase into the key, CFB encrypts a literal data packet behind a random block, and an MDC (SHA-1) catches changes. Decoding reads armored or bare packets with IDEA, Triple DES, CAST5, Blowfish, AES or Camellia, ZIP, ZLIB or BZip2 compression and an encrypted session key, and the AEAD messages too, the OCB GnuPG writes and the EAX, OCB and GCM of RFC 9580; encoding writes armor GnuPG opens. UTF-8 text in, armor out',
       category: 'block',
       family: 'substitution-permutation',
       selfInverse: false,
@@ -778,7 +776,7 @@ export class OpenPgp extends Cipher {
           type: 'string',
           required: false,
           description:
-            'Encoding only: the random block before the text, as many hex digits as the algorithm has in a block (16, or 32 for AES). Random when left out',
+            'Encoding only: the random block before the text, as many hex digits as the algorithm has in a block (16, or 32 for AES and Camellia). Random when left out',
         },
         BYTES_OPTION,
       ],

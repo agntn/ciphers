@@ -7,6 +7,12 @@ import { CipherError, InvalidOptionError, MissingOptionError, normalizeError } f
 /** Bytes as plain numbers, so every step can take a readonly block and return a new one. */
 export type Bytes = readonly number[]
 
+/** A block cipher under one key, one way, as `aesBlock` and `camelliaBlock` hand it out. */
+export type BlockFunction = (
+  key: Bytes,
+  operation: 'encrypt' | 'decrypt',
+) => (block: Bytes) => Bytes
+
 /** What a mode reads from the options besides the key. It goes to `run` and back in the result. */
 export type BlockSettings = Readonly<Record<string, string | number>>
 

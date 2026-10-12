@@ -1,6 +1,7 @@
 import type { CipherInfo } from '../../../core/types.ts'
 import {
   BYTES_OPTION,
+  type BlockFunction,
   type BlockMode,
   type Bytes,
   BlockCipher,
@@ -39,7 +40,20 @@ function increment(block: Bytes): number[] {
  * @returns {number[]} As many bytes as came in.
  */
 export function aesCtr(data: Bytes, key: Bytes, counter: Bytes): number[] {
-  const encrypt = aesBlock(key, 'encrypt')
+  return blockCtr(aesBlock, data, key, counter)
+}
+
+/**
+ * The same CTR over any cipher with 16-byte blocks, so OpenPGP can run Camellia through it too.
+ *
+ * @param cipher - The block cipher.
+ * @param data - Any number of bytes.
+ * @param key - A key `cipher` takes.
+ * @param counter - The 16-byte initial counter block.
+ * @returns {number[]} As many bytes as came in.
+ */
+export function blockCtr(cipher: BlockFunction, data: Bytes, key: Bytes, counter: Bytes): number[] {
+  const encrypt = cipher(key, 'encrypt')
   const output: number[] = []
   let block: Bytes = counter
   for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {

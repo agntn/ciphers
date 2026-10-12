@@ -1,5 +1,11 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  blockEcb,
+} from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 8
 const ROUNDS = 8
@@ -125,22 +131,8 @@ export function ideaBlock(key: Bytes, operation: 'encrypt' | 'decrypt'): (block:
   return (block) => crypt(block, subkeys)
 }
 
-/**
- * Run each 8-byte block through IDEA on its own, the way ECB does.
- *
- * @param data - Whole blocks to transform.
- * @param key - 16 key bytes.
- * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
- */
-export function ideaEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const block = ideaBlock(key, operation)
-  const result: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    result.push(...block(data.slice(offset, offset + BLOCK_SIZE)))
-  }
-  return result
-}
+/** IDEA on each 8-byte block alone, the way ECB does. */
+export const ideaEcb = blockEcb(ideaBlock, BLOCK_SIZE)
 
 const IDEA: BlockMode = {
   name: 'idea',

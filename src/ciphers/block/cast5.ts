@@ -1,5 +1,11 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  blockEcb,
+} from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 8
 
@@ -441,22 +447,8 @@ export function cast5Block(key: Bytes, operation: 'encrypt' | 'decrypt'): (block
   }
 }
 
-/**
- * Run each 8-byte block through CAST-128 on its own, the way ECB does.
- *
- * @param data - Whole blocks to transform.
- * @param key - 5 to 16 key bytes.
- * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
- */
-export function cast5Ecb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const block = cast5Block(key, operation)
-  const result: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    result.push(...block(data.slice(offset, offset + BLOCK_SIZE)))
-  }
-  return result
-}
+/** CAST-128 on each 8-byte block alone, the way ECB does. */
+export const cast5Ecb = blockEcb(cast5Block, BLOCK_SIZE)
 
 const CAST5: BlockMode = {
   name: 'cast5',

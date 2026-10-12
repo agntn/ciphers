@@ -1,5 +1,11 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  blockEcb,
+} from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 8
 const ROUNDS = 16
@@ -127,23 +133,8 @@ export function blowfishBlock(
   }
 }
 
-/**
- * Run each 8-byte block through Blowfish on its own, the way ECB does. Equal plaintext blocks
- * come out as equal ciphertext blocks.
- *
- * @param data - Whole blocks to transform.
- * @param key - 4 to 56 key bytes.
- * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
- */
-export function blowfishEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const block = blowfishBlock(key, operation)
-  const output: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    output.push(...block(data.slice(offset, offset + BLOCK_SIZE)))
-  }
-  return output
-}
+/** Blowfish on each 8-byte block alone, the way ECB does. */
+export const blowfishEcb = blockEcb(blowfishBlock, BLOCK_SIZE)
 
 const BLOWFISH: BlockMode = {
   name: 'blowfish',

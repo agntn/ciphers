@@ -1,5 +1,11 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  blockEcb,
+} from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
 const ROUNDS = 32
@@ -152,22 +158,8 @@ export function sm4Block(key: Bytes, operation: 'encrypt' | 'decrypt'): (block: 
   }
 }
 
-/**
- * Run each 16-byte block through SM4 on its own, the way ECB does.
- *
- * @param data - Whole blocks to transform.
- * @param key - 16 key bytes.
- * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
- */
-export function sm4Ecb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const block = sm4Block(key, operation)
-  const result: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    result.push(...block(data.slice(offset, offset + BLOCK_SIZE)))
-  }
-  return result
-}
+/** SM4 on each 16-byte block alone, the way ECB does. */
+export const sm4Ecb = blockEcb(sm4Block, BLOCK_SIZE)
 
 const SM4: BlockMode = {
   name: 'sm4',

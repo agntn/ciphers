@@ -1,7 +1,13 @@
 import type { CipherInfo, CipherBaseOptions } from '../../core/types.ts'
 import { getOpt } from '../../core/types.ts'
 import { InvalidOptionError } from '../../core/errors.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  blockEcb,
+} from '../../core/block-mode.ts'
 import { rijndaelBlock } from './aes/block.ts'
 
 /** Block lengths in bits the Rijndael proposal defines: 128 is AES, the rest never made the standard. */
@@ -25,12 +31,11 @@ export function rijndaelEcb(
   operation: 'encrypt' | 'decrypt',
   blockSize: number,
 ): number[] {
-  const transform = rijndaelBlock(key, blockSize, operation)
-  const output: number[] = []
-  for (let offset = 0; offset < data.length; offset += blockSize) {
-    output.push(...transform(data.slice(offset, offset + blockSize)))
-  }
-  return output
+  const cipher = blockEcb(
+    (bytes, direction) => rijndaelBlock(bytes, blockSize, direction),
+    blockSize,
+  )
+  return cipher(data, key, operation)
 }
 
 type RijndaelSettings = { blockSize: RijndaelBlockSize }

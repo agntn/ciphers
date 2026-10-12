@@ -1,5 +1,12 @@
 import type { CipherInfo } from '../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../core/block-mode.ts'
+import {
+  BYTES_OPTION,
+  type BlockMode,
+  type Bytes,
+  BlockCipher,
+  blockEcb,
+  xorBytes,
+} from '../../core/block-mode.ts'
 
 const BLOCK_SIZE = 16
 
@@ -117,17 +124,6 @@ const DIFFUSION = [
 const ROTATIONS = [19, 31, 67, 97, 109] as const
 
 /**
- * XOR two 16-byte values.
- *
- * @param a - One value.
- * @param b - The other.
- * @returns {number[]} `a ^ b`.
- */
-function xor(a: Bytes, b: Bytes): number[] {
-  return a.map((byte, i) => byte ^ b[i]!)
-}
-
-/**
  * Rotate a 128-bit value right.
  *
  * @param x - 16 bytes, the most significant first.
@@ -173,7 +169,7 @@ function substitute(x: Bytes, layer: readonly Bytes[]): number[] {
  * @returns {number[]} `A(SL1(d ^ rk))`.
  */
 function odd(d: Bytes, rk: Bytes): number[] {
-  return diffuse(substitute(xor(d, rk), substitutionLayers().odd))
+  return diffuse(substitute(xorBytes(d, rk), substitutionLayers().odd))
 }
 
 /**
@@ -184,7 +180,7 @@ function odd(d: Bytes, rk: Bytes): number[] {
  * @returns {number[]} `A(SL2(d ^ rk))`.
  */
 function even(d: Bytes, rk: Bytes): number[] {
-  return diffuse(substitute(xor(d, rk), substitutionLayers().even))
+  return diffuse(substitute(xorBytes(d, rk), substitutionLayers().even))
 }
 
 /**
@@ -199,13 +195,13 @@ function encryptionKeys(key: Bytes): number[][] {
   const kl = key.slice(0, 16)
   const kr = [...key.slice(16), ...Array.from<number>({ length: 32 - key.length }).fill(0)]
   const w0 = kl
-  const w1 = xor(odd(w0, ck1!), kr)
-  const w2 = xor(even(w1, ck2!), w0)
-  const w3 = xor(odd(w2, ck3!), w1)
+  const w1 = xorBytes(odd(w0, ck1!), kr)
+  const w2 = xorBytes(even(w1, ck2!), w0)
+  const w3 = xorBytes(odd(w2, ck3!), w1)
   const w = [w0, w1, w2, w3]
   const rounds = key.length / 4 + 8
   return Array.from({ length: rounds + 1 }, (_, i) =>
-    xor(w[i % 4]!, rotr(w[(i + 1) % 4]!, ROTATIONS[i >>> 2]!)),
+    xorBytes(w[i % 4]!, rotr(w[(i + 1) % 4]!, ROTATIONS[i >>> 2]!)),
   )
 }
 
@@ -239,26 +235,15 @@ export function ariaBlock(key: Bytes, operation: 'encrypt' | 'decrypt'): (block:
     for (let round = 0; round < rounds - 1; round++) {
       state = round % 2 === 0 ? odd(state, keys[round]!) : even(state, keys[round]!)
     }
-    return xor(substitute(xor(state, keys[rounds - 1]!), substitutionLayers().even), keys[rounds]!)
+    return xorBytes(
+      substitute(xorBytes(state, keys[rounds - 1]!), substitutionLayers().even),
+      keys[rounds]!,
+    )
   }
 }
 
-/**
- * Run each 16-byte block through ARIA on its own, the way ECB does.
- *
- * @param data - Whole blocks to transform.
- * @param key - 16, 24 or 32 key bytes.
- * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
- */
-export function ariaEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const block = ariaBlock(key, operation)
-  const result: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    result.push(...block(data.slice(offset, offset + BLOCK_SIZE)))
-  }
-  return result
-}
+/** ARIA on each 16-byte block alone, the way ECB does. */
+export const ariaEcb = blockEcb(ariaBlock, BLOCK_SIZE)
 
 const ARIA: BlockMode = {
   name: 'aria',

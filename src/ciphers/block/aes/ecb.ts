@@ -1,26 +1,11 @@
 import type { CipherInfo } from '../../../core/types.ts'
-import { BYTES_OPTION, type BlockMode, type Bytes, BlockCipher } from '../../../core/block-mode.ts'
+import { BYTES_OPTION, type BlockMode, BlockCipher, blockEcb } from '../../../core/block-mode.ts'
 import { aesBlock } from './block.ts'
 
 const BLOCK_SIZE = 16
 
-/**
- * Run each 16-byte block through AES on its own, the way ECB does. Equal plaintext blocks
- * come out as equal ciphertext blocks, which is the leak the mode is known for.
- *
- * @param data - Whole blocks to transform.
- * @param key - 16, 24 or 32 key bytes.
- * @param operation - Encrypt or decrypt.
- * @returns {number[]} The transformed blocks.
- */
-export function aesEcb(data: Bytes, key: Bytes, operation: 'encrypt' | 'decrypt'): number[] {
-  const transform = aesBlock(key, operation)
-  const output: number[] = []
-  for (let offset = 0; offset < data.length; offset += BLOCK_SIZE) {
-    output.push(...transform(data.slice(offset, offset + BLOCK_SIZE)))
-  }
-  return output
-}
+/** AES on each 16-byte block alone, so equal plaintext blocks leak as equal ciphertext. */
+export const aesEcb = blockEcb(aesBlock, BLOCK_SIZE)
 
 const AES: BlockMode = {
   name: 'aes',

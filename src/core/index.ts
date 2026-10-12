@@ -52,6 +52,7 @@ export type {
   SerpentOptions,
   Cast5Options,
   CamelliaOptions,
+  AriaOptions,
   OpenPgpOptions,
   RabbitOptions,
   Rc4Options,

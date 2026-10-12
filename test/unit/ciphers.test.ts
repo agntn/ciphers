@@ -37,6 +37,7 @@ import { marsEcb } from '../../src/ciphers/block/mars.ts'
 import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 import { cast5Ecb } from '../../src/ciphers/block/cast5.ts'
 import { camelliaBlock, camelliaEcb } from '../../src/ciphers/block/camellia.ts'
+import { ariaEcb } from '../../src/ciphers/block/aria.ts'
 import { aeadById } from '../../src/ciphers/block/openpgp/aead.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 import { rc4 } from '../../src/ciphers/stream/rc4.ts'
@@ -51,8 +52,8 @@ const hex = (value: string) =>
 const bytes = (value: string) => Uint8Array.from(hex(value))
 
 describe('registry', () => {
-  it('registers all 70 ciphers', () => {
-    expect(ciphers()).toHaveLength(70)
+  it('registers all 71 ciphers', () => {
+    expect(ciphers()).toHaveLength(71)
     for (const name of [
       'caesar',
       'rot13',
@@ -109,6 +110,7 @@ describe('registry', () => {
       'serpent',
       'cast5',
       'camellia',
+      'aria',
       'openpgp',
       'rabbit',
       'rc4',
@@ -1759,6 +1761,7 @@ describe('edge cases', () => {
     serpent: { key: '0123456789abcdeffedcba9876543210' },
     cast5: { key: '0123456712345678234567893456789a' },
     camellia: { key: '0123456789abcdeffedcba9876543210' },
+    aria: { key: '0123456789abcdeffedcba9876543210' },
     openpgp: { key: 'secret', count: 1024 },
     rabbit: { key: '0123456789abcdeffedcba9876543210' },
     rc4: { key: '0102030405' },
@@ -5549,6 +5552,113 @@ describe('camellia', () => {
       name: 'camellia',
       category: 'block',
       family: 'feistel',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
+    })
+  })
+})
+
+describe('aria', () => {
+  const aria = create('aria')
+  const key = '0123456789abcdeffedcba9876543210'
+  const key192 = `${key}0011223344556677`
+  const key256 = `${key}00112233445566778899aabbccddeeff`
+
+  /** RFC 5794 Appendix A, one key of each length over the same plaintext. */
+  it('matches the RFC 5794 vectors for 128, 192 and 256-bit keys', () => {
+    const plaintext = '00112233445566778899aabbccddeeff'
+    const vectorKey = '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+    for (const [digits, ciphertext] of [
+      [32, 'd718fbd6ab644c739da95f3be6451778'],
+      [48, '26449c1805dbe7aa25a468ce263a9e79'],
+      [64, 'f92bd7c79fb72e2f2b8f80c1972d24fc'],
+    ] as const) {
+      const bytes = hex(vectorKey.slice(0, digits))
+      expect(ariaEcb(hex(plaintext), bytes, 'encrypt')).toEqual(hex(ciphertext))
+      expect(ariaEcb(hex(ciphertext), bytes, 'decrypt')).toEqual(hex(plaintext))
+    }
+  })
+
+  /**
+   * One bit set in the key over a zero block, then one bit set in the block under a zero key, for
+   * each key length. The digests cover OpenSSL's ciphertexts in that order, one per line.
+   */
+  it('agrees with OpenSSL on every single-bit key and block', () => {
+    const oneBit = (length: number, bit: number) => {
+      const bytes = Array.from<number>({ length }).fill(0)
+      bytes[bit >>> 3] = 0x80 >>> (bit & 7)
+      return bytes
+    }
+    const zero = (length: number) => Array.from<number>({ length }).fill(0)
+    for (const [size, keyDigest, textDigest] of [
+      [
+        16,
+        'b88795450cbcb0febdd17ff525ed63a54cf78a2954381065007664a9a38b7c26',
+        '3711e7fd74fe42aea2dce11cd390717195e99e81950830da37e735eee065b326',
+      ],
+      [
+        24,
+        '6b8a23dc6321438d04929d86456025bab9341264f4aae6856c2cc64455870537',
+        '8e1b9f5f98abdb7b4f7c9d683ecb20d9287b010d253f8aeba4bab58769a4c9bb',
+      ],
+      [
+        32,
+        'eec75de9fc6bec34d12d720d84486ccaf4c5044c9f155a938546839ebf73dd11',
+        '233df19dbfacdc6908163d2bdc6cf0b1978a9892f4df0effa4404f51ebafe590',
+      ],
+    ] as const) {
+      const keyBits = Array.from({ length: 8 * size }, (_, bit) =>
+        toHex(ariaEcb(zero(16), oneBit(size, bit), 'encrypt')),
+      )
+      const textBits = Array.from({ length: 128 }, (_, bit) =>
+        toHex(ariaEcb(oneBit(16, bit), zero(size), 'encrypt')),
+      )
+      expect(createHash('sha256').update(keyBits.join('\n')).digest('hex')).toBe(keyDigest)
+      expect(createHash('sha256').update(textBits.join('\n')).digest('hex')).toBe(textDigest)
+    }
+  })
+
+  /** Expected values from `openssl enc -aria-128-ecb` and its 192 and 256-bit siblings. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, textKey, ciphertext] of [
+      ['', key, 'a0b65eafd1671fed1b1a138e5670141b'],
+      ['ATTACK AT DAWN', key, 'e372f8a14e6654bc1f325283f65fea91'],
+      [
+        'zażółć gęślą jaźń 🙂',
+        key,
+        '53b055973d0e9af304575b9dce8a902c37238a8cec07b0014f532112ca15b2aa',
+      ],
+      ['ATTACK AT DAWN', key192, 'e16e8428e0d192c701896db1e00e8dc7'],
+      ['ATTACK AT DAWN', key256, '5465b00290edc78d8c32c17654844655'],
+    ] as const) {
+      expect(aria.encode(text, { key: textKey })).toEqual({
+        text: ciphertext,
+        cipher: 'aria',
+        operation: 'encode',
+        options: { key: textKey, mode: 'ecb' },
+      })
+      expect(aria.decode(ciphertext, { key: textKey }).text).toBe(text)
+    }
+  })
+
+  it('rejects keys that are not an ARIA key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => aria[operation]('')).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(20), '00'.repeat(33), 'g'.repeat(32), 12]) {
+        expect(() => aria[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('ARIA')).toBe(aria)
+    expect(aria.info()).toMatchObject({
+      name: 'aria',
+      category: 'block',
+      family: 'substitution-permutation',
       selfInverse: false,
       options: [
         { name: 'key', type: 'string', required: true },

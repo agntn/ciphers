@@ -284,6 +284,14 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     },
   },
   {
+    ciphers: ['sm4'],
+    required: ['key'],
+    key: {
+      pattern: /^\s*(?:[0-9A-Fa-f]\s*){32}$/,
+      error: 'must be 32 hex digits (a 128-bit SM4 key)',
+    },
+  },
+  {
     ciphers: ['rc4'],
     required: ['key'],
     key: {
@@ -648,6 +656,7 @@ export const encodeTool = defineTool({
     'CAST5 (cast5) works like Triple DES with a key of any even number of hex digits from 10 to 32.',
     'Camellia (camellia) works like AES, with the same key lengths.',
     'ARIA (aria) works like AES, with the same key lengths.',
+    'SM4 (sm4) works like AES with a key of 32 hex digits.',
     'OpenPGP (openpgp) reads and writes what gpg --symmetric gives: key is the passphrase as plain text, ciphers_decode takes the armored -----BEGIN PGP MESSAGE----- block (or its packets in base64 or hex) and reads algorithm, S2K, compression and AEAD mode (OCB, EAX or GCM) from it, ciphers_encode writes armor with algorithm (default aes256), digest (default sha512), count, and salt and iv to fix the random values.',
     'Rabbit (rabbit) is a stream cipher with a key of 32 hex digits and an optional iv of 16; it pads nothing, and endian picks the byte order (big as in RFC 4503, the default, or little as in Crypto++).',
     'RC4 (rc4) is a stream cipher with a key of any even number of hex digits from 2 to 512 and no IV; it pads nothing.',

@@ -422,6 +422,12 @@ export interface AriaOptions extends ByteCipherOptions {
   key: string
 }
 
+/** SM4 ECB options. */
+export interface Sm4Options extends ByteCipherOptions {
+  /** 32 hex digits, a 128-bit key; case and spaces are ignored. */
+  key: string
+}
+
 /** OpenPGP passphrase options. Decoding reads everything but the passphrase from the message. */
 export interface OpenPgpOptions extends ByteCipherOptions {
   /** The passphrase, any text, read as UTF-8. */

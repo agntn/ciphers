@@ -53,6 +53,7 @@ export type {
   Cast5Options,
   CamelliaOptions,
   AriaOptions,
+  Sm4Options,
   OpenPgpOptions,
   RabbitOptions,
   Rc4Options,

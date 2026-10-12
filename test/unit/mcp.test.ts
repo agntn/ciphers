@@ -440,6 +440,23 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  /** Expected values from `openssl enc -sm4-ecb`. */
+  it('discovers and executes SM4 through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'sm4' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(sm4) — block, feistel')
+    const key = '01234567 89abcdef fedcba98 76543210'
+    for (const [name, text, expected] of [
+      ['ciphers_encode', 'ATTACK AT DAWN', '47dea04afc3c7e332fcac11987a2ec6e'],
+      ['ciphers_decode', '47dea04afc3c7e332fcac11987a2ec6e', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({ name, arguments: { cipher: 'sm4', text, key } })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
   it('opens the CryptoJS passphrase format through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -1172,6 +1189,8 @@ Co2B
       ['key', { cipher: 'aria', text: 'abc' }],
       ['key', { cipher: 'aria', text: 'abc', key: '00'.repeat(20) }],
       ['key', { cipher: 'aria', text: 'abc', key: '00'.repeat(33) }],
+      ['key', { cipher: 'sm4', text: 'abc' }],
+      ['key', { cipher: 'sm4', text: 'abc', key: '00'.repeat(24) }],
       ['algorithm', { cipher: 'openpgp', text: 'abc', key: 'k', algorithm: 'twofish' }],
       ['count', { cipher: 'openpgp', text: 'abc', key: 'k', count: 1023 }],
       ['key', { cipher: 'rabbit', text: 'abc' }],

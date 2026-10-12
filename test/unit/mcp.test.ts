@@ -406,6 +406,23 @@ describe('Ciphers MCP server', () => {
     }
   })
 
+  /** Expected values from `openssl enc -camellia-128-ecb`. */
+  it('discovers and executes Camellia through the protocol', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'camellia' } })
+    expect(info.isError).not.toBe(true)
+    expect(onlyText(info.content)).toContain('(camellia) — block, feistel')
+    const key = '01234567 89abcdef fedcba98 76543210'
+    for (const [name, text, expected] of [
+      ['ciphers_encode', 'ATTACK AT DAWN', '4fd50f17717460459c4924d6c54d4881'],
+      ['ciphers_decode', '4fd50f17717460459c4924d6c54d4881', 'ATTACK AT DAWN'],
+    ] as const) {
+      const result = await client.callTool({ name, arguments: { cipher: 'camellia', text, key } })
+      expect(result.isError).not.toBe(true)
+      expect(onlyText(result.content)).toBe(expected)
+    }
+  })
+
   it('opens the CryptoJS passphrase format through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({
@@ -1132,6 +1149,9 @@ Co2B
       ['digest', { cipher: 'aes-passphrase', text: 'abc', key: 'k', digest: 'sha512' }],
       ['key', { cipher: 'openpgp', text: 'abc' }],
       ['key', { cipher: 'cast5', text: 'abc', key: '00'.repeat(4) }],
+      ['key', { cipher: 'camellia', text: 'abc' }],
+      ['key', { cipher: 'camellia', text: 'abc', key: '00'.repeat(20) }],
+      ['key', { cipher: 'camellia', text: 'abc', key: '00'.repeat(33) }],
       ['algorithm', { cipher: 'openpgp', text: 'abc', key: 'k', algorithm: 'twofish' }],
       ['count', { cipher: 'openpgp', text: 'abc', key: 'k', count: 1023 }],
       ['key', { cipher: 'rabbit', text: 'abc' }],

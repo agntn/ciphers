@@ -534,6 +534,20 @@ try {
     ]).trim(),
     '585e13962a59ed5274e0ab1bdcde47a3',
   )
+  assert.equal(
+    run(binPath, ['encode', 'camellia', 'ATTACK AT DAWN', '--key', marsKey]).trim(),
+    '4fd50f17717460459c4924d6c54d4881',
+  )
+  assert.equal(
+    run(binPath, [
+      'decode',
+      'camellia',
+      '4fd50f17717460459c4924d6c54d4881',
+      '--key',
+      marsKey,
+    ]).trim(),
+    'ATTACK AT DAWN',
+  )
   {
     const armor = run(binPath, [
       'encode',

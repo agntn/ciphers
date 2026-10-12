@@ -36,6 +36,7 @@ import { luciferEcb } from '../../src/ciphers/block/lucifer.ts'
 import { marsEcb } from '../../src/ciphers/block/mars.ts'
 import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 import { cast5Ecb } from '../../src/ciphers/block/cast5.ts'
+import { camelliaEcb } from '../../src/ciphers/block/camellia.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 import { rc4 } from '../../src/ciphers/stream/rc4.ts'
 import { xor } from '../../src/ciphers/stream/xor.ts'
@@ -49,8 +50,8 @@ const hex = (value: string) =>
 const bytes = (value: string) => Uint8Array.from(hex(value))
 
 describe('registry', () => {
-  it('registers all 69 ciphers', () => {
-    expect(ciphers()).toHaveLength(69)
+  it('registers all 70 ciphers', () => {
+    expect(ciphers()).toHaveLength(70)
     for (const name of [
       'caesar',
       'rot13',
@@ -106,6 +107,7 @@ describe('registry', () => {
       'mars',
       'serpent',
       'cast5',
+      'camellia',
       'openpgp',
       'rabbit',
       'rc4',
@@ -1755,6 +1757,7 @@ describe('edge cases', () => {
     mars: { key: '0123456789abcdeffedcba9876543210' },
     serpent: { key: '0123456789abcdeffedcba9876543210' },
     cast5: { key: '0123456712345678234567893456789a' },
+    camellia: { key: '0123456789abcdeffedcba9876543210' },
     openpgp: { key: 'secret', count: 1024 },
     rabbit: { key: '0123456789abcdeffedcba9876543210' },
     rc4: { key: '0102030405' },
@@ -5438,6 +5441,111 @@ describe('cast5', () => {
     expect(resolveCipher('CAST5')).toBe(cast5)
     expect(cast5.info()).toMatchObject({
       name: 'cast5',
+      category: 'block',
+      family: 'feistel',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
+    })
+  })
+})
+
+describe('camellia', () => {
+  const camellia = create('camellia')
+  const key = '0123456789abcdeffedcba9876543210'
+  const key192 = `${key}0011223344556677`
+  const key256 = `${key}00112233445566778899aabbccddeeff`
+
+  /** RFC 3713 Appendix A, the same plaintext under every key length. */
+  it('matches the RFC 3713 vectors for 128, 192 and 256-bit keys', () => {
+    const plaintext = '0123456789abcdeffedcba9876543210'
+    for (const [vectorKey, ciphertext] of [
+      [key, '67673138549669730857065648eabe43'],
+      [key192, 'b4993401b3e996f84ee5cee7d79b09b9'],
+      [key256, '9acc237dff16d76c20ef7c919e3a7509'],
+    ] as const) {
+      expect(camelliaEcb(hex(plaintext), hex(vectorKey), 'encrypt')).toEqual(hex(ciphertext))
+      expect(camelliaEcb(hex(ciphertext), hex(vectorKey), 'decrypt')).toEqual(hex(plaintext))
+    }
+  })
+
+  /**
+   * One bit set in the key over a zero block, then one bit set in the block under a zero key, for
+   * each key length. The digests cover OpenSSL's ciphertexts in that order, one per line.
+   */
+  it('agrees with OpenSSL on every single-bit key and block', () => {
+    const oneBit = (length: number, bit: number) => {
+      const bytes = Array.from<number>({ length }).fill(0)
+      bytes[bit >>> 3] = 0x80 >>> (bit & 7)
+      return bytes
+    }
+    const zero = (length: number) => Array.from<number>({ length }).fill(0)
+    for (const [size, keyDigest, textDigest] of [
+      [
+        16,
+        '09a42925f169ff7b4ffea74e55150aca9050f3312ff1e14f8c160c00519ff3d6',
+        '16083cead0a9bca9b1eec07a6f2fcbcdaab2bf2ad4fe8ecfe25c85843f52d7c0',
+      ],
+      [
+        24,
+        '1344ff3594a2f0134c5d425166ed8cddec74812dc6a1ac0d403f59f82f31ae14',
+        '9857c41b35587fdf4ad0397cd07d403b5f929858d6fd9ea0c49303892e51b7f3',
+      ],
+      [
+        32,
+        '491060c07c883ec7bfb0dbd61563d77a8a963b4ccede994963ce825e63c32c4b',
+        '283d90db71897d6cd7886e4e5caa0ab1f98d1200babed96defc33ffc666167f2',
+      ],
+    ] as const) {
+      const keyBits = Array.from({ length: 8 * size }, (_, bit) =>
+        toHex(camelliaEcb(zero(16), oneBit(size, bit), 'encrypt')),
+      )
+      const textBits = Array.from({ length: 128 }, (_, bit) =>
+        toHex(camelliaEcb(oneBit(16, bit), zero(size), 'encrypt')),
+      )
+      expect(createHash('sha256').update(keyBits.join('\n')).digest('hex')).toBe(keyDigest)
+      expect(createHash('sha256').update(textBits.join('\n')).digest('hex')).toBe(textDigest)
+    }
+  })
+
+  /** Expected values from `openssl enc -camellia-128-ecb` and its 192 and 256-bit siblings. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, textKey, ciphertext] of [
+      ['', key, '06adf69db3fcae972cfbf7e49b799450'],
+      ['ATTACK AT DAWN', key, '4fd50f17717460459c4924d6c54d4881'],
+      [
+        'zażółć gęślą jaźń 🙂',
+        key,
+        '44b0edc66cdd988c40c01abffbf6d36cc829484496473ffa70c58df2234e137b',
+      ],
+      ['ATTACK AT DAWN', key192, 'dde65e17e7b144027a7ad8523b758c72'],
+      ['ATTACK AT DAWN', key256, '45351863ec995c56f749fab315de9feb'],
+    ] as const) {
+      expect(camellia.encode(text, { key: textKey })).toEqual({
+        text: ciphertext,
+        cipher: 'camellia',
+        operation: 'encode',
+        options: { key: textKey, mode: 'ecb' },
+      })
+      expect(camellia.decode(ciphertext, { key: textKey }).text).toBe(text)
+    }
+  })
+
+  it('rejects keys that are not a Camellia key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => camellia[operation]('')).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(20), '00'.repeat(33), 'g'.repeat(32), 12]) {
+        expect(() => camellia[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('Camellia')).toBe(camellia)
+    expect(camellia.info()).toMatchObject({
+      name: 'camellia',
       category: 'block',
       family: 'feistel',
       selfInverse: false,

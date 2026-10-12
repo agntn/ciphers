@@ -410,6 +410,12 @@ export interface Cast5Options extends ByteCipherOptions {
   key: string
 }
 
+/** Camellia ECB options. */
+export interface CamelliaOptions extends ByteCipherOptions {
+  /** 32, 48 or 64 hex digits, a 128, 192 or 256-bit key; case and spaces are ignored. */
+  key: string
+}
+
 /** OpenPGP passphrase options. Decoding reads everything but the passphrase from the message. */
 export interface OpenPgpOptions extends ByteCipherOptions {
   /** The passphrase, any text, read as UTF-8. */

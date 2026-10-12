@@ -421,7 +421,17 @@ export interface OpenPgpOptions extends ByteCipherOptions {
   /** The passphrase, any text, read as UTF-8. */
   key: string
   /** Encoding only: the block cipher. Default: `aes256`. */
-  algorithm?: 'idea' | '3des' | 'cast5' | 'blowfish' | 'aes128' | 'aes192' | 'aes256'
+  algorithm?:
+    | 'idea'
+    | '3des'
+    | 'cast5'
+    | 'blowfish'
+    | 'aes128'
+    | 'aes192'
+    | 'aes256'
+    | 'camellia128'
+    | 'camellia192'
+    | 'camellia256'
   /** Encoding only: the S2K hash. Default: `sha512`. */
   digest?:
     | 'md5'
@@ -437,7 +447,7 @@ export interface OpenPgpOptions extends ByteCipherOptions {
   count?: number
   /** Encoding only: 16 hex digits. Default: random. */
   salt?: string
-  /** Encoding only: the random first block, 16 hex digits, or 32 for AES. Default: random. */
+  /** Encoding only: the first block, 16 hex digits or 32 for AES and Camellia. Default: random. */
   iv?: string
 }
 

@@ -73,7 +73,17 @@ export type CipherToolParams = {
     | 'sha512'
     | 'sha3-256'
     | 'sha3-512'
-  algorithm?: 'idea' | '3des' | 'cast5' | 'blowfish' | 'aes128' | 'aes192' | 'aes256'
+  algorithm?:
+    | 'idea'
+    | '3des'
+    | 'cast5'
+    | 'blowfish'
+    | 'aes128'
+    | 'aes192'
+    | 'aes256'
+    | 'camellia128'
+    | 'camellia192'
+    | 'camellia256'
   count?: number
   keyLength?: number
   iterations?: number
@@ -155,7 +165,7 @@ export const OPTION_DESCRIPTIONS = {
     'Quagmire only, and required there: the indicator keyword, written down the column under indicatorUnder; each letter sets the cipher row for one letter of the text, in turn',
   indicatorUnder:
     'Quagmire only: the plain letter the indicator keyword stands under, one letter from A to Z (default A)',
-  iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it). Openpgp encoding only: the random first block, 16 digits or 32 for AES (default random)',
+  iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it). Openpgp encoding only: the random first block, 16 digits or 32 for AES and Camellia (default random)',
   endian:
     'Rabbit only: byte order of key, IV and keystream, big as in RFC 4503 and CyberChef (default) or little as in Crypto++',
   bytes:
@@ -189,7 +199,7 @@ export const OPTION_DESCRIPTIONS = {
   digest:
     'AES-passphrase: hash for EVP_BytesToKey, md5 as in CryptoJS (default), sha256 as in openssl enc since 1.1.0, or sha1; decoding needs the same value. Openpgp encoding only: the S2K hash, md5, sha1, ripemd160, sha224, sha256, sha384, sha512, sha3-256 or sha3-512 (default sha512); decoding reads it from the message',
   algorithm:
-    'Openpgp encoding only: idea, 3des, cast5, blowfish, aes128, aes192 or aes256 (default aes256); decoding reads it from the message',
+    'Openpgp encoding only: idea, 3des, cast5, blowfish, aes128, aes192, aes256, camellia128, camellia192 or camellia256 (default aes256); decoding reads it from the message',
   count:
     'Openpgp encoding only: bytes the S2K hashes, 1024 to 65011712, rounded up to a count OpenPGP can write (default 65011712)',
   keyLength:

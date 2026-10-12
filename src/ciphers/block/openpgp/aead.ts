@@ -1,22 +1,27 @@
 import { Sha256Hasher, hkdf } from '@agntn/hashes'
 import { CipherError } from '../../../core/errors.ts'
-import type { Bytes } from '../../../core/block-mode.ts'
-import { aesBlock } from '../aes/block.ts'
-import { aesCtr } from '../aes/ctr.ts'
-import { aesOcb } from '../aes/ocb.ts'
+import type { BlockFunction, Bytes } from '../../../core/block-mode.ts'
+import { blockCtr } from '../aes/ctr.ts'
+import { blockOcb } from '../aes/ocb.ts'
 
 const BLOCK_SIZE = 16
 
 /** Every OpenPGP AEAD mode ends a chunk and a session key in a 16-byte tag. */
 const TAG_LENGTH = 16
 
-/** An AEAD mode of RFC 9580 §9.6 that opens with AES. */
+/** An AEAD mode of RFC 9580 §9.6, over any cipher with 16-byte blocks. */
 export interface AeadMode {
   readonly id: number
   readonly name: string
   readonly nonceLength: number
   /** The plaintext of `sealed`, ciphertext then tag, or nothing when the tag does not match. */
-  readonly open: (key: Bytes, nonce: Bytes, aad: Bytes, sealed: Bytes) => number[] | undefined
+  readonly open: (
+    cipher: BlockFunction,
+    key: Bytes,
+    nonce: Bytes,
+    aad: Bytes,
+    sealed: Bytes,
+  ) => number[] | undefined
 }
 
 function xor(a: Bytes, b: Bytes): number[] {
@@ -49,7 +54,7 @@ function double(block: Bytes): number[] {
 /**
  * OMAC1, which NIST calls CMAC, over a message that is never empty here.
  *
- * @param encrypt - AES forward under the key.
+ * @param encrypt - The cipher forward under the key.
  * @param message - At least one byte.
  * @returns {number[]} The 16-byte MAC.
  */
@@ -74,21 +79,28 @@ function padLast(bytes: Bytes): number[] {
 /**
  * EAX of Bellare, Rogaway and Wagner, three tweaked OMACs and CTR from the nonce's MAC.
  *
- * @param key - The AES key.
+ * @param cipher - The block cipher.
+ * @param key - Its key.
  * @param nonce - 16 bytes in OpenPGP.
  * @param aad - The header the tag covers.
  * @param sealed - Ciphertext, then the tag.
  * @returns {number[] | undefined} The plaintext, or nothing when the tag does not match.
  */
-function openEax(key: Bytes, nonce: Bytes, aad: Bytes, sealed: Bytes): number[] | undefined {
-  const encrypt = aesBlock(key, 'encrypt')
+function openEax(
+  cipher: BlockFunction,
+  key: Bytes,
+  nonce: Bytes,
+  aad: Bytes,
+  sealed: Bytes,
+): number[] | undefined {
+  const encrypt = cipher(key, 'encrypt')
   const omac = (tweak: number, data: Bytes) =>
     cmac(encrypt, [...Array.from({ length: BLOCK_SIZE - 1 }, () => 0), tweak, ...data])
   const ciphertext = sealed.slice(0, -TAG_LENGTH)
   const counter = omac(0, nonce)
   const tag = xor(xor(counter, omac(1, aad)), omac(2, ciphertext))
   if (!sameTag(tag, sealed.slice(-TAG_LENGTH))) return undefined
-  return aesCtr(ciphertext, key, counter)
+  return blockCtr(cipher, ciphertext, key, counter)
 }
 
 /** The reduction constant of GCM, `11100001` followed by 120 zero bits. */
@@ -133,7 +145,7 @@ function bitLength(bytes: Bytes): number[] {
 /**
  * GHASH of NIST SP 800-38D §6.4 over the padded AAD, the padded ciphertext and both bit lengths.
  *
- * @param h - The hash key, AES of the zero block.
+ * @param h - The hash key, the cipher of the zero block.
  * @param aad - The header.
  * @param ciphertext - The ciphertext.
  * @returns {number[]} 16 bytes.
@@ -155,37 +167,46 @@ function ghash(h: bigint, aad: Bytes, ciphertext: Bytes): number[] {
 /**
  * GCM with a 12-byte nonce, NIST SP 800-38D. Counter 1 masks the tag, the text starts at 2.
  *
- * @param key - The AES key.
+ * @param cipher - The block cipher.
+ * @param key - Its key.
  * @param nonce - 12 bytes.
  * @param aad - The header the tag covers.
  * @param sealed - Ciphertext, then the tag.
  * @returns {number[] | undefined} The plaintext, or nothing when the tag does not match.
  */
-function openGcm(key: Bytes, nonce: Bytes, aad: Bytes, sealed: Bytes): number[] | undefined {
-  const encrypt = aesBlock(key, 'encrypt')
+function openGcm(
+  cipher: BlockFunction,
+  key: Bytes,
+  nonce: Bytes,
+  aad: Bytes,
+  sealed: Bytes,
+): number[] | undefined {
+  const encrypt = cipher(key, 'encrypt')
   const ciphertext = sealed.slice(0, -TAG_LENGTH)
   const h = toBigInt(encrypt(Array.from({ length: BLOCK_SIZE }, () => 0)))
   const tag = xor(encrypt([...nonce, 0, 0, 0, 1]), ghash(h, aad, ciphertext))
   if (!sameTag(tag, sealed.slice(-TAG_LENGTH))) return undefined
-  return aesCtr(ciphertext, key, [...nonce, 0, 0, 0, 2])
+  return blockCtr(cipher, ciphertext, key, [...nonce, 0, 0, 0, 2])
 }
 
 /**
  * OCB of RFC 7253 with a 128-bit tag, as `aes-ocb` runs it.
  *
- * @param key - The AES key.
+ * @param cipher - The block cipher.
+ * @param key - Its key.
  * @param nonce - 15 bytes in OpenPGP.
  * @param aad - The header the tag covers.
  * @param sealed - Ciphertext, then the tag.
  * @returns {number[] | undefined} The plaintext, or nothing when the tag does not match.
  */
-function openOcb(key: Bytes, nonce: Bytes, aad: Bytes, sealed: Bytes): number[] | undefined {
-  try {
-    return aesOcb(sealed, key, 'decrypt', nonce, aad, 128)
-  } catch (error) {
-    if (error instanceof CipherError) return undefined
-    throw error
-  }
+function openOcb(
+  cipher: BlockFunction,
+  key: Bytes,
+  nonce: Bytes,
+  aad: Bytes,
+  sealed: Bytes,
+): number[] | undefined {
+  return blockOcb(cipher, sealed, key, 'decrypt', nonce, aad, 128)
 }
 
 const AEAD_MODES: readonly AeadMode[] = [
@@ -212,7 +233,8 @@ export function aeadById(id: number | undefined): AeadMode {
  * Opens one sealed value with no chunks, as an encrypted session key is.
  *
  * @param mode - The AEAD mode.
- * @param key - The AES key.
+ * @param cipher - The block cipher.
+ * @param key - Its key.
  * @param nonce - The nonce.
  * @param aad - The header the tag covers.
  * @param sealed - Ciphertext and tag.
@@ -220,12 +242,13 @@ export function aeadById(id: number | undefined): AeadMode {
  */
 export function openSealed(
   mode: AeadMode,
+  cipher: BlockFunction,
   key: Bytes,
   nonce: Bytes,
   aad: Bytes,
   sealed: Bytes,
 ): number[] | undefined {
-  return sealed.length < TAG_LENGTH ? undefined : mode.open(key, nonce, aad, sealed)
+  return sealed.length < TAG_LENGTH ? undefined : mode.open(cipher, key, nonce, aad, sealed)
 }
 
 /** Tag 20 v1 as GnuPG writes it, or SEIPD v2 of RFC 9580. */
@@ -233,6 +256,7 @@ export interface AeadData {
   readonly tag: number
   readonly version: number
   readonly algorithm: number
+  readonly cipher: BlockFunction
   readonly keySize: number
   readonly mode: AeadMode
   readonly chunkOctet: number
@@ -321,12 +345,19 @@ export function openAeadData(data: AeadData, sessionKey: Bytes): number[] | unde
     const chunk = chunks.slice(at, at + step)
     const opened =
       chunk.length > TAG_LENGTH
-        ? data.mode.open(chunking.key, chunking.nonce(index), chunking.aad(index), chunk)
+        ? data.mode.open(
+            data.cipher,
+            chunking.key,
+            chunking.nonce(index),
+            chunking.aad(index),
+            chunk,
+          )
         : undefined
     if (!opened) return undefined
     for (const byte of opened) plain.push(byte)
   }
   const final = data.mode.open(
+    data.cipher,
     chunking.key,
     chunking.nonce(index),
     chunking.finalAad(index, plain.length),

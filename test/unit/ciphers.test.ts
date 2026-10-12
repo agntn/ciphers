@@ -36,7 +36,8 @@ import { luciferEcb } from '../../src/ciphers/block/lucifer.ts'
 import { marsEcb } from '../../src/ciphers/block/mars.ts'
 import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 import { cast5Ecb } from '../../src/ciphers/block/cast5.ts'
-import { camelliaEcb } from '../../src/ciphers/block/camellia.ts'
+import { camelliaBlock, camelliaEcb } from '../../src/ciphers/block/camellia.ts'
+import { aeadById } from '../../src/ciphers/block/openpgp/aead.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 import { rc4 } from '../../src/ciphers/stream/rc4.ts'
 import { xor } from '../../src/ciphers/stream/xor.ts'
@@ -5771,6 +5772,40 @@ U8pGwhde8tSNRuoNVgwRTLMjs5wG+UkwX71GkANJn9RaAQkCENzypJdirBGc8Vy9
 j4nX7IyZKs4n2Uzc1l21kx4xzifMlNqhMRk0
 =4qeb
 -----END PGP MESSAGE-----`,
+    camellia128: `-----BEGIN PGP MESSAGE-----
+
+jA0ECwMIokxgnpCsF7Jg0kQBTY0UBID5amZY7eRNiCIvOmxlYO/1NA5SnscOhfz0
+v95pL3/f9zy5k7LLfH6nNb0HlyqBsjt7kaGrC8/WayklSY7sRQ==
+=uyrj
+-----END PGP MESSAGE-----`,
+    camellia192Zlib: `-----BEGIN PGP MESSAGE-----
+
+jA0EDAMCSUA+r5b9/oFg0k4BVvPdam25uhNDdCdKkbl6XzODnwEddhTiOJYsYASV
+viS9Pz46n6Vf4GlxrmMg6j2Tjr3EvkjNfiib816hH3rdHItTMKMkHM6nPSILdjs=
+=T6tQ
+-----END PGP MESSAGE-----`,
+    camellia256: `-----BEGIN PGP MESSAGE-----
+
+jA0EDQMK480byb6eVkFg0kQB7wu4J/cVEzQhGYEgY/c3FmVe96a56OzoyewmQ1CT
+wYiFXxnNl+XEG9WXIauJziCJP2gWmBtd8FkMvFUfKB2K2xnHOg==
+=VieY
+-----END PGP MESSAGE-----`,
+    ocbCamellia256: `-----BEGIN PGP MESSAGE-----
+
+jE0FDQIDCn2FFbC14vH5YKPk+pr0WwT9O/tjOI6kHtyc4b+6cpvvCoh9fcfxceMs
+f61RSGGeDtGWZcbefR4ILrKthoMLp8y8NmIjIRO8t9ROAQ0CEGJ15OawcCZrz0y5
+r6HxRuUqDZ6Fl07CvdROWyDnmWvSMnmAKAd+k9j0CB5wHzqrbFzxAU2QWj2OQFp9
++HM/xvSID5Oyz47Yxgcb
+=iFMm
+-----END PGP MESSAGE-----`,
+    ocbCamellia128Zip: `-----BEGIN PGP MESSAGE-----
+
+jD0FCwIDCoP6YyA23Ni0YNqSfJQRWQ4PIRp08jHeM1677p3SYVBdJ8I0AeYtxpT6
+jdXnJKX10PIPADDfuRPr1FIBCwIQNalLGfo4JquYXErRoqI2V4G+RAm6VTIgfwsD
++j5wsZa2h+jL+ye6HYxFK5xldpJsLqgOtYI+nvHYKgDT5pZD8ftr3vXixLrJ15R2
+1sZ7
+=Jf5h
+-----END PGP MESSAGE-----`,
     /** 5 MiB of zero bytes, BZip2 inside a 137-byte encrypted packet. */
     bomb: `-----BEGIN PGP MESSAGE-----
 
@@ -5874,6 +5909,9 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
       [gpg.aes192Zip, { algorithm: 'aes192', digest: 'sha384', compression: 'zip' }],
       [gpg.bzip2, { algorithm: 'aes256', digest: 'sha512', compression: 'bzip2' }],
       [gpg.sha224, { algorithm: 'aes256', digest: 'sha224', salt: '8641dd96daf30352' }],
+      [gpg.camellia128, { algorithm: 'camellia128', digest: 'sha256', filename: 'm.txt' }],
+      [gpg.camellia192Zlib, { algorithm: 'camellia192', digest: 'sha1', compression: 'zlib' }],
+      [gpg.camellia256, { algorithm: 'camellia256', digest: 'sha512', salt: 'e3cd1bc9be9e5641' }],
     ] as const) {
       const decoded = pgp.decode(armor, { key: 'hunter2' })
       expect(decoded.text).toBe('Attack at dawn')
@@ -5974,7 +6012,18 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
   })
 
   it('writes every algorithm and digest it can read', () => {
-    for (const algorithm of ['idea', '3des', 'cast5', 'blowfish', 'aes128', 'aes192', 'aes256']) {
+    for (const algorithm of [
+      'idea',
+      '3des',
+      'cast5',
+      'blowfish',
+      'aes128',
+      'aes192',
+      'aes256',
+      'camellia128',
+      'camellia192',
+      'camellia256',
+    ]) {
       for (const digest of [
         'md5',
         'sha1',
@@ -6077,6 +6126,64 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
       text: 'Attack at dawn',
       options: { algorithm: 'aes256', aead: 'ocb', compression: 'zlib', filename: 'esk.txt' },
     })
+    for (const [armor, options] of [
+      [gpg.ocbCamellia256, { algorithm: 'camellia256', salt: '7d8515b0b5e2f1f9' }],
+      [gpg.ocbCamellia128Zip, { algorithm: 'camellia128', compression: 'zip' }],
+    ] as const) {
+      expect(pgp.decode(armor, { key: 'hunter2' })).toMatchObject({
+        text: 'Attack at dawn',
+        options: { aead: 'ocb', ...options },
+      })
+      expect(() => pgp.decode(armor, { key: 'hunter3' })).toThrow(
+        '[openpgp] Wrong passphrase: the tag on the sealed session key does not match',
+      )
+    }
+  })
+
+  /** From RustCrypto camellia 0.1.0 with eax 0.5.0, ocb3 0.1.0 and aes-gcm 0.10.3. */
+  it('runs Camellia through EAX, GCM and OCB, which RFC 9580 allows and GnuPG writes for OCB', () => {
+    const bytes = (hex: string) => [...Buffer.from(hex, 'hex')]
+    const run = (from: number, to: number) => Array.from({ length: to - from }, (_, i) => from + i)
+    const aad = [...Buffer.from('OpenPGP header')]
+    for (const [id, key, nonce, sealed] of [
+      [
+        1,
+        run(0, 16),
+        run(0x10, 0x20),
+        '4d4b0acf045fa8010a338d84f6a5f057ea741abee4add2c5e67e278a7dea08484544464082f4832fe35b5fca01b250ba5e71fd38',
+      ],
+      [
+        1,
+        run(0, 32),
+        run(0x10, 0x20),
+        '77f874b6e65d6a5a20224565acf8fd6f351cfb2b82b1a6568ec87ab3fd38387f22b863af392e9d26c94992244c1c47340545c67c',
+      ],
+      [
+        2,
+        run(0, 16),
+        run(0x30, 0x3f),
+        'ee57003dd2beea44b69136d1e1d0a8d559ebfad3ea12b6672284c7560d10988cce5002f180dd2c5f47b97aed43921c12ed93709e',
+      ],
+      [
+        3,
+        run(0, 16),
+        run(0x20, 0x2c),
+        '44ae6e497ae08542500a6710c52873387d355974eaf1cca32acb254eff42a2736ca48ea26e09adc55675255345ee986ca236f450',
+      ],
+      [
+        3,
+        run(0, 32),
+        run(0x20, 0x2c),
+        '2241a38ecef79a53b0e448e4b30e17b7797c493140290418aca0b12dd76d2e54f540bfea4bc3092fcaa350583592d2ae1e9df7a6',
+      ],
+    ] as const) {
+      const mode = aeadById(id)
+      const opened = mode.open(camelliaBlock, key, nonce, aad, bytes(sealed))
+      expect(Buffer.from(opened ?? []).toString()).toBe('Attack at dawn, then retreat at dusk')
+      const changed = bytes(sealed)
+      changed[3]! ^= 1
+      expect(mode.open(camelliaBlock, key, nonce, aad, changed)).toBeUndefined()
+    }
   })
 
   it('opens the EAX, OCB and GCM samples of RFC 9580 and the SKESK v5 ones', () => {

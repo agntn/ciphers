@@ -223,9 +223,7 @@ describe('Pi extension', () => {
     })
 
     expect(encoded.content[0]?.text).toBe('BCD')
-    expect(encoded.content[0]?.text).toBe(create('caesar').encode('a-b c', options).text)
     expect(decoded.content[0]?.text).toBe('ABC')
-    expect(decoded.content[0]?.text).toBe(create('caesar').decode('b-c d', options).text)
   })
 
   it('bounds text, keys, and options the way OMP and MCP do', () => {

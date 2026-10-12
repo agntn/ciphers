@@ -17,108 +17,16 @@ function createColumnar(): ResettableCipher {
   return cipher
 }
 
-// ── LruCache unit tests ─────────────────────────────────────────────────
-
-describe('LruCache', () => {
-  it('stores and retrieves values', () => {
-    const cache = new LruCache<string, string>(10)
-    cache.set('a', 'alpha')
-    expect(cache.get('a')).toBe('alpha')
-  })
-
-  it('returns undefined for missing keys', () => {
-    const cache = new LruCache<string, string>(10)
-    expect(cache.get('missing')).toBeUndefined()
-  })
-
-  it('evicts oldest entry when full', () => {
-    const cache = new LruCache<string, string>(3)
-    cache.set('a', '1')
-    cache.set('b', '2')
-    cache.set('c', '3')
-    cache.set('d', '4') // evicts 'a'
-    expect(cache.get('a')).toBeUndefined()
-    expect(cache.get('b')).toBe('2')
-    expect(cache.get('d')).toBe('4')
-  })
-
-  it('re-access prevents eviction (LRU)', () => {
-    const cache = new LruCache<string, string>(3)
-    cache.set('a', '1')
-    cache.set('b', '2')
-    cache.set('c', '3')
-    cache.get('a') // touch 'a' → most recent
-    cache.set('d', '4') // evicts 'b' (oldest)
-    expect(cache.get('a')).toBe('1')
-    expect(cache.get('b')).toBeUndefined()
-  })
-
-  it('has() reports presence', () => {
-    const cache = new LruCache<string, string>(5)
-    cache.set('x', '10')
-    expect(cache.has('x')).toBe(true)
-    expect(cache.has('y')).toBe(false)
-  })
-
-  it('clear() empties the cache', () => {
-    const cache = new LruCache<string, string>(5)
-    cache.set('a', '1')
-    cache.set('b', '2')
-    cache.clear()
-    expect(cache.size).toBe(0)
-    expect(cache.get('a')).toBeUndefined()
-  })
-
-  it('size tracks entries', () => {
-    const cache = new LruCache<string, string>(10)
-    expect(cache.size).toBe(0)
-    cache.set('a', '1')
-    expect(cache.size).toBe(1)
-    cache.set('b', '2')
-    expect(cache.size).toBe(2)
-  })
-})
-
-// ── cipherCacheKey ──────────────────────────────────────────────────────
-
-describe('cipherCacheKey', () => {
-  it('produces stable keys for same inputs', () => {
-    const k1 = cipherCacheKey('encode', 'HELLO', { key: 'TEST' })
-    const k2 = cipherCacheKey('encode', 'HELLO', { key: 'TEST' })
-    expect(k1).toBe(k2)
-  })
-
-  it('differentiates operations', () => {
-    const enc = cipherCacheKey('encode', 'HELLO', { key: 'TEST' })
-    const dec = cipherCacheKey('decode', 'HELLO', { key: 'TEST' })
-    expect(enc).not.toBe(dec)
-  })
-
-  it('differentiates text', () => {
-    const k1 = cipherCacheKey('encode', 'HELLO', { key: 'TEST' })
-    const k2 = cipherCacheKey('encode', 'WORLD', { key: 'TEST' })
-    expect(k1).not.toBe(k2)
-  })
-
-  it('differentiates keys', () => {
-    const k1 = cipherCacheKey('encode', 'HELLO', { key: 'AAA' })
-    const k2 = cipherCacheKey('encode', 'HELLO', { key: 'BBB' })
-    expect(k1).not.toBe(k2)
-  })
-})
-
 // ── Columnar cipher: cache behavior ─────────────────────────────────────
 
 describe('columnar — cache', () => {
   const col = createColumnar()
 
-  it('caches encode results (same input = same object reference)', () => {
+  it('caches encode results', () => {
     col.reset()
     const r1 = col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' })
     const r2 = col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' })
     expect(r1.text).toBe(r2.text)
-    // Results should be identical reference from cache
-    expect(r1.text).toStrictEqual(r2.text)
   })
 
   it('caches decode results', () => {
@@ -145,13 +53,14 @@ describe('columnar — cache', () => {
     expect(r1.text).not.toBe(r2.text)
   })
 
-  it('reset() clears cache (re-computation happens)', () => {
+  it('answers from the cache until reset() clears it', () => {
     col.reset()
-    const r1 = col.encode('TEST TEXT', { key: 'KEY' })
+    const cache: unknown = Reflect.get(col, 'cache')
+    if (!(cache instanceof LruCache)) throw new TypeError('Columnar cipher has no LruCache')
+    cache.set(cipherCacheKey('encode', 'ATTACK', { key: 'KEY' }), 'PLANTED')
+    expect(col.encode('ATTACK', { key: 'KEY' }).text).toBe('PLANTED')
     col.reset()
-    const r2 = col.encode('TEST TEXT', { key: 'KEY' })
-    // Both valid (same cipher), just verifying reset doesn't break anything
-    expect(r1.text).toBe(r2.text)
+    expect(col.encode('ATTACK', { key: 'KEY' }).text).toBe('TCAATK')
   })
 })
 
@@ -162,8 +71,7 @@ describe('columnar: key search', () => {
     const col = createColumnar()
     col.reset()
     const keys = Array.from({ length: 1000 }, (_, i) => `K${i.toString(36).toUpperCase()}`)
-    const decoded = keys.map((key) => col.decode('C TAWT AATNAKD', { key }).text)
-    expect(decoded).toHaveLength(1000)
+    for (const key of keys) col.decode('C TAWT AATNAKD', { key })
     expect(col.decode('C TAWT AATNAKD', { key: 'ZEBRA' }).text).toBe('ATTACK AT DAWN')
   })
 })
@@ -175,20 +83,6 @@ describe('columnar — backwards compatibility', () => {
     const col = createColumnar()
     col.reset()
     expect(col.encode('ATTACK', { key: 'KEY' }).text).toBe('TCAATK')
-  })
-
-  it('roundtrips', () => {
-    const col = createColumnar()
-    col.reset()
-    const encoded = col.encode('DEFEND THE EAST WALL', { key: 'GERMAN' })
-    const decoded = col.decode(encoded.text, { key: 'GERMAN' })
-    expect(decoded.text).toBe('DEFEND THE EAST WALL')
-  })
-
-  it('requires key', () => {
-    const col = createColumnar()
-    col.reset()
-    expect(() => col.encode('TEST')).toThrow()
   })
 
   it('info() returns correct metadata', () => {

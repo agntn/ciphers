@@ -30,14 +30,6 @@ function top(text: string, options: Readonly<KeyRecoveryOptions>): [string, stri
   return [best?.key ?? '', best?.text ?? '']
 }
 
-/* The key a substitution solver can give: the alphabet, ? for plaintext letters the text lacks. */
-function visibleKey(alphabet: string, text: string): string {
-  const used = new Set(text.toUpperCase().replaceAll(/[^A-Z]/g, ''))
-  return Array.from(alphabet, (letter, plain) =>
-    used.has(String.fromCodePoint(65 + plain)) ? letter : '?',
-  ).join('')
-}
-
 /* Share of letters two texts of the same layout agree on. */
 function sameLetters(text: string, expected: string): number {
   const letters = Array.from(expected).filter((letter) => /[A-Za-z]/.test(letter))
@@ -115,13 +107,14 @@ describe('recoverKey', () => {
     expect(recovery.candidates.map(({ key }) => key)).toContain('PWLSKAPOLSKA')
   })
 
+  /** The text has no J, Q or Z, so the solver leaves their cells as ?. */
   it('solves a mixed alphabet substitution', () => {
     const alphabet = 'QWERTYUIOPASDFGHJKLZXCVBNM'
     const ciphertext = substitute(SCANDAL, alphabet)
     const [key, text] = top(ciphertext, { cipher: 'substitution' })
 
     expect(text).toBe(SCANDAL)
-    expect(key).toBe(visibleKey(alphabet, SCANDAL))
+    expect(key).toBe('QWERTYUIO?ASDFGH?KLZXCVBN?')
     expect(create('substitution').encode(SCANDAL, { key: alphabet }).text).toBe(ciphertext)
     expect(create('substitution').decode(ciphertext, { key }).text).toBe(SCANDAL)
   })

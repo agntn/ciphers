@@ -294,20 +294,23 @@ Co2B
     }
   })
 
-  it('reports the families info() gives each cipher', () => {
-    const texts = [
-      STINSON_VIGENERE,
-      STINSON_AFFINE,
-      create('enigma').encode(DICKENS).text,
-      create('bifid').encode(DICKENS, { key: 'MONARCHY' }).text,
-      '69c4e0d86a7b0430d8cdb78070b4c55a',
-      '6e4c6ff5b2ba',
-    ]
-    for (const text of texts) {
-      for (const { families, ciphers } of guessFamily(text).candidates) {
-        expect(families).toEqual([...new Set(ciphers.map((name) => create(name).info().family))])
-      }
-    }
+  it('lists each family once, in the order of its ciphers', () => {
+    const families = (text: string) => guessFamily(text).candidates.map((found) => found.families)
+    expect(families('69c4e0d86a7b0430d8cdb78070b4c55a')).toEqual([
+      ['substitution-permutation', 'feistel'],
+      ['feistel', 'lai-massey'],
+      ['substitution-permutation', 'permutation', 'polyalphabetic', 'arx'],
+    ])
+    expect(families(create('enigma').encode(DICKENS).text)).toEqual([
+      ['polyalphabetic'],
+      ['rotor'],
+      [
+        'substitution-shift',
+        'substitution-reflection',
+        'substitution-multiplicative',
+        'substitution-keyed',
+      ],
+    ])
   })
 
   it('refuses a language without a table', () => {

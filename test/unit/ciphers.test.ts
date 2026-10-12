@@ -38,6 +38,7 @@ import { serpentEcb } from '../../src/ciphers/block/serpent.ts'
 import { cast5Ecb } from '../../src/ciphers/block/cast5.ts'
 import { camelliaBlock, camelliaEcb } from '../../src/ciphers/block/camellia.ts'
 import { ariaEcb } from '../../src/ciphers/block/aria.ts'
+import { sm4Block, sm4Ecb } from '../../src/ciphers/block/sm4.ts'
 import { aeadById } from '../../src/ciphers/block/openpgp/aead.ts'
 import { rabbit } from '../../src/ciphers/stream/rabbit.ts'
 import { rc4 } from '../../src/ciphers/stream/rc4.ts'
@@ -52,8 +53,8 @@ const hex = (value: string) =>
 const bytes = (value: string) => Uint8Array.from(hex(value))
 
 describe('registry', () => {
-  it('registers all 71 ciphers', () => {
-    expect(ciphers()).toHaveLength(71)
+  it('registers all 72 ciphers', () => {
+    expect(ciphers()).toHaveLength(72)
     for (const name of [
       'caesar',
       'rot13',
@@ -111,6 +112,7 @@ describe('registry', () => {
       'cast5',
       'camellia',
       'aria',
+      'sm4',
       'openpgp',
       'rabbit',
       'rc4',
@@ -1762,6 +1764,7 @@ describe('edge cases', () => {
     cast5: { key: '0123456712345678234567893456789a' },
     camellia: { key: '0123456789abcdeffedcba9876543210' },
     aria: { key: '0123456789abcdeffedcba9876543210' },
+    sm4: { key: '0123456789abcdeffedcba9876543210' },
     openpgp: { key: 'secret', count: 1024 },
     rabbit: { key: '0123456789abcdeffedcba9876543210' },
     rc4: { key: '0102030405' },
@@ -5659,6 +5662,114 @@ describe('aria', () => {
       name: 'aria',
       category: 'block',
       family: 'substitution-permutation',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'bytes', type: 'string', required: false, default: 'text' },
+      ],
+    })
+  })
+})
+
+describe('sm4', () => {
+  const sm4 = create('sm4')
+  const key = '0123456789abcdeffedcba9876543210'
+
+  /** GB/T 32907-2016 example 1 and examples 4 and 5 of draft-ribose-cfrg-sm4 appendix A.1. */
+  it('matches the GB/T 32907-2016 vectors both ways', () => {
+    for (const [plaintext, vectorKey, ciphertext] of [
+      [key, key, '681edf34d206965e86b3e94f536e4246'],
+      [
+        '000102030405060708090a0b0c0d0e0f',
+        'fedcba98765432100123456789abcdef',
+        'f766678f13f01adeac1b3ea955adb594',
+      ],
+    ] as const) {
+      expect(sm4Ecb(hex(plaintext), hex(vectorKey), 'encrypt')).toEqual(hex(ciphertext))
+      expect(sm4Ecb(hex(ciphertext), hex(vectorKey), 'decrypt')).toEqual(hex(plaintext))
+    }
+  })
+
+  /** The two SM4-ECB examples of draft-ribose-cfrg-sm4 appendix A.2.1, two blocks each. */
+  it('matches the ECB examples of two blocks each', () => {
+    const plaintext = 'aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffffaaaaaaaabbbbbbbb'
+    for (const [vectorKey, ciphertext] of [
+      [key, '5ec8143de509cff7b5179f8f474b86192f1d305a7fb17df985f81c8482192304'],
+      [
+        'fedcba98765432100123456789abcdef',
+        'c5876897e4a59bbba72a10c83872245b12dd90bc2d200692b529a4155ac9e600',
+      ],
+    ] as const) {
+      expect(sm4Ecb(hex(plaintext), hex(vectorKey), 'encrypt')).toEqual(hex(ciphertext))
+      expect(sm4Ecb(hex(ciphertext), hex(vectorKey), 'decrypt')).toEqual(hex(plaintext))
+    }
+  })
+
+  /** GB/T 32907-2016 example 2: one block through the same key a million times. */
+  it('survives a million encryptions of one block', () => {
+    const encrypt = sm4Block(hex(key), 'encrypt')
+    let block: readonly number[] = hex(key)
+    for (let i = 0; i < 1_000_000; i++) block = encrypt(block)
+    expect(toHex(block)).toBe('595298c7c6fd271f0402f804c33d3f66')
+  })
+
+  /**
+   * One bit set in the key over a zero block, then one bit set in the block under a zero key. The
+   * digests cover OpenSSL's `sm4-ecb` ciphertexts in that order, one per line.
+   */
+  it('agrees with OpenSSL on every single-bit key and block', () => {
+    const oneBit = (bit: number) => {
+      const bytes = Array.from<number>({ length: 16 }).fill(0)
+      bytes[bit >>> 3] = 0x80 >>> (bit & 7)
+      return bytes
+    }
+    const zero = Array.from<number>({ length: 16 }).fill(0)
+    const keyBits = Array.from({ length: 128 }, (_, bit) =>
+      toHex(sm4Ecb(zero, oneBit(bit), 'encrypt')),
+    )
+    const textBits = Array.from({ length: 128 }, (_, bit) =>
+      toHex(sm4Ecb(oneBit(bit), zero, 'encrypt')),
+    )
+    expect(createHash('sha256').update(keyBits.join('\n')).digest('hex')).toBe(
+      'c3a3672dd79a700b1b1d5131c085547a71ca0199c5767696fe73b63b60d6c6e6',
+    )
+    expect(createHash('sha256').update(textBits.join('\n')).digest('hex')).toBe(
+      'd94e70a22fcc26b4a7c1b56768151599a9d2e04de27f8429f2ef9b44406c61d2',
+    )
+  })
+
+  /** Expected values from `openssl enc -sm4-ecb`. */
+  it('encodes UTF-8 text with PKCS#7 padding to hex, as OpenSSL does', () => {
+    for (const [text, ciphertext] of [
+      ['', '002a8a4efa863ccad024ac0300bb40d2'],
+      ['ATTACK AT DAWN', '47dea04afc3c7e332fcac11987a2ec6e'],
+      ['zażółć gęślą jaźń 🙂', '738789cf11a486727eaa0781a7f164e52e27ed38823597a4da04d51f3629b8f8'],
+    ] as const) {
+      expect(sm4.encode(text, { key })).toEqual({
+        text: ciphertext,
+        cipher: 'sm4',
+        operation: 'encode',
+        options: { key, mode: 'ecb' },
+      })
+      expect(sm4.decode(ciphertext, { key }).text).toBe(text)
+    }
+  })
+
+  it('rejects keys that are not an SM4 key in hex', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => sm4[operation]('')).toThrow(MissingOptionError)
+      for (const bad of ['00'.repeat(15), '00'.repeat(17), '00'.repeat(24), 'g'.repeat(32), 12]) {
+        expect(() => sm4[operation]('', { key: bad })).toThrow(InvalidOptionError)
+      }
+    }
+  })
+
+  it('reports the block category', () => {
+    expect(resolveCipher('SM4')).toBe(sm4)
+    expect(sm4.info()).toMatchObject({
+      name: 'sm4',
+      category: 'block',
+      family: 'feistel',
       selfInverse: false,
       options: [
         { name: 'key', type: 'string', required: true },

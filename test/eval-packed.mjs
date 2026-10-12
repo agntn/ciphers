@@ -556,6 +556,14 @@ try {
     run(binPath, ['decode', 'aria', 'e372f8a14e6654bc1f325283f65fea91', '--key', marsKey]).trim(),
     'ATTACK AT DAWN',
   )
+  assert.equal(
+    run(binPath, ['encode', 'sm4', 'ATTACK AT DAWN', '--key', marsKey]).trim(),
+    '47dea04afc3c7e332fcac11987a2ec6e',
+  )
+  assert.equal(
+    run(binPath, ['decode', 'sm4', '47dea04afc3c7e332fcac11987a2ec6e', '--key', marsKey]).trim(),
+    'ATTACK AT DAWN',
+  )
   {
     const armor = run(binPath, [
       'encode',

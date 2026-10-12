@@ -87,6 +87,7 @@ const PRESENTATION: Record<
   cast5: { icon: "i-lucide-split", blurb: "The cipher RFC 4880 asked OpenPGP to carry, rotations and eight stored S-boxes", sample: "ATTACK AT DAWN", options: { key: "0123456712345678234567893456789a" } },
   camellia: { icon: "i-lucide-split", blurb: "Blocks and keys the size of AES, but Feistel rounds inside and an FL layer every six", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
   aria: { icon: "i-lucide-blocks", blurb: "Korea's AES sibling, the AES S-box plus one of its own and a mixer that undoes itself", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
+  sm4: { icon: "i-lucide-split", blurb: "China's standard, four words in a queue and a key schedule that is the cipher again", sample: "ATTACK AT DAWN", options: { key: "0123456789abcdeffedcba9876543210" } },
   openpgp: { icon: "i-lucide-file-lock", blurb: "What gpg --symmetric writes, a PGP MESSAGE block opened by a passphrase", sample: "ATTACK AT DAWN", options: { key: "secret", salt: "0123456789abcdef", iv: "000102030405060708090a0b0c0d0e0f", count: 1024 } },
   rabbit: { icon: "i-lucide-rabbit", blurb: "The eSTREAM stream cipher from RFC 4503, a squaring where the S-boxes would be", sample: "ATTACK AT DAWN", options: { key: "912813292e3d36fe3bfc62f1dc51c3ac" } },
   rc4: { icon: "i-lucide-shuffle", blurb: "Rivest's 1987 trade secret, a shuffled table of 256 bytes and one swap per byte", sample: "Attack at dawn", options: { key: "536563726574" } },

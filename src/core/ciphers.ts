@@ -62,6 +62,7 @@ export const builtinCiphers = [
   'cast5',
   'camellia',
   'aria',
+  'sm4',
   'openpgp',
   'rabbit',
   'rc4',

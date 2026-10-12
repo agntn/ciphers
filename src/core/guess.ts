@@ -92,7 +92,16 @@ const POLYALPHABETIC = [
   'quagmire-4',
   'chaocipher',
 ] as const
-const BLOCK_16 = ['aes', 'aes-cbc', 'aes-lrw', 'rijndael', 'serpent', 'mars', 'lucifer'] as const
+const BLOCK_16 = [
+  'aes',
+  'aes-cbc',
+  'aes-lrw',
+  'rijndael',
+  'serpent',
+  'mars',
+  'lucifer',
+  'camellia',
+] as const
 const BLOCK_8 = [
   'des',
   'desx',

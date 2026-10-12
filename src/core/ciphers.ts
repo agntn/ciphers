@@ -60,6 +60,7 @@ export const builtinCiphers = [
   'mars',
   'serpent',
   'cast5',
+  'camellia',
   'openpgp',
   'rabbit',
   'rc4',

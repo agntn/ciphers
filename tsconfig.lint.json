@@ -14,7 +14,7 @@
     "build.config.ts",
     "vite.config.ts",
     "src/**/*.ts",
-    "packages/**/*.ts",
+    "extensions/**/*.ts",
     "test/**/*.ts",
     "test/**/*.mjs"
   ]

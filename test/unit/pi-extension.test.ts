@@ -3,7 +3,7 @@ import type { TSchema } from 'typebox'
 import { Value } from 'typebox/value'
 import { create } from '../../src/index.ts'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
-import ciphersExtension from '../../packages/pi/extensions/ciphers.ts'
+import ciphersExtension from '../../extensions/pi/ciphers.ts'
 import { periodEstimateTool } from '../../src/tools.ts'
 
 type ToolResult = {

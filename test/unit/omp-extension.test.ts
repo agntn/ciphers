@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vite-plus/test'
-import ciphersExtension from '../../packages/omp/extensions/ciphers.ts'
+import ciphersExtension from '../../extensions/omp/ciphers.ts'
 import { ciphersTools } from '../../src/tools.ts'
 
 type ToolResult = {

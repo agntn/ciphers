@@ -3,10 +3,10 @@ import { fileURLToPath } from 'node:url'
 
 import type { ExtensionAPI } from '@oh-my-pi/pi-coding-agent'
 import { registerOmpTools, type OmpRenderers } from '@agntn/tools/omp'
-import type * as CiphersTools from '../../../dist/tools.d.mts'
-import { PREVIEWED_TOOLS, renderToolResult } from '../../shared/tui.ts'
+import type * as CiphersTools from '../../dist/tools.d.mts'
+import { PREVIEWED_TOOLS, renderToolResult } from '../shared/tui.ts'
 
-const sourceModulePath = fileURLToPath(new URL('../../../src/tools.ts', import.meta.url))
+const sourceModulePath = fileURLToPath(new URL('../../src/tools.ts', import.meta.url))
 
 /**
  * Both specifiers stay literal: compiled OMP resolves bare imports only where it sees them.
@@ -15,9 +15,7 @@ const sourceModulePath = fileURLToPath(new URL('../../../src/tools.ts', import.m
  */
 function loadTools(): Promise<typeof CiphersTools> {
   return (
-    existsSync(sourceModulePath)
-      ? import('../../../src/tools.ts')
-      : import('../../../dist/tools.mjs')
+    existsSync(sourceModulePath) ? import('../../src/tools.ts') : import('../../dist/tools.mjs')
   ) as Promise<typeof CiphersTools>
 }
 

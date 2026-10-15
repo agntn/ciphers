@@ -104,7 +104,7 @@ async function runMcp(binPath, environment = {}) {
  * @returns {Promise<void>}
  */
 async function copyCheckout(directory) {
-  for (const entry of ['dist', 'src', 'packages', 'package.json']) {
+  for (const entry of ['dist', 'src', 'extensions', 'package.json']) {
     await cp(path.join(root, entry), path.join(directory, entry), { recursive: true })
   }
 }
@@ -677,8 +677,8 @@ try {
     'LICENSE',
     'README.md',
     'dist',
+    'extensions',
     'package.json',
-    'packages',
   ])
 
   // tsx stands in for the host's loader. Its namespaced tsImport() fails on
@@ -687,11 +687,11 @@ try {
   // the tools from this package's own dist.
   const unregister = register()
   /**
-   * @param {string} host - Extension directory under packages/.
+   * @param {string} host - Extension directory under extensions/.
    * @returns {Promise<{ default: (api: object) => Promise<void> }>} The extension module.
    */
   const extension = (host) =>
-    import(pathToFileURL(path.join(packageRoot, `packages/${host}/extensions/ciphers.ts`)).href)
+    import(pathToFileURL(path.join(packageRoot, `extensions/${host}/ciphers.ts`)).href)
   const omp = await extension('omp')
   const pi = await extension('pi')
   await unregister()

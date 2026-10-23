@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 import { create } from '../../src/core/registry.ts'
 import { InvalidOptionError } from '../../src/core/errors.ts'
 import { recoverKey, type KeyRecoveryOptions } from '../../src/core/recover.ts'
-import { ENGLISH_QUADGRAM_FIT } from '../../src/core/quadgrams.ts'
+import { ENGLISH_QUADGRAM_FIT, scoreQuadgrams } from '../../src/core/quadgrams.ts'
 import '../../src/index.ts'
 
 /*
@@ -214,5 +214,49 @@ describe('recoverKey', () => {
     ]) {
       expect(() => recoverKey(SCANDAL, options as KeyRecoveryOptions)).toThrow(InvalidOptionError)
     }
+  })
+})
+
+describe('scoreQuadgrams', () => {
+  it('gives every candidate text the fit recoverKey ranked it by', () => {
+    const recoveries = [
+      recoverKey(STINSON, { cipher: 'vigenere', limit: 5 }),
+      recoverKey(create('atbash').encode(SHORT).text, { cipher: 'substitution', limit: 3 }),
+      recoverKey(create('columnar').encode(SHORT, { key: 'BAKER' }).text, {
+        cipher: 'columnar',
+        limit: 3,
+      }),
+    ]
+    for (const recovery of recoveries) {
+      expect(recovery.candidates.length).toBeGreaterThan(1)
+      for (const { fit, text } of recovery.candidates) {
+        expect(scoreQuadgrams(text)).toEqual({
+          letters: recovery.letters,
+          fit,
+          referenceFit: recovery.referenceFit,
+          randomFit: recovery.randomFit,
+        })
+      }
+    }
+  })
+
+  it('reads only the A-Z letters, case ignored', () => {
+    expect(scoreQuadgrams('To Sherlock Holmes, she is always the woman.')).toEqual(
+      scoreQuadgrams('TOSHERLOCKHOLMESSHEISALWAYSTHEWOMAN'),
+    )
+  })
+
+  it('puts English near the reference and its ciphertext near random letters', () => {
+    const plain = scoreQuadgrams(SCANDAL)!
+    const cipher = scoreQuadgrams(create('vigenere').encode(SCANDAL, { key: 'IRENE' }).text)!
+
+    expect(plain.fit).toBeGreaterThan(plain.referenceFit - 0.5)
+    expect(cipher.fit).toBeLessThan(plain.randomFit + 2)
+  })
+
+  it('returns undefined below four letters', () => {
+    expect(scoreQuadgrams('ab c!')).toBeUndefined()
+    expect(scoreQuadgrams('')).toBeUndefined()
+    expect(scoreQuadgrams('abcd')?.letters).toBe(4)
   })
 })

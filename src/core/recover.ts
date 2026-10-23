@@ -4,6 +4,8 @@ import { estimatePeriod } from './period.ts'
 import {
   ENGLISH_QUADGRAM_FIT,
   QUADGRAM_STEP,
+  letterCodes,
+  quadgramFit,
   quadgramLevel,
   quadgramLevelSum,
   quadgramLevels,
@@ -140,9 +142,9 @@ function scorer(language: FrequencyLanguage): Scorer {
       scoredBy: 'quadgrams',
       levels,
       referenceFit: ENGLISH_QUADGRAM_FIT,
-      randomFit: randomQuadgramFit(levels),
+      randomFit: randomQuadgramFit(),
       total,
-      fit: (codes) => (codes.length < 4 ? -Infinity : total(codes) / (codes.length - 3)),
+      fit: (codes) => quadgramFit(levels, codes),
     }
   }
   const logs = Array.from({ length: 26 }, (_, code) =>
@@ -160,19 +162,6 @@ function scorer(language: FrequencyLanguage): Scorer {
     total,
     fit: (codes) => (codes.length === 0 ? -Infinity : total(codes) / codes.length),
   }
-}
-
-/**
- * The A-Z letters of a text as 0 to 25, case ignored.
- *
- * @param text - Any text.
- * @returns {number[]} The letter codes in order.
- */
-function letterCodes(text: string): number[] {
-  return Array.from(
-    text.matchAll(/[A-Za-z]/g),
-    ([letter]) => letter.toUpperCase().codePointAt(0)! - 65,
-  )
 }
 
 /**

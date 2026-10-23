@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { analyzeFrequency } from "@agntn/ciphers";
-import { frequencyText } from "../../utils/tools";
 
 const props = defineProps<{ text: string; slug: string }>();
 const emit = defineEmits<{ pause: [paused: boolean] }>();
@@ -21,6 +20,7 @@ const reads = computed(() => {
   return Math.abs(found.ic - found.referenceIc) < Math.abs(found.ic - RANDOM_IC) ? "english" : "flat";
 });
 
+const frequencyText = useFrequencyText();
 const response = computed(() => frequencyText(props.text));
 const title = computed(() => `ciphers_frequency(${props.slug} output)`);
 </script>

@@ -127,19 +127,30 @@ describe('registry without import side effects', () => {
     }
   })
 
-  it.each(['analyzeFrequency', 'estimatePeriod', 'rankHiddenText', 'dragCrib', 'recoverKey'])(
-    'bundles %s without a single cipher',
-    async (name) => {
-      const kept = await keptModules(name)
-      expect(kept).toContain('src/core/frequency.ts')
-      expect(kept.filter((file) => file.startsWith('src/ciphers/'))).toEqual([])
-    },
-  )
+  it.each([
+    'analyzeFrequency',
+    'estimatePeriod',
+    'rankHiddenText',
+    'dragCrib',
+    'recoverKey',
+    'scoreQuadgrams',
+  ])('bundles %s without a single cipher', async (name) => {
+    const kept = await keptModules(name)
+    expect(kept).toContain('src/core/frequency.ts')
+    expect(kept.filter((file) => file.startsWith('src/ciphers/'))).toEqual([])
+  })
 
   it.each(['readHiddenText', 'probePassphrase', 'create'])(
     'bundles %s without the frequency tables',
     async (name) => {
       expect(await keptModules(name)).not.toContain('src/core/frequency.ts')
+    },
+  )
+
+  it.each(['analyzeFrequency', 'estimatePeriod', 'rankHiddenText', 'dragCrib'])(
+    'bundles %s without the quadgram table',
+    async (name) => {
+      expect(await keptModules(name)).not.toContain('src/core/quadgrams.ts')
     },
   )
 

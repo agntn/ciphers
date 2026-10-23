@@ -729,12 +729,13 @@ export const frequencyTool = defineTool({
   name: 'ciphers_frequency',
   title: 'Frequency Analysis',
   description:
-    'Analyze A-Z letter frequencies, compare their order with English, Polish or Japanese romaji, and report the index of coincidence.',
+    'Analyze A-Z letter frequencies, compare their order with English, Polish or Japanese romaji, and report the index of coincidence; for English also the quadgram fit.',
   snippet: 'Use ciphers_frequency to analyze letter distribution for cipher identification.',
   guidelines: [
     'Useful for identifying substitution ciphers (frequency distribution preserved).',
     'Compare actual frequency order with expected language order (EN: ETAOIN...).',
     'An index of coincidence near the plaintext value the result names (about 0.065 English, 0.057 Polish, 0.08 to 0.09 Japanese romaji) suggests monoalphabetic; near 0.038 suggests polyalphabetic or random.',
+    'The quadgram fit is the scale ciphers_key_recover ranks keys by: near -9.44 reads as English, near -13.95 as random letters, so a decoding found any other way compares with its candidates directly.',
   ],
   effect: 'read',
   input: Type.Object(

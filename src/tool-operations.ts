@@ -395,7 +395,7 @@ export function bruteForceCaesar(
 }
 
 export function formatFrequencyAnalysis(
-  library: Readonly<CiphersLibrary>,
+  library: Readonly<Pick<typeof CiphersModule, 'analyzeFrequency' | 'scoreQuadgrams'>>,
   text: string,
   language?: 'en' | 'pl' | 'ja',
 ): CipherToolResult {
@@ -419,6 +419,12 @@ export function formatFrequencyAnalysis(
   if (analysis.ic !== undefined) {
     lines.push(
       `Index of coincidence: ${analysis.ic.toFixed(4)} (${analysis.language} plaintext ~${analysis.referenceIc.toFixed(3)}, uniform random ~0.038)`,
+    )
+  }
+  const quadgrams = analysis.language === 'en' ? library.scoreQuadgrams(text) : undefined
+  if (quadgrams !== undefined) {
+    lines.push(
+      `Quadgram fit: ${quadgrams.fit.toFixed(2)} (en plaintext ~${quadgrams.referenceFit.toFixed(2)}, random letters ~${quadgrams.randomFit.toFixed(2)})`,
     )
   }
   return { content: [{ type: 'text', text: lines.join('\n') }] }

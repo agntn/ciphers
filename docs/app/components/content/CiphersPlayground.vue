@@ -16,7 +16,6 @@ import { jsonTokens, shellTokens } from "../../utils/tokens";
 import {
   bruteRows,
   bruteText,
-  frequencyText,
   infoText,
   periodText,
   transformText,
@@ -88,6 +87,7 @@ const LANGUAGES: Array<{ label: string; value: FrequencyLanguage }> = [
 
 const route = useRoute();
 const router = useRouter();
+const frequencyText = useFrequencyText();
 
 const operation = ref<Operation>("encode");
 const cipherName = ref<string>("vigenere");

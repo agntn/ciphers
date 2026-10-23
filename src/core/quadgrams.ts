@@ -700,12 +700,27 @@ const quadgrams = `
 46 YUPOYWALYWATYWHYZEDHZETHZOVWZZLE
 `
 
+/** The table once built: 457 kB a search reads millions of times and a root import never. */
+let builtLevels: Uint8Array | undefined
+
+/** `randomQuadgramFit` once built, a pass over every level. */
+let builtRandomFit: number | undefined
+
 /**
- * The level of every quadgram, indexed by its letters as a base-26 number, A as 0.
+ * The level of every quadgram, indexed by its letters as a base-26 number. Shared, so read only.
  *
  * @returns {Uint8Array} 26^4 levels; missing quadgrams get `MISSING_LEVEL`.
  */
 export function quadgramLevels(): Uint8Array {
+  return (builtLevels ??= buildLevels())
+}
+
+/**
+ * Fill the quadgram table from the levels listed above.
+ *
+ * @returns {Uint8Array} 26^4 levels; missing quadgrams get `MISSING_LEVEL`.
+ */
+function buildLevels(): Uint8Array {
   const levels = missingLevels()
   for (const line of quadgrams.trim().split('\n')) {
     const [level, letters] = line.split(' ')
@@ -791,11 +806,67 @@ export function quadgramLevel(
 /**
  * Mean natural-log probability of one quadgram under the table when its letters are random.
  *
- * @param levels - The table from `quadgramLevels`.
  * @returns {number} The mean over every quadgram, each counted once.
  */
-export function randomQuadgramFit(levels: ArrayLike<number>): number {
+export function randomQuadgramFit(): number {
+  if (builtRandomFit !== undefined) return builtRandomFit
+  const levels = quadgramLevels()
   let sum = 0
-  for (let index = 0; index < levels.length; index++) sum += levels[index]!
-  return (-sum * QUADGRAM_STEP) / levels.length
+  for (const level of levels) sum += level
+  builtRandomFit = (-sum * QUADGRAM_STEP) / levels.length
+  return builtRandomFit
+}
+
+/**
+ * Mean natural-log probability per quadgram of a run of letters, the `fit` of `recoverKey`.
+ *
+ * @param levels - The table from `quadgramLevels`.
+ * @param codes - Letters as 0 to 25.
+ * @returns {number} The mean; `-Infinity` below four letters, where no quadgram fits.
+ */
+export function quadgramFit(levels: ArrayLike<number>, codes: ArrayLike<number>): number {
+  if (codes.length < 4) return -Infinity
+  return (-quadgramLevelSum(levels, codes) * QUADGRAM_STEP) / (codes.length - 3)
+}
+
+/**
+ * The A-Z letters of a text as 0 to 25, case ignored.
+ *
+ * @param text - Any text.
+ * @returns {number[]} The letter codes in order.
+ */
+export function letterCodes(text: string): number[] {
+  return Array.from(
+    text.matchAll(/[A-Za-z]/g),
+    ([letter]) => letter.toUpperCase().codePointAt(0)! - 65,
+  )
+}
+
+/** How English a text reads by its quadgrams, on the scale `recoverKey` ranks keys by. */
+export interface QuadgramScore {
+  /** A-Z letters in the text. */
+  readonly letters: number
+  /** Mean natural-log probability per quadgram of those letters, everything else dropped. */
+  readonly fit: number
+  /** `fit` of English plaintext. */
+  readonly referenceFit: number
+  /** `fit` of random letters. */
+  readonly randomFit: number
+}
+
+/**
+ * Score a text the way `recoverKey` scores its candidates, so your own search speaks its scale.
+ *
+ * @param text - Text to score; only its A-Z letters count, case ignored.
+ * @returns {QuadgramScore | undefined} The score, or `undefined` below four letters.
+ */
+export function scoreQuadgrams(text: string): QuadgramScore | undefined {
+  const codes = letterCodes(text)
+  if (codes.length < 4) return undefined
+  return {
+    letters: codes.length,
+    fit: quadgramFit(quadgramLevels(), codes),
+    referenceFit: ENGLISH_QUADGRAM_FIT,
+    randomFit: randomQuadgramFit(),
+  }
 }

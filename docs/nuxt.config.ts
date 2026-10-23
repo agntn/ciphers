@@ -12,6 +12,8 @@ export default defineNuxtConfig({
     "@agntn/ciphers": resolve(librarySource, "index.ts"),
     /** The text the agent tools answer with; the module imports only the library, so the page runs it too. */
     "#tool-operations": resolve(librarySource, "tool-operations.ts"),
+    /** The quadgram table on its own, for an `import()` the landing does not wait for. */
+    "#quadgrams": resolve(librarySource, "core/quadgrams.ts"),
     /** src/tools.ts and the /mcp adapter share this copy, so both know one `ToolInputError`. */
     "@agntn/tools/toolkit": resolve(
       import.meta.dirname,

@@ -1378,6 +1378,9 @@ Co2B
     expect(frequency.isError).not.toBe(true)
     const [entry] = frequency.content as [{ type: string; text: string }]
     expect(entry.text).toContain('Index of coincidence: 1.0000 (en plaintext ~0.065')
+    expect(entry.text).toContain(
+      'Quadgram fit: -12.75 (en plaintext ~-9.44, random letters ~-13.95)',
+    )
 
     const polish = await client.callTool({
       name: 'ciphers_frequency',
@@ -1385,6 +1388,7 @@ Co2B
     })
     const [polishEntry] = polish.content as [{ type: string; text: string }]
     expect(polishEntry.text).toContain('(pl plaintext ~0.057, uniform random ~0.038)')
+    expect(polishEntry.text).not.toContain('Quadgram fit')
   })
 
   it('ranks Vigenère key lengths over the protocol', async () => {

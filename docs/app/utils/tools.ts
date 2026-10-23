@@ -9,7 +9,6 @@ import {
 import {
   bruteForceCaesar,
   formatCipherInfo,
-  formatFrequencyAnalysis,
   formatPeriodEstimate,
   rankCaesarShifts,
   transformCipher,
@@ -77,17 +76,6 @@ export function bruteRows(
   language?: "en" | "pl" | "ja",
 ): Array<{ shift: number; text: string }> {
   return rankCaesarShifts(LIBRARY, text, language);
-}
-
-/**
- * The text `ciphers_frequency` hands a model.
- *
- * @param {string} text - Text to count.
- * @param {"en" | "pl" | "ja"} [language] - Reference language.
- * @returns {string} `content[0].text`.
- */
-export function frequencyText(text: string, language?: "en" | "pl" | "ja"): string {
-  return formatFrequencyAnalysis(LIBRARY, text, language).content[0]!.text;
 }
 
 /**

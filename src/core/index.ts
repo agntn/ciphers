@@ -122,6 +122,7 @@ export {
   type KeyRecoveryCipher,
   type KeyRecoveryOptions,
 } from './recover.ts'
+export { scoreQuadgrams, type QuadgramScore } from './quadgrams.ts'
 export {
   guessFamily,
   type FamilyCandidate,

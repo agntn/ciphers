@@ -54,10 +54,10 @@
     "release": "pnpm test && pnpm build && changelogen --release --push"
   },
   "dependencies": {
-    "@agntn/compressions": "0.1.0",
-    "@agntn/encodings": "0.1.0",
-    "@agntn/hashes": "0.6.6",
-    "@agntn/tools": "0.2.3",
+    "@agntn/compressions": "0.1.1",
+    "@agntn/encodings": "0.1.2",
+    "@agntn/hashes": "0.6.7",
+    "@agntn/tools": "0.2.4",
     "@modelcontextprotocol/server": "2.2.0"
   },
   "devDependencies": {

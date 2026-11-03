@@ -108,6 +108,25 @@ describe('CLI refusals', () => {
       'Invalid option keyLength=3: only columnar takes it',
     )
   })
+
+  it('names the flag in a rule the cipher sets beyond the schema', () => {
+    expectRefusal(
+      ['encode', 'vigenere', 'abc'],
+      'Invalid arguments at --key: required for vigenere',
+    )
+    expectRefusal(
+      ['encode', 'quagmire-4', 'abc', '--key', 'paper', '--indicator', 'pen'],
+      'Invalid arguments at --second-key: required for quagmire-4',
+    )
+    expectRefusal(
+      ['encode', 'aes', 'abc', '--key', 'YELLOW SUBMARINE'],
+      'Invalid arguments at --key: must be 32, 48 or 64 hex digits (AES-128, AES-192 or AES-256)',
+    )
+    expectRefusal(
+      ['encode', 'aes-passphrase', 'abc', '--key', 'secret', '--digest', 'sha512'],
+      'Invalid arguments at --digest: aes-passphrase takes md5, sha1, sha256',
+    )
+  })
 })
 
 describe('CLI cipher info', () => {

@@ -50,8 +50,8 @@ Running `ciphers mcp` or an extension from this checkout? Both serve `src/`, so 
 - Samples are deterministic, so SSR and the client agree. No `Math.random`, no clock inside a computed.
 - The landing walk in `useLandingCipher` is a curated order. A new cipher lands at the end unless you give it a seat.
 - A new category needs its overview page in `content/2.ciphers/` and a line in `CATEGORY_SECTIONS`.
-- A page under `app/pages/` goes into `PAGES` in `server/routes/sitemap.xml.ts`. Otherwise crawlers never find it.
+- A page under `app/pages/` goes into `PAGES` in `server/api/__sitemap__/pages.ts`, or crawlers never find it. It also goes into `agentDiscovery.excludePrefixes` in `nuxt.config.ts` and drops the markdown link `useSeo` adds, as `playground.vue` does. Otherwise agents go hunting for a `.md` twin that never existed.
 - Playground input renders as text. No `v-html`, no eval.
 - The playground shows a `CipherError` as its class and message. Anything else is a library bug, so fix it there.
 - The site makes no network request of its own. The footer promises that.
-- The landing's SEO description ends without a period, or the OG image quietly skips the prerender. `test/unit/docs-og.test.ts` checks it.
+- The landing's SEO description stays one plain YAML line. A ` #` in it starts a comment and the rest quietly vanishes. `test/unit/docs-og.test.ts` checks it.

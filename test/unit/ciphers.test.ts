@@ -6204,6 +6204,9 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
     expect(pgp.decode(`Some page text\n\n${gpg.aes128}\n`, { key: 'hunter2' }).text).toBe(
       'Attack at dawn',
     )
+    const key = '-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nmQ==\n-----END PGP PUBLIC KEY BLOCK-----'
+    const message = gpg.aes128.replace('\n\n', '\nComment: from a puzzle page\n\n')
+    expect(pgp.decode(`${key}\n${message}`, { key: 'hunter2' }).text).toBe('Attack at dawn')
   })
 
   /**
@@ -6299,24 +6302,32 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
       new CipherError('[openpgp] The MDC does not match: the message was changed or cut'),
     )
     expect(() =>
-      pgp.decode(
-        gpg.aes128.replace(/\n=(.)/, (_, c: string) => `\n=${c === 'A' ? 'B' : 'A'}`),
-        {
-          key: 'hunter2',
-        },
-      ),
-    ).toThrow(/Armor checksum does not match/)
-    expect(() =>
       pgp.decode(Buffer.from(changed.slice(0, 40)).toString('hex'), { key: 'k' }),
     ).toThrow(/runs past the end of the message/)
     expect(() => pgp.decode('not base64!', { key: 'k' })).toThrow(
       /must be an armored OpenPGP message/,
     )
-    expect(() => pgp.decode(gpg.aes128.replace('MESSAGE', 'SIGNATURE'), { key: 'k' })).toThrow(
-      /not BEGIN PGP SIGNATURE/,
+    expect(() => pgp.decode(gpg.aes128.replaceAll('MESSAGE', 'SIGNATURE'), { key: 'k' })).toThrow(
+      new CipherError('[openpgp] armor: no -----BEGIN PGP MESSAGE----- line, only SIGNATURE'),
     )
     expect(() => pgp.decode(gpg.aes128.replace(/\n-----END[^\n]*$/, ''), { key: 'k' })).toThrow(
       /no -----END PGP MESSAGE----- line/,
+    )
+  })
+
+  /* RFC 9580 §6.1: a wrong CRC-24 alone must not reject the armor, the MDC has the last word. */
+  it('reads past a wrong armor checksum and names it once the message fails', () => {
+    const footer = gpg.aes128.replace('\n=9Xii\n', '\n=AAAA\n')
+    expect(pgp.decode(footer, { key: 'hunter2' }).text).toBe('Attack at dawn')
+    const changed = bytesOf(gpg.aes128)
+    const flipped = changed.length - 30
+    changed[flipped]! ^= 1
+    const data = Buffer.from(changed).toString('base64')
+    const armored = `-----BEGIN PGP MESSAGE-----\n\n${data}\n=9Xii\n-----END PGP MESSAGE-----`
+    expect(() => pgp.decode(armored, { key: 'hunter2' })).toThrow(
+      new CipherError(
+        '[openpgp] The MDC does not match: the message was changed or cut (the armor checksum is wrong too, so copy the armored text again)',
+      ),
     )
   })
 

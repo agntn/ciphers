@@ -24,7 +24,7 @@ catalog:
 catalogs:
   deps:
     '@agntn/compressions': 0.1.1
-    '@agntn/encodings': 0.1.2
+    '@agntn/encodings': 0.2.0
     '@agntn/hashes': 0.6.7
     '@agntn/tools': 0.2.4
     '@modelcontextprotocol/sdk': 1.30.1

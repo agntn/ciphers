@@ -29,6 +29,7 @@ export default defineNuxtConfig({
     /** An alias to the directory would skip its `exports`, so each subpath gets its file. */
     "@agntn/encodings/hex": resolve(rootModules, "@agntn/encodings/dist/hex.mjs"),
     "@agntn/encodings/base64": resolve(rootModules, "@agntn/encodings/dist/base64.mjs"),
+    "@agntn/encodings/armor": resolve(rootModules, "@agntn/encodings/dist/armor.mjs"),
     /** OpenPGP's ZIP, ZLIB and BZip2, one file per subpath like the encodings. */
     "@agntn/compressions/deflate": resolve(rootModules, "@agntn/compressions/dist/deflate.mjs"),
     "@agntn/compressions/bzip2": resolve(rootModules, "@agntn/compressions/dist/bzip2.mjs"),

@@ -58,25 +58,25 @@
     "release": "pnpm test && pnpm build && changelogen --release --push"
   },
   "dependencies": {
-    "@agntn/compressions": "0.1.1",
-    "@agntn/encodings": "0.1.2",
-    "@agntn/hashes": "0.6.7",
-    "@agntn/tools": "0.2.4",
-    "@modelcontextprotocol/server": "2.2.0"
+    "@agntn/compressions": "catalog:deps",
+    "@agntn/encodings": "catalog:deps",
+    "@agntn/hashes": "catalog:deps",
+    "@agntn/tools": "catalog:deps",
+    "@modelcontextprotocol/server": "catalog:deps"
   },
   "devDependencies": {
-    "@agntn/ox": "0.1.0",
-    "@earendil-works/pi-coding-agent": "latest",
-    "@earendil-works/pi-tui": "latest",
-    "@modelcontextprotocol/client": "2.2.0",
-    "@oh-my-pi/pi-coding-agent": "18.4.12",
-    "@types/node": "latest",
-    "ai": "7.0.159",
-    "changelogen": "0.6.2",
-    "obuild": "0.4.45",
-    "tsx": "4.22.5",
-    "typebox": "1.1.39",
-    "typescript": "6.0.3",
+    "@agntn/ox": "catalog:dev",
+    "@earendil-works/pi-coding-agent": "catalog:dev",
+    "@earendil-works/pi-tui": "catalog:dev",
+    "@modelcontextprotocol/client": "catalog:dev",
+    "@oh-my-pi/pi-coding-agent": "catalog:dev",
+    "@types/node": "catalog:dev",
+    "ai": "catalog:dev",
+    "changelogen": "catalog:dev",
+    "obuild": "catalog:dev",
+    "tsx": "catalog:dev",
+    "typebox": "catalog:dev",
+    "typescript": "catalog:dev",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
@@ -90,7 +90,7 @@
   "engines": {
     "node": ">=26"
   },
-  "packageManager": "pnpm@10.33.4",
+  "packageManager": "pnpm@12.16.1",
   "omp": {
     "extensions": [
       "./extensions/omp/ciphers.ts"

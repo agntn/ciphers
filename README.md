@@ -288,13 +288,12 @@ Want a fifty-fourth? One class extending `Cipher` with `name()`, `info()`, `enco
 ## 🛠️ Development
 
 ```bash
-pnpm install
-pnpm --dir docs install   # the /mcp test borrows the site's Zod and SDK
+pnpm install      # library and docs site
 pnpm dev          # obuild --stub
 pnpm check        # oxfmt --check, oxlint, tsc over the library, the extensions and the tests
 pnpm test         # vitest through vite-plus
 pnpm build        # obuild
-pnpm docs         # the Nuxt site, bundled straight from src/
+pnpm run docs     # Nuxt site, bundled straight from src/
 ```
 
 ## 💛 Thanks

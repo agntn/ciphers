@@ -20,10 +20,10 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - run: corepack enable
+      # One install covers docs/: test/unit/docs-mcp.test.ts loads the /mcp handler from there.
       - run: pnpm install --frozen-lockfile
-      # docs/ pins its own pnpm, and test/unit/docs-mcp.test.ts loads the /mcp handler from there.
-      - run: pnpm install --frozen-lockfile
-        working-directory: docs
       - run: pnpm test
       - run: pnpm test:packed
-      - run: npm publish --access public
+      # pnpm pack swaps catalog: specs for versions. npm publish alone would ship them raw.
+      - run: pnpm pack --out ciphers.tgz
+      - run: npm publish ./ciphers.tgz --access public

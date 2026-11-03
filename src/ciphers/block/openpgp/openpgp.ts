@@ -1,5 +1,6 @@
 import { bzip2 } from '@agntn/compressions/bzip2'
 import { deflate } from '@agntn/compressions/deflate'
+import { type ArmorChecksum, armor } from '@agntn/encodings/armor'
 import { base64 } from '@agntn/encodings/base64'
 import { Sha256Hasher, hkdf, sha1 } from '@agntn/hashes'
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../../core/types.ts'
@@ -26,7 +27,6 @@ import { camelliaBlock } from '../camellia.ts'
 import { cast5Block } from '../cast5.ts'
 import { ideaBlock } from '../idea.ts'
 import { type AeadData, type AeadMode, aeadById, openAeadData, openSealed } from './aead.ts'
-import { readArmor, writeArmor } from './armor.ts'
 import { type Packet, readPackets, writePacket } from './packets.ts'
 import {
   MAX_S2K_COUNT,
@@ -192,18 +192,29 @@ function cfb(
   return output
 }
 
+/** The message bytes, and what the armor footer said about them. Bare packets have none. */
+interface Message {
+  readonly bytes: Bytes
+  readonly checksum: ArmorChecksum
+}
+
 /**
  * The encoded text as bytes: an armored block, or the bare packets in base64 or hex.
  *
  * @param text - What was passed to `decode`.
- * @returns {number[]} The message.
+ * @returns {Message} The message and its armor checksum.
  */
-function readMessage(text: string): number[] {
-  if (text.includes('-----BEGIN PGP')) return readArmor(text)
+function readMessage(text: string): Message {
+  if (text.includes('-----BEGIN PGP')) {
+    const block = armor.decode(text, { label: 'MESSAGE' })
+    return { bytes: [...block.bytes], checksum: block.checksum }
+  }
   const compact = text.replaceAll(/\s/g, '')
-  if (/^(?:[0-9a-f]{2})+$/i.test(compact)) return fromHex(compact.toLowerCase())
+  if (/^(?:[0-9a-f]{2})+$/i.test(compact)) {
+    return { bytes: fromHex(compact.toLowerCase()), checksum: 'absent' }
+  }
   try {
-    return [...base64.decode(compact)]
+    return { bytes: [...base64.decode(compact)], checksum: 'absent' }
   } catch {
     throw new CipherError(
       'Ciphertext must be an armored OpenPGP message (-----BEGIN PGP MESSAGE-----), or its packets in base64 or hex',
@@ -588,6 +599,26 @@ function decryptMessage(message: Bytes, passphrase: Bytes): Decrypted {
   throw new CipherError(changed ? data.changed : data.wrongKey)
 }
 
+/**
+ * Decrypts the message. A wrong armor checksum alone refuses nothing (RFC 9580 §6.1).
+ *
+ * @param message - The message and its armor checksum.
+ * @param passphrase - The passphrase as UTF-8.
+ * @returns {Decrypted} The literal data and what opened it.
+ * @throws {CipherError} When the message does not open, with the checksum named when it is off.
+ */
+function openMessage(message: Message, passphrase: Bytes): Decrypted {
+  try {
+    return decryptMessage(message.bytes, passphrase)
+  } catch (e) {
+    if (message.checksum !== 'mismatch') throw e
+    if (e instanceof CipherError && e.constructor !== CipherError) throw e
+    throw new CipherError(
+      `${normalizeError(e).message} (the armor checksum is wrong too, so copy the armored text again)`,
+    )
+  }
+}
+
 interface EncodeSettings {
   readonly algorithm: Algorithm
   readonly hash: number
@@ -793,7 +824,7 @@ export class OpenPgp extends Cipher {
       const message = encryptMessage(data, [...new TextEncoder().encode(passphrase)], settings)
       const s2k: S2k = { type: 3, hash: settings.hash, salt: settings.salt, count: settings.count }
       return {
-        text: writeArmor(message),
+        text: armor.encode(Uint8Array.from(message), { label: 'MESSAGE', checksum: true }),
         cipher: 'openpgp',
         operation: 'encode',
         options: resultOptions(passphrase, settings.algorithm, s2k, settings.prefix, bytes),
@@ -807,7 +838,7 @@ export class OpenPgp extends Cipher {
     try {
       const passphrase = readPassphrase(options)
       const bytes = readBytes(options)
-      const decrypted = decryptMessage(readMessage(text), [...new TextEncoder().encode(passphrase)])
+      const decrypted = openMessage(readMessage(text), [...new TextEncoder().encode(passphrase)])
       return {
         text: writePlaintext('openpgp', decrypted.data, bytes),
         cipher: 'openpgp',

@@ -137,6 +137,15 @@ try {
     'version' in manifest && typeof manifest.version === 'string',
     'packed package.json has no version',
   )
+  /** npm publishes this tarball, and npm would ship a `catalog:` spec as is. */
+  const specs = ['dependencies', 'devDependencies', 'peerDependencies'].flatMap((field) =>
+    Object.values(/** @type {Record<string, Record<string, string>>} */ (manifest)[field] ?? {}),
+  )
+  assert.deepEqual(
+    specs.filter((spec) => spec.startsWith('catalog:')),
+    [],
+    'pnpm pack left catalog: specs in the packed package.json',
+  )
   assert.ok('bin' in manifest && typeof manifest.bin === 'object' && manifest.bin !== null)
   assert.ok(
     'ciphers' in manifest.bin && typeof manifest.bin.ciphers === 'string',

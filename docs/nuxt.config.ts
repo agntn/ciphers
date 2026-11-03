@@ -1,13 +1,14 @@
 import { resolve } from "node:path";
 import { ciphersTheme } from "./shiki-theme";
 
-/** Bundled from the checkout's sources: a deploy needs neither dist/ nor the root node_modules. */
+/** Bundled from the checkout's sources, so a deploy never waits on dist/. */
 const librarySource = resolve(import.meta.dirname, "../src");
+
+/** Packages only ../src imports. docs/ doesn't declare them, so they come from the root install. */
+const rootModules = resolve(import.meta.dirname, "../node_modules");
 
 export default defineNuxtConfig({
   extends: ["docus"],
-  /** The repo root is its own pnpm workspace; Nuxt must not treat it as this site's. */
-  workspaceDir: import.meta.dirname,
   alias: {
     "@agntn/ciphers": resolve(librarySource, "index.ts"),
     /** The text the agent tools answer with; the module imports only the library, so the page runs it too. */
@@ -21,38 +22,19 @@ export default defineNuxtConfig({
     ),
     "@agntn/tools": resolve(import.meta.dirname, "node_modules/@agntn/tools/dist/index.mjs"),
     /** The checksums @agntn/compressions imports. The package alias below would swallow them. */
-    "@agntn/hashes/adler32": resolve(
-      import.meta.dirname,
-      "node_modules/@agntn/hashes/dist/adler32.mjs",
-    ),
-    "@agntn/hashes/crc": resolve(import.meta.dirname, "node_modules/@agntn/hashes/dist/crc.mjs"),
+    "@agntn/hashes/adler32": resolve(rootModules, "@agntn/hashes/dist/adler32.mjs"),
+    "@agntn/hashes/crc": resolve(rootModules, "@agntn/hashes/dist/crc.mjs"),
     /** MARS and aes-passphrase hash with it. The file, since /mcp leaves the import to the worker. */
-    "@agntn/hashes": resolve(import.meta.dirname, "node_modules/@agntn/hashes/dist/index.mjs"),
+    "@agntn/hashes": resolve(rootModules, "@agntn/hashes/dist/index.mjs"),
     /** An alias to the directory would skip its `exports`, so each subpath gets its file. */
-    "@agntn/encodings/hex": resolve(
-      import.meta.dirname,
-      "node_modules/@agntn/encodings/dist/hex.mjs",
-    ),
-    "@agntn/encodings/base64": resolve(
-      import.meta.dirname,
-      "node_modules/@agntn/encodings/dist/base64.mjs",
-    ),
+    "@agntn/encodings/hex": resolve(rootModules, "@agntn/encodings/dist/hex.mjs"),
+    "@agntn/encodings/base64": resolve(rootModules, "@agntn/encodings/dist/base64.mjs"),
     /** OpenPGP's ZIP, ZLIB and BZip2, one file per subpath like the encodings. */
-    "@agntn/compressions/deflate": resolve(
-      import.meta.dirname,
-      "node_modules/@agntn/compressions/dist/deflate.mjs",
-    ),
-    "@agntn/compressions/bzip2": resolve(
-      import.meta.dirname,
-      "node_modules/@agntn/compressions/dist/bzip2.mjs",
-    ),
+    "@agntn/compressions/deflate": resolve(rootModules, "@agntn/compressions/dist/deflate.mjs"),
+    "@agntn/compressions/bzip2": resolve(rootModules, "@agntn/compressions/dist/bzip2.mjs"),
   },
   vite: {
     build: { target: "es2024" },
-    server: {
-      /** Dev serves the library from outside the workspace, which Vite refuses without this. */
-      fs: { allow: [librarySource] },
-    },
   },
   devtools: { enabled: false },
   telemetry: false,

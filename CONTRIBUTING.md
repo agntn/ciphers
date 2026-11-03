@@ -2,7 +2,7 @@
 
 ## Setup
 
-Run `pnpm install`, then `pnpm --dir docs install`. Yes, both. `test/unit/docs-mcp.test.ts` loads the `/mcp` handler with Zod from `docs/node_modules`. `pnpm check` lints and typechecks. `pnpm test` runs the suite. `pnpm test:packed` starts the MCP server from a packed tarball.
+Run `pnpm install` at the root for the library and docs site. Two installs down to one. `test/unit/docs-mcp.test.ts` loads the `/mcp` handler with Zod and the MCP SDK from `docs/node_modules`. `pnpm check` lints and typechecks. `pnpm test` runs the suite. `pnpm test:packed` starts the MCP server from a packed tarball.
 
 Running `ciphers mcp` or an extension from this checkout? Both serve `src/`, so a change needs a restart and nothing else. `src/cli.ts` is the exception and wants `pnpm build`. `CIPHERS_DIST=1` forces the bundle.
 
@@ -44,7 +44,7 @@ Running `ciphers mcp` or an extension from this checkout? Both serve `src/`, so 
 
 ## Docs site
 
-`pnpm docs` serves it on port 3000.
+`pnpm docs` wants a package for a browser tab, not the site. Run `pnpm run docs` to serve the site on port 3000.
 
 - Every number on the site comes from the library at render time. Counts in `content/` frontmatter and the README can't. `test/unit/docs-counts.test.ts` keeps them honest.
 - Samples are deterministic, so SSR and the client agree. No `Math.random`, no clock inside a computed.

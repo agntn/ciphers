@@ -4,6 +4,7 @@ import {
   Type,
   ToolInputError,
   defineTool,
+  type InputIssue,
   type ToolDefinition,
   type ToolResult,
 } from '@agntn/tools'
@@ -326,19 +327,30 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
 ]
 
 /**
+ * A refusal at one argument, with the place apart so the CLI can name the flag.
+ *
+ * @param field - The argument that broke the rule.
+ * @param problem - What is wrong with it.
+ * @returns {InputIssue} The issue, its line spelled like a schema failure.
+ */
+function argumentIssue(field: string, problem: string): InputIssue {
+  return { at: `/${field}`, problem, line: `Invalid arguments at /${field}: ${problem}` }
+}
+
+/**
  * The first rule the cipher sets beyond the schema that the arguments break.
  *
  * @param params - Arguments that passed the schema.
- * @returns {string | undefined} One validation line, or nothing when they hold.
+ * @returns {InputIssue | undefined} The broken rule, or nothing when they hold.
  */
-function cipherInputError(params: Readonly<CipherToolParams>): string | undefined {
+function cipherInputError(params: Readonly<CipherToolParams>): InputIssue | undefined {
   const requirement = cipherOptionRequirements.find((candidate) =>
     candidate.ciphers.includes(params.cipher),
   )
   if (requirement === undefined) return undefined
   for (const field of requirement.required) {
     if (params[field] === undefined || params[field] === '') {
-      return `Invalid arguments at /${field}: required for ${params.cipher}`
+      return argumentIssue(field, `required for ${params.cipher}`)
     }
   }
   const rule = requirement.key
@@ -348,7 +360,7 @@ function cipherInputError(params: Readonly<CipherToolParams>): string | undefine
       const value = params[field]
       return value !== undefined && !rule.pattern.test(value)
     })
-    if (bad !== undefined) return `Invalid arguments at /${bad}: ${rule.error}`
+    if (bad !== undefined) return argumentIssue(bad, rule.error)
   }
   return digestError(requirement.digests, params)
 }
@@ -358,16 +370,16 @@ function cipherInputError(params: Readonly<CipherToolParams>): string | undefine
  *
  * @param digests - The digests the cipher takes, when it names them.
  * @param params - Arguments that passed the schema.
- * @returns {string | undefined} The error, or nothing when the digest fits.
+ * @returns {InputIssue | undefined} The error, or nothing when the digest fits.
  */
 function digestError(
   digests: readonly string[] | undefined,
   params: Readonly<CipherToolParams>,
-): string | undefined {
+): InputIssue | undefined {
   if (digests === undefined || params.digest === undefined || digests.includes(params.digest)) {
     return undefined
   }
-  return `Invalid arguments at /digest: ${params.cipher} takes ${digests.join(', ')}`
+  return argumentIssue('digest', `${params.cipher} takes ${digests.join(', ')}`)
 }
 
 /**
@@ -382,8 +394,8 @@ async function transform(
   operation: 'encode' | 'decode',
   params: Readonly<CipherToolParams>,
 ): Promise<ToolResult<Record<string, unknown>>> {
-  const error = cipherInputError(params)
-  if (error !== undefined) throw new ToolInputError([error])
+  const issue = cipherInputError(params)
+  if (issue !== undefined) throw new ToolInputError([issue.line], [issue])
   return answer(transformCipher(await loadLibrary(), operation, params))
 }
 

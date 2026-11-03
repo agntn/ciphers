@@ -9,6 +9,7 @@ import {
   type ToolResult,
 } from '@agntn/tools'
 import { builtinCiphers, cipherCategories } from './core/ciphers.ts'
+import { InvalidOptionError, MissingOptionError } from './core/errors.ts'
 import {
   AFFINE_MULTIPLIERS,
   BRUTE_PREVIEW_LENGTH,
@@ -70,6 +71,69 @@ function answer(result: {
   readonly details?: Readonly<Record<string, unknown>>
 }): ToolResult<Record<string, unknown>> {
   return { content: [...result.content], details: { ...result.details } }
+}
+
+/** Library options a tool takes under another name. */
+const argumentNames: Readonly<Record<string, string>> = { language: 'lang' }
+
+/**
+ * Where a library refusal points, down to the list item it names as `#<index>`.
+ *
+ * @param field - The argument.
+ * @param value - The value the library reports.
+ * @returns {string} A JSON pointer, such as `/known/1`.
+ */
+function argumentPointer(field: string, value: unknown): string {
+  const item = typeof value === 'string' ? /^#(\d+)$/.exec(value)?.[1] : undefined
+  return item === undefined ? `/${field}` : `/${field}/${item}`
+}
+
+/**
+ * A library refusal of one of the tool's arguments, moved there so the CLI names the flag.
+ *
+ * @param error - What the executor threw.
+ * @param fields - The tool's argument names.
+ * @returns {unknown} A `ToolInputError` that keeps the library's line, or the error as it came.
+ */
+function refusalAtArgument(error: unknown, fields: readonly string[]): unknown {
+  if (!(error instanceof InvalidOptionError || error instanceof MissingOptionError)) return error
+  const field = Object.hasOwn(argumentNames, error.option)
+    ? argumentNames[error.option]
+    : error.option
+  if (field === undefined || !fields.includes(field)) return error
+  const issue: InputIssue =
+    error instanceof MissingOptionError
+      ? {
+          at: '',
+          problem: `must have required properties ${field}`,
+          missing: [field],
+          line: error.message,
+        }
+      : { at: argumentPointer(field, error.value), problem: error.reason, line: error.message }
+  return new ToolInputError([error.message], [issue])
+}
+
+/**
+ * `defineTool` for this package: a library refusal of one of the tool's arguments lands on it.
+ *
+ * @param tool - Tool definition.
+ * @returns {ToolDefinition<Input, Details>} The same tool, its executor wrapped.
+ */
+function defineCipherTool<const Input extends ToolDefinition['input'], Details>(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  tool: ToolDefinition<Input, Details>,
+): ToolDefinition<Input, Details> {
+  const fields = Object.keys(tool.input.properties)
+  return defineTool({
+    ...tool,
+    execute: async (params, context) => {
+      try {
+        return await tool.execute(params, context)
+      } catch (error) {
+        throw refusalAtArgument(error, fields)
+      }
+    },
+  })
 }
 
 type CipherOptionRequirement = {
@@ -626,7 +690,7 @@ function language(description: string) {
   return Type.Optional(Type.Enum(['en', 'pl', 'ja'], { description }))
 }
 
-export const encodeTool = defineTool({
+export const encodeTool = defineCipherTool({
   name: 'ciphers_encode',
   title: 'Cipher Encode',
   description: 'Encode text with an exact-name built-in cipher. ciphers_info lists the options.',
@@ -689,7 +753,7 @@ export const encodeTool = defineTool({
   execute: (params) => transform('encode', params),
 })
 
-export const decodeTool = defineTool({
+export const decodeTool = defineCipherTool({
   name: 'ciphers_decode',
   title: 'Cipher Decode',
   description: 'Decode text with an exact-name built-in cipher. ciphers_info lists the options.',
@@ -705,7 +769,7 @@ export const decodeTool = defineTool({
   execute: (params) => transform('decode', params),
 })
 
-export const caesarBruteTool = defineTool({
+export const caesarBruteTool = defineCipherTool({
   name: 'ciphers_caesar_brute',
   title: 'Brute Force Caesar',
   description: `Decode Caesar ciphertext with every shift from 1 through 25, the one that reads most like the language first. Lines below the top stop at ${BRUTE_PREVIEW_LENGTH} characters and end in …; ciphers_decode with that shift returns the whole text.`,
@@ -737,7 +801,7 @@ export const caesarBruteTool = defineTool({
     answer(bruteForceCaesar(await loadLibrary(), params.text, params.lang)),
 })
 
-export const frequencyTool = defineTool({
+export const frequencyTool = defineCipherTool({
   name: 'ciphers_frequency',
   title: 'Frequency Analysis',
   description:
@@ -766,7 +830,7 @@ export const frequencyTool = defineTool({
     answer(formatFrequencyAnalysis(await loadLibrary(), params.text, params.lang)),
 })
 
-export const periodEstimateTool = defineTool({
+export const periodEstimateTool = defineCipherTool({
   name: 'ciphers_period_estimate',
   title: 'Key Length Estimate',
   description:
@@ -804,7 +868,7 @@ export const periodEstimateTool = defineTool({
     answer(formatPeriodEstimate(await loadLibrary(), params.text, params.lang, params.maxPeriod)),
 })
 
-export const familyGuessTool = defineTool({
+export const familyGuessTool = defineCipherTool({
   name: 'ciphers_family_guess',
   title: 'Cipher Family Guess',
   description:
@@ -832,7 +896,7 @@ export const familyGuessTool = defineTool({
     answer(formatFamilyGuess(await loadLibrary(), params.text, params.lang)),
 })
 
-export const passphraseProbeTool = defineTool({
+export const passphraseProbeTool = defineCipherTool({
   name: 'ciphers_passphrase_probe',
   title: 'Probe Passphrase Settings',
   description:
@@ -890,7 +954,7 @@ export const passphraseProbeTool = defineTool({
     answer(formatPassphraseProbe(await loadLibrary(), text, key, grid)),
 })
 
-export const cribDragTool = defineTool({
+export const cribDragTool = defineCipherTool({
   name: 'ciphers_crib_drag',
   title: 'Drag Crib',
   description:
@@ -975,7 +1039,7 @@ export const cribDragTool = defineTool({
   execute: async (params) => answer(formatCribDrag(await loadLibrary(), params)),
 })
 
-export const hiddenTextReadTool = defineTool({
+export const hiddenTextReadTool = defineCipherTool({
   name: 'ciphers_hidden_text_read',
   title: 'Read Hidden Text',
   description: `Read a message hidden in plain text by position: a letter of each line, word, sentence or paragraph (acrostics, telestichs, null ciphers), every nth letter or word, or a diagonal down the lines. Without pick, try the usual places and rank the readings by how much they look like the language, the top ${HIDDEN_TEXT_LINES} with the arguments that read each again.`,
@@ -1046,7 +1110,7 @@ export const hiddenTextReadTool = defineTool({
   execute: async (params) => answer(formatHiddenText(await loadLibrary(), params)),
 })
 
-export const keyRecoverTool = defineTool({
+export const keyRecoverTool = defineCipherTool({
   name: 'ciphers_key_recover',
   title: 'Recover Key',
   description: `Search for the key of a Vigenère, Beaufort, variant Beaufort, monoalphabetic substitution or columnar transposition ciphertext, and rank the keys found by how much the text each one decodes to reads like the language: quadgrams for English, letter frequencies for Polish and Japanese romaji. Best first, each with its plaintext; the reply gives the fit plaintext and random letters score, so a wrong cipher shows as every key scoring near random.`,
@@ -1102,7 +1166,7 @@ export const keyRecoverTool = defineTool({
   execute: async (params) => answer(formatKeyRecovery(await loadLibrary(), params)),
 })
 
-export const infoTool = defineTool({
+export const infoTool = defineCipherTool({
   name: 'ciphers_info',
   title: 'Cipher Info',
   description:

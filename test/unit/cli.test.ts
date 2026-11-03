@@ -101,11 +101,29 @@ describe('CLI refusals', () => {
     )
   })
 
-  it('refuses a flag that belongs to another pick or cipher', () => {
-    expectRefusal(['hidden', 'abc', '--every', '2'], 'Missing required option: pick')
+  it('names the flag when the library refuses one', () => {
+    expectRefusal(['hidden', 'abc', '--every', '2'], 'Invalid arguments: missing --pick')
+    expectRefusal(['hidden', 'abc', '--pick', 'every-letter'], 'Invalid arguments: missing --every')
     expectRefusal(
       ['recover', 'Hello there', '--cipher', 'vigenere', '--key-length', '3'],
-      'Invalid option keyLength=3: only columnar takes it',
+      'Invalid arguments at --key-length: only columnar takes it',
+    )
+    expectRefusal(
+      ['recover', 'ABC', '--cipher', 'columnar', '--lang', 'pl'],
+      'Invalid arguments at --lang: must be en for columnar: it is ranked by quadgrams, which only English has',
+    )
+    expectRefusal(
+      ['encode', 'running-key', 'Flee at once', '--key', 'errors can'],
+      'Invalid arguments at --key: the text has 10, and a running key never goes round again',
+    )
+    expectRefusal(
+      [
+        'crib',
+        '["abcd", "abcd"]',
+        '--known',
+        '[{"message": 0, "offset": 0, "text": "a"}, {"message": 2, "offset": 0, "text": "a"}]',
+      ],
+      'Invalid arguments at /1 of --known: message must be a ciphertext number from 0 to 1',
     )
   })
 

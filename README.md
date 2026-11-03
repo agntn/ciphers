@@ -23,7 +23,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
 - 🧭 **Ciphers describe themselves.** `info()` has the category, the family, the options, the keyspace, what the cipher works on and whether encode and decode are the same thing, and the CLI, the tools and the playground all read it from there.
-- 🖥️ **CLI, library, MCP, Pi and OMP.** The same tools and one set of executors behind them, whichever one you're holding. No Node at hand? [ciphers.agntn.dev/mcp](https://ciphers.agntn.dev/guide/agents#remote-mcp) serves them over HTTP.
+- 🖥️ **CLI, library, MCP, Pi, OMP and AI SDK.** The same tools and one set of executors behind them, whichever one you're holding. No Node at hand? [ciphers.agntn.dev/mcp](https://ciphers.agntn.dev/guide/agents#remote-mcp) serves them over HTTP.
 - 🌐 **Runs in the browser too.** The playground imports the package into the page, nothing is posted anywhere.
 - 🧱 **Bounded on purpose.** Text and keys have a maximum length in every tool schema, so a model can't hand the process a novel to shift.
 - 🧩 **Your cipher in one class.** Extend `Cipher`, `register()` it, and `create()` finds it like any built-in.
@@ -253,6 +253,29 @@ omp install @agntn/ciphers
 ```
 
 The tools are `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphers_frequency`, `ciphers_period_estimate`, `ciphers_family_guess`, `ciphers_passphrase_probe`, `ciphers_crib_drag`, `ciphers_hidden_text_read`, `ciphers_key_recover` and `ciphers_info`, the same everywhere, the HTTP server included. That one runs on a Cloudflare worker, so public puzzle material only. Arguments are checked against the schema before a cipher sees them, and a wrong key is a tool error with the reason in it, not a dead session. A model that doesn't know what Bifid takes calls `ciphers_info` first, the encode and decode descriptions say so. And a decoded ciphertext is data: `IGNORE PREVIOUS INSTRUCTIONS` falling out of a ROT13 is the answer to the puzzle, not a new task. [Agents guide](https://ciphers.agntn.dev/guide/agents).
+
+### AI SDK
+
+Install the optional AI SDK 7 peer and your model provider:
+
+```bash
+pnpm add @agntn/ciphers ai @ai-sdk/anthropic
+```
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic'
+import { ciphersAiTools } from '@agntn/ciphers/ai'
+import { generateText, isStepCount } from 'ai'
+
+const { text } = await generateText({
+  model: anthropic('claude-sonnet-5-5'),
+  tools: ciphersAiTools,
+  stopWhen: isStepCount(5),
+  prompt: 'Somebody Caesar-shifted this, crack it: WKH TXLFN EURZQ IRA',
+})
+```
+
+One import gives your app every tool MCP has. No wrappers to write, which leaves more time for the puzzle. A refused call goes back to the model as a tool error, and the ciphers still run locally.
 
 ## 🚫 What this does not do
 

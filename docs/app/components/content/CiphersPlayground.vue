@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {
   CipherError,
+  InvalidOptionError,
+  MissingOptionError,
   analyzeFrequency,
   create,
   estimatePeriod,
@@ -190,7 +192,7 @@ const current = computed(() => OPERATIONS.find((row) => row.key === operation.va
 const position = computed(() => OPERATIONS.findIndex((row) => row.key === operation.value) + 1);
 
 /**
- * A failed call the way the MCP server reports it: the tool name, then the library's message.
+ * A failed call as the MCP server words it: a refused option bare, anything else after the tool.
  * Only `CipherError` is an answer; anything else is a bug in the library and is rethrown.
  *
  * @param {unknown} error - What the executor threw.
@@ -202,7 +204,10 @@ function failure(error: unknown): ErrorAnswer {
     kind: "error",
     name: error.name,
     message: error.message,
-    text: `${current.value.tool} failed: ${error.message}`,
+    text:
+      error instanceof InvalidOptionError || error instanceof MissingOptionError
+        ? error.message
+        : `${current.value.tool} failed: ${error.message}`,
   };
 }
 

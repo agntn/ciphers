@@ -1585,6 +1585,9 @@ Co2B
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain(error)
     }
+    expect((await recover({ text: 'ABC', cipher: 'vigenere', keyLength: 3 })).content).toEqual([
+      { type: 'text', text: 'Invalid option keyLength=3: only columnar takes it' },
+    ])
   })
 
   it('drags a crib over the protocol', async () => {

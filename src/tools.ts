@@ -1,4 +1,4 @@
-/** The cipher tools, declared once for MCP, Pi and OMP. The library loads on the first call. */
+/** The cipher tools, declared once for MCP, Pi, OMP and the AI SDK. The library loads on the first call. */
 
 import {
   Type,

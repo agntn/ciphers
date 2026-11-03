@@ -36,7 +36,7 @@ Running `ciphers mcp` or an extension from this checkout? Both serve `src/`, so 
 ## Agent tools
 
 - One `defineTool` per tool in `src/tools.ts`, executors in `src/tool-operations.ts`.
-- `ciphers mcp`, the site's `/mcp`, Pi and OMP all serve that one list. A fix never lands on one surface only.
+- `ciphers mcp`, the site's `/mcp`, Pi, OMP and `@agntn/ciphers/ai` all serve that one list. A fix never lands on one surface only.
 - Schemas take `Type` from `@agntn/tools`. A bare `typebox` import gets rewritten by OMP to its own facade.
 - What a schema can't say per cipher goes in `cipherInputError`. Which ciphers need `key`, `iv` or `nonce`, say, and hex key lengths.
 - The `cli` hints keep the command names from before the CLI was built from the tools. `brute`, `period`, `guess` and the rest stay put, with their positionals and `-` for stdin.

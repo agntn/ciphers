@@ -9,6 +9,7 @@ export default defineBuildConfig({
         './src/aes.ts',
         './src/chacha.ts',
         './src/salsa.ts',
+        './src/ai.ts',
         './src/cli.ts',
         './src/mcp.ts',
         './src/tools.ts',

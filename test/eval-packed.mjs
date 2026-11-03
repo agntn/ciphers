@@ -159,6 +159,23 @@ try {
   const decoded = run(binPath, ['decode', 'caesar', 'KHOOR', '--shift', '3'])
   assert.equal(decoded.trim(), 'HELLO')
 
+  // The AI SDK subpath through the packed exports map, not through src/.
+  const aiEntry = /** @type {{ exports?: Record<string, { import?: string }> }} */ (manifest)
+    .exports?.['./ai']?.import
+  assert.ok(aiEntry, 'packed package.json exports no ./ai')
+  /**
+   * @param {string} entry - The `./ai` file inside the unpacked package.
+   * @returns {Promise<{ ciphersAiTools: Record<string, { execute: (input: object, options: object) => Promise<{ text: string }> }> }>} The module.
+   */
+  const aiModule = (entry) => import(pathToFileURL(path.join(packageRoot, entry)).href)
+  const { ciphersAiTools } = await aiModule(aiEntry)
+  assert.equal(Object.keys(ciphersAiTools).length, 11, 'the packed ./ai lost a tool')
+  const aiEncoded = await ciphersAiTools.ciphers_encode?.execute(
+    { cipher: 'caesar', text: 'HELLO', shift: 3 },
+    { toolCallId: 'packed', messages: [], context: {} },
+  )
+  assert.equal(aiEncoded?.text, 'KHOOR')
+
   assert.equal(run(binPath, ['encode', 'beaufort', 'DCODE', '--key', 'KEY']).trim(), 'HCKHA')
   assert.equal(
     run(binPath, ['encode', 'autokey', 'ATTACKATDAWN', '--key', 'QUEENLY']).trim(),

@@ -7,8 +7,7 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "rootDir": ".",
-    "paths": { "@agntn/tools/toolkit": ["./node_modules/@agntn/tools/dist/toolkit.d.mts"] }
+    "rootDir": "."
   },
   "include": [
     "build.config.ts",

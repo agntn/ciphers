@@ -97,7 +97,7 @@ describe('OMP extension', () => {
         name: tool.name,
         label: tool.title,
         approval: 'read',
-        loadMode: undefined,
+        loadMode: 'essential',
       })),
     )
     for (const definition of ciphersTools) {

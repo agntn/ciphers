@@ -20,7 +20,7 @@ function loadTools(): Promise<typeof CiphersTools> {
 }
 
 /**
- * Registers the cipher tools; the library loads on the first call.
+ * Registers the cipher tools in OMP's top-level list; the library loads on the first call.
  *
  * @param omp - OMP extension API supplied by the host.
  */
@@ -42,5 +42,5 @@ export default async function ciphersExtension(omp: ExtensionAPI): Promise<void>
       },
     ]),
   )
-  registerOmpTools(omp, ciphersTools, { Text, renderers })
+  registerOmpTools(omp, ciphersTools, { Text, renderers, loadMode: 'essential' })
 }

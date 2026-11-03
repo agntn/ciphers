@@ -15,7 +15,7 @@ const { title, description, headline } = defineProps<{
 
 const { name: siteName } = useSiteConfig();
 
-/** A cipher page shows the cipher's facts. The description would arrive with its commas stripped. */
+/** A cipher page shows its facts from the registry, any other page its description. */
 const entry = CIPHERS.find((row) => row.info.label === title || row.slug === title?.toLowerCase());
 
 const keyspace = entry ? keyspaceParts(entry.info) : undefined;

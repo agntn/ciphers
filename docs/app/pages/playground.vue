@@ -8,8 +8,6 @@ definePageMeta({ layout: "default" });
 
 const title = "Playground";
 const description = `Encode, decode, brute force and count letters with any of the ${spellOut(CIPHERS.length)} ciphers. In the browser, same library the CLI and the agent tools run.`;
-/** The OG pipeline drops commas from its props, so the card gets a version written without them. */
-const cardDescription = `Encode and decode with any of the ${spellOut(CIPHERS.length)} ciphers. Brute force a Caesar. Count letters. In the browser with the library itself.`;
 
 useSeo({
   title,
@@ -18,9 +16,15 @@ useSeo({
   breadcrumbs: [{ title: "Playground", path: "/playground" }],
 });
 
+/** `useSeo` points agents at `/playground.md`, a twin this page doesn't have, so the link goes. */
+const dropMarkdownTwin = injectHead().hooks?.hook("tags:resolve", (ctx) => {
+  ctx.tags = ctx.tags.filter((tag) => !(tag.tag === "link" && tag.props.type === "text/markdown"));
+});
+onScopeDispose(() => dropMarkdownTwin?.());
+
 defineOgImage(
   "Docs",
-  { headline: "Playground", title, description: cardDescription },
+  { headline: "Playground", title, description },
   { alt: "The @agntn/ciphers playground: encode, decode, brute force and count letters in the browser" },
 );
 </script>

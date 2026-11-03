@@ -43,8 +43,16 @@ export default defineNuxtConfig({
     url: "https://ciphers.agntn.dev",
     name: "@agntn/ciphers",
   },
+  /** The playground has no markdown twin, so agents get the page itself, not a `/raw` 404. */
+  agentDiscovery: {
+    excludePrefixes: { extend: ["/playground"] },
+  },
+  /** Docus lists `content/` only and leaves app routes out, so the Vue pages come from here. */
+  sitemap: {
+    sources: ["/api/__sitemap__/pages"],
+  },
+  /** Spelled out, or agent discovery lumps every page into one list and titles the landing `/`. */
   llms: {
-    domain: "https://ciphers.agntn.dev",
     title: "@agntn/ciphers",
     description:
       "Classical and block ciphers behind one local API: encode, decode, Caesar brute force and letter frequencies, as a library, a CLI, an MCP server and Pi and OMP extensions.",
@@ -71,6 +79,16 @@ export default defineNuxtConfig({
             description: "The library running in the page: encode, decode, brute force, frequency and info.",
           },
         ],
+      },
+      {
+        title: "Guide",
+        contentCollection: "docs",
+        contentFilters: [{ field: "path", operator: "LIKE", value: "/guide%" }],
+      },
+      {
+        title: "Ciphers",
+        contentCollection: "docs",
+        contentFilters: [{ field: "path", operator: "LIKE", value: "/ciphers%" }],
       },
     ],
   },
@@ -173,14 +191,15 @@ export default defineNuxtConfig({
     compatibilityDate: "2026-09-03",
     /** Nitro compiles the server bundle for ES2019 unless told otherwise; the library uses BigInt. */
     esbuild: { options: { target: "es2024" } },
-    prerender: {
-      crawlLinks: true,
-      routes: ["/", "/playground", "/sitemap.xml", "/robots.txt", "/llms.txt", "/llms-full.txt"],
-    },
     cloudflare: {
       deployConfig: true,
       nodeCompat: true,
     },
+  },
+  /** Nuxt's own prerender option. The same keys under `nitro.prerender` are deprecated. */
+  prerender: {
+    crawlLinks: true,
+    routes: ["/", "/playground", "/sitemap.xml", "/robots.txt", "/llms.txt", "/llms-full.txt"],
   },
   compatibilityDate: "2026-09-03",
   /** Fonts live in public/fonts and app/assets/fonts.css, where nuxt-og-image reads them from. */

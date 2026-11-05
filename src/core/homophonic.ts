@@ -316,20 +316,24 @@ export function homophonicMaps(codes: readonly number[], symbols: number): numbe
 }
 
 /**
- * Fit of the best map the same search finds on the symbols shuffled: a many-to-one map's noise.
+ * Fit the candidates' search reaches on the whole text shuffled: a many-to-one map's noise.
  *
- * @param codes - Symbol numbers to search on, at least four.
- * @param symbols - How many distinct symbols; every one of them shows in `codes`.
+ * @param codes - Symbol numbers of the whole text, numbered from 0 in order of first appearance.
+ * @param sample - Picks the symbols to search on, as it does for the candidates.
  * @returns {number} Mean natural-log probability per quadgram of the shuffled text decoded.
  */
-export function homophonicNoiseFit(codes: readonly number[], symbols: number): number {
+export function homophonicNoiseFit(
+  codes: readonly number[],
+  sample: (codes: readonly number[]) => number[],
+): number {
   const next = mulberry32(SEED ^ 0x5bd1e995)
   const shuffled = [...codes]
   for (let index = shuffled.length - 1; index > 0; index--) {
     const other = Math.floor(next() * (index + 1))
     ;[shuffled[index], shuffled[other]] = [shuffled[other]!, shuffled[index]!]
   }
-  const scores = homophonicMaps(shuffled, symbols).map((plainOf) =>
+  const symbols = codes.reduce((most, code) => Math.max(most, code), -1) + 1
+  const scores = homophonicMaps(sample(shuffled), symbols).map((plainOf) =>
     scorePlain(shuffled.map((code) => plainOf[code]!)),
   )
   return scores.reduce((best, score) => (score.rank > best.rank ? score : best)).fit

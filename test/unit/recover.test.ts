@@ -273,12 +273,12 @@ describe('recoverKey with homophonic', () => {
   }, 30_000)
 
   it('scores symbols in no order near the fit of the same symbols shuffled', () => {
-    for (const [start, symbols] of [
-      [7, 60],
-      [11, 40],
+    for (const [start, symbols, length] of [
+      [7, 60, 600],
+      [11, 40, 2000],
     ] as const) {
       let seed: number = start
-      const noise = Array.from({ length: 600 }, () => {
+      const noise = Array.from({ length }, () => {
         seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648
         return String(10 + Math.floor((seed / 2_147_483_648) * symbols))
       })

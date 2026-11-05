@@ -765,7 +765,7 @@ function homophonicRecovery(text: string, options: Readonly<KeyRecoveryOptions>)
     letters: stream.codes.length,
     referenceFit: ENGLISH_QUADGRAM_FIT,
     randomFit:
-      sample.length < 4 ? randomQuadgramFit() : homophonicNoiseFit(sample, stream.symbols.length),
+      sample.length < 4 ? randomQuadgramFit() : homophonicNoiseFit(stream.codes, searchSample),
     candidates: [...found.values()]
       .sort((left, right) => right.rank - left.rank)
       .slice(0, options.limit ?? DEFAULT_KEY_CANDIDATES)

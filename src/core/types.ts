@@ -210,6 +210,14 @@ export interface StraddlingCheckerboardOptions extends CipherBaseOptions {
   blanks?: string
 }
 
+/** Tridigital options. */
+export interface TridigitalOptions extends CipherBaseOptions {
+  /** The digits over the columns: a 10-letter keyword, or the digits 0 to 9 in any order. Required. */
+  key: string
+  /** The alphabet in the block: 26 letters, or a keyword the rest of A-Z follows. Required. */
+  secondKey: string
+}
+
 /** Bacon's cipher options. */
 export interface BaconOptions extends CipherBaseOptions {
   /** Table size: 26 codes every letter, 24 shares I/J and U/V. Default: 26. */

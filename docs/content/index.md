@@ -1,8 +1,8 @@
 ---
-title: "Seventy-two ciphers, one call"
+title: "Seventy-three ciphers, one call"
 seo:
-  title: "Seventy-two ciphers, one call"
-  description: Seventy-two ciphers from Caesar to ChaCha20 behind one local API. A CLI and agent tools on top. Brute force, letter frequencies and key lengths. No network
+  title: "Seventy-three ciphers, one call"
+  description: Seventy-three ciphers from Caesar to ChaCha20 behind one local API. A CLI and agent tools on top. Brute force, letter frequencies and key lengths. No network
 ---
 
 ::landing-home

@@ -5,6 +5,7 @@ export const keyRecoveryCiphers = [
   'variant-beaufort',
   'substitution',
   'columnar',
+  'homophonic',
 ] as const
 
 /** One cipher `recoverKey` searches a key for. */
@@ -18,6 +19,9 @@ export const DEFAULT_COLUMNAR_KEY_LENGTH = 8
 
 /** Longest columnar key: every order of its columns is tried, 9! of them. */
 export const MAX_COLUMNAR_KEY_LENGTH = 9
+
+/** Most characters a homophonic symbol takes with `symbolWidth`. */
+export const MAX_SYMBOL_WIDTH = 8
 
 /** Candidates `recoverKey` returns unless told otherwise. */
 export const DEFAULT_KEY_CANDIDATES = 5

@@ -1,5 +1,13 @@
 import { InvalidOptionError } from './errors.ts'
 import { assertLanguage, languageTables, type FrequencyLanguage } from './frequency.ts'
+import {
+  homophonicCandidate,
+  homophonicMaps,
+  homophonicNoiseFit,
+  homophonicStream,
+  homophonicSymbols,
+  type HomophonicCandidate,
+} from './homophonic.ts'
 import { estimatePeriod } from './period.ts'
 import {
   ENGLISH_QUADGRAM_FIT,
@@ -16,17 +24,19 @@ import {
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,
+  MAX_SYMBOL_WIDTH,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
   type KeyRecoveryCipher,
 } from './recover-options.ts'
-import { decodeColumnar } from './utils.ts'
+import { decodeColumnar, mulberry32 } from './utils.ts'
 
 export {
   DEFAULT_COLUMNAR_KEY_LENGTH,
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,
+  MAX_SYMBOL_WIDTH,
   keyRecoveryCiphers,
   type KeyRecoveryCipher,
 }
@@ -69,12 +79,14 @@ const periodicSigns: Readonly<Record<string, readonly [letter: number, key: numb
 export interface KeyRecoveryOptions {
   /** Cipher the text was encrypted with. */
   readonly cipher: KeyRecoveryCipher
-  /** Language the plaintext reads in; substitution and columnar need `en`. */
+  /** Language the plaintext reads in; substitution, columnar and homophonic need `en`. */
   readonly language?: FrequencyLanguage
   /** Key length of a periodic cipher; without it the likeliest lengths are tried. */
   readonly period?: number
   /** Columnar key length; without it every length from 2 to `DEFAULT_COLUMNAR_KEY_LENGTH`. */
   readonly keyLength?: number
+  /** Homophonic: characters per symbol, whitespace and commas skipped; without it they split. */
+  readonly symbolWidth?: number
   /** How many candidates to return. */
   readonly limit?: number
 }
@@ -83,9 +95,12 @@ export interface KeyRecoveryOptions {
 export interface KeyCandidate {
   /**
    * The keyword, as `columnar` takes it too. Substitution: the cipher letter of each plaintext
-   * letter A to Z, `?` where the text never shows it.
+   * letter A to Z, `?` where the text never shows it. Homophonic: each plaintext letter with its
+   * symbols, `A=12 31, B=05`, letters no symbol stands for left out.
    */
   readonly key: string
+  /** Homophonic only: the plaintext letter of each symbol. */
+  readonly map?: Readonly<Record<string, string>>
   /** Mean natural-log probability per quadgram, or per letter without a quadgram table. */
   readonly fit: number
   /** The text decoded with `key`. */
@@ -98,7 +113,7 @@ export interface KeyRecovery {
   readonly language: FrequencyLanguage
   /** What `fit` averages: quadgrams for English, single letters otherwise. */
   readonly scoredBy: 'quadgrams' | 'letters'
-  /** A-Z letters in the text. */
+  /** A-Z letters in the text; for homophonic its symbols, one plaintext letter each. */
   readonly letters: number
   /** `fit` of plaintext in `language`. */
   readonly referenceFit: number
@@ -197,6 +212,7 @@ function checkOptions(options: Readonly<KeyRecoveryOptions>): void {
   }
   checkPeriod(cipher, period)
   checkKeyLength(cipher, keyLength)
+  checkSymbolWidth(cipher, options.symbolWidth)
   if (
     limit !== undefined &&
     (!Number.isInteger(limit) || limit < 1 || limit > MAX_KEY_CANDIDATES)
@@ -247,6 +263,27 @@ function checkKeyLength(cipher: KeyRecoveryCipher, keyLength: number | undefined
       'keyLength',
       keyLength,
       `must be an integer from 2 to ${MAX_COLUMNAR_KEY_LENGTH}`,
+    )
+  }
+}
+
+/**
+ * Refuse a symbol width for another cipher than homophonic, or outside 1 to the maximum.
+ *
+ * @param cipher - The cipher searched.
+ * @param symbolWidth - The symbol width given, if any.
+ * @throws {InvalidOptionError} When the symbol width does not fit.
+ */
+function checkSymbolWidth(cipher: KeyRecoveryCipher, symbolWidth: number | undefined): void {
+  if (symbolWidth === undefined) return
+  if (cipher !== 'homophonic') {
+    throw new InvalidOptionError('symbolWidth', symbolWidth, 'only homophonic takes it')
+  }
+  if (!Number.isInteger(symbolWidth) || symbolWidth < 1 || symbolWidth > MAX_SYMBOL_WIDTH) {
+    throw new InvalidOptionError(
+      'symbolWidth',
+      symbolWidth,
+      `must be an integer from 1 to ${MAX_SYMBOL_WIDTH}`,
     )
   }
 }
@@ -450,22 +487,6 @@ function periodicKeys(
 }
 
 /**
- * Mulberry32, a small seeded generator.
- *
- * @param seed - The seed.
- * @returns {() => number} A function giving the next number in [0, 1).
- */
-function random(seed: number): () => number {
-  let state = seed >>> 0
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0
-    let mixed = Math.imul(state ^ (state >>> 15), state | 1)
-    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61)
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4_294_967_296
-  }
-}
-
-/**
  * The plaintext letter of each cipher letter when both alphabets go by frequency.
  *
  * @param codes - Ciphertext letters as 0 to 25.
@@ -551,10 +572,10 @@ function substitutionKey(plainOf: readonly number[], present: readonly number[])
 /**
  * The first `SEARCH_LETTERS` letters, plus a few around each letter that only shows later.
  *
- * @param codes - Ciphertext letters as 0 to 25.
+ * @param codes - Ciphertext letters or homophonic symbols as numbers.
  * @returns {number[]} The letters to search on.
  */
-function substitutionSample(codes: readonly number[]): number[] {
+function searchSample(codes: readonly number[]): number[] {
   const sample = codes.slice(0, SEARCH_LETTERS)
   const seen = new Set(sample)
   for (let index = sample.length; index < codes.length; index++) {
@@ -573,10 +594,10 @@ function substitutionSample(codes: readonly number[]): number[] {
  * @returns {Found[]} The distinct keys the climbs ended at.
  */
 function substitutionKeys(codes: readonly number[], score: Readonly<Scorer>): Found[] {
-  const sample = substitutionSample(codes)
+  const sample = searchSample(codes)
   if (sample.length < 4) return []
   const present = [...new Set(sample)].sort((left, right) => left - right)
-  const next = random(SEED)
+  const next = mulberry32(SEED)
   const found = new Map<string, number>()
   const restarts = Math.min(
     Math.max(Math.ceil(SUBSTITUTION_BUDGET / sample.length), SUBSTITUTION_RESTARTS[0]),
@@ -720,6 +741,39 @@ function decodeWith(text: string, cipher: KeyRecoveryCipher, key: string): strin
 }
 
 /**
+ * Keys of a homophonic text: annealed maps, ranked by fit less a penalty on letter counts.
+ *
+ * @param text - The ciphertext.
+ * @param options - Options of `recoverKey`.
+ * @returns {KeyRecovery} The ranked keys, best first.
+ * @throws {InvalidOptionError} When `symbolWidth` does not divide the text.
+ */
+function homophonicRecovery(text: string, options: Readonly<KeyRecoveryOptions>): KeyRecovery {
+  const stream = homophonicStream(homophonicSymbols(text, options.symbolWidth))
+  const sample = searchSample(stream.codes)
+  const found = new Map<string, HomophonicCandidate>()
+  if (sample.length >= 4) {
+    for (const plainOf of homophonicMaps(sample, stream.symbols.length)) {
+      const candidate = homophonicCandidate(stream, plainOf)
+      found.set(candidate.key, candidate)
+    }
+  }
+  return {
+    cipher: 'homophonic',
+    language: 'en',
+    scoredBy: 'quadgrams',
+    letters: stream.codes.length,
+    referenceFit: ENGLISH_QUADGRAM_FIT,
+    randomFit:
+      sample.length < 4 ? randomQuadgramFit() : homophonicNoiseFit(stream.codes, searchSample),
+    candidates: [...found.values()]
+      .sort((left, right) => right.rank - left.rank)
+      .slice(0, options.limit ?? DEFAULT_KEY_CANDIDATES)
+      .map(({ key, map, fit, text: plain }) => ({ key, map, fit, text: plain })),
+  }
+}
+
+/**
  * Search for the key of a text and rank the keys by how well their plaintext reads. English goes
  * by quadgrams; Polish and Japanese romaji by letters, so only the periodic ciphers take them.
  *
@@ -727,7 +781,8 @@ function decodeWith(text: string, cipher: KeyRecoveryCipher, key: string): strin
  * @param options - The cipher and the search options.
  * @returns {KeyRecovery} The ranked keys, best fit first.
  * @throws {InvalidOptionError} For an unknown cipher or language, an option the cipher does not
- *   take, a bound broken, or a language without quadgrams for substitution or columnar.
+ *   take, a bound broken, a language without quadgrams for substitution, columnar or homophonic,
+ *   or a `symbolWidth` that does not divide the text.
  */
 export function recoverKey(text: string, options: Readonly<KeyRecoveryOptions>): KeyRecovery {
   checkOptions(options)
@@ -741,6 +796,7 @@ export function recoverKey(text: string, options: Readonly<KeyRecoveryOptions>):
       `must be en for ${cipher}: it is ranked by quadgrams, which only English has`,
     )
   }
+  if (cipher === 'homophonic') return homophonicRecovery(text, options)
   const score = scorer(language)
   const codes = letterCodes(text)
   let found: Found[]

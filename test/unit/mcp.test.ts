@@ -1592,6 +1592,51 @@ Co2B
     ])
   })
 
+  it('recovers a homophonic key over the protocol, quoting the symbols', async () => {
+    const client = await connectTestClient()
+    const plain = 'To Sherlock Holmes she is always the woman. I have seldom heard him mention her.'
+    let turn = 0
+    const symbols = Array.from(plain.toUpperCase().replaceAll(/[^A-Z]/g, ''), (letter) =>
+      letter === 'E' ? ['\u202EE', 'E\u0007'][turn++ % 2]! : `${letter}${turn++ % 2}`,
+    )
+    const recover = async (args: Readonly<Record<string, unknown>>) =>
+      await client.callTool({ name: 'ciphers_key_recover', arguments: args })
+
+    const found = await recover({ text: symbols.join(' '), cipher: 'homophonic', limit: 2 })
+    expect(found.isError).not.toBe(true)
+    const text = onlyText(found.content)
+    const lines = text.split('\n')
+    expect(lines[0]).toMatch(
+      /^Homophonic keys for 64 symbols \(lang=en\), best first, a key that piles symbols onto E, T and A below one with English letter counts\. Fit is the mean log probability per quadgram: English plaintext scores about -9\.44, the same symbols shuffled -\d+\.\d\d\.$/,
+    )
+    expect(lines[2]).toMatch(/^1\. key "[A-Z]=.+", fit -\d+\.\d\d: "[A-Z]{64}"$/)
+    expect(lines.at(-1)).toBe(
+      'Only the top key and text are whole, the others stop at 80 characters. The key lists each plaintext letter with the symbols that stand for it. The text above is already decoded, one letter per symbol: correct the odd symbol by hand.',
+    )
+    expect(text).toContain('\\u202eE')
+    expect(text).toContain('E\\u0007')
+    expect(text.includes('\u0007') || text.includes('\u202E')).toBe(false)
+
+    for (const [args, error] of [
+      [
+        { text: '12 34 5', cipher: 'homophonic', symbolWidth: 2 },
+        'Invalid option symbolWidth=2: leaves 1 of 5 characters over, so the symbols do not line up',
+      ],
+      [
+        { text: 'ABC', cipher: 'vigenere', symbolWidth: 2 },
+        'Invalid option symbolWidth=2: only homophonic takes it',
+      ],
+      [{ text: 'ABC', cipher: 'homophonic', symbolWidth: 9 }, 'Invalid arguments'],
+    ] as const) {
+      const refused = await recover(args)
+      expect(refused.isError).toBe(true)
+      expect(onlyText(refused.content)).toContain(error)
+    }
+    expect(onlyText((await recover({ text: '12 34', cipher: 'homophonic' })).content)).toBe(
+      'No Homophonic key: 2 symbols are too few to search.',
+    )
+  }, 20_000)
+
   it('drags a crib over the protocol', async () => {
     const client = await connectTestClient()
     const first =

@@ -109,6 +109,10 @@ describe('CLI refusals', () => {
       'Invalid arguments at --key-length: only columnar takes it',
     )
     expectRefusal(
+      ['recover', 'ABC', '--cipher', 'vigenere', '--symbol-width', '2'],
+      'Invalid arguments at --symbol-width: only homophonic takes it',
+    )
+    expectRefusal(
       ['recover', 'ABC', '--cipher', 'columnar', '--lang', 'pl'],
       'Invalid arguments at --lang: must be en for columnar: it is ranked by quadgrams, which only English has',
     )

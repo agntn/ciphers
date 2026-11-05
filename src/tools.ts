@@ -30,6 +30,7 @@ import {
   MAX_BOOK_LENGTH,
   MAX_KEY_LENGTH,
   MAX_PERIOD,
+  MAX_SYMBOL_WIDTH,
   MAX_TRANSFORM_TEXT_LENGTH,
   OPTION_DESCRIPTIONS,
   PROBE_LIST_LIMITS,
@@ -1115,13 +1116,14 @@ export const hiddenTextReadTool = defineCipherTool({
 export const keyRecoverTool = defineCipherTool({
   name: 'ciphers_key_recover',
   title: 'Recover Key',
-  description: `Search for the key of a Vigenère, Beaufort, variant Beaufort, monoalphabetic substitution or columnar transposition ciphertext, and rank the keys found by how much the text each one decodes to reads like the language: quadgrams for English, letter frequencies for Polish and Japanese romaji. Best first, each with its plaintext; the reply gives the fit plaintext and random letters score, so a wrong cipher shows as every key scoring near random.`,
+  description: `Search for the key of a Vigenère, Beaufort, variant Beaufort, monoalphabetic substitution, columnar transposition or homophonic substitution ciphertext, and rank the keys found by how much the text each one decodes to reads like the language: quadgrams for English, letter frequencies for Polish and Japanese romaji. Best first, each with its plaintext; the reply gives the fit plaintext and random letters score, so a wrong cipher shows as every key scoring near random.`,
   snippet:
     'Use ciphers_key_recover to find the key once ciphers_family_guess or ciphers_period_estimate has named the cipher.',
   guidelines: [
     'Input is ciphertext and the cipher. Returns up to limit keys, best first; only the top text is whole.',
     `Vigenère, Beaufort and variant Beaufort try the five likeliest key lengths unless period gives one; ciphers_period_estimate shows the lengths.`,
-    `Columnar tries every column order of each length from 2 to ${DEFAULT_COLUMNAR_KEY_LENGTH}, or of keyLength up to ${MAX_COLUMNAR_KEY_LENGTH}; substitution and columnar need English.`,
+    `Columnar tries every column order of each length from 2 to ${DEFAULT_COLUMNAR_KEY_LENGTH}, or of keyLength up to ${MAX_COLUMNAR_KEY_LENGTH}; substitution, columnar and homophonic need English.`,
+    'Homophonic reads symbols split by whitespace or commas, or runs of symbolWidth characters; its random score is the same symbols shuffled, since a many-to-one map squeezes some English out of any stream. It wants about 600 symbols: at half that most keys come back wrong.',
     'Short texts, around 150 letters, give ranked guesses rather than one answer: read the top few.',
   ],
   effect: 'read',
@@ -1130,7 +1132,7 @@ export const keyRecoverTool = defineCipherTool({
       text: Type.String({ maxLength: MAX_TRANSFORM_TEXT_LENGTH, description: 'Ciphertext' }),
       cipher: Type.Enum(keyRecoveryCiphers, {
         description:
-          'Cipher the text was encrypted with: vigenere, beaufort, variant-beaufort (plaintext minus key), substitution (any mixed alphabet) or columnar',
+          'Cipher the text was encrypted with: vigenere, beaufort, variant-beaufort (plaintext minus key), substitution (any mixed alphabet), columnar or homophonic (many symbols per letter)',
       }),
       period: Type.Optional(
         Type.Integer({
@@ -1146,8 +1148,15 @@ export const keyRecoverTool = defineCipherTool({
           description: `Columnar only: key length, 2 to ${MAX_COLUMNAR_KEY_LENGTH}; without it every length from 2 to ${DEFAULT_COLUMNAR_KEY_LENGTH}`,
         }),
       ),
+      symbolWidth: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: MAX_SYMBOL_WIDTH,
+          description: `Homophonic only: characters per symbol, 1 to ${MAX_SYMBOL_WIDTH}, whitespace and commas skipped; without it whitespace and commas split the symbols`,
+        }),
+      ),
       lang: language(
-        'Language the plaintext reads in, ja for Hepburn romaji; substitution and columnar take en only (default en)',
+        'Language the plaintext reads in, ja for Hepburn romaji; substitution, columnar and homophonic take en only (default en)',
       ),
       limit: Type.Optional(
         Type.Integer({
@@ -1161,7 +1170,8 @@ export const keyRecoverTool = defineCipherTool({
   ),
   cli: {
     command: 'recover',
-    description: 'Search the key of a Vigenère, Beaufort, substitution or columnar text',
+    description:
+      'Search the key of a Vigenère, Beaufort, substitution, columnar or homophonic text',
     positional: ['text'],
     stdin: ['text'],
   },

@@ -5,6 +5,7 @@ import {
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,
+  MAX_SYMBOL_WIDTH,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
   type KeyRecoveryCipher,
@@ -15,6 +16,7 @@ export {
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,
+  MAX_SYMBOL_WIDTH,
   cipherCategories,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
@@ -941,6 +943,7 @@ export type KeyRecoverToolParams = {
   readonly cipher: KeyRecoveryCipher
   readonly period?: number
   readonly keyLength?: number
+  readonly symbolWidth?: number
   readonly lang?: 'en' | 'pl' | 'ja'
   readonly limit?: number
 }
@@ -960,6 +963,10 @@ const keyRecoveryTexts: Readonly<
     'The key is the cipher letter of each plaintext letter A to Z, ? where the text never uses one: ciphers_decode with cipher substitution and the key reads the text.',
   ],
   columnar: ['Columnar', 'ciphers_decode with cipher columnar and the key reads the text.'],
+  homophonic: [
+    'Homophonic',
+    'The key lists each plaintext letter with the symbols that stand for it. The text above is already decoded, one letter per symbol: correct the odd symbol by hand.',
+  ],
 }
 
 const languageNames = { en: 'English', pl: 'Polish', ja: 'Japanese romaji' } as const
@@ -979,6 +986,21 @@ function keyRecoverBoundError(params: Readonly<KeyRecoverToolParams>): BrokenBou
     return ['period', params.period, `must be at most ${MAX_PERIOD}`]
   }
   return undefined
+}
+
+/**
+ * How a key recovery reply orders its keys and what its fit means.
+ *
+ * @param recovery - The recovery.
+ * @returns {string} The clause for the first line.
+ */
+function keyRecoveryOrder(recovery: Readonly<CiphersModule.KeyRecovery>): string {
+  if (recovery.cipher === 'homophonic') {
+    return 'best first, a key that piles symbols onto E, T and A below one with English letter counts. Fit is the mean log probability per quadgram'
+  }
+  return recovery.scoredBy === 'quadgrams'
+    ? 'best fit first. Fit is the mean log probability per quadgram'
+    : 'best first, a longer key below a shorter one that fits almost as well. Fit is the mean log probability per letter'
 }
 
 /**
@@ -1002,26 +1024,35 @@ export function formatKeyRecovery(
     ...(params.lang === undefined ? {} : { language: params.lang }),
     ...(params.period === undefined ? {} : { period: params.period }),
     ...(params.keyLength === undefined ? {} : { keyLength: params.keyLength }),
+    ...(params.symbolWidth === undefined ? {} : { symbolWidth: params.symbolWidth }),
     ...(params.limit === undefined ? {} : { limit: params.limit }),
   })
+  return { content: [{ type: 'text', text: keyRecoveryReply(recovery) }] }
+}
+
+/**
+ * The reply of a key recovery: the scale, the keys best first, and the call that reads the text.
+ *
+ * @param recovery - The recovery.
+ * @returns {string} The text a model gets.
+ */
+function keyRecoveryReply(recovery: Readonly<CiphersModule.KeyRecovery>): string {
   const [label, next] = keyRecoveryTexts[recovery.cipher]
+  const homophonic = recovery.cipher === 'homophonic'
+  const units = homophonic ? 'symbols' : 'letters'
   if (recovery.candidates.length === 0) {
-    const text = `No ${label} key: ${recovery.letters} letters are too few to search.`
-    return { content: [{ type: 'text', text }] }
+    return `No ${label} key: ${recovery.letters} ${units} are too few to search.`
   }
-  const order =
-    recovery.scoredBy === 'quadgrams'
-      ? 'best fit first. Fit is the mean log probability per quadgram'
-      : 'best first, a longer key below a shorter one that fits almost as well. Fit is the mean log probability per letter'
   const lines = [
-    `${label} keys for ${recovery.letters} letters (lang=${recovery.language}), ${order}: ${languageNames[recovery.language]} plaintext scores about ${recovery.referenceFit.toFixed(2)}, random letters ${recovery.randomFit.toFixed(2)}.`,
+    `${label} keys for ${recovery.letters} ${units} (lang=${recovery.language}), ${keyRecoveryOrder(recovery)}: ${languageNames[recovery.language]} plaintext scores about ${recovery.referenceFit.toFixed(2)}, ${homophonic ? 'the same symbols shuffled' : 'random letters'} ${recovery.randomFit.toFixed(2)}.`,
     '',
-    ...recovery.candidates.map(
-      ({ key, fit, text }, index) =>
-        `${index + 1}. key ${key}, fit ${fit.toFixed(2)}: ${index === 0 ? quotedPreview(text, Infinity) : quotedPreview(text)}`,
-    ),
+    ...recovery.candidates.map(({ key, fit, text }, index) => {
+      const length = index === 0 ? Infinity : BRUTE_PREVIEW_LENGTH
+      const shown = homophonic ? quotedPreview(key, length) : key
+      return `${index + 1}. key ${shown}, fit ${fit.toFixed(2)}: ${quotedPreview(text, length)}`
+    }),
     '',
-    `Only the top text is whole, the others stop at ${BRUTE_PREVIEW_LENGTH} characters. ${next}`,
+    `Only the top ${homophonic ? 'key and text are' : 'text is'} whole, the others stop at ${BRUTE_PREVIEW_LENGTH} characters. ${next}`,
   ]
-  return { content: [{ type: 'text', text: lines.join('\n') }] }
+  return lines.join('\n')
 }

@@ -316,6 +316,9 @@ describe('OMP extension', () => {
     await rejects('ciphers_key_recover', { text: 'A', cipher: 'columnar', keyLength: 10 })
     await rejects('ciphers_key_recover', { text: 'A', cipher: 'vigenere', limit: 21 })
     await rejects('ciphers_key_recover', { text: 'X'.repeat(10_001), cipher: 'vigenere' })
+    await accepts('ciphers_key_recover', { text: 'ABCDEFGH', cipher: 'homophonic', symbolWidth: 8 })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'homophonic', symbolWidth: 0 })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'homophonic', symbolWidth: 9 })
   })
 
   it('clips a collapsed result preview and keeps the expanded one whole', async () => {

@@ -116,6 +116,7 @@ export {
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,
+  MAX_SYMBOL_WIDTH,
   keyRecoveryCiphers,
   recoverKey,
   type KeyCandidate,

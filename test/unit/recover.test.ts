@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 import { create } from '../../src/core/registry.ts'
 import { InvalidOptionError } from '../../src/core/errors.ts'
+import { homophonicSymbols } from '../../src/core/homophonic.ts'
 import { recoverKey, type KeyRecoveryOptions } from '../../src/core/recover.ts'
 import { ENGLISH_QUADGRAM_FIT, scoreQuadgrams } from '../../src/core/quadgrams.ts'
 import '../../src/index.ts'
@@ -11,6 +12,10 @@ import '../../src/index.ts'
  */
 const SCANDAL =
   'To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex. It was not that he felt any emotion akin to love for Irene Adler. All emotions, and that one particularly, were abhorrent to his cold, precise but admirably balanced mind. He was, I take it, the most perfect reasoning and observing machine that the world has seen.'
+
+/* The paragraph after it, so a homophonic text runs past the 600 letters the search reads. */
+const GRIT =
+  "He never spoke of the softer passions, save with a gibe and a sneer. They were admirable things for the observer, excellent for drawing the veil from men's motives and actions. But for the trained reasoner to admit such intrusions into his own delicate and finely adjusted temperament was to introduce a distracting factor which might throw a doubt upon all his mental results. Grit in a sensitive instrument, or a crack in one of his own high-power lenses, would not be more disturbing than a strong emotion in a nature such as his."
 
 /* Its first 132 letters, near the 150 issue #167 calls typical for hard puzzles. */
 const SHORT =
@@ -42,6 +47,37 @@ function substitute(text: string, alphabet: string): string {
   return text.replaceAll(/[A-Za-z]/g, (letter) => {
     const cipher = alphabet[letter.toUpperCase().codePointAt(0)! - 65]!
     return letter === letter.toUpperCase() ? cipher : cipher.toLowerCase()
+  })
+}
+
+/*
+ * A homophonic encoding of the letters: each letter gets symbols in proportion to how often the
+ * text uses it, at least one, and takes them in turn. Symbols are two-digit numbers, scrambled.
+ */
+function homophonic(text: string, symbols: number): string[] {
+  const letters = Array.from(text.toUpperCase().replaceAll(/[^A-Z]/g, ''))
+  const counts = new Map<string, number>()
+  for (const letter of letters) counts.set(letter, (counts.get(letter) ?? 0) + 1)
+  const shares = new Map([...counts.keys()].map((letter) => [letter, 1]))
+  for (let given = shares.size; given < symbols; given++) {
+    const [richest] = [...shares].sort(
+      ([left, a], [right, b]) => counts.get(right)! / b - counts.get(left)! / a,
+    )[0]!
+    shares.set(richest, shares.get(richest)! + 1)
+  }
+  let next = 0
+  const owned = new Map(
+    [...shares].map(([letter, share]) => [
+      letter,
+      Array.from({ length: share }, () => String(10 + ((next++ * 37) % symbols))),
+    ]),
+  )
+  const used = new Map<string, number>()
+  return letters.map((letter) => {
+    const turn = used.get(letter) ?? 0
+    used.set(letter, turn + 1)
+    const own = owned.get(letter)!
+    return own[turn % own.length]!
   })
 }
 
@@ -196,6 +232,7 @@ describe('recoverKey', () => {
     expect(recoverKey('', { cipher: 'vigenere' }).candidates).toEqual([])
     expect(recoverKey('123 456', { cipher: 'columnar' }).candidates).toEqual([])
     expect(recoverKey('ABC', { cipher: 'substitution' }).candidates).toEqual([])
+    expect(recoverKey('12 34 56', { cipher: 'homophonic' }).candidates).toEqual([])
   })
 
   it('refuses options the cipher does not take', () => {
@@ -211,9 +248,78 @@ describe('recoverKey', () => {
       { cipher: 'vigenere', language: 'de' },
       { cipher: 'vigenere', limit: 0 },
       { cipher: 'columnar', limit: 21 },
+      { cipher: 'homophonic', language: 'pl' },
+      { cipher: 'homophonic', period: 2 },
+      { cipher: 'vigenere', symbolWidth: 2 },
+      { cipher: 'homophonic', symbolWidth: 0 },
+      { cipher: 'homophonic', symbolWidth: 9 },
+      { cipher: 'homophonic', symbolWidth: 1.5 },
     ]) {
       expect(() => recoverKey(SCANDAL, options as KeyRecoveryOptions)).toThrow(InvalidOptionError)
     }
+  })
+})
+
+describe('recoverKey with homophonic', () => {
+  const PLAIN = `${SCANDAL} ${GRIT}`
+
+  it('reads back over 90% of the letters with 50 to 90 symbols', () => {
+    for (const symbols of [50, 70, 90]) {
+      const ciphertext = homophonic(PLAIN, symbols).join(' ')
+      const [best] = recoverKey(ciphertext, { cipher: 'homophonic', limit: 1 }).candidates
+
+      expect(sameLetters(best!.text, PLAIN.toUpperCase())).toBeGreaterThan(0.9)
+    }
+  }, 30_000)
+
+  it('scores symbols in no order near the fit of the same symbols shuffled', () => {
+    let seed = 7
+    const noise = Array.from({ length: 600 }, () => {
+      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648
+      return String(10 + Math.floor((seed / 2_147_483_648) * 60))
+    })
+    const random = recoverKey(noise.join(' '), { cipher: 'homophonic', limit: 1 })
+    const english = recoverKey(homophonic(PLAIN, 60).join(' '), { cipher: 'homophonic', limit: 1 })
+
+    expect(Math.abs(random.candidates[0]!.fit - random.randomFit)).toBeLessThan(0.5)
+    expect(english.candidates[0]!.fit - english.randomFit).toBeGreaterThan(1)
+    expect(english.randomFit).toBeGreaterThan(scoreQuadgrams('QXZJ')!.randomFit)
+  }, 20_000)
+
+  it('splits symbols on whitespace and commas, or by width with both skipped', () => {
+    expect(homophonicSymbols(' 12, 34\n5\u00A0†‡ ,,')).toEqual(['12', '34', '5', '†‡'])
+    expect(homophonicSymbols('1234\n56, 78', 2)).toEqual(['12', '34', '56', '78'])
+    expect(homophonicSymbols('†‡𝔄𝔅', 2)).toEqual(['†‡', '𝔄𝔅'])
+    expect(homophonicSymbols('', 3)).toEqual([])
+  })
+
+  it('keys each letter with its own symbols, and maps each symbol to its letter', () => {
+    const symbols = homophonic(PLAIN, 50)
+    const spaced = recoverKey(symbols.join(' '), { cipher: 'homophonic', limit: 2 })
+    const [best] = spaced.candidates
+
+    expect(spaced.letters).toBe(symbols.length)
+    expect(Array.from(best!.text)).toEqual(symbols.map((symbol) => best!.map![symbol]))
+    expect(best!.key).toMatch(/^[A-Z]=\d\d( \d\d)*(, [A-Z]=\d\d( \d\d)*)*$/)
+    const groups = best!.key.split(', ')
+    const letters = groups.map((group) => group[0])
+    expect(letters).toEqual([...letters].sort())
+    expect(
+      Object.fromEntries(
+        groups.flatMap((group) =>
+          group
+            .slice(2)
+            .split(' ')
+            .map((symbol) => [symbol, group[0]]),
+        ),
+      ),
+    ).toEqual(best!.map)
+  }, 15_000)
+
+  it('refuses a width that leaves characters over', () => {
+    expect(() => recoverKey('12 34 5', { cipher: 'homophonic', symbolWidth: 2 })).toThrow(
+      'Invalid option symbolWidth=2: leaves 1 of 5 characters over, so the symbols do not line up',
+    )
   })
 })
 

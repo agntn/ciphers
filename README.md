@@ -18,25 +18,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Seventy-three ciphers.** From pencil and paper puzzles to what TLS runs today.
-  - Shifts and keyed alphabets: Caesar, ROT13, ROT47, Atbash, keyword substitution and affine.
-  - Polyalphabetic: Vigenère, Gronsfeld with a PIN for a key, Beaufort, Porta with its two quarrelling tables, Autokey, Trithemius and Alberti.
-  - More of them: the running key that takes a whole page of a book, and Byrne's Chaocipher that kept its secret for 92 years.
-  - The four ACA Quagmires that hide one Vigenère tableau behind keyed alphabets.
-  - Squares: Playfair, Delastelle's four-square with twice the keys and his two-square that lets a fifth of the pairs slip through.
-  - Grids and sums: Hill with its matrices, Polybius, the Nihilist sums that run past 100, ADFGVX and bifid.
-  - Dots and dashes: Morse, Fractionated Morse that chops it into triples and hands each one a letter, Bacon and tap code.
-  - Numbers: A1Z26 with its single digit cousin, the book cipher Beale used and the VIC straddling checkerboard.
-  - Tridigital, where three letters share a digit and decoding hands you the lot.
-  - Transposition and machines: rail fence, columnar, the route transposition with its spirals, and Enigma M3.
-  - AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, and CBC-MAC over AES.
-  - Older and wider blocks: Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA and Lucifer, the IBM cipher DES came from.
-  - Two AES finalists, IBM's MARS and Serpent, and CAST5 from the old OpenPGP menu.
-  - Camellia with the outside of AES and Feistel rounds inside, and ARIA that kept the AES S-box and brought a second one.
-  - China's SM4 that runs its key schedule through the cipher itself.
-  - Passphrase formats: the one CryptoJS writes and the messages `gpg --symmetric` writes.
-  - Stream ciphers: Rabbit from RFC 4503, RC4, the 1987 trade secret that leaked in 1994, and plain repeating-key XOR.
-  - Bernstein's dancers: Salsa20, XSalsa20, ChaCha20, XChaCha20 and ChaCha20-Poly1305.
+- 🔡 **Seventy-three ciphers.** From a pencil and paper Caesar to Enigma M3 and AES in every mode from ECB to XTS. Chaocipher kept its secret for 92 years, which is a long time to wait for an answer. Every one of them gets [its own page](https://ciphers.agntn.dev/ciphers).
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -302,7 +284,7 @@ Cryptography you'd trust with anything. The classical ones fall to anyone with a
 
 ## ➕ Adding a cipher
 
-Want a fifty-fourth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+Want a seventy-fourth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
 
 ## 🛠️ Development
 

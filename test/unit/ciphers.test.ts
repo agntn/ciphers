@@ -53,8 +53,8 @@ const hex = (value: string) =>
 const bytes = (value: string) => Uint8Array.from(hex(value))
 
 describe('registry', () => {
-  it('registers all 72 ciphers', () => {
-    expect(ciphers()).toHaveLength(72)
+  it('registers all 73 ciphers', () => {
+    expect(ciphers()).toHaveLength(73)
     for (const name of [
       'caesar',
       'rot13',
@@ -87,6 +87,7 @@ describe('registry', () => {
       'a1z26',
       'book',
       'straddling-checkerboard',
+      'tridigital',
       'enigma',
       'aes',
       'aes-cbc',
@@ -1640,6 +1641,102 @@ describe('straddling-checkerboard', () => {
   })
 })
 
+describe('tridigital', () => {
+  const tridigital = create('tridigital')
+  const aca = { key: 'NOVELCRAFT', secondKey: 'DRAGONFLY' }
+
+  /** Published vector: the example on the ACA's Tridigital page, cryptogram.org */
+  it("matches the ACA's example and reads it back as columns", () => {
+    expect(tridigital.encode('The ides of March', aca).text).toBe('03095607958910773')
+    expect(tridigital.decode('03095 60795 89107 73.', aca).text).toBe(
+      '[AET][GHU][AET] [OIV][DBQ][AET][RCS] [OIV][FKX] [LMZ][AET][RCS][RCS][GHU]',
+    )
+  })
+
+  /** Published vector: the example on the CryptoCrack Tridigital page */
+  it("matches CryptoCrack's TRAMPOLINE and OSCARWILDE example", () => {
+    expect(
+      tridigital.encode('Some cause happiness wherever they go others whenever they go.', {
+        key: 'TRAMPOLINE',
+        secondKey: 'OSCARWILDE',
+      }).text,
+    ).toBe('9030215590285004609927808080821804250201808927806080821804250')
+  })
+
+  /** Published vectors: The Black Chamber, Tridigital cipher and Tridigital Python solver, 2020 */
+  it('takes the ten digits as they stand', () => {
+    expect(
+      tridigital.encode('every day is saturday', { key: '4196230875', secondKey: 'SUNDAY' }).text,
+    ).toBe('727935623564542619623')
+    expect(tridigital.encode('hello world', { key: '7263015984', secondKey: 'teacher' }).text).toBe(
+      '02009409109',
+    )
+  })
+
+  it('numbers a repeated letter left to right, 1 to 9 then 0', () => {
+    const digits = { key: '6703528149', secondKey: 'DRAGONFLY' }
+    expect(tridigital.encode('the ides of march', aca).text).toBe(
+      tridigital.encode('the ides of march', digits).text,
+    )
+    const doubled = { key: 'AABBCCDDEE', secondKey: 'A' }
+    expect(tridigital.encode('ABCDEFGHI J', doubled).text).toBe('12345678901')
+  })
+
+  it('splits words on whitespace and drops everything but A-Z', () => {
+    const encoded = tridigital.encode('  The, ides!\tof\n March 15 ', aca)
+    expect(encoded.text).toBe('03095607958910773')
+    expect(encoded.options).toEqual(aca)
+    expect(tridigital.encode('A€ßıB', aca).text).toBe(tridigital.encode('AB', aca).text)
+  })
+
+  it('gives every letter of a column the same digit', () => {
+    const encoded = tridigital.encode('ABCDEFGHIJKLMNOPQRSTUVWXYZ', aca).text
+    const decoded = tridigital.decode(encoded, aca).text
+    expect(new RegExp(`^${decoded}$`).test('ABCDEFGHIJKLMNOPQRSTUVWXYZ')).toBe(true)
+    expect(decoded.match(/\[[A-Z]+\]/g)?.every((column) => column.length >= 4)).toBe(true)
+  })
+
+  it('gives empty text for text without a letter or digit', () => {
+    expect(tridigital.encode(' ,.! 42 ', aca).text).toBe('')
+    expect(tridigital.decode('  ', aca).text).toBe('')
+    expect(() => tridigital.decode('THE', aca)).toThrow(
+      new CipherError('Invalid tridigital code: no digits to decode'),
+    )
+  })
+
+  it('rejects keys it cannot build a block from', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      expect(() => tridigital[operation]('A')).toThrow(MissingOptionError)
+      expect(() => tridigital[operation]('A', { key: 'NOVELCRAFT' })).toThrow(MissingOptionError)
+      expect(() => tridigital[operation]('A', { secondKey: 'DRAGONFLY' })).toThrow(
+        MissingOptionError,
+      )
+      for (const key of [123, 'NOVEL', 'NOVELCRAFTS', '0123456788', '012345678', 'NOVÉLCRAFT']) {
+        expect(() => tridigital[operation]('A', { key, secondKey: 'DRAGONFLY' })).toThrow(
+          InvalidOptionError,
+        )
+      }
+      expect(() => tridigital[operation]('A', { key: 'NOVELCRAFT', secondKey: '123' })).toThrow(
+        InvalidOptionError,
+      )
+    }
+  })
+
+  it('advertises both keys', () => {
+    expect(tridigital.info()).toMatchObject({
+      name: 'tridigital',
+      label: 'Tridigital',
+      category: 'classical',
+      family: 'substitution-keyed',
+      selfInverse: false,
+      options: [
+        { name: 'key', type: 'string', required: true },
+        { name: 'secondKey', type: 'string', required: true },
+      ],
+    })
+  })
+})
+
 describe('enigma', () => {
   const enigma = create('enigma')
 
@@ -1736,6 +1833,7 @@ describe('edge cases', () => {
     hill: { key: 'TEST' },
     nihilist: { key: 'TEST' },
     'fractionated-morse': { key: 'TEST' },
+    tridigital: { key: 'NOVELCRAFT', secondKey: 'DRAGONFLY' },
     columnar: { key: 'TEST' },
     route: { width: 3 },
     book: { book: 'The 123 tests' },
@@ -7556,6 +7654,7 @@ describe('info().worksOn', () => {
     hill: { key: 'DDCF' },
     nihilist: { key: 'RUSSIAN', square: 'ZEBRAS' },
     'fractionated-morse': { key: 'ROUNDTABLE' },
+    tridigital: { key: 'NOVELCRAFT', secondKey: 'DRAGONFLY' },
     columnar: { key: 'ZEBRA' },
     route: { width: 3 },
   }

@@ -35,6 +35,7 @@ import { Rot13 } from './rot13.ts'
 import { Rot47 } from './rot47.ts'
 import { TapCode } from './tap-code.ts'
 import { Trithemius } from './trithemius.ts'
+import { Tridigital } from './tridigital.ts'
 import { TwoSquare } from './two-square.ts'
 import { Vigenere } from './vigenere.ts'
 
@@ -77,5 +78,6 @@ export const classical: readonly CipherConstructor[] = [
   Adfgvx,
   Bifid,
   StraddlingCheckerboard,
+  Tridigital,
   Enigma,
 ]

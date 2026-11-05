@@ -43,7 +43,7 @@ export function buildPolybiusSquare(key?: string): {
  * @param key - Keyword that orders the columns.
  * @returns {number[]} The rank of each key position.
  */
-function buildColumnOrder(key: string): number[] {
+export function buildColumnOrder(key: string): number[] {
   const upper = key.toUpperCase()
   const indexed = Array.from(upper, (c, i) => ({ char: c, idx: i }))
   const sorted = [...indexed].sort((a, b) => a.char.localeCompare(b.char, 'en') || a.idx - b.idx)

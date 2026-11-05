@@ -5,7 +5,7 @@
 [![license](https://npmx.dev/api/registry/badge/license/@agntn/ciphers)](https://npmx.dev/package/@agntn/ciphers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agntn/ciphers)
 
-🔐 Seventy-two ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
+🔐 Seventy-three ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
 
 ## Why?
 
@@ -18,7 +18,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Seventy-two ciphers.** Caesar, ROT13, ROT47, Atbash, keyword substitution, Vigenère, Gronsfeld with a PIN for a key, Beaufort, Porta with its two quarrelling tables, Autokey, the running key that takes a whole page of a book, Trithemius, Alberti, the four ACA Quagmires that hide one Vigenère tableau behind keyed alphabets, Byrne's Chaocipher that kept its secret for 92 years, rail fence, affine, Playfair, Delastelle's four-square with twice the keys and his two-square that lets a fifth of the pairs slip through, Hill with its matrices, Polybius, the Nihilist sums that run past 100, Morse, Fractionated Morse that chops it into triples and hands each one a letter, Bacon, tap code, A1Z26 with its single digit cousin, the book cipher Beale used, columnar, the route transposition with its spirals, ADFGVX, bifid, the VIC straddling checkerboard and Enigma M3, plus AES and Triple DES in ECB and CBC mode, AES in CFB, OFB, CTR, CCM, OCB, LRW and XTS mode, CBC-MAC over AES, the passphrase format CryptoJS writes, Rijndael with the wider blocks AES dropped, plain DES, DESX, Blowfish, IDEA, Lucifer, the IBM cipher DES came from, two AES finalists, IBM's MARS and Serpent, CAST5 from the old OpenPGP menu, Camellia with the outside of AES and Feistel rounds inside, ARIA that kept the AES S-box and brought a second one, China's SM4 that runs its key schedule through the cipher itself, and the passphrase messages `gpg --symmetric` writes. Then the stream ones, Rabbit from RFC 4503, RC4, the 1987 trade secret that leaked in 1994, plain repeating-key XOR, and Bernstein's dancers: Salsa20, XSalsa20, ChaCha20, XChaCha20 and ChaCha20-Poly1305.
+- 🔡 **Seventy-three ciphers.** From a pencil and paper Caesar to Enigma M3 and AES in every mode from ECB to XTS. Chaocipher kept its secret for 92 years, which is a long time to wait for an answer. Every one of them gets [its own page](https://ciphers.agntn.dev/ciphers).
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -187,6 +187,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **adfgvx**                  | fractionation               |      ✗       | `--key`, `--transposition` (both optional)                                 |
 | **bifid**                   | fractionation               |      ✗       | `--key` (optional), `--period` (default 5)                                 |
 | **straddling-checkerboard** | fractionation               |      ✗       | `--key` (optional), `--blanks` (default 26)                                |
+| **tridigital**              | substitution-keyed          |      ✗       | `--key` (required, 10 letters or digits), `--second-key` (required)        |
 | **enigma**                  | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`                                    |
 | **aes**                     | substitution-permutation    |      ✗       | `--key` (hex, required)                                                    |
 | **aes-cbc**                 | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                                       |
@@ -283,7 +284,7 @@ Cryptography you'd trust with anything. The classical ones fall to anyone with a
 
 ## ➕ Adding a cipher
 
-Want a fifty-fourth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+Want a seventy-fourth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
 
 ## 🛠️ Development
 

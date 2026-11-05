@@ -26,6 +26,7 @@ export type {
   NihilistOptions,
   AdfgvxOptions,
   StraddlingCheckerboardOptions,
+  TridigitalOptions,
   BaconOptions,
   A1z26Options,
   BookOptions,

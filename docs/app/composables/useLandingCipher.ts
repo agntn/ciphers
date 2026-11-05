@@ -44,6 +44,7 @@ const ORDER: readonly CipherEntry["slug"][] = [
   "four-square",
   "two-square",
   "fractionated-morse",
+  "tridigital",
   "quagmire-1",
   "aes-cbc",
   "aes-cfb",

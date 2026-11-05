@@ -316,7 +316,7 @@ export function homophonicMaps(codes: readonly number[], symbols: number): numbe
 }
 
 /**
- * Fit of a map annealed on the same symbols shuffled, the noise floor of a many-to-one map.
+ * Fit of the best map the same search finds on the symbols shuffled: a many-to-one map's noise.
  *
  * @param codes - Symbol numbers to search on, at least four.
  * @param symbols - How many distinct symbols; every one of them shows in `codes`.
@@ -329,11 +329,25 @@ export function homophonicNoiseFit(codes: readonly number[], symbols: number): n
     const other = Math.floor(next() * (index + 1))
     ;[shuffled[index], shuffled[other]] = [shuffled[other]!, shuffled[index]!]
   }
-  const plainOf = anneal(layout(shuffled, symbols), next)
-  return quadgramFit(
-    quadgramLevels(),
-    shuffled.map((code) => plainOf[code]!),
+  const scores = homophonicMaps(shuffled, symbols).map((plainOf) =>
+    scorePlain(shuffled.map((code) => plainOf[code]!)),
   )
+  return scores.reduce((best, score) => (score.rank > best.rank ? score : best)).fit
+}
+
+/**
+ * Quadgram fit of decoded letters, and that fit less the letter count penalty.
+ *
+ * @param plain - Letter codes, at least four.
+ * @returns {{ fit: number; rank: number }} The fit and the rank candidates sort by.
+ */
+function scorePlain(plain: readonly number[]): { fit: number; rank: number } {
+  const counts = Array.from<number>({ length: 26 }).fill(0)
+  for (const letter of plain) counts[letter]!++
+  const want = englishFrequencies().map((share) => share * plain.length)
+  const penalty = counts.reduce((sum, count, letter) => sum + spread(count, want[letter]!), 0)
+  const fit = quadgramFit(quadgramLevels(), plain)
+  return { fit, rank: fit - (SPREAD_WEIGHT * penalty) / (plain.length - 3) }
 }
 
 /**
@@ -348,11 +362,7 @@ export function homophonicCandidate(
   plainOf: readonly number[],
 ): HomophonicCandidate {
   const plain = stream.codes.map((code) => plainOf[code]!)
-  const counts = Array.from<number>({ length: 26 }).fill(0)
-  for (const letter of plain) counts[letter]!++
-  const want = englishFrequencies().map((share) => share * plain.length)
-  const penalty = counts.reduce((sum, count, letter) => sum + spread(count, want[letter]!), 0)
-  const fit = quadgramFit(quadgramLevels(), plain)
+  const { fit, rank } = scorePlain(plain)
   const groups = Array.from({ length: 26 }, (): string[] => [])
   stream.symbols.forEach((symbol, code) => groups[plainOf[code]!]!.push(symbol))
   return {
@@ -365,6 +375,6 @@ export function homophonicCandidate(
     ),
     fit,
     text: plain.map((letter) => String.fromCodePoint(65 + letter)).join(''),
-    rank: fit - (SPREAD_WEIGHT * penalty) / (plain.length - 3),
+    rank,
   }
 }

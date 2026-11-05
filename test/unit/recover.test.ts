@@ -273,18 +273,24 @@ describe('recoverKey with homophonic', () => {
   }, 30_000)
 
   it('scores symbols in no order near the fit of the same symbols shuffled', () => {
-    let seed = 7
-    const noise = Array.from({ length: 600 }, () => {
-      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648
-      return String(10 + Math.floor((seed / 2_147_483_648) * 60))
-    })
-    const random = recoverKey(noise.join(' '), { cipher: 'homophonic', limit: 1 })
+    for (const [start, symbols] of [
+      [7, 60],
+      [11, 40],
+    ] as const) {
+      let seed: number = start
+      const noise = Array.from({ length: 600 }, () => {
+        seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648
+        return String(10 + Math.floor((seed / 2_147_483_648) * symbols))
+      })
+      const random = recoverKey(noise.join(' '), { cipher: 'homophonic', limit: 1 })
+
+      expect(Math.abs(random.candidates[0]!.fit - random.randomFit)).toBeLessThan(0.08)
+    }
     const english = recoverKey(homophonic(PLAIN, 60).join(' '), { cipher: 'homophonic', limit: 1 })
 
-    expect(Math.abs(random.candidates[0]!.fit - random.randomFit)).toBeLessThan(0.5)
     expect(english.candidates[0]!.fit - english.randomFit).toBeGreaterThan(1)
     expect(english.randomFit).toBeGreaterThan(scoreQuadgrams('QXZJ')!.randomFit)
-  }, 20_000)
+  }, 40_000)
 
   it('splits symbols on whitespace and commas, or by width with both skipped', () => {
     expect(homophonicSymbols(' 12, 34\n5\u00A0†‡ ,,')).toEqual(['12', '34', '5', '†‡'])

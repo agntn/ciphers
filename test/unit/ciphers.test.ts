@@ -769,6 +769,82 @@ describe('hill', () => {
       }
     }
   })
+
+  it('reports A-Z as the alphabet when none is given', () => {
+    expect(hill.encode('HELP', { key: 'DDCF' }).options).toEqual({
+      key: 'DDCF',
+      alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    })
+    expect(hill.info().options).toMatchObject([
+      { name: 'key', required: true },
+      { name: 'alphabet', required: false, default: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' },
+    ])
+  })
+
+  /** Worked by hand: [[2, 1], [1, 3]] mod 9 on 31 41 56 7, the last block padded with 8 */
+  it('works mod 9 over the digits, padding with the last one', () => {
+    const nine = { key: '2113', alphabet: '012345678' }
+    expect(hill.encode('3141567', nine).text).toBe('76077544')
+    expect(hill.decode('7607 7544', nine).text).toBe('31415678')
+  })
+
+  /** Worked by hand: [[2, 1, 0], [1, 3, 1], [0, 1, 2]] mod 9, determinant 8 */
+  it('reads nine digits of key as a 3×3 matrix mod 9', () => {
+    const nine = { key: '210131012', alphabet: '012345678' }
+    expect(hill.encode('314158', nine).text).toBe('710763')
+    expect(hill.decode('710763', nine).text).toBe('314158')
+  })
+
+  /** Worked by hand: DDCF over the 25 letters without J, H E L P as 7 4 10 14 */
+  it('works mod 25 without J', () => {
+    const noJ = { key: 'DDCF', alphabet: 'ABCDEFGHIKLMNOPQRSTUVWXYZ' }
+    expect(hill.encode('HELP', noJ).text).toBe('IKXQ')
+    expect(hill.decode('ikxq', noJ).text).toBe('HELP')
+    expect(() => hill.encode('HELP', { ...noJ, key: 'FAAF' })).toThrow(
+      /determinant 0 mod 25, which shares a factor with 25/,
+    )
+  })
+
+  /** Wikipedia's matrix 3 3 / 2 5 spelled with A as 1, which is CCBE */
+  it('puts A at 1 with Z first', () => {
+    const one = { key: 'CCBE', alphabet: 'ZABCDEFGHIJKLMNOPQRSTUVWXY' }
+    expect(hill.encode('HELP', one).text).toBe('MOFZ')
+    expect(hill.decode('MOFZ', one).text).toBe('HELP')
+  })
+
+  it('takes the other case of a symbol only when it maps straight back', () => {
+    expect(hill.encode('ab', { key: 'BAAB', alphabet: 'ABC' }).text).toBe('AB')
+    expect(hill.encode('aA', { key: 'AaaA', alphabet: 'aA' }).text).toBe('aA')
+    expect(hill.encode('ąę', { key: 'ćąąć', alphabet: 'ĄĆĘ' }).text).toBe('ĄĘ')
+    expect(hill.encode('ıIK', { key: 'DDCF' }).text).toBe(hill.encode('IK', { key: 'DDCF' }).text)
+  })
+
+  it('drops symbols outside the alphabet on the way in', () => {
+    const nine = { key: '2113', alphabet: '012345678' }
+    expect(hill.encode('3-1 4/1 9', nine).text).toBe(hill.encode('3141', nine).text)
+  })
+
+  it('skips whitespace in ciphertext and refuses any other stranger', () => {
+    const nine = { key: '2113', alphabet: '012345678' }
+    expect(hill.decode('76\n07\u2028', nine).text).toBe('3141')
+    expect(() => hill.decode('7609', nine)).toThrow(/"9" \(U\+0039\) at character 4/)
+    expect(() => hill.decode('POH-FIN', { key: 'GYBNQKURP' })).toThrow(
+      /"-" \(U\+002D\) at character 4 isn't in the alphabet/,
+    )
+    expect(() => hill.decode('PO\u0000HFIN', { key: 'GYBNQKURP' })).toThrow(/"\\u0000"/)
+    expect(() => hill.decode('😀A', { key: 'DDCF' })).toThrow(/U\+1F600\) at character 1/)
+  })
+
+  it('refuses an alphabet it cannot count on', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const alphabet of ['', 'A', 'AA', 'ABCA', 'A B', 'AB\t', 5, null]) {
+        expect(() => hill[operation]('', { key: 'BAAB', alphabet })).toThrow(InvalidOptionError)
+      }
+      expect(() => hill[operation]('', { key: 'DDCF', alphabet: '0123456789' })).toThrow(
+        /has D, which isn't in the alphabet/,
+      )
+    }
+  })
 })
 
 describe('polybius', () => {

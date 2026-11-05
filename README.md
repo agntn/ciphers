@@ -5,7 +5,7 @@
 [![license](https://npmx.dev/api/registry/badge/license/@agntn/ciphers)](https://npmx.dev/package/@agntn/ciphers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agntn/ciphers)
 
-🔐 Seventy-three ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
+🔐 Seventy-four ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
 
 ## Why?
 
@@ -18,7 +18,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Seventy-three ciphers.** From a pencil and paper Caesar to Enigma M3 and AES in every mode from ECB to XTS. Chaocipher kept its secret for 92 years, which is a long time to wait for an answer. Every one of them gets [its own page](https://ciphers.agntn.dev/ciphers).
+- 🔡 **Seventy-four ciphers.** From a pencil and paper Caesar to Enigma M3 and AES in every mode from ECB to XTS. Chaocipher kept its secret for 92 years, which is a long time to wait for an answer. Every one of them gets [its own page](https://ciphers.agntn.dev/ciphers).
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -186,6 +186,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **route**                   | transposition               |      ✗       | `--width` (required), `--corner`, `--path`                                 |
 | **adfgvx**                  | fractionation               |      ✗       | `--key`, `--transposition` (both optional)                                 |
 | **bifid**                   | fractionation               |      ✗       | `--key` (optional), `--period` (default 5)                                 |
+| **trifid**                  | fractionation               |      ✗       | `--key` (optional), `--period` (default 5), `--symbol` (default `+`)       |
 | **straddling-checkerboard** | fractionation               |      ✗       | `--key` (optional), `--blanks` (default 26)                                |
 | **tridigital**              | substitution-keyed          |      ✗       | `--key` (required, 10 letters or digits), `--second-key` (required)        |
 | **enigma**                  | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`                                    |
@@ -284,7 +285,7 @@ Cryptography you'd trust with anything. The classical ones fall to anyone with a
 
 ## ➕ Adding a cipher
 
-Want a seventy-fourth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+Want a seventy-fifth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
 
 ## 🛠️ Development
 

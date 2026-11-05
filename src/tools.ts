@@ -634,6 +634,9 @@ const cipherInput = Type.Object(
     blanks: Type.Optional(
       Type.String({ pattern: '^\\s*[0-9]\\s*[0-9]\\s*$', description: OPTION_DESCRIPTIONS.blanks }),
     ),
+    symbol: Type.Optional(
+      Type.String({ pattern: '^[^A-Za-z\\s]$', description: OPTION_DESCRIPTIONS.symbol }),
+    ),
     separator: Type.Optional(
       Type.String({
         minLength: 1,

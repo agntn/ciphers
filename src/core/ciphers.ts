@@ -36,6 +36,7 @@ export const builtinCiphers = [
   'route',
   'adfgvx',
   'bifid',
+  'trifid',
   'straddling-checkerboard',
   'tridigital',
   'enigma',

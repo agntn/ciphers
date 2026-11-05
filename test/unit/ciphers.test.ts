@@ -53,8 +53,8 @@ const hex = (value: string) =>
 const bytes = (value: string) => Uint8Array.from(hex(value))
 
 describe('registry', () => {
-  it('registers all 73 ciphers', () => {
-    expect(ciphers()).toHaveLength(73)
+  it('registers all 74 ciphers', () => {
+    expect(ciphers()).toHaveLength(74)
     for (const name of [
       'caesar',
       'rot13',
@@ -88,6 +88,7 @@ describe('registry', () => {
       'book',
       'straddling-checkerboard',
       'tridigital',
+      'trifid',
       'enigma',
       'aes',
       'aes-cbc',
@@ -1455,6 +1456,94 @@ describe('bifid', () => {
       expect(() => bifid.decode('HELLO', { period })).toThrow(/must be a positive integer/)
     },
   )
+})
+
+describe('trifid', () => {
+  const trifid = create('trifid')
+  const delastelle = { key: 'FELIX MARIE DELASTELLE', period: 5 }
+  const aca = { key: 'EXTRAORDINARY', period: 10, symbol: '#' }
+
+  /** Published vector: the example on the English Wikipedia Trifid cipher page */
+  it("matches Wikipedia's aide-toi example", () => {
+    const encoded = trifid.encode("aide-toi, le ciel t'aidera", delastelle)
+    expect(encoded.text).toBe('FMJFVOISSUFTFPUFEQQC')
+    expect(encoded.options).toEqual({ ...delastelle, symbol: '+' })
+    expect(trifid.decode('FMJFVOISSUFTFPUFEQQC', delastelle).text).toBe('AIDETOILECIELTAIDERA')
+  })
+
+  /** Published vector: the example on the ACA's Trifid page, cryptogram.org, # as the 27th symbol */
+  it("matches the ACA's example and its short last group", () => {
+    expect(trifid.encode('trifids are fractionated ciphers', aca).text).toBe(
+      'EYMXVUCRYYYYEAYVYOVVXITDPATHE',
+    )
+    expect(trifid.decode('EYMXV UCRYY YYEAY VYOVV XITDP ATHE.', aca).text).toBe(
+      'TRIFIDSAREFRACTIONATEDCIPHERS',
+    )
+  })
+
+  it('round trips a keyed cube for every period up to the text length', () => {
+    const text = 'THE+QUICK+BROWN+FOX+JUMPS+OVER+THE+LAZY+DOG'
+    for (let period = 1; period <= text.length; period++) {
+      const options = { key: 'DELASTELLE', period }
+      const encoded = trifid.encode(text, options).text
+      expect(encoded).toHaveLength(text.length)
+      expect(trifid.decode(encoded, options).text, `period ${period}`).toBe(text)
+    }
+  })
+
+  it('leaves the text alone with a period of 1', () => {
+    expect(trifid.encode('Flee at once+', { key: 'BICONDITIONAL', period: 1 }).text).toBe(
+      'FLEEATONCE+',
+    )
+  })
+
+  it('treats a period past the text as one group', () => {
+    const whole = trifid.encode('FLEE AT ONCE', { period: 10 }).text
+    expect(trifid.encode('FLEE AT ONCE', { period: 10_000 }).text).toBe(whole)
+    expect(whole).not.toBe(trifid.encode('FLEE AT ONCE', { period: 5 }).text)
+  })
+
+  it('keeps A-Z and the symbol, and drops the rest', () => {
+    const dots = { symbol: '.' }
+    expect(trifid.encode('Flee. At once!', dots).text).toHaveLength(11)
+    expect(trifid.encode('Flee+ at once', dots).text).toBe(trifid.encode('FLEEATONCE', dots).text)
+    expect(trifid.encode('AßıéB', {}).text).toBe(trifid.encode('AB', {}).text)
+    expect(trifid.encode(' ,!? 42 ', {}).text).toBe('')
+  })
+
+  it('takes any one character outside A-Z and whitespace as the 27th symbol', () => {
+    for (const symbol of ['.', '#', '0', 'é', '🔺']) {
+      const text = `A${symbol}Z${symbol}`
+      const encoded = trifid.encode(text, { symbol, period: 3 }).text
+      expect(trifid.decode(encoded, { symbol, period: 3 }).text).toBe(text)
+    }
+  })
+
+  it('rejects options it cannot build a cube or a group from', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const symbol of ['', 'AB', '..', 'a', 'Z', ' ', '\n', 5]) {
+        expect(() => trifid[operation]('A', { symbol })).toThrow(InvalidOptionError)
+      }
+      for (const period of [0, -1, 1.5, '5', Number.NaN, Number.POSITIVE_INFINITY]) {
+        expect(() => trifid[operation]('A', { period })).toThrow(/must be a positive integer/)
+      }
+      expect(() => trifid[operation]('A', { key: 123 })).toThrow(InvalidOptionError)
+    }
+  })
+
+  it('advertises its three options', () => {
+    expect(trifid.info()).toMatchObject({
+      name: 'trifid',
+      category: 'classical',
+      family: 'fractionation',
+      selfInverse: false,
+      options: [
+        { name: 'key', required: false, default: '' },
+        { name: 'period', required: false, default: 5 },
+        { name: 'symbol', required: false, default: '+' },
+      ],
+    })
+  })
 })
 
 describe('route', () => {

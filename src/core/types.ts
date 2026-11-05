@@ -218,6 +218,16 @@ export interface TridigitalOptions extends CipherBaseOptions {
   secondKey: string
 }
 
+/** Trifid options. */
+export interface TrifidOptions extends CipherBaseOptions {
+  /** Keyword for the cube, the rest of A-Z and `symbol` after it. Default: none. */
+  key?: string
+  /** Letters per group. Default: 5. */
+  period?: number
+  /** The 27th cell, one character other than A-Z and whitespace. Default: `+`. */
+  symbol?: string
+}
+
 /** Bacon's cipher options. */
 export interface BaconOptions extends CipherBaseOptions {
   /** Table size: 26 codes every letter, 24 shares I/J and U/V. Default: 26. */

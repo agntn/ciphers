@@ -605,6 +605,28 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(decoded.content)).toBe('INCASEYOU')
   })
 
+  it('carries the trifid symbol through the protocol', async () => {
+    const client = await connectTestClient()
+    const aca = { cipher: 'trifid', key: 'EXTRAORDINARY', period: 10, symbol: '#' }
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { ...aca, text: 'trifids are fractionated ciphers' },
+    })
+    expect(encoded.isError).not.toBe(true)
+    expect(onlyText(encoded.content)).toBe('EYMXVUCRYYYYEAYVYOVVXITDPATHE')
+    const hashed = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { ...aca, text: 'TRIFID#IS#FUN' },
+    })
+    expect(onlyText(hashed.content)).toHaveLength(13)
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { ...aca, text: onlyText(hashed.content) },
+    })
+    expect(decoded.isError).not.toBe(true)
+    expect(onlyText(decoded.content)).toBe('TRIFID#IS#FUN')
+  })
+
   it('discovers and executes A1Z26 in both forms through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'a1z26' } })
@@ -1206,6 +1228,8 @@ Co2B
       ['key', { cipher: 'xor', text: 'abc', key: '494' }],
       ['bytes', { cipher: 'xor', text: 'abc', key: '49', bytes: 'raw' }],
       ['blanks', { cipher: 'straddling-checkerboard', text: 'abc', blanks: '1' }],
+      ['symbol', { cipher: 'trifid', text: 'abc', symbol: 'A' }],
+      ['symbol', { cipher: 'trifid', text: 'abc', symbol: '..' }],
       ['separator', { cipher: 'a1z26', text: 'abc', separator: '' }],
       ['separator', { cipher: 'a1z26', text: 'abc', separator: '-1-' }],
       ['separator', { cipher: 'a1z26', text: 'abc', separator: '-'.repeat(11) }],

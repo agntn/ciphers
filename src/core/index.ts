@@ -27,6 +27,7 @@ export type {
   AdfgvxOptions,
   StraddlingCheckerboardOptions,
   TridigitalOptions,
+  TrifidOptions,
   BaconOptions,
   A1z26Options,
   BookOptions,

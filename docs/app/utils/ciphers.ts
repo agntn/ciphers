@@ -61,6 +61,7 @@ const PRESENTATION: Record<
   route: { icon: "i-lucide-route", blurb: "Rows in, a spiral or a snake out", sample: "ATTACK AT DAWN", options: { width: 4 } },
   adfgvx: { icon: "i-lucide-table", blurb: "A 6×6 grid of letters and digits", sample: "ATTACK AT 1200" },
   bifid: { icon: "i-lucide-grid-3x3", blurb: "Polybius coordinates, split and re-read", sample: "FLEE AT ONCE", options: { key: "BICONDITIONAL", period: 5 } },
+  trifid: { icon: "i-lucide-box", blurb: "A cube of letters, coordinates mixed in threes", sample: "AIDE TOI LE CIEL", options: { key: "FELIX MARIE DELASTELLE", period: 5 } },
   "straddling-checkerboard": { icon: "i-lucide-hash", blurb: "The VIC board, one digit for common letters and two for the rest", sample: "ATTACK AT DAWN" },
   tridigital: { icon: "i-lucide-dice-3", blurb: "Three letters to a digit, and the tenth digit is a space", sample: "THE IDES OF MARCH", options: { key: "NOVELCRAFT", secondKey: "DRAGONFLY" } },
   enigma: { icon: "i-lucide-keyboard", blurb: "Wehrmacht M3, rotors I II III, reflector B", sample: "ATTACK AT DAWN", options: { positions: "MCK", rings: "BDF", plugboard: "AV BS CG" } },

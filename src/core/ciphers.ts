@@ -74,6 +74,7 @@ export const builtinCiphers = [
   'chacha20',
   'xchacha20',
   'chacha20-poly1305',
+  'zipcrypto',
 ] as const
 
 export type BuiltinCipher = (typeof builtinCiphers)[number]

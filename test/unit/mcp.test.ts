@@ -725,6 +725,36 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(encoded.content)).toBe('ABCDEFGHIJKL')
   })
 
+  /** The archive comes from encode itself; the cipher tests check what zip and 7-Zip write. */
+  it('opens a ZipCrypto archive through the protocol and lists its entries on a miss', async () => {
+    const client = await connectTestClient()
+    const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'zipcrypto' } })
+    expect(onlyText(info.content)).toContain('(zipcrypto) — stream, crc-lcg')
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'zipcrypto', key: 'causality', text: 'hi', entry: 'hi.txt' },
+    })
+    const archive = onlyText(encoded.content)
+    expect(archive).toMatch(/^504b0304/)
+    const back = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'zipcrypto', keys: '7067b779 926e6526 2b5a64b9', text: archive },
+    })
+    expect(onlyText(back.content)).toBe('hi')
+    const missing = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'zipcrypto', text: archive },
+    })
+    expect(missing.isError).toBe(true)
+    expect(onlyText(missing.content)).toContain('Encrypted entries: hi.txt (deflate, 2 bytes)')
+    const wrong = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'zipcrypto', key: 'wrong83', text: archive },
+    })
+    expect(wrong.isError).toBe(true)
+    expect(onlyText(wrong.content)).toContain('[zipcrypto] Wrong password: ')
+  })
+
   /** RFC 2144 B.1 for CAST5, and the GnuPG 2.4 message from issue #165 for OpenPGP. */
   it('discovers and executes CAST5 and OpenPGP through the protocol', async () => {
     const client = await connectTestClient()
@@ -1269,6 +1299,8 @@ Co2B
       ['width', { cipher: 'route', text: 'abc', width: 1 }],
       ['corner', { cipher: 'route', text: 'abc', width: 2, corner: 'middle' }],
       ['path', { cipher: 'route', text: 'abc', width: 2, path: 'diagonal' }],
+      ['keys', { cipher: 'zipcrypto', text: 'abc', keys: 'c4038591 d5ff449d' }],
+      ['method', { cipher: 'zipcrypto', text: 'abc', key: 'k', method: 'bzip2' }],
     ] as const) {
       const response = await client.callTool({
         name: 'ciphers_encode',

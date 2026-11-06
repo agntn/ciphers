@@ -53,8 +53,8 @@ const hex = (value: string) =>
 const bytes = (value: string) => Uint8Array.from(hex(value))
 
 describe('registry', () => {
-  it('registers all 74 ciphers', () => {
-    expect(ciphers()).toHaveLength(74)
+  it('registers all 75 ciphers', () => {
+    expect(ciphers()).toHaveLength(75)
     for (const name of [
       'caesar',
       'rot13',
@@ -124,6 +124,7 @@ describe('registry', () => {
       'chacha20',
       'xchacha20',
       'chacha20-poly1305',
+      'zipcrypto',
     ]) {
       expect(has(name)).toBe(true)
     }
@@ -2037,6 +2038,7 @@ describe('edge cases', () => {
     chacha20: { key: '00'.repeat(32), nonce: '00'.repeat(12) },
     xchacha20: { key: '00'.repeat(32), nonce: '00'.repeat(24) },
     'chacha20-poly1305': { key: '00'.repeat(32), nonce: '00'.repeat(12) },
+    zipcrypto: { key: 'secret' },
   }
 
   it('all ciphers handle empty string', () => {
@@ -7589,6 +7591,233 @@ describe('chacha20-poly1305', () => {
     expect(() => aead.encode('', { key })).toThrow(new MissingOptionError('nonce'))
     expect(() => aead.encode('', { key, nonce: '00'.repeat(24) })).toThrow(/24 hex digits/)
     expect(() => aead.encode('', { key, nonce, aad: 'abc' })).toThrow(/whole bytes/)
+  })
+})
+
+describe('zipcrypto', () => {
+  const zip = create('zipcrypto')
+
+  /** Password causality: Info-ZIP 3.0 (zip -P, and zip - on a pipe) and 7-Zip 26.05 archives. */
+  const archives = {
+    infozip:
+      'UEsDBAoACQAAAABQZl0GOIYPGwAAAA8AAAAIAAAAbm90ZS50eHTD0rwnFLd3CMY3SYQlMysZZbnNerPapFIE6nRQSwcIBjiGDxsAAAAPAAAAUEsDBBQACQAIAABQZl3S2f96PgAAAFoAAAAHAAAAZm94LnR4dGi2BsiArbm3SpIuwkwoR44lzpDaTbap4khwiG7rbL9Rvg72JDymn3sy33d/sIwtp46L4fgg6OLcFeUXZSRvUEsHCNLZ/3o+AAAAWgAAAFBLAQIeAwoACQAAAABQZl0GOIYPGwAAAA8AAAAIAAAAAAAAAAAAAACkgQAAAABub3RlLnR4dFBLAQIeAxQACQAIAABQZl3S2f96PgAAAFoAAAAHAAAAAAAAAAEAAACkgVEAAABmb3gudHh0UEsFBgAAAAACAAIAawAAAMQAAAAAAA==',
+    infozipPipe:
+      'UEsDBC0ACQAIABJUZl3S2f96//////////8BABQALQEAEABaAAAAAAAAAD4AAAAAAAAAGA3F2yOIUt+Rcqp9O63mL87ogSFc51VUrh/orWQZumod7RPfovVbxfo2PaT3ZNv8MFEmBbLvh/7gMeD7SkxQSwcI0tn/ej4AAAAAAAAAWgAAAAAAAABQSwECHgMtAAkACAASVGZd0tn/ej4AAABaAAAAAQAAAAAAAAABAAAAgBEAAAAALVBLBgYsAAAAAAAAAB4DLQAAAAAAAAAAAAEAAAAAAAAAAQAAAAAAAAAvAAAAAAAAAIkAAAAAAAAAUEsGBwAAAAC4AAAAAAAAAAEAAABQSwUGAAAAAAEAAQAvAAAAiQAAAAAA',
+    sevenZip:
+      'UEsDBBQAAQAIAABQZl3S2f96QwAAAFoAAAAHAAAAZm94LnR4dAP8WtVrRX5mBRkJ+l1Szu94UPKHvXbvqsRAgTlAq8XMcFSRvLKzeOpUzukG8i8e/d9eMmIaJ0IzxXXrlBGYXDth+NlQSwECPwMUAAEACAAAUGZd0tn/ekMAAABaAAAABwAkAAAAAAAAACCApIEAAAAAZm94LnR4dAoAIAAAAAAAAQAYAABoDTTNbd0BAAAAAAAAAAAAAAAAAAAAAFBLBQYAAAAAAQABAFkAAABoAAAAAAA=',
+    bzip2:
+      'UEsDBC4AAQAMAABQZl1vpGYjUwAAALgLAAAIAAAAZGF3bi50eHTX0A8ukCcoev7+zeUs/Id5ZHYTLhgEMFbT0kBkLLbpFHap8JfwtYe1ASu4hhrxIqXBFPLUvSP1FKLb9hq6PkkH26O3TkJalzxnCY0OWVzWmCyY51BLAQI/Ay4AAQAMAABQZl1vpGYjUwAAALgLAAAIACQAAAAAAAAAIICkgQAAAABkYXduLnR4dAoAIAAAAAAAAQAYAABoDTTNbd0BAAAAAAAAAAAAAAAAAAAAAFBLBQYAAAAAAQABAFoAAAB5AAAAAAA=',
+    lzma: 'UEsDBD8AAwAOAABQZl1vpGYjQAAAALgLAAAIAAAAZGF3bi50eHQ1pcyeWyS4TxXS7YwSeKsmEHt3Qja+MCCL92fUI955rKyw+OCNloGY7u2mgVcb8EL6Z/NduKvw9gR7kDh3JJpMUEsBAj8DPwADAA4AAFBmXW+kZiNAAAAAuAsAAAgAJAAAAAAAAAAggKSBAAAAAGRhd24udHh0CgAgAAAAAAABABgAAGgNNM1t3QEAAAAAAAAAAAAAAAAAAAAAUEsFBgAAAAABAAEAWgAAAGYAAAAAAA==',
+    aes: 'UEsDBDMAAQBjAABQZl0AAAAAKwAAAA8AAAAIAAsAbm90ZS50eHQBmQcAAgBBRQMAADB4qsvqu6H7VU12QKYfh4AaTnt29odOkKqUA2pCl29Q8uWt2JPps31EV+VQSwECPwMzAAEAYwAAUGZdAAAAACsAAAAPAAAACAAvAAAAAAAAACCApIEAAAAAbm90ZS50eHQKACAAAAAAAAEAGAAAaA00zW3dAQAAAAAAAAAAAAAAAAAAAAABmQcAAgBBRQMAAFBLBQYAAAAAAQABAGUAAABcAAAAAAA=',
+  }
+  const fox = 'The quick brown fox jumps over the lazy dog. '.repeat(2).trim() + '\n'
+  /** What Python 3.14's zipfile holds in key0, key1 and key2 after the password causality. */
+  const keys = '7067b779 926e6526 2b5a64b9'
+  const listing = 'Encrypted entries: note.txt (stored, 15 bytes), fox.txt (deflate, 90 bytes)'
+  const hex = (base64: string) => Buffer.from(base64, 'base64').toString('hex')
+
+  it('opens the stored and the deflated entry Info-ZIP wrote, checked by the time byte', () => {
+    expect(zip.decode(archives.infozip, { key: 'causality' })).toEqual({
+      text: 'ATTACK AT DAWN\n',
+      cipher: 'zipcrypto',
+      operation: 'decode',
+      options: {
+        key: 'causality',
+        keys,
+        entry: 'note.txt',
+        method: 'stored',
+        iv: 'f8e3ae50ec309b96ca9c00',
+        crc: '0f863806',
+        check: 'time',
+      },
+    })
+    const deflated = zip.decode(hex(archives.infozip), { key: 'causality', entry: 'fox.txt' })
+    expect(deflated.text).toBe(fox)
+    expect(deflated.options).toMatchObject({ entry: 'fox.txt', method: 'deflate', crc: '7affd9d2' })
+  })
+
+  it('reads a piped Info-ZIP archive past the ZIP64 records it adds anyway', () => {
+    expect(zip.decode(archives.infozipPipe, { key: 'causality' })).toMatchObject({
+      text: fox,
+      options: { entry: '-', method: 'deflate', check: 'time' },
+    })
+  })
+
+  it('opens 7-Zip deflate and BZip2, checked by the CRC byte', () => {
+    expect(zip.decode(archives.sevenZip, { key: 'causality' })).toMatchObject({
+      text: fox,
+      options: { entry: 'fox.txt', method: 'deflate', check: 'crc' },
+    })
+    expect(zip.decode(archives.bzip2, { key: 'causality' })).toMatchObject({
+      text: 'ATTACK AT DAWN\n'.repeat(200),
+      options: { entry: 'dawn.txt', method: 'bzip2', crc: '2366a46f' },
+    })
+  })
+
+  it('opens with the internal keys alone, as bkcrack recovers them', () => {
+    const opened = zip.decode(archives.infozip, { keys: keys.toUpperCase(), entry: 'fox.txt' })
+    expect(opened.text).toBe(fox)
+    expect(opened.options).not.toHaveProperty('key')
+    expect(opened.options).toMatchObject({ keys })
+    expect(zip.decode(archives.infozip, { key: 'causality', keys }).text).toBe('ATTACK AT DAWN\n')
+    expect(() => zip.decode(archives.infozip, { key: 'causality', keys: '00'.repeat(12) })).toThrow(
+      new InvalidOptionError(
+        'keys',
+        '00'.repeat(12),
+        `must be the keys the password gives, ${keys}`,
+      ),
+    )
+    expect(() => zip.decode(archives.infozip, { keys: 'c4038591 d5ff449d' })).toThrow(
+      /^Invalid option keys=c4038591 d5ff449d: must be 24 hex digits/,
+    )
+  })
+
+  it('lists the encrypted entries when the key is missing or wrong', () => {
+    expect(() => zip.decode(archives.infozip)).toThrow(
+      new MissingOptionError('key', `Pass key, the password, or keys. ${listing}`),
+    )
+    expect(() => zip.decode(archives.infozip, { key: 'wrong83' })).toThrow(
+      `[zipcrypto] Wrong password: the check byte of the encryption header of note.txt does not match. ${listing}`,
+    )
+    expect(() => zip.decode(archives.infozip, { keys: '00'.repeat(12) })).toThrow(
+      /^\[zipcrypto\] Wrong keys: the check byte/,
+    )
+    expect(() => zip.decode(archives.infozip, { key: 'causality', entry: 'notes.txt' })).toThrow(
+      `[zipcrypto] No entry named notes.txt. ${listing}`,
+    )
+  })
+
+  /** Python's zipfile lets both past the check byte too, then fails on CRC and on deflate. */
+  it('does not take the check byte alone for the password', () => {
+    expect(() => zip.decode(archives.infozip, { key: 'wrong84' })).toThrow(
+      '[zipcrypto] Wrong password: the check byte matched, but the CRC-32 or size of note.txt does not. A wrong password passes that byte once in 256 tries, or the data is damaged',
+    )
+    expect(() => zip.decode(archives.infozip, { key: 'wrong109', entry: 'fox.txt' })).toThrow(
+      '[zipcrypto] Wrong password: the check byte matched, but fox.txt does not unpack as deflate. A wrong password passes that byte once in 256 tries, or the data is damaged',
+    )
+  })
+
+  it('names what it does not open apart from a wrong password', () => {
+    expect(() => zip.decode(archives.aes, { key: 'causality' })).toThrow(
+      '[zipcrypto] Not supported: note.txt uses WinZip AES, not ZipCrypto',
+    )
+    expect(() => zip.decode(archives.lzma)).toThrow(
+      '[zipcrypto] Not supported: dawn.txt (lzma) is packed with a method only stored, deflate and bzip2 open here',
+    )
+    const bytes = Buffer.from(archives.sevenZip, 'base64')
+    const central = bytes.indexOf(Buffer.from('504b0102', 'hex'))
+    const zip64 = Buffer.from(bytes)
+    zip64.writeUInt32LE(0xff_ff_ff_ff, central + 20)
+    expect(() => zip.decode(zip64.toString('hex'), { key: 'causality' })).toThrow(
+      '[zipcrypto] Not supported: ZIP64 archives, past 65535 entries or 4 GiB',
+    )
+    const split = Buffer.from(bytes)
+    split.writeUInt16LE(1, bytes.length - 18)
+    expect(() => zip.decode(split.toString('hex'), { key: 'causality' })).toThrow(
+      '[zipcrypto] Not supported: archives split over several disks or files',
+    )
+  })
+
+  it('calls a cut or foreign file a broken archive', () => {
+    const bytes = Buffer.from(archives.sevenZip, 'base64')
+    for (const text of ['00112233', bytes.subarray(0, 100).toString('hex'), 'PK not base64!']) {
+      expect(() => zip.decode(text, { key: 'causality' })).toThrow(
+        /^\[zipcrypto\] (Broken archive|Ciphertext must be)/,
+      )
+    }
+    const moved = Buffer.from(bytes)
+    moved.writeUInt32LE(30, bytes.length - 6)
+    expect(() => zip.decode(moved.toString('hex'), { key: 'causality' })).toThrow(
+      '[zipcrypto] Broken archive: a central directory header has the wrong signature',
+    )
+    const plain = Buffer.from(bytes)
+    plain.writeUInt16LE(0, bytes.indexOf(Buffer.from('504b0102', 'hex')) + 8)
+    expect(() => zip.decode(plain.toString('hex'), { key: 'causality' })).toThrow(
+      '[zipcrypto] Nothing to decrypt: no entry in the archive is encrypted',
+    )
+  })
+
+  /** unzip 6.00, 7-Zip 26.05 and Python's zipfile open both, the second as zażółć.txt. */
+  it('writes archives zip and 7-Zip open', () => {
+    const deflated = zip.encode('ATTACK AT DAWN\n', {
+      key: 'causality',
+      entry: 'note.txt',
+      iv: '000102030405060708090a',
+    })
+    expect(deflated.text).toBe(
+      '504b0304140001000800000021000638860f1d0000000f000000080000006e6f74652e7478743bc8359766b0862abae0d45ab927b69d3216d1ab54fe7106faf4bd708a504b01021400140001000800000021000638860f1d0000000f0000000800000000000000000000000000000000006e6f74652e747874504b0506000000000100010036000000430000000000',
+    )
+    expect(deflated.options).toEqual({
+      key: 'causality',
+      keys,
+      entry: 'note.txt',
+      method: 'deflate',
+      iv: '000102030405060708090a',
+    })
+    const stored = zip.encode('ATTACK AT DAWN\n', {
+      key: 'zażółć',
+      method: 'stored',
+      entry: 'zażółć.txt',
+      iv: '0a090807060504030201ff',
+    })
+    expect(stored.text).toBe(
+      '504b0304140001080000000021000638860f1b0000000f0000000e0000007a61c5bcc3b3c582c4872e7478745b1b68e40be7f5b6b10aa51be2c073240ff2784a7404afbc6eca89504b01021400140001080000000021000638860f1b0000000f0000000e00000000000000000000000000000000007a61c5bcc3b3c582c4872e747874504b050600000000010001003c000000470000000000',
+    )
+    expect(stored.options).toMatchObject({ keys: 'd5830a0c 9a308968 dfccc50f' })
+  })
+
+  it('takes its decoding options back to write the same archive', () => {
+    const first = zip.encode('ATTACK AT DAWN', { keys, entry: 'a.txt', method: 'stored' })
+    const opened = zip.decode(first.text, { keys })
+    expect(opened.text).toBe('ATTACK AT DAWN')
+    expect(zip.encode(opened.text, opened.options).text).toBe(first.text)
+    expect(zip.decode(zip.encode('', { key: 'k' }).text, { key: 'k' }).text).toBe('')
+  })
+
+  it('refuses encoding options it cannot write', () => {
+    expect(() => zip.encode('x', {})).toThrow(
+      new MissingOptionError('key', 'Pass key, the password, or keys'),
+    )
+    expect(() => zip.encode('x', { key: 'k', method: 'bzip2' })).toThrow(
+      new InvalidOptionError('method', 'bzip2', 'must be stored or deflate'),
+    )
+    expect(() => zip.encode('x', { key: 'k', iv: '00' })).toThrow(
+      new InvalidOptionError('iv', '00', 'must be 22 hex digits'),
+    )
+    expect(() => zip.encode('x', { key: 'k', entry: '' })).not.toThrow()
+    expect(() => zip.encode('x', { key: 'k', entry: 'a'.repeat(0x1_00_00) })).toThrow(
+      /^Invalid option entry=a+: must be a file name of 1 to 65535 UTF-8 bytes, without a lone surrogate$/,
+    )
+  })
+
+  it('keeps a name from the archive from writing lines of its own', () => {
+    const name = 'a.txt\n[zipcrypto] Decoded fine\u202E\u2028'
+    const archive = zip.encode('x', { key: 'k', entry: name }).text
+    expect(zip.decode(archive, { key: 'k' }).options).toMatchObject({ entry: name })
+    expect(() => zip.decode(archive, { key: 'wrong83' })).toThrow(
+      String.raw`Encrypted entries: "a.txt\n[zipcrypto] Decoded fine\u{202e}\u{2028}" (deflate, 1 bytes)`,
+    )
+    expect(() => zip.encode('x', { key: 'k', entry: 'a\uD800.txt' })).toThrow(
+      /must be a file name of 1 to 65535 UTF-8 bytes, without a lone surrogate$/,
+    )
+  })
+
+  it('reports the stream category', () => {
+    expect(resolveCipher('ZipCrypto')).toBe(zip)
+    expect(zip.info()).toMatchObject({
+      name: 'zipcrypto',
+      category: 'stream',
+      family: 'crc-lcg',
+      worksOn: 'UTF-8 or hex, ZIP archive in hex out',
+    })
+    expect(zip.info().options.map((option) => option.name)).toEqual([
+      'key',
+      'keys',
+      'entry',
+      'method',
+      'iv',
+      'bytes',
+    ])
   })
 })
 

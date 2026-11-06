@@ -364,6 +364,20 @@ function armored(reading: Readonly<Reading>): FamilyCandidate[] {
 }
 
 /**
+ * A ZIP archive in hex or base64: its first local header starts with `PK` and bytes 3 and 4.
+ *
+ * @param reading - The text.
+ * @returns {FamilyCandidate[]} `zipcrypto`, or nothing.
+ */
+function zipArchive(reading: Readonly<Reading>): FamilyCandidate[] {
+  if (!/^(?:504[Bb]0304(?:[\dA-Fa-f]{2})+|UEsDB[A-Za-z0-9+/]*={0,2})$/.test(reading.symbols))
+    return []
+  const signal =
+    'A ZIP archive, hex or base64 of a PK local header. zipcrypto opens what zip -e encrypted, with the password or the three keys bkcrack recovers.'
+  return [candidate(['zipcrypto'], 'high', signal)]
+}
+
+/**
  * The OpenSSL envelope CryptoJS writes: base64 of `Salted__` and a salt.
  *
  * @param reading - The text.
@@ -484,6 +498,7 @@ function mostCommon(values: readonly string[]): string {
 /** Layout rules in order. The first that answers decides, so Bacon's A and B never read as hex. */
 const LAYOUTS = [
   armored,
+  zipArchive,
   morse,
   gridDigits,
   adfgvx,

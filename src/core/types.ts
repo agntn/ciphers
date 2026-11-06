@@ -555,6 +555,20 @@ export interface ChaCha20Poly1305Options extends ByteCipherOptions {
   aad?: string
 }
 
+/** ZipCrypto options: the password or the internal keys, or both when they agree. */
+export interface ZipCryptoOptions extends ByteCipherOptions {
+  /** The password, any text, read as UTF-8. */
+  key?: string
+  /** The three internal keys, 24 hex digits as bkcrack prints them; spaces are ignored. */
+  keys?: string
+  /** The file inside the archive. Default: the first encrypted one, or `message.txt` to encode. */
+  entry?: string
+  /** Encoding only: `stored` or `deflate`. Default: `deflate`. */
+  method?: 'stored' | 'deflate'
+  /** Encoding only: the 11 random header bytes, 22 hex digits. Default: random. */
+  iv?: string
+}
+
 /**
  * Get a cipher-specific option with type safety.
  *
@@ -605,6 +619,7 @@ export interface CipherInfo {
     | 'lai-massey'
     | 'arx'
     | 'permutation'
+    | 'crc-lcg'
   /** Self-inverse: encode(encode(x)) == x. */
   selfInverse: boolean
   /** What `encode` reads and does with the rest by default, such as `A-Z, the rest passes`. */

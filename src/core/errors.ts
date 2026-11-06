@@ -38,13 +38,16 @@ export class InvalidOptionError extends CipherError {
   }
 }
 
-/** Missing required option. */
+/** Missing required option, with a hint on what to pass when the cipher has one. */
 export class MissingOptionError extends CipherError {
   readonly option: string
+  /** What to pass instead, or what the input holds that helps choose, when the cipher says. */
+  readonly hint: string | undefined
 
-  constructor(option: string) {
-    super(`Missing required option: ${option}`)
+  constructor(option: string, hint?: string) {
+    super(`Missing required option: ${option}${hint === undefined ? '' : `. ${hint}`}`)
     this.option = option
+    this.hint = hint
     this.name = 'MissingOptionError'
   }
 }

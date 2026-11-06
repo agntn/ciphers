@@ -5,7 +5,7 @@
 [![license](https://npmx.dev/api/registry/badge/license/@agntn/ciphers)](https://npmx.dev/package/@agntn/ciphers)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agntn/ciphers)
 
-🔐 Seventy-four ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
+🔐 Seventy-five ciphers, one call. `ATTACK AT DAWN` goes in, `DWWDFN DW GDZQ` comes out, and the way back is the same call with `decode`. Terminal, TypeScript, agent or browser tab, and nothing ever leaves the machine.
 
 ## Why?
 
@@ -18,7 +18,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Seventy-four ciphers.** From a pencil and paper Caesar to Enigma M3 and AES in every mode from ECB to XTS. Chaocipher kept its secret for 92 years, which is a long time to wait for an answer. Every one of them gets [its own page](https://ciphers.agntn.dev/ciphers).
+- 🔡 **Seventy-five ciphers.** From a pencil and paper Caesar to Enigma M3 and AES in every mode from ECB to XTS. Chaocipher kept its secret for 92 years, which is a long time to wait for an answer. Every one of them gets [its own page](https://ciphers.agntn.dev/ciphers).
 - 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
 - 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
@@ -224,6 +224,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **chacha20**                | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`                       |
 | **xchacha20**               | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`                       |
 | **chacha20-poly1305**       | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--aad`                           |
+| **zipcrypto**               | crc-lcg                     |      ✗       | `--key` (text) or `--keys` (hex), `--entry`, `--method`                    |
 
 Playfair and Polybius fold J into I, tap code shares C and K, Bacon is the 26-letter variant unless `letters` says 24, and Alberti is a keyed disk that turns every `period` letters, not a reenactment of the original. One page per cipher, rules and vectors included: [Ciphers](https://ciphers.agntn.dev/ciphers).
 
@@ -236,6 +237,8 @@ The block ciphers start with AES and Triple DES. They take UTF-8 text, pad it wi
 `xor` is the one every CTF starts with. The key bytes repeat under the text and get XORed in, Vigenère on bytes. Any whole number of bytes works as a key. Got hex that isn't text on either side? `--bytes hex` reads and writes hex both ways, like for every other byte cipher.
 
 `chacha20` is what modern code actually runs, and `salsa20` is the cipher it grew out of. Both are Bernstein's, both XOR a keystream in 64-byte blocks, and both want `--nonce` next to the key. 16 hex digits for Salsa20, 24 for ChaCha20, as RFC 8439 has it. `--counter` picks the first block, 0 by default. The RFC's own examples start at 1, so try both when a vector won't match. `xsalsa20` and `xchacha20` take a 48-digit nonce, long enough to pick at random. `chacha20-poly1305` is the TLS 1.3 and WireGuard one. It puts a 16-byte tag after the ciphertext, takes `--aad`, and refuses to decode anything that was changed. Raw `Uint8Array` versions live in `@agntn/ciphers/chacha` and `@agntn/ciphers/salsa`.
+
+`zipcrypto` opens traditional encrypted ZIP entries with a password or three internal keys. A wrong password can pass the header check once in 256 tries, so decode checks CRC-32 and size too. That one byte doesn't get the final word.
 
 ## 🤖 Agents
 

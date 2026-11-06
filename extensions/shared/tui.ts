@@ -77,7 +77,7 @@ function cutAt(text: string, end: number): string {
  * @returns {string} Safe printable text.
  */
 function sanitize(text: string): string {
-  return stripVTControlCharacters(toUSVString(text)).replace(CONTROL_BYTES, ' ')
+  return stripVTControlCharacters(toUSVString(text)).replaceAll(CONTROL_BYTES, ' ')
 }
 
 function clip(text: string, max: number): string {

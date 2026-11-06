@@ -7790,14 +7790,16 @@ describe('zipcrypto', () => {
     )
   })
 
+  /** A fixed iv, since a random one waves wrong83 past the check byte in one archive of 256. */
   it('keeps a name from the archive from writing lines of its own', () => {
     const name = 'a.txt\n[zipcrypto] Decoded fine\u202E\u2028'
-    const archive = zip.encode('x', { key: 'k', entry: name }).text
+    const archive = zip.encode('x', { key: 'k', entry: name, iv: '0a090807060504030201ff' }).text
     expect(zip.decode(archive, { key: 'k' }).options).toMatchObject({ entry: name })
     const bom = zip.encode('x', { key: 'k', entry: '\uFEFFnote.txt' }).text
     expect(zip.decode(bom, { key: 'k', entry: '\uFEFFnote.txt' }).text).toBe('x')
+    const shown = String.raw`"a.txt\n[zipcrypto] Decoded fine\u{202e}\u{2028}"`
     expect(() => zip.decode(archive, { key: 'wrong83' })).toThrow(
-      String.raw`Encrypted entries: "a.txt\n[zipcrypto] Decoded fine\u{202e}\u{2028}" (deflate, 1 bytes)`,
+      `[zipcrypto] Wrong password: the check byte of the encryption header of ${shown} does not match. Encrypted entries: ${shown} (deflate, 1 bytes)`,
     )
     expect(() => zip.encode('x', { key: 'k', entry: 'a\uD800.txt' })).toThrow(
       /must be a file name of 1 to 65535 UTF-8 bytes, without a lone surrogate$/,

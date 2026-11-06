@@ -7794,6 +7794,8 @@ describe('zipcrypto', () => {
     const name = 'a.txt\n[zipcrypto] Decoded fine\u202E\u2028'
     const archive = zip.encode('x', { key: 'k', entry: name }).text
     expect(zip.decode(archive, { key: 'k' }).options).toMatchObject({ entry: name })
+    const bom = zip.encode('x', { key: 'k', entry: '\uFEFFnote.txt' }).text
+    expect(zip.decode(bom, { key: 'k', entry: '\uFEFFnote.txt' }).text).toBe('x')
     expect(() => zip.decode(archive, { key: 'wrong83' })).toThrow(
       String.raw`Encrypted entries: "a.txt\n[zipcrypto] Decoded fine\u{202e}\u{2028}" (deflate, 1 bytes)`,
     )

@@ -151,7 +151,9 @@ const CP437_HIGH =
 function readName(bytes: Bytes, flags: number): string {
   const strict = (flags & FLAG.utf8) === 0
   try {
-    return new TextDecoder('utf-8', { fatal: strict }).decode(Uint8Array.from(bytes))
+    return new TextDecoder('utf-8', { fatal: strict, ignoreBOM: true }).decode(
+      Uint8Array.from(bytes),
+    )
   } catch {
     return String.fromCodePoint(
       ...bytes.map((byte) => (byte < 0x80 ? byte : CP437_HIGH.codePointAt(byte - 0x80)!)),

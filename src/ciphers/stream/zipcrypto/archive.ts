@@ -109,17 +109,15 @@ function findEnd(bytes: Bytes): number {
   )
 }
 
-/** What ZIP64 leaves in a 16 or 32-bit field to say the real value sits in a ZIP64 record. */
-const ZIP64_MARKERS: readonly number[] = [0xff_ff, 0xff_ff_ff_ff]
-
 /**
  * Refuses a ZIP64 marker. Info-ZIP adds ZIP64 records on a pipe even when every field fits.
  *
  * @param value - The field as read.
+ * @param size - Its width in bytes, 2 or 4, since only all ones in that width is the marker.
  * @throws {CipherError} When it is a ZIP64 marker.
  */
-function checkZip64(value: number): void {
-  if (ZIP64_MARKERS.includes(value)) {
+function checkZip64(value: number, size: 2 | 4): void {
+  if (value === 256 ** size - 1) {
     throw new CipherError('Not supported: ZIP64 archives, past 65535 entries or 4 GiB')
   }
 }
@@ -132,21 +130,33 @@ function checkZip64(value: number): void {
  * @throws {CipherError} When the archive needs ZIP64 or is split.
  */
 function checkEnd(bytes: Bytes, end: number): void {
-  checkZip64(readNumber(bytes, end + 10, 2))
-  checkZip64(readNumber(bytes, end + 16, 4))
+  checkZip64(readNumber(bytes, end + 10, 2), 2)
+  checkZip64(readNumber(bytes, end + 16, 4), 4)
   if (readNumber(bytes, end + 4, 2) !== 0 || readNumber(bytes, end + 6, 2) !== 0) {
     throw new CipherError('Not supported: archives split over several disks or files')
   }
 }
 
+/** Code page 437 from 0x80 up, what APPNOTE says a name without flag bit 11 is written in. */
+const CP437_HIGH =
+  'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■\u00A0'
+
 /**
- * Decodes a file name: UTF-8 when flag bit 11 says so, and in practice when it is plain ASCII.
+ * A file name: UTF-8 when it decodes, since Info-ZIP on Unix skips bit 11, or else code page 437.
  *
  * @param bytes - The name bytes.
+ * @param flags - The general purpose flags.
  * @returns {string} The name.
  */
-function readName(bytes: Bytes): string {
-  return new TextDecoder().decode(Uint8Array.from(bytes))
+function readName(bytes: Bytes, flags: number): string {
+  const strict = (flags & FLAG.utf8) === 0
+  try {
+    return new TextDecoder('utf-8', { fatal: strict }).decode(Uint8Array.from(bytes))
+  } catch {
+    return String.fromCodePoint(
+      ...bytes.map((byte) => (byte < 0x80 ? byte : CP437_HIGH.codePointAt(byte - 0x80)!)),
+    )
+  }
 }
 
 /**
@@ -168,7 +178,10 @@ function readCentral(bytes: Bytes, at: number): { entry: ZipEntry; next: number 
     throw new CipherError('Broken archive: a central directory header runs past the end')
   }
   const entry: ZipEntry = {
-    name: readName(bytes.slice(at + CENTRAL_SIZE, at + CENTRAL_SIZE + nameLength)),
+    name: readName(
+      bytes.slice(at + CENTRAL_SIZE, at + CENTRAL_SIZE + nameLength),
+      readNumber(bytes, at + 8, 2),
+    ),
     flags: readNumber(bytes, at + 8, 2),
     method: readNumber(bytes, at + 10, 2),
     time: readNumber(bytes, at + 12, 2),
@@ -177,7 +190,7 @@ function readCentral(bytes: Bytes, at: number): { entry: ZipEntry; next: number 
     size: readNumber(bytes, at + 24, 4),
     offset: readNumber(bytes, at + 42, 4),
   }
-  for (const field of [entry.compressedSize, entry.size, entry.offset]) checkZip64(field)
+  for (const field of [entry.compressedSize, entry.size, entry.offset]) checkZip64(field, 4)
   return { entry, next }
 }
 

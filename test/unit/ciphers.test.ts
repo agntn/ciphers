@@ -7802,6 +7802,29 @@ describe('zipcrypto', () => {
     )
   })
 
+  it('takes a 65535-byte entry for what it is, not a ZIP64 marker', () => {
+    const plain = 'A'.repeat(0xff_ff)
+    const archive = zip.encode(plain, { key: 'k', method: 'stored' }).text
+    expect(zip.decode(archive, { key: 'k' }).text).toBe(plain)
+  })
+
+  /** 0x82 is é in code page 437, as Python's cp437 codec reads it. */
+  it('reads a name without the UTF-8 flag as code page 437, or as the UTF-8 Info-ZIP writes', () => {
+    const bytes = Buffer.from(zip.encode('hi', { key: 'k', entry: 'cafX.txt' }).text, 'hex')
+    for (let at = bytes.indexOf('cafX'); at !== -1; at = bytes.indexOf('cafX', at + 1)) {
+      bytes[at + 3] = 0x82
+    }
+    expect(zip.decode(bytes.toString('hex'), { key: 'k', entry: 'café.txt' }).text).toBe('hi')
+    const utf8 = Buffer.from(zip.encode('hi', { key: 'k', entry: 'café.txt' }).text, 'hex')
+    for (const signature of ['504b0304', '504b0102']) {
+      const flags = utf8.indexOf(Buffer.from(signature, 'hex')) + (signature === '504b0304' ? 6 : 8)
+      utf8.writeUInt16LE(utf8.readUInt16LE(flags) & ~0x8_00, flags)
+    }
+    expect(zip.decode(utf8.toString('hex'), { key: 'k' }).options).toMatchObject({
+      entry: 'café.txt',
+    })
+  })
+
   it('reports the stream category', () => {
     expect(resolveCipher('ZipCrypto')).toBe(zip)
     expect(zip.info()).toMatchObject({

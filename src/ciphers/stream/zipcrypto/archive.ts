@@ -254,7 +254,7 @@ export interface ArchiveFile {
  * The fields the local and the central header share, from version needed to the name length.
  *
  * @param file - The entry.
- * @returns {number[]} 26 bytes.
+ * @returns {number[]} 24 bytes.
  */
 function sharedFields(file: Readonly<ArchiveFile>): number[] {
   const ascii = file.name.every((byte) => byte < 0x80)

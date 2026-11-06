@@ -66,7 +66,7 @@ interface Archive {
   readonly entries: readonly ZipEntry[]
 }
 
-/** What came out of one entry, with what `encode` takes back to write it again. */
+/** What came out of one entry, and the header bytes it was written with. */
 interface Opened {
   readonly entry: ZipEntry
   readonly data: Bytes
@@ -338,7 +338,7 @@ function readEntryName(options: Readonly<CipherBaseOptions>): string {
 }
 
 /**
- * The result options, which `encode` takes back to write the same archive.
+ * The result options, which rewrite an archive from `encode` byte for byte when fed back.
  *
  * @param secret - The password and keys as passed.
  * @param opened - What came out of the entry.

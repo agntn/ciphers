@@ -277,6 +277,18 @@ describe('CLI dashed text and stdin', () => {
       'hello\n',
     )
   })
+
+  it('names the ZIP entries after --key when the password is missing', () => {
+    const archive = runCli(['encode', 'zipcrypto', 'hello', '--key', 'pw', '--entry', 'a.txt'])
+    expect(archive.stdout).toMatch(/^504b0304/u)
+    expect(
+      runCli(['decode', 'zipcrypto', '-', '--key', 'pw'], { input: archive.stdout }).stdout,
+    ).toBe('hello\n')
+    expectRefusal(
+      ['decode', 'zipcrypto', archive.stdout.trim()],
+      'Invalid arguments at --key: missing. Pass key, the password, or keys. Encrypted entries: a.txt (deflate, 5 bytes)',
+    )
+  })
 })
 
 describe('CLI closed stdout', () => {

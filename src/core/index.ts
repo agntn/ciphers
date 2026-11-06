@@ -65,6 +65,7 @@ export type {
   ChaCha20Options,
   XChaCha20Options,
   ChaCha20Poly1305Options,
+  ZipCryptoOptions,
   CipherInfo,
   CipherOption,
 } from './types.ts'

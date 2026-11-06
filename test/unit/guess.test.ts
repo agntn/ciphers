@@ -281,6 +281,14 @@ Co2B
     expect(ranking(guessFamily(`See below.\n\n${armor}\n`))).toEqual(['openpgp:high'])
   })
 
+  /** The first bytes of what zip -e writes, in hex and in base64. */
+  it('knows a ZIP archive', () => {
+    for (const archive of ['504B030414000100080000002100', 'UEsDBBQAAQAIAAAAIQA=']) {
+      expect(ranking(guessFamily(archive))).toEqual(['zipcrypto:high'])
+    }
+    expect(ranking(guessFamily('504b0506000000000000'))).not.toContain('zipcrypto:high')
+  })
+
   it('keeps the confidence low on a short text and guesses nothing below ten letters', () => {
     const short = guessFamily(
       create('vigenere').encode('MEET ME AT THE OLD MILL', { key: 'KEY' }).text,

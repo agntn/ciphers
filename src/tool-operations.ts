@@ -89,6 +89,9 @@ export type CipherToolParams = {
     | 'camellia192'
     | 'camellia256'
   count?: number
+  keys?: string
+  entry?: string
+  method?: 'stored' | 'deflate'
   keyLength?: number
   iterations?: number
   salt?: string
@@ -154,7 +157,7 @@ export const AFFINE_MULTIPLIERS = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25] as
  */
 export const OPTION_DESCRIPTIONS = {
   category: `Cipher category to list: ${cipherCategories.join(', ')}. Omit to list every category`,
-  key: 'Keyword, the cipher alphabet for substitution (26 letters, ? for one left unknown, or a keyword the rest of A-Z follows), the matrix for hill (4 or 9 symbols of its alphabet row by row, A-Z with A as 0 by default), the additive keyword for nihilist, the left (ciphertext) alphabet for chaocipher and the alphabet over the triples for fractionated-morse (26 letters, or a keyword the rest of A-Z follows), digits 0 to 9 for gronsfeld, a 10-letter keyword or the digits 0 to 9 in any order for tridigital, a passage with at least one letter per letter of the text for running-key, the passphrase for aes-passphrase and openpgp (any text), or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, camellia and aria, 10 to 32 (an even number) for cast5, 32 for sm4 and rabbit, 2 to 512 (an even number) for rc4, any nonzero even number for xor, 32 or 64 for salsa20, 64 for xsalsa20, chacha20, xchacha20 and chacha20-poly1305. Required by substitution, vigenere, gronsfeld, beaufort, porta, autokey, running-key, alberti, quagmire-1, quagmire-2, quagmire-3, quagmire-4, chaocipher, playfair, four-square, two-square, hill, nihilist, fractionated-morse, tridigital, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, aes-passphrase, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent, cast5, camellia, aria, sm4, openpgp, rabbit, rc4, xor, salsa20, xsalsa20, chacha20, xchacha20 and chacha20-poly1305; optional for polybius, adfgvx, bifid, trifid and straddling-checkerboard (the 28 cells row by row, each letter A-Z once and two fillers such as . and /)',
+  key: 'Keyword, the cipher alphabet for substitution (26 letters, ? for one left unknown, or a keyword the rest of A-Z follows), the matrix for hill (4 or 9 symbols of its alphabet row by row, A-Z with A as 0 by default), the additive keyword for nihilist, the left (ciphertext) alphabet for chaocipher and the alphabet over the triples for fractionated-morse (26 letters, or a keyword the rest of A-Z follows), digits 0 to 9 for gronsfeld, a 10-letter keyword or the digits 0 to 9 in any order for tridigital, a passage with at least one letter per letter of the text for running-key, the passphrase for aes-passphrase and openpgp (any text), or a hex key: 32, 48 or 64 digits for aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb and aes-cbc-mac, 64, 80 or 96 for aes-lrw, 64 or 128 for aes-xts, 32, 40, 48, 56 or 64 for rijndael, 16 for des, 48 for desx, 32 or 48 for triple-des and triple-des-cbc, 8 to 112 (an even number) for blowfish, 32 for idea and lucifer, 32 to 112 in steps of 8 for mars, 32, 48 or 64 for serpent, camellia and aria, 10 to 32 (an even number) for cast5, 32 for sm4 and rabbit, 2 to 512 (an even number) for rc4, any nonzero even number for xor, 32 or 64 for salsa20, 64 for xsalsa20, chacha20, xchacha20 and chacha20-poly1305. Required by substitution, vigenere, gronsfeld, beaufort, porta, autokey, running-key, alberti, quagmire-1, quagmire-2, quagmire-3, quagmire-4, chaocipher, playfair, four-square, two-square, hill, nihilist, fractionated-morse, tridigital, columnar, aes, aes-cbc, aes-cfb, aes-ofb, aes-ctr, aes-ccm, aes-ocb, aes-lrw, aes-xts, aes-cbc-mac, aes-passphrase, rijndael, des, desx, triple-des, triple-des-cbc, blowfish, idea, lucifer, mars, serpent, cast5, camellia, aria, sm4, openpgp, rabbit, rc4, xor, salsa20, xsalsa20, chacha20, xchacha20 and chacha20-poly1305; optional for polybius, adfgvx, bifid, trifid, straddling-checkerboard (the 28 cells row by row, each letter A-Z once and two fillers such as . and /) and zipcrypto (the password, any text, which keys can stand in for)',
   secondKey:
     'Four-square, two-square, quagmire-4, chaocipher and tridigital only, and required there: keyword for the second keyed square or alphabet, the rest of A-Z after it. That is the bottom left square of four-square, where key fills the top right, the bottom or right square of two-square, where key fills the top or left, both with J as I unless omit is q, the cipher alphabet of quagmire-4, where key keys the plain one, the right (plaintext) alphabet of chaocipher, where key is the left one, and the alphabet in the tridigital block',
   transposition: 'ADFGVX only: keyword for the columnar transposition after the grid step',
@@ -169,7 +172,7 @@ export const OPTION_DESCRIPTIONS = {
     'Quagmire only, and required there: the indicator keyword, written down the column under indicatorUnder; each letter sets the cipher row for one letter of the text, in turn',
   indicatorUnder:
     'Quagmire only: the plain letter the indicator keyword stands under, one letter from A to Z (default A)',
-  iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it). Openpgp encoding only: the random first block, 16 digits or 32 for AES and Camellia (default random)',
+  iv: 'Initialization vector in hex. Required by AES-CBC, AES-CFB, AES-OFB and AES-CTR (32 digits, the initial counter block for AES-CTR) and triple-des-cbc (16 digits); optional for rabbit (16 digits, IV setup skipped without it). Openpgp encoding only: the random first block, 16 digits or 32 for AES and Camellia (default random). Zipcrypto encoding only: the 11 random bytes of the encryption header, 22 digits (default random)',
   endian:
     'Rabbit only: byte order of key, IV and keystream, big as in RFC 4503 and CyberChef (default) or little as in Crypto++',
   bytes:
@@ -214,6 +217,11 @@ export const OPTION_DESCRIPTIONS = {
     'AES-passphrase only: key length in bits, 128 to 1024 in steps of 32, CryptoJS keySize times 32 (default 256); decoding needs the same value',
   iterations:
     'AES-passphrase only: hash passes per derived block, 1 to 100000, CryptoJS EvpKDF iterations (default 1); decoding needs the same value',
+  keys: 'Zipcrypto only: the three internal keys in place of the password, 24 hex digits as bkcrack prints them, such as c4038591 d5ff449d d3b0c696. Decoding returns them for a password too',
+  entry:
+    'Zipcrypto only: the file inside the archive. Decoding opens the first encrypted one by default, encoding names its one file message.txt',
+  method:
+    'Zipcrypto encoding only: stored or deflate (default deflate); decoding reads it from the archive and opens bzip2 too',
   salt: 'AES-passphrase and openpgp encoding only: 16 hex digits (default random); decoding reads it from the ciphertext',
   maxPeriod: `Longest key length to try, 2 to ${MAX_PERIOD} (default 20)`,
   probeDigests: 'EVP_BytesToKey hashes to try: md5, sha1, sha256 (default all three)',
@@ -267,6 +275,9 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'digest',
     'algorithm',
     'count',
+    'keys',
+    'entry',
+    'method',
     'keyLength',
     'iterations',
     'salt',

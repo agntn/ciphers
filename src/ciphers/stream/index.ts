@@ -7,6 +7,7 @@ import { Rc4 } from './rc4.ts'
 import { Salsa20 } from './salsa/salsa20.ts'
 import { XSalsa20 } from './salsa/xsalsa20.ts'
 import { Xor } from './xor.ts'
+import { ZipCrypto } from './zipcrypto/zipcrypto.ts'
 
 /** The stream ciphers, in registry order. */
 export const stream: readonly CipherConstructor[] = [
@@ -18,4 +19,5 @@ export const stream: readonly CipherConstructor[] = [
   ChaCha20,
   XChaCha20,
   ChaCha20Poly1305,
+  ZipCrypto,
 ]

@@ -18,6 +18,7 @@ export const FAMILIES: ReadonlyArray<{ key: CipherInfo["family"]; label: string 
   { key: "lai-massey", label: "Lai-Massey" },
   { key: "arx", label: "ARX" },
   { key: "permutation", label: "Permutation" },
+  { key: "crc-lcg", label: "CRC and LCG" },
 ] as const;
 
 /** Icons and a one-liner per cipher. Everything else comes from `create(name).info()`. */
@@ -99,6 +100,7 @@ const PRESENTATION: Record<
   chacha20: { icon: "i-lucide-footprints", blurb: "Salsa20 reshuffled, the stream cipher inside TLS 1.3 and WireGuard", sample: "ATTACK AT DAWN", options: { key: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", nonce: "000000000000004a00000000" } },
   xchacha20: { icon: "i-lucide-footprints", blurb: "ChaCha20 with a 24-byte nonce, so nobody has to count", sample: "ATTACK AT DAWN", options: { key: "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f", nonce: "404142434445464748494a4b4c4d4e4f5051525354555658" } },
   "chacha20-poly1305": { icon: "i-lucide-shield-check", blurb: "ChaCha20 with a Poly1305 tag, so a changed byte gets caught", sample: "ATTACK AT DAWN", options: { key: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", nonce: "070000004041424344454647" } },
+  zipcrypto: { icon: "i-lucide-file-archive", blurb: "What zip -e still writes, a password check that a wrong guess passes once in 256", sample: "ATTACK AT DAWN", options: { key: "causality", iv: "000102030405060708090a" } },
 };
 
 export interface CipherEntry {

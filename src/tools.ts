@@ -104,14 +104,31 @@ function refusalAtArgument(error: unknown, fields: readonly string[]): unknown {
   if (field === undefined || !fields.includes(field)) return error
   const issue: InputIssue =
     error instanceof MissingOptionError
-      ? {
-          at: '',
-          problem: `must have required properties ${field}`,
-          missing: [field],
-          line: error.message,
-        }
+      ? missingIssue(error, field)
       : { at: argumentPointer(field, error.value), problem: error.reason, line: error.message }
   return new ToolInputError([error.message], [issue])
+}
+
+/**
+ * A missing option as an issue, kept at its argument when it has a hint so the CLI prints it.
+ *
+ * @param error - The library refusal.
+ * @param field - The argument it names.
+ * @returns {InputIssue} The issue.
+ */
+function missingIssue(
+  error: Pick<MissingOptionError, 'hint' | 'message'>,
+  field: string,
+): InputIssue {
+  if (error.hint !== undefined) {
+    return { at: `/${field}`, problem: `missing. ${error.hint}`, line: error.message }
+  }
+  return {
+    at: '',
+    problem: `must have required properties ${field}`,
+    missing: [field],
+    line: error.message,
+  }
 }
 
 /**
@@ -613,6 +630,18 @@ const cipherInput = Type.Object(
     count: Type.Optional(
       Type.Integer({ minimum: 1024, maximum: 65_011_712, description: OPTION_DESCRIPTIONS.count }),
     ),
+    keys: Type.Optional(
+      Type.String({
+        pattern: '^\\s*(?:[0-9A-Fa-f]\\s*){24}$',
+        description: OPTION_DESCRIPTIONS.keys,
+      }),
+    ),
+    entry: Type.Optional(
+      Type.String({ minLength: 1, maxLength: 0xff_ff, description: OPTION_DESCRIPTIONS.entry }),
+    ),
+    method: Type.Optional(
+      Type.Enum(['stored', 'deflate'], { description: OPTION_DESCRIPTIONS.method }),
+    ),
     keyLength: Type.Optional(
       Type.Integer({
         minimum: 128,
@@ -753,6 +782,7 @@ export const encodeTool = defineCipherTool({
     'Salsa20 (salsa20) is a stream cipher with a key of 32 or 64 hex digits and a nonce of 16, XSalsa20 (xsalsa20) one with a key of 64 and a nonce of 48; they pad nothing, and counter numbers the first 64-byte block (default 0).',
     'ChaCha20 (chacha20) takes a key of 64 hex digits and a nonce of 24, XChaCha20 (xchacha20) the same key and a nonce of 48; both take counter like Salsa20.',
     'ChaCha20-Poly1305 (chacha20-poly1305) takes the ChaCha20 key and nonce and optional aad in hex; the hex out is the text bytes plus a 16-byte tag, and decoding fails unless key, nonce and aad all match.',
+    'ZipCrypto (zipcrypto) is what zip -e and 7-Zip write by default: ciphers_decode takes the ZIP archive in hex or base64 with key, the password, or keys, the three internal keys bkcrack recovers, and opens one stored, deflate or bzip2 entry (entry, default the first encrypted one). It answers only once the CRC-32 and size match, and returns the keys and the method with the text. ciphers_encode writes an archive of one entry in hex, deflate unless method is stored.',
     'Every block and stream cipher, aes-passphrase and openpgp too, takes bytes: hex to read and write the plain side as hex, for bytes that are not UTF-8 text.',
     'ciphers_info lists every option with its default.',
   ],

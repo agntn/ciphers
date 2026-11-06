@@ -173,7 +173,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **playfair**                | digraph                     |      ✗       | `--key` (required)                                                         |
 | **four-square**             | digraph                     |      ✗       | `--key`, `--second-key` (both required), `--omit` (j or q)                 |
 | **two-square**              | digraph                     |      ✗       | `--key`, `--second-key` (both required), `--orientation`, `--omit`         |
-| **hill**                    | polygraphic                 |      ✗       | `--key` (4 or 9 letters, required)                                         |
+| **hill**                    | polygraphic                 |      ✗       | `--key` (4 or 9 symbols, required), `--alphabet` (default A-Z)             |
 | **polybius**                | fractionation               |      ✗       | `--key` (optional)                                                         |
 | **nihilist**                | fractionation               |      ✗       | `--key` (required), `--square` (optional)                                  |
 | **morse**                   | fractionation               |      ✗       | -                                                                          |

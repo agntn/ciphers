@@ -627,6 +627,28 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(decoded.content)).toBe('TRIFID#IS#FUN')
   })
 
+  it('carries the hill alphabet through the protocol', async () => {
+    const client = await connectTestClient()
+    const nine = { cipher: 'hill', key: '2113', alphabet: '012345678' }
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { ...nine, text: '3141567' },
+    })
+    expect(encoded.isError).not.toBe(true)
+    expect(onlyText(encoded.content)).toBe('76077544')
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { ...nine, text: '7607 7544' },
+    })
+    expect(onlyText(decoded.content)).toBe('31415678')
+    const stranger = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { ...nine, text: '7609' },
+    })
+    expect(stranger.isError).toBe(true)
+    expect(onlyText(stranger.content)).toContain('"9" (U+0039) at character 4')
+  })
+
   it('discovers and executes A1Z26 in both forms through the protocol', async () => {
     const client = await connectTestClient()
     const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'a1z26' } })
@@ -1230,6 +1252,9 @@ Co2B
       ['blanks', { cipher: 'straddling-checkerboard', text: 'abc', blanks: '1' }],
       ['symbol', { cipher: 'trifid', text: 'abc', symbol: 'A' }],
       ['symbol', { cipher: 'trifid', text: 'abc', symbol: '..' }],
+      ['alphabet', { cipher: 'hill', text: 'abc', key: 'BAAB', alphabet: 'A' }],
+      ['alphabet', { cipher: 'hill', text: 'abc', key: 'BAAB', alphabet: 'A B' }],
+      ['alphabet', { cipher: 'hill', text: 'abc', key: 'BAAB', alphabet: 'A'.repeat(1001) }],
       ['separator', { cipher: 'a1z26', text: 'abc', separator: '' }],
       ['separator', { cipher: 'a1z26', text: 'abc', separator: '-1-' }],
       ['separator', { cipher: 'a1z26', text: 'abc', separator: '-'.repeat(11) }],

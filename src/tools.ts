@@ -220,8 +220,8 @@ const cipherOptionRequirements: readonly CipherOptionRequirement[] = [
     ciphers: ['hill'],
     required: ['key'],
     key: {
-      pattern: /^(?:[A-Za-z]{4}|[A-Za-z]{9})$/,
-      error: 'must be 4 or 9 ASCII letters (a 2×2 or 3×3 matrix)',
+      pattern: /^(?:\S{4}|\S{9})$/u,
+      error: 'must be 4 or 9 symbols of the alphabet, A-Z unless set (a 2×2 or 3×3 matrix)',
     },
   },
   { ciphers: ['columnar'], required: ['key'] },
@@ -636,6 +636,13 @@ const cipherInput = Type.Object(
     ),
     symbol: Type.Optional(
       Type.String({ pattern: '^[^A-Za-z\\s]$', description: OPTION_DESCRIPTIONS.symbol }),
+    ),
+    alphabet: Type.Optional(
+      Type.String({
+        maxLength: MAX_KEY_LENGTH,
+        pattern: '^\\S{2,}$',
+        description: OPTION_DESCRIPTIONS.alphabet,
+      }),
     ),
     separator: Type.Optional(
       Type.String({

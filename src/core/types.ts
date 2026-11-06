@@ -176,8 +176,10 @@ export interface TwoSquareOptions extends CipherBaseOptions {
 
 /** Hill cipher options. */
 export interface HillOptions extends CipherBaseOptions {
-  /** 4 or 9 letters, the matrix row by row with A as 0. Required. */
+  /** 4 or 9 symbols of the alphabet, the matrix row by row. Required. */
   key: string
+  /** The symbols in order, the first one 0 and the modulus its length. Default: A-Z. */
+  alphabet?: string
 }
 
 /** Polybius cipher options. */

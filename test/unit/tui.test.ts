@@ -79,6 +79,12 @@ describe('untrusted cipher text', () => {
     expect(rendered).toBe('red text')
   })
 
+  it('strips every loose control byte, not just the first', () => {
+    const rendered = renderToolResult(textResult(`one${NUL}two${NUL}three`), {}, plain)
+
+    expect(rendered).toBe('one two three')
+  })
+
   it('strips them in the expanded view as well', () => {
     const rendered = renderToolResult(textResult(`${ESC}[31mred`), { expanded: true }, plain)
 

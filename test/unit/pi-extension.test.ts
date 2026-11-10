@@ -4,7 +4,7 @@ import { Value } from 'typebox/value'
 import { create } from '../../src/index.ts'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
 import ciphersExtension from '../../extensions/pi/ciphers.ts'
-import { periodEstimateTool } from '../../src/tools.ts'
+import { keyRecoverTool, periodEstimateTool } from '../../src/tools.ts'
 
 type ToolResult = {
   readonly content: ReadonlyArray<{ readonly type: string; readonly text: string }>
@@ -310,6 +310,11 @@ describe('Pi extension', () => {
     await expect(
       Promise.resolve(periodEstimateTool.execute({ text: 'TEST', maxPeriod: 101 }, {})),
     ).rejects.toThrow('Invalid option maxPeriod=101: must be at most 100')
+    await expect(
+      Promise.resolve(
+        keyRecoverTool.execute({ text: '12 34', cipher: 'homophonic', starts: 33 }, {}),
+      ),
+    ).rejects.toThrow('Invalid option starts=33: must be at most 32')
 
     const guess = await getTool('ciphers_family_guess').execute('guess', {
       text: '85E813540F0AB405',

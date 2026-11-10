@@ -2,9 +2,12 @@ import type * as CiphersModule from './index.ts'
 import { cipherCategories } from './core/ciphers.ts'
 import {
   DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_HOMOPHONIC_SEED,
+  DEFAULT_HOMOPHONIC_STARTS,
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,
+  MAX_SEED,
   MAX_SYMBOL_WIDTH,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
@@ -13,9 +16,12 @@ import {
 
 export {
   DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_HOMOPHONIC_SEED,
+  DEFAULT_HOMOPHONIC_STARTS,
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,
+  MAX_SEED,
   MAX_SYMBOL_WIDTH,
   cipherCategories,
   keyRecoveryCiphers,
@@ -116,6 +122,8 @@ export const MAX_KEY_LENGTH = 1_000
 export const MAX_BOOK_LENGTH = 1_000_000
 /** Longest key length `ciphers_period_estimate` tries. */
 export const MAX_PERIOD = 100
+/** Most starts `ciphers_key_recover` runs; its worst call still fits the CPU limit of `/mcp`. */
+export const MAX_HOMOPHONIC_STARTS = 32
 /** Key lengths the period estimate prints, most likely first. */
 export const PERIOD_LINES = 10
 /** Kasiski factors the period estimate prints. */
@@ -963,6 +971,8 @@ export type KeyRecoverToolParams = {
   readonly period?: number
   readonly keyLength?: number
   readonly symbolWidth?: number
+  readonly starts?: number
+  readonly seed?: number
   readonly lang?: 'en' | 'pl' | 'ja'
   readonly limit?: number
 }
@@ -984,7 +994,7 @@ const keyRecoveryTexts: Readonly<
   columnar: ['Columnar', 'ciphers_decode with cipher columnar and the key reads the text.'],
   homophonic: [
     'Homophonic',
-    'The key lists each plaintext letter with the symbols that stand for it. The text above is already decoded, one letter per symbol: correct the odd symbol by hand.',
+    'The key lists each plaintext letter with the symbols that stand for it. The text above is already decoded, one letter per symbol: correct the odd symbol by hand, or when every key is a near miss, search again with another seed or more starts.',
   ],
 }
 
@@ -1003,6 +1013,9 @@ function keyRecoverBoundError(params: Readonly<KeyRecoverToolParams>): BrokenBou
   }
   if (params.period !== undefined && params.period > MAX_PERIOD) {
     return ['period', params.period, `must be at most ${MAX_PERIOD}`]
+  }
+  if (params.starts !== undefined && params.starts > MAX_HOMOPHONIC_STARTS) {
+    return ['starts', params.starts, `must be at most ${MAX_HOMOPHONIC_STARTS}`]
   }
   return undefined
 }
@@ -1044,6 +1057,8 @@ export function formatKeyRecovery(
     ...(params.period === undefined ? {} : { period: params.period }),
     ...(params.keyLength === undefined ? {} : { keyLength: params.keyLength }),
     ...(params.symbolWidth === undefined ? {} : { symbolWidth: params.symbolWidth }),
+    ...(params.starts === undefined ? {} : { starts: params.starts }),
+    ...(params.seed === undefined ? {} : { seed: params.seed }),
     ...(params.limit === undefined ? {} : { limit: params.limit }),
   })
   return { content: [{ type: 'text', text: keyRecoveryReply(recovery) }] }

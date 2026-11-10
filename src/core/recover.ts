@@ -1,12 +1,12 @@
 import { InvalidOptionError } from './errors.ts'
 import { assertLanguage, languageTables, type FrequencyLanguage } from './frequency.ts'
 import {
-  homophonicCandidate,
-  homophonicMaps,
+  homophonicCandidates,
   homophonicNoiseFit,
   homophonicStream,
   homophonicSymbols,
-  type HomophonicCandidate,
+  type HomophonicScore,
+  type HomophonicSearch,
 } from './homophonic.ts'
 import { estimatePeriod } from './period.ts'
 import {
@@ -21,9 +21,12 @@ import {
 } from './quadgrams.ts'
 import {
   DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_HOMOPHONIC_SEED,
+  DEFAULT_HOMOPHONIC_STARTS,
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,
+  MAX_SEED,
   MAX_SYMBOL_WIDTH,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
@@ -33,6 +36,8 @@ import { decodeColumnar, mulberry32 } from './utils.ts'
 
 export {
   DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_HOMOPHONIC_SEED,
+  DEFAULT_HOMOPHONIC_STARTS,
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,
@@ -87,6 +92,15 @@ export interface KeyRecoveryOptions {
   readonly keyLength?: number
   /** Homophonic: characters per symbol, whitespace and commas skipped; without it they split. */
   readonly symbolWidth?: number
+  /** Homophonic: random starts, `DEFAULT_HOMOPHONIC_STARTS` without it; each ends in one map. */
+  readonly starts?: number
+  /** Homophonic: seed from 0 to 4294967295; the same seed and text give the same keys. */
+  readonly seed?: number
+  /**
+   * Homophonic: your reading of a plaintext, A to Z, added to its fit in nats per quadgram.
+   * Asked at every step, so it steers the search; `fit` stays the quadgram fit.
+   */
+  readonly score?: HomophonicScore
   /** How many candidates to return. */
   readonly limit?: number
 }
@@ -213,6 +227,9 @@ function checkOptions(options: Readonly<KeyRecoveryOptions>): void {
   checkPeriod(cipher, period)
   checkKeyLength(cipher, keyLength)
   checkSymbolWidth(cipher, options.symbolWidth)
+  checkStarts(cipher, options.starts)
+  checkSeed(cipher, options.seed)
+  checkScore(cipher, options.score)
   if (
     limit !== undefined &&
     (!Number.isInteger(limit) || limit < 1 || limit > MAX_KEY_CANDIDATES)
@@ -285,6 +302,57 @@ function checkSymbolWidth(cipher: KeyRecoveryCipher, symbolWidth: number | undef
       symbolWidth,
       `must be an integer from 1 to ${MAX_SYMBOL_WIDTH}`,
     )
+  }
+}
+
+/**
+ * Refuse starts for another cipher than homophonic, or fewer than one.
+ *
+ * @param cipher - The cipher searched.
+ * @param starts - The starts given, if any.
+ * @throws {InvalidOptionError} When the starts do not fit.
+ */
+function checkStarts(cipher: KeyRecoveryCipher, starts: number | undefined): void {
+  if (starts === undefined) return
+  if (cipher !== 'homophonic') {
+    throw new InvalidOptionError('starts', starts, 'only homophonic takes it')
+  }
+  if (!Number.isInteger(starts) || starts < 1) {
+    throw new InvalidOptionError('starts', starts, 'must be a positive integer')
+  }
+}
+
+/**
+ * Refuse a seed for another cipher than homophonic, or one the generator would fold.
+ *
+ * @param cipher - The cipher searched.
+ * @param seed - The seed given, if any.
+ * @throws {InvalidOptionError} When the seed does not fit.
+ */
+function checkSeed(cipher: KeyRecoveryCipher, seed: number | undefined): void {
+  if (seed === undefined) return
+  if (cipher !== 'homophonic') {
+    throw new InvalidOptionError('seed', seed, 'only homophonic takes it')
+  }
+  if (!Number.isInteger(seed) || seed < 0 || seed > MAX_SEED) {
+    throw new InvalidOptionError('seed', seed, `must be an integer from 0 to ${MAX_SEED}`)
+  }
+}
+
+/**
+ * Refuse a score for another cipher than homophonic, or one that is no function.
+ *
+ * @param cipher - The cipher searched.
+ * @param score - The score given, if any.
+ * @throws {InvalidOptionError} When the score does not fit.
+ */
+function checkScore(cipher: KeyRecoveryCipher, score: unknown): void {
+  if (score === undefined) return
+  if (cipher !== 'homophonic') {
+    throw new InvalidOptionError('score', 'a function', 'only homophonic takes it')
+  }
+  if (typeof score !== 'function') {
+    throw new InvalidOptionError('score', score, 'must be a function from a plaintext to a number')
   }
 }
 
@@ -746,27 +814,26 @@ function decodeWith(text: string, cipher: KeyRecoveryCipher, key: string): strin
  * @param text - The ciphertext.
  * @param options - Options of `recoverKey`.
  * @returns {KeyRecovery} The ranked keys, best first.
- * @throws {InvalidOptionError} When `symbolWidth` does not divide the text.
+ * @throws {InvalidOptionError} When `symbolWidth` does not divide the text, or `score` gives
+ *   anything but a finite number.
  */
 function homophonicRecovery(text: string, options: Readonly<KeyRecoveryOptions>): KeyRecovery {
   const stream = homophonicStream(homophonicSymbols(text, options.symbolWidth))
-  const sample = searchSample(stream.codes)
-  const found = new Map<string, HomophonicCandidate>()
-  if (sample.length >= 4) {
-    for (const plainOf of homophonicMaps(sample, stream.symbols.length)) {
-      const candidate = homophonicCandidate(stream, plainOf)
-      found.set(candidate.key, candidate)
-    }
+  const search: HomophonicSearch = {
+    sample: searchSample,
+    starts: options.starts ?? DEFAULT_HOMOPHONIC_STARTS,
+    seed: options.seed ?? DEFAULT_HOMOPHONIC_SEED,
+    ...(options.score === undefined ? {} : { score: options.score }),
   }
+  const found = homophonicCandidates(stream, search)
   return {
     cipher: 'homophonic',
     language: 'en',
     scoredBy: 'quadgrams',
     letters: stream.codes.length,
     referenceFit: ENGLISH_QUADGRAM_FIT,
-    randomFit:
-      sample.length < 4 ? randomQuadgramFit() : homophonicNoiseFit(stream.codes, searchSample),
-    candidates: [...found.values()]
+    randomFit: found.length === 0 ? randomQuadgramFit() : homophonicNoiseFit(stream.codes, search),
+    candidates: found
       .sort((left, right) => right.rank - left.rank)
       .slice(0, options.limit ?? DEFAULT_KEY_CANDIDATES)
       .map(({ key, map, fit, text: plain }) => ({ key, map, fit, text: plain })),
@@ -782,7 +849,7 @@ function homophonicRecovery(text: string, options: Readonly<KeyRecoveryOptions>)
  * @returns {KeyRecovery} The ranked keys, best fit first.
  * @throws {InvalidOptionError} For an unknown cipher or language, an option the cipher does not
  *   take, a bound broken, a language without quadgrams for substitution, columnar or homophonic,
- *   or a `symbolWidth` that does not divide the text.
+ *   a `symbolWidth` that does not divide the text, or a `score` that gives no finite number.
  */
 export function recoverKey(text: string, options: Readonly<KeyRecoveryOptions>): KeyRecovery {
   checkOptions(options)

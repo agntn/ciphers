@@ -15,11 +15,8 @@ const STEPS_PER_SYMBOL = 2_800
 /** Most steps of one start, reached at 100 symbols; past that the time limit of `/mcp` wins. */
 const MAX_STEPS = 280_000
 
-/** Random starts; each ends in one candidate map. */
-const STARTS = 8
-
-/** Seed of the search, fixed so the same text gives the same answer. */
-const SEED = 0x9e3779b9
+/** Mixed into the seed for the baseline's shuffle, so it draws an order of its own. */
+const NOISE_SEED = 0x5bd1e995
 
 /** What splits symbols without `symbolWidth`, and what a fixed width skips. */
 const SEPARATORS = /[\s,]+/u
@@ -42,8 +39,23 @@ export interface HomophonicCandidate {
   readonly fit: number
   /** The text decoded, one letter per symbol. */
   readonly text: string
-  /** `fit` less the letter distribution penalty; ranks the candidates. */
+  /** `fit` less the letter distribution penalty, plus the caller's score; ranks the candidates. */
   readonly rank: number
+}
+
+/** A caller's own reading of a plaintext, added to the quadgram fit and in its units. */
+export type HomophonicScore = (plain: string) => number
+
+/** How one homophonic search runs: what it reads, how often it starts, what it draws from. */
+export interface HomophonicSearch {
+  /** Picks the symbols to search on out of a whole text. */
+  readonly sample: (codes: readonly number[]) => number[]
+  /** Random starts; each ends in one candidate map. */
+  readonly starts: number
+  /** Seed of the generator; the same seed and text give the same maps. */
+  readonly seed: number
+  /** Extra score of a plaintext, steering the search and the ranking alike. */
+  readonly score?: HomophonicScore
 }
 
 /** What every start of the search shares: the text, where each symbol sits, the target counts. */
@@ -55,6 +67,8 @@ interface Layout {
   /** Count of each letter in English text of this length. */
   readonly want: readonly number[]
   readonly levels: ArrayLike<number>
+  /** The caller's score, when the search takes one. */
+  readonly score: HomophonicScore | undefined
 }
 
 /**
@@ -111,11 +125,12 @@ export function homophonicStream(symbols: readonly string[]): HomophonicStream {
 /**
  * Where each symbol sits in a run of symbol numbers, and the quadgrams it touches.
  *
- * @param codes - Symbol numbers.
- * @param symbols - How many distinct symbols.
+ * @param codes - Symbol numbers, every symbol from 0 to the highest showing at least once.
+ * @param score - The caller's score, if any.
  * @returns {Layout} The layout every start reuses.
  */
-function layout(codes: readonly number[], symbols: number): Layout {
+function layout(codes: readonly number[], score: HomophonicScore | undefined): Layout {
+  const symbols = symbolCount(codes)
   const positions = Array.from({ length: symbols }, (): number[] => [])
   codes.forEach((code, index) => positions[code]!.push(index))
   const starts = positions.map((places) => {
@@ -127,7 +142,35 @@ function layout(codes: readonly number[], symbols: number): Layout {
     return [...found]
   })
   const want = englishFrequencies().map((share) => share * codes.length)
-  return { codes, positions, starts, want, levels: quadgramLevels() }
+  return { codes, positions, starts, want, levels: quadgramLevels(), score }
+}
+
+/**
+ * How many symbols a run of symbol numbers holds, counted from 0.
+ *
+ * @param codes - Symbol numbers.
+ * @returns {number} One more than the highest.
+ */
+function symbolCount(codes: readonly number[]): number {
+  return codes.reduce((most, code) => Math.max(most, code), -1) + 1
+}
+
+/**
+ * Ask the caller's score about a plaintext and refuse an answer the search cannot add up.
+ *
+ * @param score - The caller's score, if any.
+ * @param plain - Letter codes.
+ * @returns {number} What it gave, in units of fit; 0 without a caller's score.
+ * @throws {InvalidOptionError} When it gives anything but a finite number.
+ */
+function extraFit(score: HomophonicScore | undefined, plain: ArrayLike<number>): number {
+  if (score === undefined) return 0
+  const text = Array.from(plain, (letter) => String.fromCodePoint(65 + letter)).join('')
+  const extra: unknown = score(text)
+  if (typeof extra !== 'number' || !Number.isFinite(extra)) {
+    throw new InvalidOptionError('score', extra, 'must return a finite number for every plaintext')
+  }
+  return extra
 }
 
 /**
@@ -147,6 +190,9 @@ class Annealer {
   private readonly plainOf: number[]
   private readonly plain: Uint8Array
   private readonly counts: number[]
+  /** The caller's score of the map kept, and of the one `try` wrote, as nats over the text. */
+  private extra = 0
+  private tried = 0
   /** Quadgram log probability less the weighted chi-squared, higher reads more like English. */
   score: number
 
@@ -168,7 +214,8 @@ class Annealer {
       (sum, count, letter) => sum + spread(count, layout.want[letter]!),
       0,
     )
-    this.score = -levels * QUADGRAM_STEP - SPREAD_WEIGHT * penalty
+    this.extra = this.extraNow()
+    this.score = -levels * QUADGRAM_STEP - SPREAD_WEIGHT * penalty + this.extra
   }
 
   /**
@@ -210,7 +257,9 @@ class Annealer {
       spread(newCount + size, want[letter]!) -
       spread(oldCount, want[old]!) -
       spread(newCount, want[letter]!)
-    return (before - this.levelsAt(starts)) * QUADGRAM_STEP - SPREAD_WEIGHT * moved
+    this.tried = this.extraNow()
+    const read = (before - this.levelsAt(starts)) * QUADGRAM_STEP - SPREAD_WEIGHT * moved
+    return read + (this.tried - this.extra)
   }
 
   /**
@@ -225,6 +274,7 @@ class Annealer {
     const letter = this.plain[this.layout.positions[symbol]![0]!]!
     this.counts[letter]! += size
     this.plainOf[symbol] = letter
+    this.extra = this.tried
     this.score += change
   }
 
@@ -245,6 +295,15 @@ class Annealer {
    */
   private write(symbol: number, letter: number): void {
     for (const place of this.layout.positions[symbol]!) this.plain[place] = letter
+  }
+
+  /**
+   * The caller's score of the text as it stands, spread over its quadgrams like the fit.
+   *
+   * @returns {number} Nats to add to the score, 0 without a caller's score.
+   */
+  private extraNow(): number {
+    return extraFit(this.layout.score, this.plain) * (this.plain.length - 3)
   }
 
   /**
@@ -305,37 +364,43 @@ function anneal(layout: Readonly<Layout>, next: () => number): number[] {
 /**
  * Anneal a map from symbols to letters from several random starts.
  *
- * @param codes - Symbol numbers to search on, at least four.
- * @param symbols - How many distinct symbols; every one of them shows in `codes`.
- * @returns {number[][]} The map each start ended at, letter code per symbol.
+ * @param codes - Symbol numbers of the whole text, numbered from 0 in order of first appearance.
+ * @param search - What to read of them, how many starts and the seed.
+ * @returns {number[][]} The map each start ended at, letter code per symbol; none when the
+ *   search reads under four symbols.
+ * @throws {InvalidOptionError} When the caller's score gives anything but a finite number.
  */
-export function homophonicMaps(codes: readonly number[], symbols: number): number[][] {
-  const shared = layout(codes, symbols)
-  const next = mulberry32(SEED)
-  return Array.from({ length: STARTS }, () => anneal(shared, next))
+function homophonicMaps(codes: readonly number[], search: Readonly<HomophonicSearch>): number[][] {
+  const sample = search.sample(codes)
+  if (sample.length < 4) return []
+  const shared = layout(sample, search.score)
+  const next = mulberry32(search.seed)
+  return Array.from({ length: search.starts }, () => anneal(shared, next))
 }
 
 /**
  * Fit the candidates' search reaches on the whole text shuffled: a many-to-one map's noise.
  *
  * @param codes - Symbol numbers of the whole text, numbered from 0 in order of first appearance.
- * @param sample - Picks the symbols to search on, as it does for the candidates.
+ * @param search - The search the candidates came from; the shuffle draws from its seed, mixed.
  * @returns {number} Mean natural-log probability per quadgram of the shuffled text decoded.
+ * @throws {InvalidOptionError} When the caller's score gives anything but a finite number.
  */
 export function homophonicNoiseFit(
   codes: readonly number[],
-  sample: (codes: readonly number[]) => number[],
+  search: Readonly<HomophonicSearch>,
 ): number {
-  const next = mulberry32(SEED ^ 0x5bd1e995)
+  const next = mulberry32(search.seed ^ NOISE_SEED)
   const shuffled = [...codes]
   for (let index = shuffled.length - 1; index > 0; index--) {
     const other = Math.floor(next() * (index + 1))
     ;[shuffled[index], shuffled[other]] = [shuffled[other]!, shuffled[index]!]
   }
-  const symbols = codes.reduce((most, code) => Math.max(most, code), -1) + 1
-  const scores = homophonicMaps(sample(shuffled), symbols).map((plainOf) =>
-    scorePlain(shuffled.map((code) => plainOf[code]!)),
-  )
+  const scores = homophonicMaps(shuffled, search).map((plainOf) => {
+    const plain = shuffled.map((code) => plainOf[code]!)
+    const { fit, rank } = scorePlain(plain)
+    return { fit, rank: rank + extraFit(search.score, plain) }
+  })
   return scores.reduce((best, score) => (score.rank > best.rank ? score : best)).fit
 }
 
@@ -355,13 +420,38 @@ function scorePlain(plain: readonly number[]): { fit: number; rank: number } {
 }
 
 /**
+ * Search a whole homophonic text and decode it with every distinct map the starts ended at.
+ *
+ * @param stream - The text as symbol numbers.
+ * @param search - What to read of it, how many starts and the seed.
+ * @returns {HomophonicCandidate[]} One candidate per distinct key, in the order found; the
+ *   caller's score counts in `rank`, never in `fit`.
+ * @throws {InvalidOptionError} When the caller's score gives anything but a finite number.
+ */
+export function homophonicCandidates(
+  stream: Readonly<HomophonicStream>,
+  search: Readonly<HomophonicSearch>,
+): HomophonicCandidate[] {
+  const found = new Map<string, HomophonicCandidate>()
+  for (const plainOf of homophonicMaps(stream.codes, search)) {
+    const candidate = homophonicCandidate(stream, plainOf)
+    const extra = extraFit(
+      search.score,
+      stream.codes.map((code) => plainOf[code]!),
+    )
+    found.set(candidate.key, { ...candidate, rank: candidate.rank + extra })
+  }
+  return [...found.values()]
+}
+
+/**
  * Decode a whole homophonic text with one map and score it.
  *
  * @param stream - The text as symbol numbers.
  * @param plainOf - Letter code per symbol.
  * @returns {HomophonicCandidate} The key, map, decoded text and its scores.
  */
-export function homophonicCandidate(
+function homophonicCandidate(
   stream: Readonly<HomophonicStream>,
   plainOf: readonly number[],
 ): HomophonicCandidate {

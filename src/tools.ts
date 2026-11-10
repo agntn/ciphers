@@ -14,6 +14,8 @@ import {
   AFFINE_MULTIPLIERS,
   BRUTE_PREVIEW_LENGTH,
   DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_HOMOPHONIC_SEED,
+  DEFAULT_HOMOPHONIC_STARTS,
   DEFAULT_KEY_CANDIDATES,
   HIDDEN_TEXT_LINES,
   MAX_BRUTE_TEXT_LENGTH,
@@ -28,8 +30,10 @@ import {
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_CANDIDATES,
   MAX_BOOK_LENGTH,
+  MAX_HOMOPHONIC_STARTS,
   MAX_KEY_LENGTH,
   MAX_PERIOD,
+  MAX_SEED,
   MAX_SYMBOL_WIDTH,
   MAX_TRANSFORM_TEXT_LENGTH,
   OPTION_DESCRIPTIONS,
@@ -1164,6 +1168,7 @@ export const keyRecoverTool = defineCipherTool({
     `Vigenère, Beaufort and variant Beaufort try the five likeliest key lengths unless period gives one; ciphers_period_estimate shows the lengths.`,
     `Columnar tries every column order of each length from 2 to ${DEFAULT_COLUMNAR_KEY_LENGTH}, or of keyLength up to ${MAX_COLUMNAR_KEY_LENGTH}; substitution, columnar and homophonic need English.`,
     'Homophonic reads symbols split by whitespace or commas, or runs of symbolWidth characters; its random score is the same symbols shuffled, since a many-to-one map squeezes some English out of any stream. It wants about 600 symbols: at half that most keys come back wrong.',
+    `Homophonic anneals from starts random maps, ${DEFAULT_HOMOPHONIC_STARTS} by default, one key each. The same seed repeats a search; when the keys are all near misses, another seed or more starts looks further.`,
     'Short texts, around 150 letters, give ranked guesses rather than one answer: read the top few.',
   ],
   effect: 'read',
@@ -1193,6 +1198,20 @@ export const keyRecoverTool = defineCipherTool({
           minimum: 1,
           maximum: MAX_SYMBOL_WIDTH,
           description: `Homophonic only: characters per symbol, 1 to ${MAX_SYMBOL_WIDTH}, whitespace and commas skipped; without it whitespace and commas split the symbols`,
+        }),
+      ),
+      starts: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: MAX_HOMOPHONIC_STARTS,
+          description: `Homophonic only: random starts of the search, 1 to ${MAX_HOMOPHONIC_STARTS} (default ${DEFAULT_HOMOPHONIC_STARTS}); each ends in one key, so twice the starts take twice as long`,
+        }),
+      ),
+      seed: Type.Optional(
+        Type.Integer({
+          minimum: 0,
+          maximum: MAX_SEED,
+          description: `Homophonic only: seed of the search, 0 to ${MAX_SEED} (default ${DEFAULT_HOMOPHONIC_SEED}); another seed gives other starts`,
         }),
       ),
       lang: language(

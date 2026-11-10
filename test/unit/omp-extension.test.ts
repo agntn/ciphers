@@ -319,6 +319,16 @@ describe('OMP extension', () => {
     await accepts('ciphers_key_recover', { text: 'ABCDEFGH', cipher: 'homophonic', symbolWidth: 8 })
     await rejects('ciphers_key_recover', { text: 'A', cipher: 'homophonic', symbolWidth: 0 })
     await rejects('ciphers_key_recover', { text: 'A', cipher: 'homophonic', symbolWidth: 9 })
+    await accepts('ciphers_key_recover', {
+      text: 'A',
+      cipher: 'homophonic',
+      starts: 32,
+      seed: 4_294_967_295,
+    })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'homophonic', starts: 0 })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'homophonic', starts: 33 })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'homophonic', seed: -1 })
+    await rejects('ciphers_key_recover', { text: 'A', cipher: 'homophonic', seed: 4_294_967_296 })
   })
 
   it('clips a collapsed result preview and keeps the expanded one whole', async () => {

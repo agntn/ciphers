@@ -1,3 +1,4 @@
+import { decimal } from '@agntn/encodings/decimal'
 import {
   assertLanguage,
   languageTables,
@@ -25,6 +26,16 @@ export interface FamilyCandidate {
   readonly needs?: readonly string[]
 }
 
+/** An encoding the text reads in. No cipher here opens it, `@agntn/encodings` does. */
+export interface EncodingGuess {
+  /** Codec of `@agntn/encodings` that decodes the text. */
+  readonly name: 'decimal'
+  /** What the text decodes to. */
+  readonly text: string
+  /** What in the text points here. */
+  readonly signal: string
+}
+
 /** Ranked family candidates for one text. */
 export interface FamilyGuess {
   /** Characters other than whitespace. */
@@ -36,6 +47,8 @@ export interface FamilyGuess {
   readonly ic?: number
   /** Index of coincidence of plaintext in `language`. */
   readonly referenceIc: number
+  /** Set when the text reads as character codes. Every candidate is `low` once the letters fit. */
+  readonly encoding?: EncodingGuess
   /** Most likely first, empty when nothing in the text points anywhere. */
   readonly candidates: readonly FamilyCandidate[]
 }
@@ -58,6 +71,12 @@ const FLAT = 0.2
 
 /** Pairs show above `-TRANSPARENT / √letters`, as a four-square's do about one time in eight. */
 const TRANSPARENT = 0.6
+
+/** Fewest character codes that can spell a word worth naming. */
+const MIN_CODES = 4
+
+/** Share of letters and spaces that decoded codes need before their letters get counted. */
+const MOSTLY_WORDS = 0.7
 
 /** Fewest letters the statistics read at all. */
 const MIN_LETTERS = 10
@@ -854,7 +873,120 @@ function statistics(reading: Readonly<Reading>): FamilyCandidate[] {
   return [...square(reading), ...hill(reading), ...alphabets(reading)]
 }
 
+/** Ciphers whose ciphertext is numbers. Hex isn't one: any even run of digits is hex. */
+const WRITES_NUMBERS: readonly string[] = ['polybius', 'tap-code', 'nihilist']
+
+/** Words in one case each, or capitalised, with sentence punctuation between them. */
+const WORDS = /^(?:[A-Z]?[a-z]+|[A-Z]+)(?:[ ,.!?'-]+(?:[A-Z]?[a-z]+|[A-Z]+))*[.!?]?$/
+
+/**
+ * The printable ASCII a text spells as decimal character codes.
+ *
+ * @param text - Text to read.
+ * @returns {string | undefined} The characters, or nothing when the codec or a code refuses.
+ */
+function asciiFromDecimal(text: string): string | undefined {
+  let codes: number[]
+  try {
+    codes = [...decimal.decode(text)]
+  } catch {
+    return undefined
+  }
+  if (codes.length < MIN_CODES || codes.some((code) => code < 32 || code > 126)) return undefined
+  return codes.map((code) => String.fromCodePoint(code)).join('')
+}
+
+/** Character codes found in a text, and whether their letters fit the language. */
+interface CodesReading {
+  readonly encoding: EncodingGuess
+  readonly fits: boolean
+}
+
+/**
+ * Whether decoded codes fit the language: ten letters or more, and few symbols.
+ *
+ * @param text - Decoded codes.
+ * @param language - Language the text should read in.
+ * @returns {boolean} True when the letter counts fit.
+ */
+function fitsLanguage(text: string, language: FrequencyLanguage): boolean {
+  const { counts, letters } = letterCounts(text)
+  const spaces = text.split(' ').length - 1
+  return (
+    letters >= MIN_LETTERS &&
+    letters + spaces >= text.length * MOSTLY_WORDS &&
+    fitGap(counts, letters, language) > READS_LIKE_LANGUAGE
+  )
+}
+
+/**
+ * Why decoded codes pass for text when their letters can't settle it.
+ *
+ * @param text - Decoded codes.
+ * @param claimed - Whether a cipher that writes numbers fits the text too.
+ * @returns {string | undefined} The reason, or nothing: a claimed text has to look like words.
+ */
+function looksLikeText(text: string, claimed: boolean): string | undefined {
+  if (WORDS.test(text)) return 'and together they look like words'
+  const plain = text.replaceAll(/[^\dA-Za-z ]/g, '').length
+  return claimed || plain < text.length * MOSTLY_WORDS ? undefined : 'mostly letters and digits'
+}
+
+/**
+ * Decimal character codes that spell text, which the square ciphers get mistaken for.
+ *
+ * @param reading - The text.
+ * @param claimed - Whether a cipher that writes numbers fits the text too.
+ * @returns {CodesReading | undefined} The decoded text, or nothing when it reads as no text.
+ */
+function characterCodes(reading: Readonly<Reading>, claimed: boolean): CodesReading | undefined {
+  const text = asciiFromDecimal(reading.text)
+  if (text === undefined) return undefined
+  const fits = fitsLanguage(text, reading.language)
+  const reason = fits
+    ? `and the letters they spell fit ${reading.language}`
+    : looksLikeText(text, claimed)
+  if (reason === undefined) return undefined
+  const signal = `Every number is a printable ASCII code, ${reason}.`
+  return { encoding: { name: 'decimal', text, signal }, fits }
+}
+
 const RANK: Readonly<Record<GuessConfidence, number>> = { high: 0, medium: 1, low: 2 }
+
+/**
+ * Candidates by confidence, rule order kept within one level.
+ *
+ * @param found - Candidates in rule order.
+ * @returns {FamilyCandidate[]} Most likely first.
+ */
+function ranked(found: readonly FamilyCandidate[]): FamilyCandidate[] {
+  return found
+    .map((each, order) => ({ each, order }))
+    .sort(
+      (left, right) =>
+        RANK[left.each.confidence] - RANK[right.each.confidence] || left.order - right.order,
+    )
+    .map(({ each }) => each)
+}
+
+/**
+ * The candidates, and the character codes ahead of them when the text spells any.
+ *
+ * @param reading - The text.
+ * @param candidates - Ranked candidates.
+ * @returns {Pick<FamilyGuess, 'encoding' | 'candidates'>} All `low` once the letters fit.
+ */
+function besideCodes(
+  reading: Readonly<Reading>,
+  candidates: readonly FamilyCandidate[],
+): Pick<FamilyGuess, 'encoding' | 'candidates'> {
+  const claimed = candidates.some(({ ciphers }) => WRITES_NUMBERS.includes(ciphers[0]!))
+  const codes = characterCodes(reading, claimed)
+  if (codes === undefined) return { candidates }
+  const { encoding, fits } = codes
+  if (!fits) return { encoding, candidates }
+  return { encoding, candidates: candidates.map((found) => ({ ...found, confidence: 'low' })) }
+}
 
 /**
  * Rank the cipher families a text may come from, with the built-in ciphers to try next.
@@ -873,19 +1005,12 @@ export function guessFamily(text: string, language: FrequencyLanguage = 'en'): F
     if (layout.length > 0) break
   }
   const decided = layout.length > 0
-  const candidates = (decided ? layout : statistics(reading))
-    .map((found, order) => ({ found, order }))
-    .sort(
-      (left, right) =>
-        RANK[left.found.confidence] - RANK[right.found.confidence] || left.order - right.order,
-    )
-    .map(({ found }) => found)
   return {
     length: reading.symbols.length,
     letters: reading.letters,
     language,
     ...(decided || reading.letters < 2 ? {} : { ic: reading.ic }),
     referenceIc: languageTables(language).ic,
-    candidates,
+    ...besideCodes(reading, ranked(decided ? layout : statistics(reading))),
   }
 }

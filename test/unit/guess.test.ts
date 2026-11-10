@@ -29,6 +29,11 @@ function ranking(guess: FamilyGuess): string[] {
   return guess.candidates.map(({ ciphers, confidence }) => `${ciphers[0]}:${confidence}`)
 }
 
+/* ASCII text as decimal character codes, one per letter. */
+function codesOf(text: string): string {
+  return Array.from(text, (letter) => letter.codePointAt(0)).join(' ')
+}
+
 describe('guessFamily', () => {
   it("puts Stinson's Vigenère among the polyalphabetic ciphers", () => {
     const guess = guessFamily(STINSON_VIGENERE)
@@ -270,9 +275,72 @@ describe('guessFamily', () => {
   it('lets A1Z26 and Nihilist go first where their numbers fit, and never calls the wider square sure', () => {
     expect(ranking(guessFamily('16 26 19 18 25 17'))).toEqual(['a1z26:high', 'polybius:low'])
     expect(ranking(guessFamily('37 46 62 28 39 55'))).toEqual(['nihilist:low', 'polybius:low'])
-    const codes = '72 69 76 76 79 71 79 79 68 66 89 69'
-    expect(String.fromCodePoint(...codes.split(' ').map(Number))).toBe('HELLOGOODBYE')
-    expect(ranking(guessFamily(codes))).toEqual(['polybius:medium'])
+  })
+
+  it('reads decimal character codes as text and sends the squares to the back', () => {
+    const goodbye = guessFamily('72 69 76 76 79 71 79 79 68 66 89 69')
+    expect(goodbye.encoding).toEqual({
+      name: 'decimal',
+      text: 'HELLOGOODBYE',
+      signal: 'Every number is a printable ASCII code, and the letters they spell fit en.',
+    })
+    expect(ranking(goodbye)).toEqual(['polybius:low'])
+    const world = guessFamily('72 69 76 76 79 32 87 79 82 76 68')
+    expect(world.encoding?.text).toBe('HELLO WORLD')
+    expect(ranking(world)).toEqual(['nihilist:low', 'polybius:low'])
+
+    const hello = guessFamily('72 101 108 108 111')
+    expect(hello.encoding).toEqual({
+      name: 'decimal',
+      text: 'Hello',
+      signal: 'Every number is a printable ASCII code, and together they look like words.',
+    })
+    expect(ranking(hello)).toEqual(['aes-ctr:low'])
+    expect(guessFamily('072069076076079')).toMatchObject({
+      encoding: { text: 'HELLO' },
+      candidates: [],
+    })
+    expect(guessFamily('72,101,108,108,111').encoding?.text).toBe('Hello')
+    const short = guessFamily('72 73 32 72 73 32 72 73 32 72 73 46')
+    expect(short.encoding?.text).toBe('HI HI HI HI.')
+    expect(ranking(short)).toEqual(['nihilist:medium', 'polybius:low'])
+
+    expect(guessFamily(codesOf('flag{n0t_a_c1ph3r}')).encoding).toEqual({
+      name: 'decimal',
+      text: 'flag{n0t_a_c1ph3r}',
+      signal: 'Every number is a printable ASCII code, mostly letters and digits.',
+    })
+  })
+
+  it('keeps a square cipher a cipher when its numbers only happen to be printable', () => {
+    const sums = create('nihilist').encode('HELLO WORLD', { key: 'TSAR' }).text
+    expect(sums).toBe('67 58 42 73 78 95 45 84 75 57')
+    const tsar = guessFamily(sums)
+    expect(tsar).not.toHaveProperty('encoding')
+    expect(ranking(tsar)).toEqual(['nihilist:medium', 'polybius:low'])
+
+    const letters = create('nihilist').encode(DICKENS, { key: 'ZZ' }).text
+    expect(letters.match(/\d+/g)?.every((sum) => Number(sum) >= 65)).toBe(true)
+    expect(guessFamily(letters)).not.toHaveProperty('encoding')
+
+    for (const text of [
+      '72 105',
+      '72 69 76 31',
+      '72 69 76 300',
+      '72 101 108 108 111 10',
+      '72 101 108 108 111 200',
+      '33 33 63 63',
+      '72 69 76 76 x',
+    ]) {
+      expect(guessFamily(text)).not.toHaveProperty('encoding')
+    }
+    expect(ranking(guessFamily('32 33 34 35'))).toEqual(['polybius:medium'])
+    expect(guessFamily('72 49 76 53')).not.toHaveProperty('encoding')
+    expect(guessFamily('72 49 76 101').encoding?.text).toBe('H1Le')
+    const polish = codesOf('Litwo ojczyzno moja ty jestes jak zdrowie')
+    expect(guessFamily(polish, 'pl').encoding?.signal).toBe(
+      'Every number is a printable ASCII code, and the letters they spell fit pl.',
+    )
   })
 
   it('sorts hex by block length', () => {

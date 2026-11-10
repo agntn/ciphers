@@ -13,6 +13,12 @@ import { InvalidOptionError, MissingOptionError } from './core/errors.ts'
 import type { ZeroWidthSchemeName } from './core/zero-width-options.ts'
 import {
   AFFINE_MULTIPLIERS,
+  MAX_ALIGNMENT_CELLS,
+  MAX_ALIGNMENT_ROWS,
+  alignmentCompares,
+  alignmentOperations,
+  alignmentTokens,
+  formatAlignment,
   BRUTE_PREVIEW_LENGTH,
   CHARACTER_LINES,
   DEFAULT_COLUMNAR_KEY_LENGTH,
@@ -1314,6 +1320,94 @@ export const zeroWidthHideTool = defineCipherTool({
   execute: async (params) => answer(formatZeroWidthHide(await loadLibrary(), params)),
 })
 
+/**
+ * One side of a row a caller passes back. The span is optional there, the token numbers are not.
+ *
+ * @returns {object} The schema of `left` and `right`.
+ */
+function alignmentRangeArgument() {
+  return Type.Object(
+    {
+      from: Type.Integer({ minimum: 0, description: 'First token, counted from 0' }),
+      to: Type.Integer({ minimum: 0, description: 'The token after the last one' }),
+      start: Type.Optional(Type.Integer({ minimum: 0, description: 'UTF-16 offset of the span' })),
+      end: Type.Optional(Type.Integer({ minimum: 0, description: 'UTF-16 offset past the span' })),
+    },
+    { additionalProperties: false },
+  )
+}
+
+export const textsAlignTool = defineCipherTool({
+  name: 'ciphers_texts_align',
+  title: 'Align Texts',
+  description: `Align two versions of a text word by word and say what stayed, what changed, what was added and what was dropped. Each row names the tokens and the [start,end) UTF-16 span on both sides, so the place can be cut out of either text. Words pair up so that as many as possible match, and a repeated word that could pair another way is marked ambiguous. With rows, check a map you wrote or edited instead: gaps, overlaps, rows out of order, wrong token counts and false equalities are listed. Texts over ${MAX_ALIGNMENT_CELLS} token comparisons or ${MAX_ALIGNMENT_ROWS} rows are refused, never cut short.`,
+  snippet:
+    'Use ciphers_texts_align on two versions of a text to see which words changed and where.',
+  guidelines: [
+    'left is the earlier or reference text, right the other. Offsets go into each text as passed, so pass them exactly as copied.',
+    'compare loosens what counts as the same word: canonical ignores how accents are encoded, caseless also case, unaccented also the accents. A row with = matched only that way.',
+    'To check rows of your own, pass rows with the same texts, tokens and compare: operation, then left and right as { from, to }.',
+    'Whitespace and punctuation between tokens are not compared. tokens whitespace keeps punctuation inside the tokens.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      left: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'The first version, exactly as copied',
+      }),
+      right: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'The second version, exactly as copied',
+      }),
+      tokens: Type.Optional(
+        Type.Enum(alignmentTokens, {
+          description:
+            'Where the texts are cut: words for runs of letters, marks and digits (default), whitespace for anything between spaces',
+        }),
+      ),
+      compare: Type.Optional(
+        Type.Enum(alignmentCompares, {
+          description:
+            'When two tokens are the same: exact (default), canonical (NFC), caseless (NFC, lower case), unaccented (caseless without combining marks)',
+        }),
+      ),
+      rows: Type.Optional(
+        Type.Array(
+          Type.Object(
+            {
+              operation: Type.Enum(alignmentOperations, {
+                description:
+                  'equal and replace take tokens on both sides, insert only on the right, delete only on the left',
+              }),
+              left: alignmentRangeArgument(),
+              right: alignmentRangeArgument(),
+              exact: Type.Optional(
+                Type.Boolean({ description: 'On equal: whether the raw tokens match too' }),
+              ),
+              ambiguous: Type.Optional(Type.Boolean({ description: 'Carried along, not checked' })),
+            },
+            { additionalProperties: false },
+          ),
+          {
+            maxItems: MAX_ALIGNMENT_ROWS,
+            description:
+              'Rows to check instead of aligning. They must cover every token of both texts, in order',
+          },
+        ),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'align',
+    description: 'Align two versions of a text word by word',
+    positional: ['left', 'right'],
+    stdin: ['left', 'right'],
+  },
+  execute: async (params) => answer(formatAlignment(await loadLibrary(), params)),
+})
+
 export const keyRecoverTool = defineCipherTool({
   name: 'ciphers_key_recover',
   title: 'Recover Key',
@@ -1442,6 +1536,7 @@ export const ciphersTools: readonly ToolDefinition[] = [
   charactersInspectTool,
   zeroWidthReadTool,
   zeroWidthHideTool,
+  textsAlignTool,
   keyRecoverTool,
   infoTool,
 ]
@@ -1490,6 +1585,8 @@ export const callSummaries: Readonly<
     `${named(args['scheme']) || (args['symbols'] === undefined ? 'all' : 'own')} ${excerpt(args['text'])}`,
   ciphers_zero_width_hide: (args) =>
     `${named(args['scheme']) || (args['symbols'] === undefined ? 'binary' : 'own')} ${excerpt(args['text'])}`,
+  ciphers_texts_align: (args) =>
+    `${args['rows'] === undefined ? 'align' : 'check'} ${excerpt(args['left'])}`,
   ciphers_key_recover: (args) => `${named(args['cipher'])} ${excerpt(args['text'])}`,
   ciphers_info: (args) => named(args['cipher']) || named(args['category']) || 'all',
 }

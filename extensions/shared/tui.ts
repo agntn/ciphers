@@ -169,5 +169,6 @@ export const PREVIEWED_TOOLS: ReadonlySet<string> = new Set([
   'ciphers_hidden_text_read',
   'ciphers_zero_width_read',
   'ciphers_zero_width_hide',
+  'ciphers_texts_align',
   'ciphers_key_recover',
 ])

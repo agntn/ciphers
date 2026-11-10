@@ -159,6 +159,31 @@ export {
   type SuspiciousCharacter,
 } from './characters.ts'
 export {
+  MAX_ALIGNMENT_CELLS,
+  MAX_ALIGNMENT_PROBLEMS,
+  alignmentCompares,
+  alignmentOperations,
+  alignmentTokens,
+  type AlignmentCompare,
+  type AlignmentOperation,
+  type AlignmentTokens,
+} from './alignment-options.ts'
+export {
+  alignTexts,
+  checkAlignment,
+  type AlignTextsOptions,
+  type AlignedText,
+  type AlignmentCheck,
+  type AlignmentProblem,
+  type AlignmentProblemCode,
+  type AlignmentRange,
+  type AlignmentRow,
+  type AlignmentSources,
+  type AlignmentSpan,
+  type AlignmentToken,
+  type TextAlignment,
+} from './alignment.ts'
+export {
   MAX_ZERO_WIDTH_DIGITS,
   ZeroWidthError,
   hideZeroWidth,

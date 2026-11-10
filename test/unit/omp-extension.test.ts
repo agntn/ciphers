@@ -300,6 +300,27 @@ describe('OMP extension', () => {
     await accepts('ciphers_zero_width_hide', { text: 'TEST', cover: 'x', scheme: 'binary' })
     await rejects('ciphers_zero_width_hide', { text: 'X'.repeat(10_001) })
     await rejects('ciphers_zero_width_hide', { text: 'TEST', cover: 'X'.repeat(10_001) })
+    await accepts('ciphers_texts_align', { left: 'a b', right: 'a c', tokens: 'whitespace' })
+    await accepts('ciphers_texts_align', {
+      left: 'a',
+      right: 'a',
+      rows: [{ operation: 'equal', left: { from: 0, to: 1 }, right: { from: 0, to: 1, start: 0 } }],
+    })
+    await rejects('ciphers_texts_align', { left: 'a' })
+    await rejects('ciphers_texts_align', { left: 'a', right: 'X'.repeat(100_001) })
+    await rejects('ciphers_texts_align', { left: 'a', right: 'a', compare: 'fuzzy' })
+    await rejects('ciphers_texts_align', {
+      left: 'a',
+      right: 'a',
+      rows: [{ operation: 'equal', left: { from: 0, to: 1.5 }, right: { from: 0, to: 1 } }],
+    })
+    await rejects('ciphers_texts_align', {
+      left: 'a',
+      right: 'a',
+      rows: [
+        { operation: 'equal', left: { from: 0, to: 1 }, right: { from: 0, to: 1 }, note: 'x' },
+      ],
+    })
 
     await accepts('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_000) })
     await rejects('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_001) })

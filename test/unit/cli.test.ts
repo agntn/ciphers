@@ -61,6 +61,7 @@ describe('CLI commands', () => {
       'inspect',
       'reveal',
       'conceal',
+      'align',
       'recover',
       'info, ciphers',
       'mcp',
@@ -239,6 +240,42 @@ describe('CLI analysis', () => {
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('\n1. #1 at 0 (score -3.35): #0 "We can fac"\n')
     expect(result.stdout).toContain(`Key (?? unknown): 66396e${'??'.repeat(25)}\n`)
+  })
+
+  it('aligns two texts, one of them from stdin, and checks rows passed back', () => {
+    const answer = [
+      '3 tokens against 3, cut as words and compared exact: 2 equal, 1 replaced, 0 inserted, 0 deleted.',
+      '',
+      '  equal    left 0-2 [0,7)  right 0-2 [0,7)  "red fox"',
+      '  replace  left 2-3 [8,14)  right 2-3 [8,12)  "sleeps" -> "runs"',
+      '',
+      'Token ranges count from 0 and stop before the second number. [start,end) are UTF-16 offsets into each text.',
+      '',
+    ].join('\n')
+    expect(runCli(['align', 'red fox sleeps', 'red fox runs']).stdout).toBe(answer)
+    expect(runCli(['align', '-', 'red fox runs'], { input: 'red fox sleeps' }).stdout).toBe(answer)
+
+    const whole = [{ operation: 'equal', left: { from: 0, to: 3 }, right: { from: 0, to: 3 } }]
+    const checked = runCli([
+      'align',
+      'red fox sleeps',
+      'red fox runs',
+      '--rows',
+      JSON.stringify(whole),
+    ])
+    expect(checked.status).toBe(0)
+    expect(checked.stdout).toBe(
+      [
+        'The rows do not hold against 3 left and 3 right tokens, 1 problem:',
+        '',
+        '  /rows/0 equality: left token 2 does not equal its partner',
+        '',
+      ].join('\n'),
+    )
+    expectRefusal(
+      ['align', 'a', 'b', '--compare', 'fuzzy'],
+      'Invalid arguments at --compare: must be one of exact, canonical, caseless, unaccented',
+    )
   })
 
   it('finds a lookalike, from an argument and from stdin', () => {

@@ -154,6 +154,29 @@ describe('registry without import side effects', () => {
     },
   )
 
+  it.each(['inspectCharacters', 'confusableSkeleton'])(
+    'bundles %s with the Unicode tables and nothing of the ciphers',
+    async (name) => {
+      const kept = await keptModules(name)
+      expect(kept).toContain('src/core/confusables.ts')
+      expect(kept).not.toContain('src/core/frequency.ts')
+      expect(kept).not.toContain('src/core/quadgrams.ts')
+      expect(kept.filter((file) => file.startsWith('src/ciphers/'))).toEqual([])
+    },
+  )
+
+  it.each([
+    'readZeroWidth',
+    'hideZeroWidth',
+    'rankZeroWidth',
+    'create',
+    'analyzeFrequency',
+    'readHiddenText',
+    'recoverKey',
+  ])('bundles %s without the Unicode tables', async (name) => {
+    expect(await keptModules(name)).not.toContain('src/core/confusables.ts')
+  })
+
   it('keeps the registry when a bundler assumes no import side effects', async () => {
     const { rolldown } = (await import(pathToFileURL(rolldownEntry()).href)) as {
       rolldown: (

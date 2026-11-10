@@ -56,6 +56,9 @@ describe('Ciphers MCP server', () => {
       'ciphers_passphrase_probe',
       'ciphers_crib_drag',
       'ciphers_hidden_text_read',
+      'ciphers_characters_inspect',
+      'ciphers_zero_width_read',
+      'ciphers_zero_width_hide',
       'ciphers_key_recover',
       'ciphers_info',
     ])
@@ -1846,6 +1849,146 @@ Co2B
       const refused = await drag(args)
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain('Invalid arguments at /')
+    }
+  })
+
+  it('inspects characters and carries zero-width messages over the protocol', async () => {
+    const client = await connectTestClient()
+    const call = async (name: string, args: Readonly<Record<string, unknown>>) =>
+      client.callTool({ name: `ciphers_${name}`, arguments: args })
+    const bitcoin = `Bitc${String.fromCodePoint(0x43e)}in`
+
+    expect(onlyText((await call('characters_inspect', { text: bitcoin })).content)).toBe(
+      [
+        '1 of 7 characters are not what they seem, held against Latin:',
+        '',
+        '  U+043E CYRILLIC SMALL LETTER O (Cyrillic) looks like "o" at 5',
+        '',
+        'Words that mix scripts:',
+        `  "${bitcoin}" at 1: Latin and Cyrillic, skeleton "Bitcoin"`,
+        '',
+        'In order: U+043E',
+        'As the ASCII they pass for: "o"',
+      ].join('\n'),
+    )
+    expect(onlyText((await call('characters_inspect', { text: 'Bitcoin' })).content)).toBe(
+      'Nothing odd in 7 characters held against Latin: no invisible character, no lookalike, no other script.',
+    )
+    expect(
+      onlyText((await call('characters_inspect', { text: 'abc', script: 'Cyrillic' })).content),
+    ).toBe(
+      [
+        '3 of 3 characters are not what they seem, held against Cyrillic:',
+        '',
+        '  U+0061 Latin character at 1',
+        '  U+0062 Latin character at 2',
+        '  U+0063 Latin character at 3',
+        '',
+        'In order: U+0061 U+0062 U+0063',
+      ].join('\n'),
+    )
+
+    for (const scheme of ['binary', '330k', 'zwsp-steg', 'zero-width-lib']) {
+      const hidden = onlyText(
+        (await call('zero_width_hide', { text: 'Hi there', cover: 'A cover.', scheme })).content,
+      )
+      expect(hidden.replaceAll(/\p{Cf}/gu, '')).toBe('A cover.')
+      expect(onlyText((await call('zero_width_read', { text: hidden, scheme })).content)).toBe(
+        'Hi there',
+      )
+      expect(onlyText((await call('zero_width_read', { text: hidden })).content)).toContain(
+        `\n  scheme=${scheme} -> "Hi there"`,
+      )
+      expect(onlyText((await call('characters_inspect', { text: hidden })).content)).toContain(
+        `\nThe invisible ones spell "Hi there" with scheme=${scheme}; ciphers_zero_width_read reads it whole.`,
+      )
+    }
+
+    const swapped = { symbols: 'U+200C U+200B', digits: 8 }
+    const own = onlyText((await call('zero_width_hide', { text: 'Hi', ...swapped })).content)
+    expect(Array.from(own, (character) => character.codePointAt(0)?.toString(16))).toEqual(
+      Array.from('0100100001101001', (bit) => (bit === '0' ? '200c' : '200b')),
+    )
+    expect(onlyText((await call('zero_width_read', { text: own })).content)).toBe(
+      [
+        'Zero-width readings (5 schemes tried, 1 read as text), printable ASCII first:',
+        '',
+        '  symbols="U+200C U+200B" digits=8 unit=byte -> "Hi"',
+      ].join('\n'),
+    )
+    expect(
+      onlyText((await call('zero_width_read', { text: own, ...swapped, unit: 'byte' })).content),
+    ).toBe('Hi')
+    expect(
+      onlyText(
+        (await call('zero_width_read', { text: ' \t \t\t\t\t\t', symbols: ' \t', digits: 8 }))
+          .content,
+      ),
+    ).toBe('_')
+    expect(onlyText((await call('zero_width_read', { text: 'plain' })).content)).toBe(
+      'No invisible character in this text, so nothing to read.',
+    )
+    expect(onlyText((await call('zero_width_read', { text: own.slice(0, 3) })).content)).toBe(
+      'None of the 5 built-in schemes reads the invisible characters here: U+200C ×2, U+200B ×1. Pass symbols in digit order, with digits or separator, for a scheme of your own.',
+    )
+    expect(
+      onlyText((await call('zero_width_read', { text: 'plain', scheme: 'binary' })).content),
+    ).toBe("None of the scheme's characters are in this text.")
+
+    for (const [name, args, message] of [
+      [
+        'characters_inspect',
+        { text: 'abc', script: 'Klingon' },
+        'Invalid option script=Klingon: must be a Unicode script such as Latin, Cyrillic or Greek',
+      ],
+      ['zero_width_read', { text: 'abc', digits: 8 }, 'Missing required option: symbols'],
+      [
+        'zero_width_read',
+        { text: 'abc', scheme: 'binary', digits: 8 },
+        'Invalid option digits=8: describes a scheme of your own, so it does not apply with scheme',
+      ],
+      ['zero_width_read', { text: 'abc', symbols: 'ab' }, 'Missing required option: digits'],
+      [
+        'zero_width_read',
+        { text: 'abc', symbols: 'U+200B U+ZZ', digits: 8 },
+        'Invalid option symbols=U+ZZ: must be U+ and one to six hex digits',
+      ],
+      [
+        'zero_width_read',
+        { text: 'abc', symbols: 'aa', digits: 8 },
+        'Invalid option symbols=U+0061 U+0061: must not repeat a character',
+      ],
+      [
+        'zero_width_read',
+        { text: 'abc', symbols: 'ab', separator: 'cd' },
+        'Invalid option separator=cd: must be one character',
+      ],
+      [
+        'zero_width_read',
+        { text: own.slice(0, 3), scheme: 'binary' },
+        '3 hidden characters are left over after 0 groups of 8; another scheme wrote this, or part of the text is missing',
+      ],
+      ['zero_width_read', { text: 'abc', scheme: 'rot13' }, 'Invalid arguments at /scheme'],
+      [
+        'zero_width_hide',
+        { text: String.fromCodePoint(0x1f600), scheme: 'zwsp-steg' },
+        'Invalid option message=U+1F600: does not fit 7 digits of base 5',
+      ],
+      [
+        'zero_width_hide',
+        { text: 'x', cover: own, scheme: 'binary' },
+        'Invalid option cover=the cover text: already carries characters of the scheme, which would read as part of the message',
+      ],
+      ['zero_width_hide', { text: 'x', digits: 33, symbols: 'ab' }, 'Invalid arguments at /digits'],
+      [
+        'zero_width_hide',
+        { text: 'x'.repeat(10_000), symbols: 'ab', digits: 32 },
+        'Invalid option text=320000 hidden characters: are more than the 100000 one call returns; hide less, or use fewer digits',
+      ],
+    ] as const) {
+      const refused = await call(name, args)
+      expect(refused.isError, message).toBe(true)
+      expect(onlyText(refused.content)).toContain(message)
     }
   })
 

@@ -13,6 +13,14 @@ import {
   periodicKeyRecoveryCiphers,
   type KeyRecoveryCipher,
 } from './core/recover-options.ts'
+import {
+  MAX_ZERO_WIDTH_DIGITS,
+  zeroWidthSchemes,
+  zeroWidthUnits,
+  type ZeroWidthScheme,
+  type ZeroWidthSchemeName,
+  type ZeroWidthUnit,
+} from './core/zero-width-options.ts'
 
 export {
   DEFAULT_COLUMNAR_KEY_LENGTH,
@@ -23,9 +31,12 @@ export {
   MAX_KEY_CANDIDATES,
   MAX_SEED,
   MAX_SYMBOL_WIDTH,
+  MAX_ZERO_WIDTH_DIGITS,
   cipherCategories,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
+  zeroWidthSchemes,
+  zeroWidthUnits,
 }
 
 type CiphersLibrary = Pick<
@@ -1089,4 +1100,416 @@ function keyRecoveryReply(recovery: Readonly<CiphersModule.KeyRecovery>): string
     `Only the top ${homophonic ? 'key and text are' : 'text is'} whole, the others stop at ${BRUTE_PREVIEW_LENGTH} characters. ${next}`,
   ]
   return lines.join('\n')
+}
+
+/** Code points the character inspection prints, one line each. */
+export const CHARACTER_LINES = 40
+/** Places a character line lists before it counts the rest. */
+export const CHARACTER_POSITIONS = 8
+/** Words that mix scripts the character inspection prints. */
+export const MIXED_WORD_LINES = 20
+/** Listed characters the inspection spells out in order. */
+export const SEQUENCE_CHARACTERS = 64
+/** Most characters `ciphers_zero_width_hide` adds to a cover. */
+export const MAX_ZERO_WIDTH_ADDED = 100_000
+
+export type CharactersInspectToolParams = {
+  readonly text: string
+  readonly script?: string
+}
+
+export type ZeroWidthToolParams = {
+  readonly text: string
+  readonly scheme?: ZeroWidthSchemeName
+  readonly symbols?: string
+  readonly separator?: string
+  readonly digits?: number
+  readonly unit?: ZeroWidthUnit
+}
+
+export type ZeroWidthHideToolParams = ZeroWidthToolParams & { readonly cover?: string }
+
+/**
+ * A code point the way Unicode writes it.
+ *
+ * @param codePoint - The code point.
+ * @returns {string} `U+` and at least four hex digits.
+ */
+function codePointLabel(codePoint: number): string {
+  return `U+${codePoint.toString(16).toUpperCase().padStart(4, '0')}`
+}
+
+/**
+ * Characters as their code points, so an invisible one shows.
+ *
+ * @param text - Any characters.
+ * @returns {string} `U+200B U+200C`, in order.
+ */
+function codePointLabels(text: string): string {
+  return Array.from(text, (character) => codePointLabel(character.codePointAt(0) ?? 0)).join(' ')
+}
+
+/**
+ * What a listed character is, in a few words.
+ *
+ * @param character - One occurrence of it.
+ * @returns {string} Its code point, its name or script, and what it passes for.
+ */
+function characterLabel(character: Readonly<CiphersModule.SuspiciousCharacter>): string {
+  const { kind, script, name, lookalike } = character
+  const fallback = kind === 'combining' ? 'combining mark' : `${script} character`
+  const parts = [`${codePointLabel(character.codePoint)} ${name ?? fallback}`]
+  if (name !== undefined && kind === 'lookalike' && script !== 'Common') parts.push(`(${script})`)
+  if (kind === 'invisible') parts.push('invisible')
+  if (lookalike !== undefined) parts.push(`looks like ${JSON.stringify(lookalike)}`)
+  return parts.join(' ')
+}
+
+/**
+ * The places one character sits at, the first few spelled out.
+ *
+ * @param positions - Code point positions, from 1.
+ * @returns {string} `at 5`, or `12 times at 3, 9 and 10 more`.
+ */
+function placesLabel(positions: readonly number[]): string {
+  if (positions.length === 1) return `at ${positions[0]}`
+  const shown = positions.slice(0, CHARACTER_POSITIONS).join(', ')
+  const rest = positions.length - CHARACTER_POSITIONS
+  return `${positions.length} times at ${shown}${rest > 0 ? ` and ${rest} more` : ''}`
+}
+
+/**
+ * One line per listed code point, in the order each first shows up.
+ *
+ * @param characters - The listed characters.
+ * @returns {string[]} At most `CHARACTER_LINES` lines and a count of the rest.
+ */
+function characterLines(characters: readonly CiphersModule.SuspiciousCharacter[]): string[] {
+  const places = new Map<number, number[]>()
+  const first = new Map<number, CiphersModule.SuspiciousCharacter>()
+  for (const character of characters) {
+    const seen = places.get(character.codePoint)
+    if (seen === undefined) {
+      places.set(character.codePoint, [character.position])
+      first.set(character.codePoint, character)
+    } else {
+      seen.push(character.position)
+    }
+  }
+  const lines = Array.from(first.values(), (character) => {
+    return `  ${characterLabel(character)} ${placesLabel(places.get(character.codePoint) ?? [])}`
+  })
+  if (lines.length <= CHARACTER_LINES) return lines
+  return [
+    ...lines.slice(0, CHARACTER_LINES),
+    `  (${lines.length - CHARACTER_LINES} more code points)`,
+  ]
+}
+
+/**
+ * The words that mix scripts, each with the skeleton to compare it by.
+ *
+ * @param words - Words from the report.
+ * @returns {string[]} A heading and at most `MIXED_WORD_LINES` lines, or nothing.
+ */
+function mixedWordLines(words: readonly CiphersModule.MixedScriptWord[]): string[] {
+  if (words.length === 0) return []
+  const lines = words.slice(0, MIXED_WORD_LINES).map(({ word, position, scripts, skeleton }) => {
+    return `  ${quotedPreview(word)} at ${position}: ${scripts.join(' and ')}, skeleton ${quotedPreview(skeleton)}`
+  })
+  if (words.length > MIXED_WORD_LINES) lines.push(`  (${words.length - MIXED_WORD_LINES} more)`)
+  return ['', 'Words that mix scripts:', ...lines]
+}
+
+/**
+ * The listed characters as a message of their own: their code points, and the ASCII they pass for.
+ *
+ * @param report - The inspection.
+ * @param spelled - Whether a scheme already reads the invisible ones, which makes the order noise.
+ * @returns {string[]} Up to two lines under a blank one, or nothing.
+ */
+function sequenceLines(
+  report: Readonly<CiphersModule.CharacterReport>,
+  spelled: boolean,
+): string[] {
+  const { characters } = report
+  const shown = characters.slice(0, SEQUENCE_CHARACTERS)
+  const rest = characters.length - shown.length
+  const labels = shown.map(({ codePoint }) => codePointLabel(codePoint)).join(' ')
+  const lines = spelled ? [] : [`In order: ${labels}${rest > 0 ? ` and ${rest} more` : ''}`]
+  const passed = characters.map(({ lookalike }) => lookalike ?? '').join('')
+  if (passed !== '') lines.push(`As the ASCII they pass for: ${quotedPreview(passed)}`)
+  return lines.length === 0 ? [] : ['', ...lines]
+}
+
+/**
+ * The arguments that read one zero-width candidate again.
+ *
+ * @param candidate - A reading of `rankZeroWidth`.
+ * @returns {string} `scheme=330k`, or the symbols, width and unit of a scheme without a name.
+ */
+function zeroWidthArguments(candidate: Readonly<CiphersModule.ZeroWidthCandidate>): string {
+  if (candidate.name !== undefined) return `scheme=${candidate.name}`
+  const { symbols, digits, separator, unit } = candidate.scheme
+  const parts = [`symbols="${codePointLabels(symbols.join(''))}"`]
+  if (separator !== undefined) parts.push(`separator=${codePointLabels(separator)}`)
+  if (digits !== undefined) parts.push(`digits=${digits}`)
+  return [...parts, `unit=${unit}`].join(' ')
+}
+
+/**
+ * What the invisible characters spell, when a built-in scheme reads them.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - The inspected text.
+ * @returns {string[]} A line for the likeliest reading, or nothing.
+ */
+function hiddenMessageLines(
+  library: Readonly<Pick<typeof CiphersModule, 'rankZeroWidth'>>,
+  text: string,
+): string[] {
+  const [top] = library.rankZeroWidth(text).candidates
+  if (top === undefined) return []
+  return [
+    '',
+    `The invisible ones spell ${quotedPreview(top.text)} with ${zeroWidthArguments(top)}; ciphers_zero_width_read reads it whole.`,
+  ]
+}
+
+/**
+ * List the characters of a text that are not what they seem, for a model. Nothing invisible is
+ * printed raw.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments.
+ * @returns {CipherToolResult} The report as text, and whole in `details`.
+ * @throws {InvalidOptionError} When `script` is not a Unicode script.
+ */
+export function formatCharacters(
+  library: Readonly<Pick<typeof CiphersModule, 'inspectCharacters' | 'rankZeroWidth'>>,
+  params: Readonly<CharactersInspectToolParams>,
+): CipherToolResult {
+  const { text, script } = params
+  const report = library.inspectCharacters(
+    text,
+    script === undefined || script === '' ? {} : { script },
+  )
+  const total = Array.from(text).length
+  if (report.characters.length === 0 && report.words.length === 0) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Nothing odd in ${total} characters held against ${report.script}: no invisible character, no lookalike, no other script.`,
+        },
+      ],
+      details: { script: report.script, characters: [], words: [] },
+    }
+  }
+  const hidden = hiddenMessageLines(library, text)
+  const lines = [
+    `${report.characters.length} of ${total} characters are not what they seem, held against ${report.script}:`,
+    '',
+    ...characterLines(report.characters),
+    ...mixedWordLines(report.words),
+    ...sequenceLines(report, hidden.length > 0),
+    ...hidden,
+  ]
+  return {
+    content: [{ type: 'text', text: lines.join('\n') }],
+    details: { script: report.script, characters: report.characters, words: report.words },
+  }
+}
+
+/**
+ * The characters a `symbols` or `separator` argument names.
+ *
+ * @param library - The loaded cipher library, for its error class.
+ * @param name - The argument, for the error.
+ * @param value - `U+200B U+200C`, or the characters themselves.
+ * @returns {string[]} One string per character.
+ * @throws {InvalidOptionError} When a `U+` entry is not a code point.
+ */
+function namedCharacters(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'InvalidOptionError'>>,
+  name: string,
+  value: string,
+): string[] {
+  if (!/^\s*U\+/i.test(value)) return Array.from(value)
+  return value
+    .trim()
+    .split(/[\s,]+/)
+    .map((entry) => {
+      const codePoint = /^U\+[0-9A-F]{1,6}$/i.test(entry) ? Number.parseInt(entry.slice(2), 16) : -1
+      if (codePoint < 0 || codePoint > 0x10ffff) {
+        throw new library.InvalidOptionError(name, entry, 'must be U+ and one to six hex digits')
+      }
+      return String.fromCodePoint(codePoint)
+    })
+}
+
+/**
+ * A scheme built from the arguments that spell one out.
+ *
+ * @param library - The loaded cipher library, for its error classes.
+ * @param params - The tool arguments, blanks already dropped.
+ * @returns {ZeroWidthScheme} The scheme, bytes unless `unit` says otherwise.
+ * @throws {InvalidOptionError} When `separator` is more than one character or a `U+` entry is bad.
+ * @throws {MissingOptionError} Without `symbols`.
+ */
+function ownZeroWidthScheme(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'InvalidOptionError' | 'MissingOptionError'>>,
+  params: Readonly<Omit<ZeroWidthToolParams, 'text' | 'scheme'>>,
+): ZeroWidthScheme {
+  const { symbols, separator, digits } = params
+  if (symbols === undefined) throw new library.MissingOptionError('symbols')
+  const [mark, ...more] =
+    separator === undefined ? [] : namedCharacters(library, 'separator', separator)
+  if (more.length > 0) {
+    throw new library.InvalidOptionError('separator', separator, 'must be one character')
+  }
+  return {
+    symbols: namedCharacters(library, 'symbols', symbols),
+    unit: params.unit ?? 'byte',
+    ...(mark === undefined ? {} : { separator: mark }),
+    ...(digits === undefined ? {} : { digits }),
+  }
+}
+
+/**
+ * The scheme the zero-width arguments name, if they name one.
+ *
+ * @param library - The loaded cipher library, for its error classes.
+ * @param params - The tool arguments.
+ * @returns {ZeroWidthSchemeName | ZeroWidthScheme | undefined} A built-in name, a scheme built
+ * from `symbols`, or nothing when neither is given.
+ * @throws {InvalidOptionError} When `scheme` comes with the arguments of a scheme of your own.
+ * @throws {MissingOptionError} When `separator`, `digits` or `unit` come without `symbols`.
+ */
+function zeroWidthScheme(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'InvalidOptionError' | 'MissingOptionError'>>,
+  params: Readonly<ZeroWidthToolParams>,
+): ZeroWidthSchemeName | ZeroWidthScheme | undefined {
+  const own = {
+    symbols: params.symbols === '' ? undefined : params.symbols,
+    separator: params.separator === '' ? undefined : params.separator,
+    digits: params.digits,
+    unit: params.unit,
+  }
+  const stray = Object.entries(own).find(([, value]) => value !== undefined)
+  if (stray === undefined) return params.scheme
+  if (params.scheme === undefined) return ownZeroWidthScheme(library, own)
+  throw new library.InvalidOptionError(
+    stray[0],
+    stray[1],
+    'describes a scheme of your own, so it does not apply with scheme',
+  )
+}
+
+/**
+ * Rank the built-in schemes on a text for a model, with the arguments that read each again.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - Text that may carry hidden characters.
+ * @returns {CipherToolResult} One line per reading, or what invisible characters there are.
+ */
+function formatZeroWidthRanking(
+  library: Readonly<Pick<typeof CiphersModule, 'inspectCharacters' | 'rankZeroWidth'>>,
+  text: string,
+): CipherToolResult {
+  const ranking = library.rankZeroWidth(text)
+  if (ranking.candidates.length > 0) {
+    const lines = [
+      `Zero-width readings (${ranking.tried} schemes tried, ${ranking.candidates.length} read as text), printable ASCII first:`,
+      '',
+      ...ranking.candidates.map((candidate, rank) => {
+        const reading = quotedPreview(candidate.text, rank === 0 ? Infinity : BRUTE_PREVIEW_LENGTH)
+        return `  ${zeroWidthArguments(candidate)} -> ${reading}`
+      }),
+    ]
+    return { content: [{ type: 'text', text: lines.join('\n') }], details: { ...ranking } }
+  }
+  const counts = new Map<number, number>()
+  for (const { kind, codePoint } of library.inspectCharacters(text).characters) {
+    if (kind === 'invisible') counts.set(codePoint, (counts.get(codePoint) ?? 0) + 1)
+  }
+  const kinds = Array.from(counts, ([codePoint, count]) => `${codePointLabel(codePoint)} ×${count}`)
+  const found =
+    kinds.length === 0
+      ? 'No invisible character in this text, so nothing to read.'
+      : `None of the ${ranking.tried} built-in schemes reads the invisible characters here: ${kinds.slice(0, CHARACTER_LINES).join(', ')}. Pass symbols in digit order, with digits or separator, for a scheme of your own.`
+  return { content: [{ type: 'text', text: found }], details: { ...ranking } }
+}
+
+/**
+ * Read the message a text hides in invisible characters, or rank the built-in schemes when the
+ * model names none.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments.
+ * @returns {CipherToolResult} The message alone, or the ranking.
+ * @throws {InvalidOptionError} For arguments that clash or a scheme that cannot be read back.
+ * @throws {MissingOptionError} When `symbols` is missing, or both `digits` and `separator`.
+ * @throws {ZeroWidthError} When the hidden characters do not fit the scheme.
+ */
+export function formatZeroWidthRead(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<
+    Pick<
+      typeof CiphersModule,
+      | 'readZeroWidth'
+      | 'rankZeroWidth'
+      | 'inspectCharacters'
+      | 'InvalidOptionError'
+      | 'MissingOptionError'
+    >
+  >,
+  params: Readonly<ZeroWidthToolParams>,
+): CipherToolResult {
+  const scheme = zeroWidthScheme(library, params)
+  if (scheme === undefined) return formatZeroWidthRanking(library, params.text)
+  const message = library.readZeroWidth(params.text, { scheme })
+  return {
+    content: [
+      {
+        type: 'text',
+        text: message === '' ? "None of the scheme's characters are in this text." : message,
+      },
+    ],
+  }
+}
+
+/**
+ * Hide a message in invisible characters for a model, `binary` unless it names a scheme.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments, `text` being the message.
+ * @returns {CipherToolResult} The cover with the message inside, or the bare characters, and in
+ * `details` the same text with the number of characters added.
+ * @throws {InvalidOptionError} For arguments that do not go together, a scheme that cannot be
+ * read back, a character the scheme cannot hold or a cover that carries its characters.
+ * @throws {MissingOptionError} When `symbols` is missing, or both `digits` and `separator`.
+ */
+export function formatZeroWidthHide(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<
+    Pick<typeof CiphersModule, 'hideZeroWidth' | 'InvalidOptionError' | 'MissingOptionError'>
+  >,
+  params: Readonly<ZeroWidthHideToolParams>,
+): CipherToolResult {
+  const scheme = zeroWidthScheme(library, params) ?? 'binary'
+  const cover = params.cover ?? ''
+  const hidden = library.hideZeroWidth(params.text, { scheme, cover })
+  const added = Array.from(hidden).length - Array.from(cover).length
+  if (added > MAX_ZERO_WIDTH_ADDED) {
+    throw new library.InvalidOptionError(
+      'text',
+      `${added} hidden characters`,
+      `are more than the ${MAX_ZERO_WIDTH_ADDED} one call returns; hide less, or use fewer digits`,
+    )
+  }
+  return { content: [{ type: 'text', text: hidden }], details: { output: hidden, added } }
 }

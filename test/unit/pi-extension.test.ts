@@ -67,6 +67,9 @@ describe('Pi extension', () => {
       'ciphers_passphrase_probe',
       'ciphers_crib_drag',
       'ciphers_hidden_text_read',
+      'ciphers_characters_inspect',
+      'ciphers_zero_width_read',
+      'ciphers_zero_width_hide',
       'ciphers_key_recover',
       'ciphers_info',
     ])
@@ -87,6 +90,8 @@ describe('Pi extension', () => {
       'ciphers_caesar_brute',
       'ciphers_crib_drag',
       'ciphers_hidden_text_read',
+      'ciphers_zero_width_read',
+      'ciphers_zero_width_hide',
       'ciphers_key_recover',
     ]) {
       expect(getTool(name).renderResult).toBeTypeOf('function')
@@ -96,6 +101,7 @@ describe('Pi extension', () => {
       'ciphers_period_estimate',
       'ciphers_family_guess',
       'ciphers_passphrase_probe',
+      'ciphers_characters_inspect',
       'ciphers_info',
     ]) {
       expect(getTool(name).renderResult).toBeUndefined()
@@ -343,6 +349,32 @@ describe('Pi extension', () => {
     await expect(
       getTool('ciphers_hidden_text_read').execute('hidden', { text: 'abc', letter: 2 }),
     ).rejects.toThrow('Missing required option: pick')
+  })
+
+  it('finds odd characters and hides a message through the shared executor', async () => {
+    const lookalike = `pay${String.fromCodePoint(0x440)}al`
+    const inspected = await getTool('ciphers_characters_inspect').execute('inspect', {
+      text: lookalike,
+    })
+    expect(inspected.content[0]?.text).toContain(
+      '\n  U+0440 CYRILLIC SMALL LETTER ER (Cyrillic) looks like "p" at 4\n',
+    )
+    expect(inspected.details).toMatchObject({ script: 'Latin', words: [{ skeleton: 'paypal' }] })
+
+    const hidden = await getTool('ciphers_zero_width_hide').execute('hide', {
+      text: 'key',
+      cover: 'cover',
+      scheme: '330k',
+    })
+    expect(hidden.details).toEqual({ output: hidden.content[0]?.text, added: 24 })
+    const read = await getTool('ciphers_zero_width_read').execute('read', {
+      text: hidden.content[0]?.text,
+      scheme: '330k',
+    })
+    expect(read.content[0]?.text).toBe('key')
+    await expect(
+      getTool('ciphers_zero_width_read').execute('read', { text: 'abc', unit: 'byte' }),
+    ).rejects.toThrow('Missing required option: symbols')
   })
 
   it('checks the arguments the way MCP does', async () => {

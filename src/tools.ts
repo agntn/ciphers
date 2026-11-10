@@ -10,9 +10,11 @@ import {
 } from '@agntn/tools'
 import { builtinCiphers, cipherCategories } from './core/ciphers.ts'
 import { InvalidOptionError, MissingOptionError } from './core/errors.ts'
+import type { ZeroWidthSchemeName } from './core/zero-width-options.ts'
 import {
   AFFINE_MULTIPLIERS,
   BRUTE_PREVIEW_LENGTH,
+  CHARACTER_LINES,
   DEFAULT_COLUMNAR_KEY_LENGTH,
   DEFAULT_HOMOPHONIC_STARTS,
   DEFAULT_KEY_CANDIDATES,
@@ -35,9 +37,11 @@ import {
   MAX_SEED,
   MAX_SYMBOL_WIDTH,
   MAX_TRANSFORM_TEXT_LENGTH,
+  MAX_ZERO_WIDTH_DIGITS,
   OPTION_DESCRIPTIONS,
   PROBE_LIST_LIMITS,
   bruteForceCaesar,
+  formatCharacters,
   formatCipherInfo,
   formatCribDrag,
   formatFamilyGuess,
@@ -46,9 +50,13 @@ import {
   formatHiddenText,
   formatKeyRecovery,
   formatPeriodEstimate,
+  formatZeroWidthHide,
+  formatZeroWidthRead,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
   transformCipher,
+  zeroWidthSchemes,
+  zeroWidthUnits,
   type CipherToolParams,
 } from './tool-operations.ts'
 
@@ -78,7 +86,7 @@ function answer(result: {
 }
 
 /** Library options a tool takes under another name. */
-const argumentNames: Readonly<Record<string, string>> = { language: 'lang' }
+const argumentNames: Readonly<Record<string, string>> = { language: 'lang', message: 'text' }
 
 /**
  * Where a library refusal points, down to the list item it names as `#<index>`.
@@ -1156,6 +1164,155 @@ export const hiddenTextReadTool = defineCipherTool({
   execute: async (params) => answer(formatHiddenText(await loadLibrary(), params)),
 })
 
+/**
+ * The arguments that spell out a zero-width scheme, shared by reading and hiding.
+ *
+ * @param fallback - What happens when neither `scheme` nor `symbols` is given.
+ * @returns {object} The optional `scheme`, `symbols`, `separator`, `digits` and `unit` schemas.
+ */
+function zeroWidthSchemeArguments(fallback: string) {
+  return {
+    scheme: Type.Optional(
+      Type.Enum(Object.keys(zeroWidthSchemes) as [ZeroWidthSchemeName, ...ZeroWidthSchemeName[]], {
+        description: `A scheme another tool writes: binary (U+200B is 0, U+200C is 1, eight to a UTF-8 byte), 330k (the Unicode Steganography page), zwsp-steg or zero-width-lib. ${fallback}`,
+      }),
+    ),
+    symbols: Type.Optional(
+      Type.String({
+        maxLength: 400,
+        description:
+          'A scheme of your own instead of scheme: the character for each digit, digit 0 first, as U+200C U+200B or as the characters themselves. Two for binary, more for a higher base',
+      }),
+    ),
+    separator: Type.Optional(
+      Type.String({
+        maxLength: 8,
+        description:
+          'With symbols: the one character between two numbers, as U+200D or itself, for numbers of any length',
+      }),
+    ),
+    digits: Type.Optional(
+      Type.Integer({
+        minimum: 1,
+        maximum: MAX_ZERO_WIDTH_DIGITS,
+        description:
+          'With symbols: digits per number, 8 for binary bytes. Required without separator; with one, the width shorter numbers are padded to',
+      }),
+    ),
+    unit: Type.Optional(
+      Type.Enum(zeroWidthUnits, {
+        description:
+          'With symbols: what one number is, byte for UTF-8 bytes (default), code-unit for UTF-16 code units, code-point for whole code points',
+      }),
+    ),
+  }
+}
+
+export const charactersInspectTool = defineCipherTool({
+  name: 'ciphers_characters_inspect',
+  title: 'Inspect Characters',
+  description: `Find the characters of a text that are not what they seem: invisible ones (zero-width, format and control characters, odd spaces), lookalikes of ASCII such as a Cyrillic o or fullwidth digits, combining marks and letters of another script. Each code point comes with its name, its places and the ASCII it passes for, then the words that mix scripts with their UTS #39 skeleton, the listed characters in order and the message the invisible ones spell. Up to ${CHARACTER_LINES} code points are listed.`,
+  snippet:
+    'Use ciphers_characters_inspect on a clue, a tweet or a password that may carry invisible or lookalike characters.',
+  guidelines: [
+    'Run it before hashing or comparing text copied from a page: one zero-width space or one Cyrillic letter changes every digest.',
+    'Positions count code points from 1. Nothing invisible is printed raw; every listed character shows as U+XXXX.',
+    'The text is held against the script most of its letters share. Pass script when a short text is mostly lookalikes and the guess goes wrong.',
+    'A skeleton is for comparing two words that look alike, never for display: it also folds m into rn and 1 into l.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'Text to check, exactly as copied',
+      }),
+      script: Type.Optional(
+        Type.String({
+          maxLength: 40,
+          description:
+            'Unicode script the text is written in, such as Latin, Cyrillic or Greek (default the script most of its letters share)',
+        }),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'inspect',
+    description: 'Find invisible and lookalike characters in a text',
+    positional: ['text'],
+    stdin: ['text'],
+  },
+  execute: async (params) => answer(formatCharacters(await loadLibrary(), params)),
+})
+
+export const zeroWidthReadTool = defineCipherTool({
+  name: 'ciphers_zero_width_read',
+  title: 'Read Zero-Width Message',
+  description:
+    'Read a message hidden in invisible characters between the visible ones: each invisible character is a digit, the digits spell bytes or code points. Without scheme or symbols, try the built-in schemes and list every reading that comes out as text, with the arguments that read it again.',
+  snippet: 'Use ciphers_zero_width_read on text whose invisible characters may spell a message.',
+  guidelines: [
+    'Only the scheme characters count, so pass the whole text as copied; the visible part is skipped.',
+    'For a scheme of your own, ciphers_characters_inspect lists which invisible characters the text has. Two of them are usually 0 and 1 with digits 8; a third one that shows up at regular gaps is the separator.',
+    'A reading that stops with characters left over means another scheme, or a text that lost part of its invisible characters on the way.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'Text that carries invisible characters, exactly as copied',
+      }),
+      ...zeroWidthSchemeArguments('Omit it and symbols to try them all'),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'reveal',
+    description: 'Read a message hidden in invisible characters',
+    positional: ['text'],
+    stdin: ['text'],
+  },
+  execute: async (params) => answer(formatZeroWidthRead(await loadLibrary(), params)),
+})
+
+export const zeroWidthHideTool = defineCipherTool({
+  name: 'ciphers_zero_width_hide',
+  title: 'Hide Zero-Width Message',
+  description:
+    'Hide a message in invisible characters, on their own or inside a cover text, where they go in after the first character. The answer is the text alone and looks like the cover: the message is in characters that show nothing.',
+  snippet: 'Use ciphers_zero_width_hide to put a message into a text as invisible characters.',
+  guidelines: [
+    'ciphers_zero_width_read with the same scheme reads it back. Plenty of sites and chats strip invisible characters, so check after pasting.',
+    'A cover that already carries characters of the scheme is refused, since they would read as part of the message. An emoji joined with U+200D is one.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_TRANSFORM_TEXT_LENGTH,
+        description: 'The message to hide',
+      }),
+      cover: Type.Optional(
+        Type.String({
+          maxLength: MAX_TRANSFORM_TEXT_LENGTH,
+          description: 'Visible text to carry it (default none, the bare invisible characters)',
+        }),
+      ),
+      ...zeroWidthSchemeArguments('Default binary'),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'conceal',
+    description: 'Hide a message in invisible characters',
+    positional: ['text'],
+    stdin: ['text'],
+  },
+  execute: async (params) => answer(formatZeroWidthHide(await loadLibrary(), params)),
+})
+
 export const keyRecoverTool = defineCipherTool({
   name: 'ciphers_key_recover',
   title: 'Recover Key',
@@ -1281,6 +1438,9 @@ export const ciphersTools: readonly ToolDefinition[] = [
   passphraseProbeTool,
   cribDragTool,
   hiddenTextReadTool,
+  charactersInspectTool,
+  zeroWidthReadTool,
+  zeroWidthHideTool,
   keyRecoverTool,
   infoTool,
 ]
@@ -1324,6 +1484,11 @@ export const callSummaries: Readonly<
   ciphers_passphrase_probe: (args) => excerpt(args['text']),
   ciphers_crib_drag: (args) => (typeof args['crib'] === 'string' ? excerpt(args['crib']) : 'known'),
   ciphers_hidden_text_read: (args) => `${named(args['pick']) || 'all'} ${excerpt(args['text'])}`,
+  ciphers_characters_inspect: (args) => excerpt(args['text']),
+  ciphers_zero_width_read: (args) =>
+    `${named(args['scheme']) || (args['symbols'] === undefined ? 'all' : 'own')} ${excerpt(args['text'])}`,
+  ciphers_zero_width_hide: (args) =>
+    `${named(args['scheme']) || (args['symbols'] === undefined ? 'binary' : 'own')} ${excerpt(args['text'])}`,
   ciphers_key_recover: (args) => `${named(args['cipher'])} ${excerpt(args['text'])}`,
   ciphers_info: (args) => named(args['cipher']) || named(args['category']) || 'all',
 }

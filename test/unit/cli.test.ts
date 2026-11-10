@@ -58,6 +58,9 @@ describe('CLI commands', () => {
       'probe',
       'crib',
       'hidden',
+      'inspect',
+      'reveal',
+      'conceal',
       'recover',
       'info, ciphers',
       'mcp',
@@ -236,6 +239,57 @@ describe('CLI analysis', () => {
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('\n1. #1 at 0 (score -3.35): #0 "We can fac"\n')
     expect(result.stdout).toContain(`Key (?? unknown): 66396e${'??'.repeat(25)}\n`)
+  })
+
+  it('finds a lookalike, from an argument and from stdin', () => {
+    const bitcoin = `Bitc${String.fromCodePoint(0x43e)}in`
+    const line = '  U+043E CYRILLIC SMALL LETTER O (Cyrillic) looks like "o" at 5\n'
+
+    expect(runCli(['inspect', bitcoin]).stdout).toContain(line)
+    expect(runCli(['inspect', '-'], { input: bitcoin }).stdout).toContain(line)
+    expect(runCli(['inspect', bitcoin, '--script', 'cyrillic']).stdout).toContain(
+      '6 of 7 characters are not what they seem, held against Cyrillic:',
+    )
+    expectRefusal(
+      ['inspect', 'abc', '--script', 'Klingon'],
+      'Invalid arguments at --script: must be a Unicode script such as Latin, Cyrillic or Greek',
+    )
+  })
+
+  it.each(['binary', '330k', 'zwsp-steg', 'zero-width-lib'])(
+    'conceals with %s and reveals it again, every invisible character intact',
+    (scheme) => {
+      const hidden = runCli(['conceal', 'Hi there', '--cover', 'A cover.', '--scheme', scheme])
+
+      expect(hidden.status).toBe(0)
+      expect(hidden.stdout.replaceAll(/\p{Cf}/gu, '')).toBe('A cover.\n')
+      expect(runCli(['reveal', '-', '--scheme', scheme], { input: hidden.stdout }).stdout).toBe(
+        'Hi there\n',
+      )
+      expect(runCli(['reveal', '-'], { input: hidden.stdout }).stdout).toContain(
+        `\n  scheme=${scheme} -> "Hi there"\n`,
+      )
+      const details = JSON.parse(
+        runCli(['conceal', 'Hi there', '--cover', 'A cover.', '--scheme', scheme, '--json']).stdout,
+      ) as { output: string; added: number }
+      expect(`${details.output}\n`).toBe(hidden.stdout)
+      expect(details.added).toBe(Array.from(hidden.stdout).length - 'A cover.\n'.length)
+    },
+  )
+
+  it('takes a scheme of its own on the command line', () => {
+    const own = ['--symbols', 'U+200C U+200B', '--digits', '8']
+    const hidden = runCli(['conceal', 'Hi', ...own]).stdout
+
+    expect(runCli(['reveal', '-', ...own], { input: hidden }).stdout).toBe('Hi\n')
+    expect(runCli(['reveal', '-'], { input: hidden }).stdout).toContain(
+      '\n  symbols="U+200C U+200B" digits=8 unit=byte -> "Hi"\n',
+    )
+    expectRefusal(['reveal', 'abc', '--digits', '8'], 'Invalid arguments: missing --symbols')
+    expectRefusal(
+      ['reveal', 'abc', '--scheme', 'binary', '--unit', 'byte'],
+      'Invalid arguments at --unit: describes a scheme of your own, so it does not apply with scheme',
+    )
   })
 
   it('ranks the hidden readings and reads one pick alone', () => {

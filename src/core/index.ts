@@ -147,3 +147,29 @@ export {
   type HiddenTextPick,
   type HiddenTextRanking,
 } from './hidden-text.ts'
+export {
+  characterKinds,
+  confusableSkeleton,
+  inspectCharacters,
+  type CharacterKind,
+  type CharacterReport,
+  type InspectCharactersOptions,
+  type MixedScriptWord,
+  type SuspiciousCharacter,
+} from './characters.ts'
+export {
+  MAX_ZERO_WIDTH_DIGITS,
+  ZeroWidthError,
+  hideZeroWidth,
+  rankZeroWidth,
+  readZeroWidth,
+  zeroWidthSchemes,
+  zeroWidthUnits,
+  type HideZeroWidthOptions,
+  type ZeroWidthCandidate,
+  type ZeroWidthOptions,
+  type ZeroWidthRanking,
+  type ZeroWidthScheme,
+  type ZeroWidthSchemeName,
+  type ZeroWidthUnit,
+} from './zero-width.ts'

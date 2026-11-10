@@ -15,6 +15,9 @@ export type CiphersToolName =
   | 'ciphers_passphrase_probe'
   | 'ciphers_crib_drag'
   | 'ciphers_hidden_text_read'
+  | 'ciphers_characters_inspect'
+  | 'ciphers_zero_width_read'
+  | 'ciphers_zero_width_hide'
   | 'ciphers_key_recover'
   | 'ciphers_info'
 

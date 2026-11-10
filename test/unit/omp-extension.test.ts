@@ -275,6 +275,31 @@ describe('OMP extension', () => {
     await rejects('ciphers_hidden_text_read', { text: 'TEST', pick: 'word', letter: 100_001 })
     await rejects('ciphers_hidden_text_read', { text: 'TEST', direction: 'up' })
     await rejects('ciphers_hidden_text_read', { text: 'X'.repeat(100_001) })
+    await accepts('ciphers_characters_inspect', { text: 'TEST', script: 'Latin' })
+    await rejects('ciphers_characters_inspect', { text: 'TEST', script: 'L'.repeat(41) })
+    await rejects('ciphers_characters_inspect', { text: 'X'.repeat(100_001) })
+    await rejects('ciphers_characters_inspect', { text: 'TEST', lang: 'en' })
+    await accepts('ciphers_zero_width_read', { text: 'TEST', scheme: 'zwsp-steg' })
+    await accepts('ciphers_zero_width_read', {
+      text: 'TEST',
+      symbols: 'U+200B U+200C',
+      separator: 'U+200D',
+      digits: 32,
+      unit: 'code-point',
+    })
+    await rejects('ciphers_zero_width_read', { text: 'TEST', scheme: 'snow' })
+    await rejects('ciphers_zero_width_read', { text: 'TEST', symbols: 'ab', digits: 0 })
+    await rejects('ciphers_zero_width_read', { text: 'TEST', symbols: 'ab', digits: 33 })
+    await rejects('ciphers_zero_width_read', {
+      text: 'TEST',
+      symbols: 'ab',
+      digits: 8,
+      unit: 'bit',
+    })
+    await rejects('ciphers_zero_width_read', { text: 'TEST', cover: 'x' })
+    await accepts('ciphers_zero_width_hide', { text: 'TEST', cover: 'x', scheme: 'binary' })
+    await rejects('ciphers_zero_width_hide', { text: 'X'.repeat(10_001) })
+    await rejects('ciphers_zero_width_hide', { text: 'TEST', cover: 'X'.repeat(10_001) })
 
     await accepts('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_000) })
     await rejects('ciphers_encode', { cipher: 'caesar', text: 'X'.repeat(10_001) })

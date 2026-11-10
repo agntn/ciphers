@@ -184,8 +184,20 @@ export interface HillOptions extends CipherBaseOptions {
 
 /** Polybius cipher options. */
 export interface PolybiusOptions extends CipherBaseOptions {
-  /** Optional keyword for the 5×5 table. */
+  /** Optional keyword that fills the square first. */
   key?: string
+  /** Distinct symbols for a 2×2 to 9×9 square. Default: A-Z with J as I. */
+  alphabet?: string
+}
+
+/** Bifid cipher options. */
+export interface BifidOptions extends CipherBaseOptions {
+  /** Optional keyword that fills the square first. */
+  key?: string
+  /** Letters per block. Default: 5. */
+  period?: number
+  /** Distinct symbols for a square, 2×2 and up. Default: A-Z with J as I. */
+  alphabet?: string
 }
 
 /** Nihilist cipher options. */

@@ -848,6 +848,11 @@ describe('hill', () => {
   })
 })
 
+/** A hundred distinct symbols, a 10×10 square. */
+const SQUARE_100 = Array.from({ length: 100 }, (_, index) =>
+  String.fromCodePoint(0x4e00 + index),
+).join('')
+
 describe('polybius', () => {
   const polybius = create('polybius')
 
@@ -882,6 +887,48 @@ describe('polybius', () => {
   it('empty string returns empty', () => {
     expect(polybius.encode('').text).toBe('')
     expect(polybius.decode('').text).toBe('')
+  })
+
+  /** Vectors: secretpy 0.12.0, Polybius().encrypt over 36 symbols, its digits spaced in pairs. */
+  it('takes a 6×6 alphabet', () => {
+    const six = { alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' }
+    const mixed = { alphabet: 'P7HQ1G0IUM2EAY3LNO4FDX5KRC6VST8ZWB9J' }
+    expect(polybius.encode('Attack at 1200', six).text).toBe('11 42 42 11 13 25 11 42 54 55 53 53')
+    expect(polybius.decode('11 42 42 11 13 25 11 42 54 55 53 53', six).text).toBe('ATTACKAT1200')
+    expect(polybius.encode('ATTACKAT1200', mixed).text).toBe('31 56 56 31 52 46 31 56 15 25 21 21')
+    expect(polybius.decode('31 56 56 31 52 46 31 56 15 25 21 21', mixed).text).toBe('ATTACKAT1200')
+    expect(polybius.encode('ATTACKAT1200', { ...six, key: 'zebra5' }).text).toBe(
+      '15 44 44 15 21 32 15 44 55 56 54 54',
+    )
+  })
+
+  /** Vector: secretpy 0.12.0 over ABCDEFGHI. */
+  it('takes a 3×3 alphabet and leaves strangers alone', () => {
+    const three = { alphabet: 'ABCDEFGHI' }
+    const encoded = polybius.encode('Badge, J!', three)
+    expect(encoded.text).toBe('12 11 21 31 22')
+    expect(encoded.options).toEqual({ key: '', alphabet: 'ABCDEFGHI' })
+    expect(polybius.decode('12 11 21 31 22', three).text).toBe('BADGE')
+    expect(polybius.decode('12 34 22', three).text).toBe('B34E')
+    expect(polybius.encode('HELLO').options).toEqual({ key: '' })
+    expect(polybius.encode('HELLO', { key: null }).text).toBe('23 15 31 31 34')
+  })
+
+  it('refuses an alphabet that fills no square, and says why', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const [alphabet, reason] of [
+        ['ABCDE', /square number of symbols, like 9, 16, 25 or 36, and holds 5/],
+        ['ABC', /at least 4 symbols/],
+        ['ABCA', /has A twice/],
+        ['AB D', /whitespace/],
+        [25, /must be a string/],
+        [SQUARE_100, /81 symbols at most/],
+      ] as const) {
+        expect(() => polybius[operation]('11', { alphabet })).toThrow(InvalidOptionError)
+        expect(() => polybius[operation]('11', { alphabet })).toThrow(reason)
+      }
+      expect(() => polybius[operation]('11', { key: 5 })).toThrow(/key=5: must be a string/)
+    }
   })
 })
 
@@ -1533,6 +1580,52 @@ describe('bifid', () => {
       expect(() => bifid.decode('HELLO', { period })).toThrow(/must be a positive integer/)
     },
   )
+
+  /** Vectors: secretpy 0.12.0, Bifid().encrypt over 36 symbols, straight and mixed. */
+  it.each([
+    ['ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 5, 'AAP3ZDGDH2DVABYH39741'],
+    ['ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 7, 'AAMV3ZTGAVT2AKBK9Y9XD'],
+    ['P7HQ1G0IUM2EAY3LNO4FDX5KRC6VST8ZWB9J', 5, 'FF3Z957UWJNTATA3GX5R1'],
+    ['P7HQ1G0IUM2EAY3LNO4FDX5KRC6VST8ZWB9J', 7, 'FFL6Z9O7USWJ1W3ABPXS1'],
+  ])('takes the 6×6 alphabet %s at period %i', (alphabet, period, ciphertext) => {
+    const encoded = bifid.encode('Defend the east wall, 1941', { alphabet, period })
+    expect(encoded.text).toBe(ciphertext)
+    expect(encoded.options).toEqual({ key: '', period, alphabet })
+    expect(bifid.decode(ciphertext.toLowerCase(), { alphabet, period }).text).toBe(
+      'DEFENDTHEEASTWALL1941',
+    )
+  })
+
+  /** Vector: secretpy 0.12.0 over ABCDEFGHI at period 4. */
+  it('takes a 3×3 alphabet, a keyword and a square past 9×9', () => {
+    const three = { alphabet: 'ABCDEFGHI', period: 4 }
+    expect(bifid.encode('BEAD HIGH CAFE, J', three).text).toBe('BBEAIIFBAEGH')
+    expect(bifid.decode('BBEAIIFBAEGH', three).text).toBe('BEADHIGHCAFE')
+    const keyed = { ...three, key: 'chief' }
+    expect(bifid.decode(bifid.encode('BEADHIGHCAFE', keyed).text, keyed).text).toBe('BEADHIGHCAFE')
+    expect(bifid.encode('BEADHIGHCAFE', keyed).text).toBe(
+      bifid.encode('BEADHIGHCAFE', { period: 4, alphabet: 'CHIEFABDG' }).text,
+    )
+    const wide = { alphabet: SQUARE_100 }
+    expect(bifid.decode(bifid.encode(SQUARE_100, wide).text, wide).text).toBe(SQUARE_100)
+    expect(bifid.encode('FLEE AT ONCE').options).toEqual({ key: '', period: 5 })
+  })
+
+  it('refuses an alphabet that fills no square, and says why', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const [alphabet, reason] of [
+        ['ABCDE', /square number of symbols, like 9, 16, 25 or 36, and holds 5/],
+        ['ABC', /at least 4 symbols/],
+        ['ABCA', /has A twice/],
+        ['AB\tD', /whitespace/],
+        [null, /must be a string/],
+      ] as const) {
+        expect(() => bifid[operation]('AB', { alphabet })).toThrow(InvalidOptionError)
+        expect(() => bifid[operation]('AB', { alphabet })).toThrow(reason)
+      }
+      expect(() => bifid[operation]('AB', { key: 5 })).toThrow(/key=5: must be a string/)
+    }
+  })
 })
 
 describe('trifid', () => {

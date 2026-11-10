@@ -23,6 +23,7 @@ export type {
   TwoSquareOptions,
   HillOptions,
   PolybiusOptions,
+  BifidOptions,
   NihilistOptions,
   AdfgvxOptions,
   StraddlingCheckerboardOptions,

@@ -92,14 +92,11 @@ export interface KeyRecoveryOptions {
   readonly keyLength?: number
   /** Homophonic: characters per symbol, whitespace and commas skipped; without it they split. */
   readonly symbolWidth?: number
-  /** Homophonic: random starts, `DEFAULT_HOMOPHONIC_STARTS` without it; each ends in one map. */
+  /** Homophonic: random starts, one key each. */
   readonly starts?: number
-  /** Homophonic: seed from 0 to 4294967295; the same seed and text give the same keys. */
+  /** Homophonic: seed of the search, 0 to 4294967295. */
   readonly seed?: number
-  /**
-   * Homophonic: your reading of a plaintext, A to Z, added to its fit in nats per quadgram.
-   * Asked at every step, so it steers the search; `fit` stays the quadgram fit.
-   */
+  /** Homophonic: scores a plaintext on top of its fit, at every step of the search. */
   readonly score?: HomophonicScore
   /** How many candidates to return. */
   readonly limit?: number
@@ -306,7 +303,7 @@ function checkSymbolWidth(cipher: KeyRecoveryCipher, symbolWidth: number | undef
 }
 
 /**
- * Refuse starts for another cipher than homophonic, or fewer than one.
+ * Refuse starts homophonic cannot run.
  *
  * @param cipher - The cipher searched.
  * @param starts - The starts given, if any.
@@ -323,7 +320,7 @@ function checkStarts(cipher: KeyRecoveryCipher, starts: number | undefined): voi
 }
 
 /**
- * Refuse a seed for another cipher than homophonic, or one the generator would fold.
+ * Refuse a seed homophonic cannot take.
  *
  * @param cipher - The cipher searched.
  * @param seed - The seed given, if any.
@@ -340,7 +337,7 @@ function checkSeed(cipher: KeyRecoveryCipher, seed: number | undefined): void {
 }
 
 /**
- * Refuse a score for another cipher than homophonic, or one that is no function.
+ * Refuse a score that is no function.
  *
  * @param cipher - The cipher searched.
  * @param score - The score given, if any.
@@ -814,8 +811,7 @@ function decodeWith(text: string, cipher: KeyRecoveryCipher, key: string): strin
  * @param text - The ciphertext.
  * @param options - Options of `recoverKey`.
  * @returns {KeyRecovery} The ranked keys, best first.
- * @throws {InvalidOptionError} When `symbolWidth` does not divide the text, or `score` gives
- *   anything but a finite number.
+ * @throws {InvalidOptionError} When `symbolWidth` does not divide the text.
  */
 function homophonicRecovery(text: string, options: Readonly<KeyRecoveryOptions>): KeyRecovery {
   const stream = homophonicStream(homophonicSymbols(text, options.symbolWidth))
@@ -849,7 +845,7 @@ function homophonicRecovery(text: string, options: Readonly<KeyRecoveryOptions>)
  * @returns {KeyRecovery} The ranked keys, best fit first.
  * @throws {InvalidOptionError} For an unknown cipher or language, an option the cipher does not
  *   take, a bound broken, a language without quadgrams for substitution, columnar or homophonic,
- *   a `symbolWidth` that does not divide the text, or a `score` that gives no finite number.
+ *   or a `symbolWidth` that does not divide the text.
  */
 export function recoverKey(text: string, options: Readonly<KeyRecoveryOptions>): KeyRecovery {
   checkOptions(options)

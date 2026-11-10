@@ -1692,7 +1692,7 @@ Co2B
     )
     expect(lines[2]).toMatch(/^1\. key "[A-Z]=.+", fit -\d+\.\d\d: "[A-Z]{64}"$/)
     expect(lines.at(-1)).toBe(
-      'Only the top key and text are whole, the others stop at 80 characters. The key lists each plaintext letter with the symbols that stand for it. The text above is already decoded, one letter per symbol: correct the odd symbol by hand, or when every key is a near miss, search again with another seed or more starts.',
+      'Only the top key and text are whole, the others stop at 80 characters. The key lists each plaintext letter with the symbols that stand for it. The text above is already decoded, one letter per symbol: correct the odd symbol by hand.',
     )
     expect(text).toContain('\\u202eE')
     expect(text).toContain('E\\u0007')

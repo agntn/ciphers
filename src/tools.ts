@@ -14,7 +14,6 @@ import {
   AFFINE_MULTIPLIERS,
   BRUTE_PREVIEW_LENGTH,
   DEFAULT_COLUMNAR_KEY_LENGTH,
-  DEFAULT_HOMOPHONIC_SEED,
   DEFAULT_HOMOPHONIC_STARTS,
   DEFAULT_KEY_CANDIDATES,
   HIDDEN_TEXT_LINES,
@@ -1168,7 +1167,6 @@ export const keyRecoverTool = defineCipherTool({
     `Vigenère, Beaufort and variant Beaufort try the five likeliest key lengths unless period gives one; ciphers_period_estimate shows the lengths.`,
     `Columnar tries every column order of each length from 2 to ${DEFAULT_COLUMNAR_KEY_LENGTH}, or of keyLength up to ${MAX_COLUMNAR_KEY_LENGTH}; substitution, columnar and homophonic need English.`,
     'Homophonic reads symbols split by whitespace or commas, or runs of symbolWidth characters; its random score is the same symbols shuffled, since a many-to-one map squeezes some English out of any stream. It wants about 600 symbols: at half that most keys come back wrong.',
-    `Homophonic anneals from starts random maps, ${DEFAULT_HOMOPHONIC_STARTS} by default, one key each. The same seed repeats a search; when the keys are all near misses, another seed or more starts looks further.`,
     'Short texts, around 150 letters, give ranked guesses rather than one answer: read the top few.',
   ],
   effect: 'read',
@@ -1204,14 +1202,14 @@ export const keyRecoverTool = defineCipherTool({
         Type.Integer({
           minimum: 1,
           maximum: MAX_HOMOPHONIC_STARTS,
-          description: `Homophonic only: random starts of the search, 1 to ${MAX_HOMOPHONIC_STARTS} (default ${DEFAULT_HOMOPHONIC_STARTS}); each ends in one key, so twice the starts take twice as long`,
+          description: `Homophonic only: random starts, 1 to ${MAX_HOMOPHONIC_STARTS} (default ${DEFAULT_HOMOPHONIC_STARTS}); more look further`,
         }),
       ),
       seed: Type.Optional(
         Type.Integer({
           minimum: 0,
           maximum: MAX_SEED,
-          description: `Homophonic only: seed of the search, 0 to ${MAX_SEED} (default ${DEFAULT_HOMOPHONIC_SEED}); another seed gives other starts`,
+          description: `Homophonic only: seed, 0 to ${MAX_SEED}; another one gives other starts`,
         }),
       ),
       lang: language(

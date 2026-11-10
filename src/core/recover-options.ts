@@ -23,13 +23,13 @@ export const MAX_COLUMNAR_KEY_LENGTH = 9
 /** Most characters a homophonic symbol takes with `symbolWidth`. */
 export const MAX_SYMBOL_WIDTH = 8
 
-/** Random starts of a homophonic search unless `starts` says otherwise. */
+/** Random starts of a homophonic search by default. */
 export const DEFAULT_HOMOPHONIC_STARTS = 8
 
-/** Seed of a homophonic search unless `seed` says otherwise. */
+/** Seed of a homophonic search by default. */
 export const DEFAULT_HOMOPHONIC_SEED = 0x9e3779b9
 
-/** Highest seed: the generator keeps 32 bits of it. */
+/** Highest seed the generator takes. */
 export const MAX_SEED = 0xffffffff
 
 /** Candidates `recoverKey` returns unless told otherwise. */

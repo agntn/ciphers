@@ -122,7 +122,7 @@ export const MAX_KEY_LENGTH = 1_000
 export const MAX_BOOK_LENGTH = 1_000_000
 /** Longest key length `ciphers_period_estimate` tries. */
 export const MAX_PERIOD = 100
-/** Most starts `ciphers_key_recover` runs; its worst call still fits the CPU limit of `/mcp`. */
+/** Most starts `ciphers_key_recover` runs. */
 export const MAX_HOMOPHONIC_STARTS = 32
 /** Key lengths the period estimate prints, most likely first. */
 export const PERIOD_LINES = 10
@@ -994,7 +994,7 @@ const keyRecoveryTexts: Readonly<
   columnar: ['Columnar', 'ciphers_decode with cipher columnar and the key reads the text.'],
   homophonic: [
     'Homophonic',
-    'The key lists each plaintext letter with the symbols that stand for it. The text above is already decoded, one letter per symbol: correct the odd symbol by hand, or when every key is a near miss, search again with another seed or more starts.',
+    'The key lists each plaintext letter with the symbols that stand for it. The text above is already decoded, one letter per symbol: correct the odd symbol by hand.',
   ],
 }
 

@@ -113,6 +113,14 @@ describe('CLI refusals', () => {
       'Invalid arguments at --symbol-width: only homophonic takes it',
     )
     expectRefusal(
+      ['recover', 'ABC', '--cipher', 'vigenere', '--starts', '2'],
+      'Invalid arguments at --starts: only homophonic takes it',
+    )
+    expectRefusal(
+      ['recover', 'ABC', '--cipher', 'substitution', '--seed', '7'],
+      'Invalid arguments at --seed: only homophonic takes it',
+    )
+    expectRefusal(
       ['recover', 'ABC', '--cipher', 'columnar', '--lang', 'pl'],
       'Invalid arguments at --lang: must be en for columnar: it is ranked by quadgrams, which only English has',
     )

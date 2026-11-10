@@ -1708,11 +1708,36 @@ Co2B
         'Invalid option symbolWidth=2: only homophonic takes it',
       ],
       [{ text: 'ABC', cipher: 'homophonic', symbolWidth: 9 }, 'Invalid arguments'],
+      [
+        { text: 'ABC', cipher: 'vigenere', starts: 2 },
+        'Invalid option starts=2: only homophonic takes it',
+      ],
+      [
+        { text: 'ABC', cipher: 'columnar', seed: 7 },
+        'Invalid option seed=7: only homophonic takes it',
+      ],
+      [{ text: 'ABC', cipher: 'homophonic', starts: 33 }, 'Invalid arguments'],
+      [{ text: 'ABC', cipher: 'homophonic', seed: -1 }, 'Invalid arguments'],
     ] as const) {
       const refused = await recover(args)
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain(error)
     }
+    const keysOf = async (seed: number): Promise<string[]> => {
+      const reply = await recover({
+        text: symbols.join(' '),
+        cipher: 'homophonic',
+        starts: 3,
+        seed,
+      })
+      expect(reply.isError).not.toBe(true)
+      return onlyText(reply.content)
+        .split('\n')
+        .filter((line) => /^\d\. key /.test(line))
+    }
+    expect(await keysOf(7)).toHaveLength(3)
+    expect(await keysOf(7)).toEqual(await keysOf(7))
+    expect(await keysOf(7)).not.toEqual(await keysOf(8))
     expect(onlyText((await recover({ text: '12 34', cipher: 'homophonic' })).content)).toBe(
       'No Homophonic key: 2 symbols are too few to search.',
     )

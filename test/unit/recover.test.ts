@@ -81,6 +81,15 @@ function homophonic(text: string, symbols: number): string[] {
   })
 }
 
+/* Symbols in no order from a Lehmer generator: nothing to read, so the starts never agree. */
+function noise(length: number, symbols: number): string {
+  let seed = 7
+  return Array.from({ length }, () => {
+    seed = (seed * 48_271) % 2_147_483_647
+    return String(10 + Math.floor((seed / 2_147_483_648) * symbols))
+  }).join(' ')
+}
+
 describe('recoverKey', () => {
   it('finds a Vigenère key without the key length', () => {
     const ciphertext = create('vigenere').encode(SCANDAL, { key: 'BOHEMIA' }).text
@@ -254,6 +263,15 @@ describe('recoverKey', () => {
       { cipher: 'homophonic', symbolWidth: 0 },
       { cipher: 'homophonic', symbolWidth: 9 },
       { cipher: 'homophonic', symbolWidth: 1.5 },
+      { cipher: 'substitution', starts: 4 },
+      { cipher: 'homophonic', starts: 0 },
+      { cipher: 'homophonic', starts: 2.5 },
+      { cipher: 'vigenere', seed: 1 },
+      { cipher: 'homophonic', seed: -1 },
+      { cipher: 'homophonic', seed: 4_294_967_296 },
+      { cipher: 'homophonic', seed: 0.5 },
+      { cipher: 'columnar', score: () => 0 },
+      { cipher: 'homophonic', score: 'words' },
     ]) {
       expect(() => recoverKey(SCANDAL, options as KeyRecoveryOptions)).toThrow(InvalidOptionError)
     }
@@ -321,6 +339,75 @@ describe('recoverKey with homophonic', () => {
       ),
     ).toEqual(best!.map)
   }, 15_000)
+
+  it('keeps the default search where 0.8.0 left it', () => {
+    const text = noise(200, 30)
+    const found = recoverKey(text, { cipher: 'homophonic', limit: 2 })
+
+    /* The top key and fits 0.8.0 gave this text, before `starts` and `seed` existed. */
+    expect(found.candidates[0]!.key).toBe(
+      'A=17 28 24, C=37, D=36, E=16 14 31 22, F=19, H=35 13, I=11 15, L=21, M=34, N=38 39 26, O=12 23, R=27 20, S=33 29, T=10 30 18, U=25, W=32',
+    )
+    expect(found.candidates.map(({ fit }) => fit)).toEqual([
+      -10.432741116751268, -10.75253807106599,
+    ])
+    expect(found.randomFit).toBe(-10.76015228426396)
+    expect(
+      recoverKey(text, { cipher: 'homophonic', limit: 2, starts: 8, seed: 0x9e3779b9 }),
+    ).toEqual(found)
+  }, 20_000)
+
+  it('repeats a search under the same seed and leaves it under another', () => {
+    const text = noise(200, 30)
+    const keys = (seed: number): string[] =>
+      recoverKey(text, { cipher: 'homophonic', starts: 2, seed }).candidates.map(({ key }) => key)
+
+    expect(keys(1)).toEqual(keys(1))
+    expect(keys(1).filter((key) => keys(2).includes(key))).toEqual([])
+  }, 20_000)
+
+  it('returns one key per start, the default eight among sixteen', () => {
+    const text = noise(120, 20)
+    const keys = (starts?: number): string[] =>
+      recoverKey(text, {
+        cipher: 'homophonic',
+        limit: 16,
+        ...(starts === undefined ? {} : { starts }),
+      }).candidates.map(({ key }) => key)
+    const sixteen = keys(16)
+
+    expect(new Set(sixteen).size).toBe(16)
+    expect(keys()).toHaveLength(8)
+    expect(keys().filter((key) => !sixteen.includes(key))).toEqual([])
+    expect(keys(1)).toHaveLength(1)
+  }, 20_000)
+
+  it('lets a score of the caller steer the search, and keeps it out of fit', () => {
+    const text = noise(120, 20)
+    const count = (plain: string): number => plain.split('E').length - 1
+    const [free] = recoverKey(text, { cipher: 'homophonic', starts: 1 }).candidates
+    const [fined] = recoverKey(text, {
+      cipher: 'homophonic',
+      starts: 1,
+      score: (plain) => (-100 * count(plain)) / plain.length,
+    }).candidates
+
+    expect(count(free!.text)).toBeGreaterThan(10)
+    expect(count(fined!.text)).toBe(0)
+    expect(fined!.fit).toBe(scoreQuadgrams(fined!.text)!.fit)
+  }, 20_000)
+
+  it('refuses a score that gives no finite number', () => {
+    for (const [score, shown] of [
+      [() => Number.NaN, 'NaN'],
+      [() => Infinity, 'Infinity'],
+      [() => 'high', 'high'],
+    ] as const) {
+      expect(() =>
+        recoverKey(noise(120, 20), { cipher: 'homophonic', score } as KeyRecoveryOptions),
+      ).toThrow(`Invalid option score=${shown}: must return a finite number for every plaintext`)
+    }
+  }, 20_000)
 
   it('refuses a width that leaves characters over', () => {
     expect(() => recoverKey('12 34 5', { cipher: 'homophonic', symbolWidth: 2 })).toThrow(

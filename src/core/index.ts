@@ -113,8 +113,11 @@ export {
   type CribDragOptions,
   type CribPlacement,
 } from './crib.ts'
+export type { HomophonicScore } from './homophonic.ts'
 export {
   DEFAULT_COLUMNAR_KEY_LENGTH,
+  DEFAULT_HOMOPHONIC_SEED,
+  DEFAULT_HOMOPHONIC_STARTS,
   DEFAULT_KEY_CANDIDATES,
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_KEY_CANDIDATES,

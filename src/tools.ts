@@ -10,9 +10,18 @@ import {
 } from '@agntn/tools'
 import { builtinCiphers, cipherCategories } from './core/ciphers.ts'
 import { InvalidOptionError, MissingOptionError } from './core/errors.ts'
+import type { ZeroWidthSchemeName } from './core/zero-width-options.ts'
 import {
   AFFINE_MULTIPLIERS,
+  MAX_ALIGNMENT_CELLS,
+  MAX_ALIGNMENT_ROWS,
+  MAX_BITS_PER_LINE,
+  alignmentCompares,
+  alignmentOperations,
+  alignmentTokens,
+  formatAlignment,
   BRUTE_PREVIEW_LENGTH,
+  CHARACTER_LINES,
   DEFAULT_COLUMNAR_KEY_LENGTH,
   DEFAULT_HOMOPHONIC_STARTS,
   DEFAULT_KEY_CANDIDATES,
@@ -28,6 +37,7 @@ import {
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_CANDIDATES,
+  BOOK_ADDRESSES,
   MAX_BOOK_LENGTH,
   MAX_HOMOPHONIC_STARTS,
   MAX_KEY_LENGTH,
@@ -35,9 +45,13 @@ import {
   MAX_SEED,
   MAX_SYMBOL_WIDTH,
   MAX_TRANSFORM_TEXT_LENGTH,
+  MAX_ZERO_WIDTH_DIGITS,
   OPTION_DESCRIPTIONS,
   PROBE_LIST_LIMITS,
+  SENTENCE_BOUNDARIES,
+  WHITESPACE_LINES,
   bruteForceCaesar,
+  formatCharacters,
   formatCipherInfo,
   formatCribDrag,
   formatFamilyGuess,
@@ -46,9 +60,18 @@ import {
   formatHiddenText,
   formatKeyRecovery,
   formatPeriodEstimate,
+  formatZeroWidthHide,
+  formatZeroWidthRead,
+  formatWhitespaceHide,
+  formatWhitespaceRead,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
   transformCipher,
+  whitespaceChannels,
+  whitespaceOrders,
+  whitespaceUnmapped,
+  zeroWidthSchemes,
+  zeroWidthUnits,
   type CipherToolParams,
 } from './tool-operations.ts'
 
@@ -78,7 +101,7 @@ function answer(result: {
 }
 
 /** Library options a tool takes under another name. */
-const argumentNames: Readonly<Record<string, string>> = { language: 'lang' }
+const argumentNames: Readonly<Record<string, string>> = { language: 'lang', message: 'text' }
 
 /**
  * Where a library refusal points, down to the list item it names as `#<index>`.
@@ -586,6 +609,13 @@ const cipherInput = Type.Object(
         description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
       }),
     ),
+    lowercase: Type.Optional(
+      Type.String({
+        pattern: '^[ABab]$',
+        description:
+          'Bacon decoding only: A or B, the symbol a lowercase letter of the text stands for, uppercase being the other',
+      }),
+    ),
     segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
     blockSize: Type.Optional(
       Type.Enum([128, 160, 192, 224, 256], { description: OPTION_DESCRIPTIONS.blockSize }),
@@ -691,9 +721,7 @@ const cipherInput = Type.Object(
       Type.String({ maxLength: MAX_BOOK_LENGTH, description: OPTION_DESCRIPTIONS.book }),
     ),
     address: Type.Optional(
-      Type.Enum(['word', 'line-word', 'page-line-word'], {
-        description: OPTION_DESCRIPTIONS.address,
-      }),
+      Type.Enum([...BOOK_ADDRESSES], { description: OPTION_DESCRIPTIONS.address }),
     ),
     pick: Type.Optional(Type.Enum(['word', 'letter'], { description: OPTION_DESCRIPTIONS.pick })),
     start: Type.Optional(Type.Enum([0, 1], { description: OPTION_DESCRIPTIONS.start })),
@@ -750,7 +778,7 @@ export const encodeTool = defineCipherTool({
     'Two-square (two-square) stacks its squares by default, as the English Wikipedia page does; a puzzle from the ACA or dCode sets them side by side and needs orientation horizontal. Without Q in the squares it needs omit q too.',
     'Route (route) needs width, the cells per row. Decoding reads the grid along path from corner, so a grid copied row by row from a puzzle goes to ciphers_decode. Line breaks are not cells.',
     'A1Z26 (a1z26) turns letters into their numbers, 1 to 26, joined by separator (default -). With zero it is the single digit form instead: A to I for 1 to 9 and zero for 0, so letters like BEF go to ciphers_decode and come back as 256.',
-    'Book cipher (book) needs book, the whole text both sides count in. Decoding reads every number in order, one per address, or two or three with address line-word or page-line-word, and pick letter takes first letters, as Beale cipher 2 does. Encoding takes the next matching word each time, so a repeated letter gets a new number.',
+    'Book cipher (book) needs book, the whole text both sides count in. Decoding reads every number in order, one per address, or two or three with address line-word or page-line-word, and pick letter takes first letters, as Beale cipher 2 does. An address ending in letter, such as line-word-letter or page-line-letter, points at one letter inside the text, as an Ottendorf cipher does. Encoding takes the next matching word each time, so a repeated letter gets a new number.',
     'Straddling checkerboard (straddling-checkerboard) turns letters into digits, one for the eight on the top row and two for the rest. key is the board of 28 cells and blanks its two blank digits.',
     'Tridigital (tridigital) needs key, a 10-letter keyword or the digits 0 to 9 in any order, and secondKey, the alphabet in the block. A digit stands for up to three letters, so decoding gives a character class such as [AET] per letter and a space per separator digit.',
     'AES (aes) needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',
@@ -923,6 +951,7 @@ export const familyGuessTool = defineCipherTool({
   guidelines: [
     'Input is ciphertext. Returns candidate families with the built-in ciphers to try, most likely first, each with high, medium or low confidence, its signal and the next call.',
     'Treat the list as candidates: a short text comes back with low confidence, and only a decode that reads settles it.',
+    'Decimal character codes, hex and base64 that spell text, UTF-8 in any script included, come back decoded, ahead of the ciphers: that text is encoded, so encodings_decode reads it.',
   ],
   effect: 'read',
   input: Type.Object(
@@ -1156,6 +1185,392 @@ export const hiddenTextReadTool = defineCipherTool({
   execute: async (params) => answer(formatHiddenText(await loadLibrary(), params)),
 })
 
+/**
+ * The arguments that spell out a zero-width scheme, shared by reading and hiding.
+ *
+ * @param fallback - What happens when neither `scheme` nor `symbols` is given.
+ * @returns {object} The optional `scheme`, `symbols`, `separator`, `digits` and `unit` schemas.
+ */
+function zeroWidthSchemeArguments(fallback: string) {
+  return {
+    scheme: Type.Optional(
+      Type.Enum(Object.keys(zeroWidthSchemes) as [ZeroWidthSchemeName, ...ZeroWidthSchemeName[]], {
+        description: `A scheme another tool writes: binary (U+200B is 0, U+200C is 1, eight to a UTF-8 byte), 330k (the Unicode Steganography page), zwsp-steg or zero-width-lib. ${fallback}`,
+      }),
+    ),
+    symbols: Type.Optional(
+      Type.String({
+        maxLength: 400,
+        description:
+          'A scheme of your own instead of scheme: the character for each digit, digit 0 first, as U+200C U+200B or as the characters themselves. Two for binary, more for a higher base',
+      }),
+    ),
+    separator: Type.Optional(
+      Type.String({
+        maxLength: 8,
+        description:
+          'With symbols: the one character between two numbers, as U+200D or itself, for numbers of any length',
+      }),
+    ),
+    digits: Type.Optional(
+      Type.Integer({
+        minimum: 1,
+        maximum: MAX_ZERO_WIDTH_DIGITS,
+        description:
+          'With symbols: digits per number, 8 for binary bytes. Required without separator; with one, the width shorter numbers are padded to',
+      }),
+    ),
+    unit: Type.Optional(
+      Type.Enum(zeroWidthUnits, {
+        description:
+          'With symbols: what one number is, byte for UTF-8 bytes (default), code-unit for UTF-16 code units, code-point for whole code points',
+      }),
+    ),
+  }
+}
+
+export const charactersInspectTool = defineCipherTool({
+  name: 'ciphers_characters_inspect',
+  title: 'Inspect Characters',
+  description: `Find the characters of a text that are not what they seem: invisible ones (zero-width, format and control characters, odd spaces), lookalikes of ASCII such as a Cyrillic o or fullwidth digits, combining marks and letters of another script. Each code point comes with its name, its places and the ASCII it passes for, then the words that mix scripts with their UTS #39 skeleton, the listed characters in order and the message the invisible ones spell. Up to ${CHARACTER_LINES} code points are listed.`,
+  snippet:
+    'Use ciphers_characters_inspect on a clue, a tweet or a password that may carry invisible or lookalike characters.',
+  guidelines: [
+    'Run it before hashing or comparing text copied from a page: one zero-width space or one Cyrillic letter changes every digest.',
+    'Positions count code points from 1. Nothing invisible is printed raw; every listed character shows as U+XXXX.',
+    'The text is held against the script most of its letters share. Pass script when a short text is mostly lookalikes and the guess goes wrong.',
+    'A skeleton is for comparing two words that look alike, never for display: it also folds m into rn and 1 into l.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'Text to check, exactly as copied',
+      }),
+      script: Type.Optional(
+        Type.String({
+          maxLength: 40,
+          description:
+            'Unicode script the text is written in, such as Latin, Cyrillic or Greek (default the script most of its letters share)',
+        }),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'inspect',
+    description: 'Find invisible and lookalike characters in a text',
+    positional: ['text'],
+    stdin: ['text'],
+  },
+  execute: async (params) => answer(formatCharacters(await loadLibrary(), params)),
+})
+
+export const zeroWidthReadTool = defineCipherTool({
+  name: 'ciphers_zero_width_read',
+  title: 'Read Zero-Width Message',
+  description:
+    'Read a message hidden in invisible characters between the visible ones: each invisible character is a digit, the digits spell bytes or code points. Without scheme or symbols, try the built-in schemes and list every reading that comes out as text, with the arguments that read it again.',
+  snippet: 'Use ciphers_zero_width_read on text whose invisible characters may spell a message.',
+  guidelines: [
+    'Only the scheme characters count, so pass the whole text as copied; the visible part is skipped.',
+    'For a scheme of your own, ciphers_characters_inspect lists which invisible characters the text has. Two of them are usually 0 and 1 with digits 8; a third one that shows up at regular gaps is the separator.',
+    'A reading that stops with characters left over means another scheme, or a text that lost part of its invisible characters on the way.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'Text that carries invisible characters, exactly as copied',
+      }),
+      ...zeroWidthSchemeArguments('Omit it and symbols to try them all'),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'reveal',
+    description: 'Read a message hidden in invisible characters',
+    positional: ['text'],
+    stdin: ['text'],
+  },
+  execute: async (params) => answer(formatZeroWidthRead(await loadLibrary(), params)),
+})
+
+export const zeroWidthHideTool = defineCipherTool({
+  name: 'ciphers_zero_width_hide',
+  title: 'Hide Zero-Width Message',
+  description:
+    'Hide a message in invisible characters, on their own or inside a cover text, where they go in after the first character. The answer is the text alone and looks like the cover: the message is in characters that show nothing.',
+  snippet: 'Use ciphers_zero_width_hide to put a message into a text as invisible characters.',
+  guidelines: [
+    'ciphers_zero_width_read with the same scheme reads it back. Plenty of sites and chats strip invisible characters, so check after pasting.',
+    'A cover that already carries characters of the scheme is refused, since they would read as part of the message. An emoji joined with U+200D is one.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_TRANSFORM_TEXT_LENGTH,
+        description: 'The message to hide',
+      }),
+      cover: Type.Optional(
+        Type.String({
+          maxLength: MAX_TRANSFORM_TEXT_LENGTH,
+          description: 'Visible text to carry it (default none, the bare invisible characters)',
+        }),
+      ),
+      ...zeroWidthSchemeArguments('Default binary'),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'conceal',
+    description: 'Hide a message in invisible characters',
+    positional: ['text'],
+    stdin: ['text'],
+  },
+  execute: async (params) => answer(formatZeroWidthHide(await loadLibrary(), params)),
+})
+
+/**
+ * The arguments for how bits group, shared by reading and hiding.
+ *
+ * @returns {object} The optional `digits`, `order` and `unit` schemas.
+ */
+function whitespaceFramingArguments() {
+  return {
+    digits: Type.Optional(
+      Type.Integer({
+        minimum: 1,
+        maximum: MAX_ZERO_WIDTH_DIGITS,
+        description: 'Bits per group (default 8)',
+      }),
+    ),
+    order: Type.Optional(
+      Type.Enum(whitespaceOrders, {
+        description: 'Which bit of a group comes first in the text: msb (default) or lsb',
+      }),
+    ),
+    unit: Type.Optional(
+      Type.Enum(zeroWidthUnits, {
+        description:
+          'What one group is: byte for UTF-8 bytes (default), code-unit for UTF-16 code units, code-point for whole code points',
+      }),
+    ),
+  }
+}
+
+export const whitespaceReadTool = defineCipherTool({
+  name: 'ciphers_whitespace_read',
+  title: 'Read Whitespace',
+  description: `List where a text keeps its ordinary whitespace, or read one channel of it as bits. Four channels: line-ending (lf, crlf, cr), trailing (spaces and tabs before a line ends), interior (gaps inside a line: single, double, wide, tab, mixed) and sentence (interior gaps right after ${SENTENCE_BOUNDARIES}). Without zero and one, the answer counts each class and gives line, column and [start,end) UTF-16 offsets for what stands out, up to ${WHITESPACE_LINES} per channel. With channel, zero and one, each place becomes a bit and the bits decode as text; bits that fill no group are reported, never dropped.`,
+  snippet:
+    'Use ciphers_whitespace_read on text whose trailing spaces, double spaces or line endings may spell bits.',
+  guidelines: [
+    'Pass the text exactly as it came: one trimmed line or one normalized line ending and the channel is gone.',
+    'The mapping is yours to state, nothing guesses it: zero space with one tab, then the other way round, are two readings of one trailing channel.',
+    'A trailing run is read one character at a time as space or tab. A gap is read whole, so three spaces are wide, not three bits.',
+    'A place whose class has no bit stops the reading with its position. unmapped skip leaves such places out and lists them.',
+    'Only U+0020, tab, CR and LF count here. ciphers_characters_inspect finds no-break and zero-width spaces, and ciphers_zero_width_read reads spaces and tabs as digits wherever they sit.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'Text to look at, exactly as it came, line endings included',
+      }),
+      channel: Type.Optional(
+        Type.Enum(whitespaceChannels, {
+          description:
+            'The channel to list whole, or to read with zero and one (default all four, listed)',
+        }),
+      ),
+      zero: Type.Optional(
+        Type.String({
+          maxLength: 64,
+          description:
+            'Classes of the channel read as 0, parted by spaces or commas, such as space, lf or single',
+        }),
+      ),
+      one: Type.Optional(
+        Type.String({
+          maxLength: 64,
+          description: 'Classes read as 1, such as tab, "crlf cr" or double',
+        }),
+      ),
+      unmapped: Type.Optional(
+        Type.Enum(whitespaceUnmapped, {
+          description:
+            'A place whose class has no bit: refuse stops with its position (default), skip leaves it out and lists it',
+        }),
+      ),
+      offset: Type.Optional(
+        Type.Integer({
+          minimum: 0,
+          maximum: MAX_FREQUENCY_TEXT_LENGTH,
+          description: 'Bits to pass over before the first group (default 0)',
+        }),
+      ),
+      ...whitespaceFramingArguments(),
+      boundaries: Type.Optional(
+        Type.String({
+          maxLength: 64,
+          description: `Sentence channel: the characters a gap follows (default ${SENTENCE_BOUNDARIES})`,
+        }),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'whitespace',
+    description: 'List spaces, tabs and line endings by position, or read them as bits',
+    positional: ['text'],
+    stdin: ['text'],
+  },
+  execute: async (params) => answer(formatWhitespaceRead(await loadLibrary(), params)),
+})
+
+export const whitespaceHideTool = defineCipherTool({
+  name: 'ciphers_whitespace_hide',
+  title: 'Hide Whitespace Message',
+  description:
+    'Hide a message at the line ends of a cover text, one space or tab per bit, eight bits a line from the first line on unless perLine says otherwise. The answer is the text alone: the cover with its own characters and line endings untouched, and trailing runs added. A cover with too few lines is refused, and so is one whose lines already end in a space or tab.',
+  snippet: 'Use ciphers_whitespace_hide to put a message into the trailing whitespace of a text.',
+  guidelines: [
+    'ciphers_whitespace_read with channel trailing and the same zero, one, digits, order and unit reads it back.',
+    'Each line takes perLine bits, so a message of n bytes needs n lines at the default 8.',
+    'Editors, formatters and chat boxes strip trailing whitespace, so check after pasting.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_TRANSFORM_TEXT_LENGTH,
+        description: 'The message to hide',
+      }),
+      cover: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'Text of several lines to carry it, none ending in a space or tab',
+      }),
+      zero: Type.String({
+        maxLength: 16,
+        description: 'What a 0 is written as: space or tab',
+      }),
+      one: Type.String({
+        maxLength: 16,
+        description: 'What a 1 is written as: the other of space and tab',
+      }),
+      ...whitespaceFramingArguments(),
+      perLine: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: MAX_BITS_PER_LINE,
+          description: `Bits put on one line, 1 to ${MAX_BITS_PER_LINE} (default 8)`,
+        }),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'trail',
+    description: 'Hide a message in spaces and tabs at the line ends of a text',
+    positional: ['text'],
+    stdin: ['text', 'cover'],
+  },
+  execute: async (params) => answer(formatWhitespaceHide(await loadLibrary(), params)),
+})
+
+/**
+ * One side of a row a caller passes back. The span is optional there, the token numbers are not.
+ *
+ * @returns {object} The schema of `left` and `right`.
+ */
+function alignmentRangeArgument() {
+  return Type.Object(
+    {
+      from: Type.Integer({ minimum: 0, description: 'First token, counted from 0' }),
+      to: Type.Integer({ minimum: 0, description: 'The token after the last one' }),
+      start: Type.Optional(Type.Integer({ minimum: 0, description: 'UTF-16 offset of the span' })),
+      end: Type.Optional(Type.Integer({ minimum: 0, description: 'UTF-16 offset past the span' })),
+    },
+    { additionalProperties: false },
+  )
+}
+
+export const textsAlignTool = defineCipherTool({
+  name: 'ciphers_texts_align',
+  title: 'Align Texts',
+  description: `Align two versions of a text word by word and say what stayed, what changed, what was added and what was dropped. Each row names the tokens and the [start,end) UTF-16 span on both sides, so the place can be cut out of either text. Words pair up so that as many as possible match, and a repeated word that could pair another way is marked ambiguous. With rows, check a map you wrote or edited instead: gaps, overlaps, rows out of order, wrong token counts and false equalities are listed. Texts over ${MAX_ALIGNMENT_CELLS} token comparisons or ${MAX_ALIGNMENT_ROWS} rows are refused, never cut short.`,
+  snippet:
+    'Use ciphers_texts_align on two versions of a text to see which words changed and where.',
+  guidelines: [
+    'left is the earlier or reference text, right the other. Offsets go into each text as passed, so pass them exactly as copied.',
+    'compare loosens what counts as the same word: canonical ignores how accents are encoded, caseless also case, unaccented also the accents. A row with = matched only that way.',
+    'To check rows of your own, pass rows with the same texts, tokens and compare: operation, then left and right as { from, to }.',
+    'Whitespace and punctuation between tokens are not compared. tokens whitespace keeps punctuation inside the tokens.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      left: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'The first version, exactly as copied',
+      }),
+      right: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'The second version, exactly as copied',
+      }),
+      tokens: Type.Optional(
+        Type.Enum(alignmentTokens, {
+          description:
+            'Where the texts are cut: words for runs of letters, marks and digits (default), whitespace for anything between spaces',
+        }),
+      ),
+      compare: Type.Optional(
+        Type.Enum(alignmentCompares, {
+          description:
+            'When two tokens are the same: exact (default), canonical (NFC), caseless (NFC, lower case), unaccented (caseless without combining marks)',
+        }),
+      ),
+      rows: Type.Optional(
+        Type.Array(
+          Type.Object(
+            {
+              operation: Type.Enum(alignmentOperations, {
+                description:
+                  'equal and replace take tokens on both sides, insert only on the right, delete only on the left',
+              }),
+              left: alignmentRangeArgument(),
+              right: alignmentRangeArgument(),
+              exact: Type.Optional(
+                Type.Boolean({ description: 'On equal: whether the raw tokens match too' }),
+              ),
+              ambiguous: Type.Optional(Type.Boolean({ description: 'Carried along, not checked' })),
+            },
+            { additionalProperties: false },
+          ),
+          {
+            maxItems: MAX_ALIGNMENT_ROWS,
+            description:
+              'Rows to check instead of aligning. They must cover every token of both texts, in order',
+          },
+        ),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'align',
+    description: 'Align two versions of a text word by word',
+    positional: ['left', 'right'],
+    stdin: ['left', 'right'],
+  },
+  execute: async (params) => answer(formatAlignment(await loadLibrary(), params)),
+})
+
 export const keyRecoverTool = defineCipherTool({
   name: 'ciphers_key_recover',
   title: 'Recover Key',
@@ -1281,6 +1696,12 @@ export const ciphersTools: readonly ToolDefinition[] = [
   passphraseProbeTool,
   cribDragTool,
   hiddenTextReadTool,
+  charactersInspectTool,
+  zeroWidthReadTool,
+  zeroWidthHideTool,
+  whitespaceReadTool,
+  whitespaceHideTool,
+  textsAlignTool,
   keyRecoverTool,
   infoTool,
 ]
@@ -1324,6 +1745,15 @@ export const callSummaries: Readonly<
   ciphers_passphrase_probe: (args) => excerpt(args['text']),
   ciphers_crib_drag: (args) => (typeof args['crib'] === 'string' ? excerpt(args['crib']) : 'known'),
   ciphers_hidden_text_read: (args) => `${named(args['pick']) || 'all'} ${excerpt(args['text'])}`,
+  ciphers_characters_inspect: (args) => excerpt(args['text']),
+  ciphers_zero_width_read: (args) =>
+    `${named(args['scheme']) || (args['symbols'] === undefined ? 'all' : 'own')} ${excerpt(args['text'])}`,
+  ciphers_zero_width_hide: (args) =>
+    `${named(args['scheme']) || (args['symbols'] === undefined ? 'binary' : 'own')} ${excerpt(args['text'])}`,
+  ciphers_whitespace_read: (args) => `${named(args['channel']) || 'all'} ${excerpt(args['text'])}`,
+  ciphers_whitespace_hide: (args) => excerpt(args['text']),
+  ciphers_texts_align: (args) =>
+    `${args['rows'] === undefined ? 'align' : 'check'} ${excerpt(args['left'])}`,
   ciphers_key_recover: (args) => `${named(args['cipher'])} ${excerpt(args['text'])}`,
   ciphers_info: (args) => named(args['cipher']) || named(args['category']) || 'all',
 }

@@ -67,6 +67,12 @@ describe('Pi extension', () => {
       'ciphers_passphrase_probe',
       'ciphers_crib_drag',
       'ciphers_hidden_text_read',
+      'ciphers_characters_inspect',
+      'ciphers_zero_width_read',
+      'ciphers_zero_width_hide',
+      'ciphers_whitespace_read',
+      'ciphers_whitespace_hide',
+      'ciphers_texts_align',
       'ciphers_key_recover',
       'ciphers_info',
     ])
@@ -87,6 +93,11 @@ describe('Pi extension', () => {
       'ciphers_caesar_brute',
       'ciphers_crib_drag',
       'ciphers_hidden_text_read',
+      'ciphers_zero_width_read',
+      'ciphers_zero_width_hide',
+      'ciphers_whitespace_read',
+      'ciphers_whitespace_hide',
+      'ciphers_texts_align',
       'ciphers_key_recover',
     ]) {
       expect(getTool(name).renderResult).toBeTypeOf('function')
@@ -96,6 +107,7 @@ describe('Pi extension', () => {
       'ciphers_period_estimate',
       'ciphers_family_guess',
       'ciphers_passphrase_probe',
+      'ciphers_characters_inspect',
       'ciphers_info',
     ]) {
       expect(getTool(name).renderResult).toBeUndefined()
@@ -343,6 +355,79 @@ describe('Pi extension', () => {
     await expect(
       getTool('ciphers_hidden_text_read').execute('hidden', { text: 'abc', letter: 2 }),
     ).rejects.toThrow('Missing required option: pick')
+  })
+
+  it('finds odd characters and hides a message through the shared executor', async () => {
+    const lookalike = `pay${String.fromCodePoint(0x440)}al`
+    const inspected = await getTool('ciphers_characters_inspect').execute('inspect', {
+      text: lookalike,
+    })
+    expect(inspected.content[0]?.text).toContain(
+      '\n  U+0440 CYRILLIC SMALL LETTER ER (Cyrillic) looks like "p" at 4\n',
+    )
+    expect(inspected.details).toMatchObject({ script: 'Latin', words: [{ skeleton: 'paypal' }] })
+
+    const hidden = await getTool('ciphers_zero_width_hide').execute('hide', {
+      text: 'key',
+      cover: 'cover',
+      scheme: '330k',
+    })
+    expect(hidden.details).toEqual({ output: hidden.content[0]?.text, added: 24 })
+    const read = await getTool('ciphers_zero_width_read').execute('read', {
+      text: hidden.content[0]?.text,
+      scheme: '330k',
+    })
+    expect(read.content[0]?.text).toBe('key')
+    await expect(
+      getTool('ciphers_zero_width_read').execute('read', { text: 'abc', unit: 'byte' }),
+    ).rejects.toThrow('Missing required option: symbols')
+  })
+
+  it('reads and hides whitespace through the shared executor', async () => {
+    const hidden = await getTool('ciphers_whitespace_hide').execute('trail', {
+      text: 'Hi',
+      cover: 'a\r\nb',
+      zero: 'tab',
+      one: 'space',
+    })
+    expect(hidden.content[0]?.text).toBe('a\t \t\t \t\t\t\r\nb\t  \t \t\t ')
+    expect(hidden.details).toMatchObject({ added: 16 })
+    const read = await getTool('ciphers_whitespace_read').execute('whitespace', {
+      text: hidden.content[0]?.text,
+      channel: 'trailing',
+      zero: 'tab',
+      one: 'space',
+    })
+    expect(read.content[0]?.text).toContain('2 groups of 8 bits as byte, msb first: "Hi"')
+    expect(read.details).toMatchObject({ bits: '0100100001101001', text: 'Hi', partial: '' })
+    const listed = await getTool('ciphers_whitespace_read').execute('whitespace', {
+      text: 'a  b\r\n',
+    })
+    expect(listed.details).toMatchObject({
+      lines: 1,
+      channels: [
+        { channel: 'line-ending', counts: { crlf: 1 }, occurrences: [], omitted: 0 },
+        { channel: 'trailing', counts: {} },
+        { channel: 'interior', counts: { double: 1 }, occurrences: [{ start: 1, end: 3 }] },
+        { channel: 'sentence', counts: {} },
+      ],
+    })
+  })
+
+  it('aligns two texts through the shared executor', async () => {
+    const aligned = await getTool('ciphers_texts_align').execute('align', {
+      left: 'Red fox, asleep',
+      right: 'red fox awake',
+      compare: 'caseless',
+    })
+    expect(aligned.content[0]?.text).toContain(
+      '\n  equal    left 0-1 [0,3)  right 0-1 [0,3)  "Red" = "red"\n',
+    )
+    expect(aligned.details).toMatchObject({
+      tokens: 'words',
+      compare: 'caseless',
+      counts: { equal: 2, replace: 1, insert: 0, delete: 0 },
+    })
   })
 
   it('checks the arguments the way MCP does', async () => {

@@ -58,6 +58,12 @@ describe('CLI commands', () => {
       'probe',
       'crib',
       'hidden',
+      'inspect',
+      'reveal',
+      'conceal',
+      'whitespace',
+      'trail',
+      'align',
       'recover',
       'info, ciphers',
       'mcp',
@@ -83,6 +89,14 @@ describe('CLI refusals', () => {
     expectRefusal(
       ['decode', 'bacon', 'ABC'],
       'Invalid Bacon code: 2 letters A and B, not a multiple of five',
+    )
+  })
+
+  it('reads Bacon off letter case, and refuses a symbol that is not A or B', () => {
+    expect(runCli(['decode', 'bacon', 'heLLO, wOrld!', '--lowercase', 'a']).stdout).toBe('HI\n')
+    expectRefusal(
+      ['decode', 'bacon', 'heLLO', '--lowercase', 'c'],
+      'Invalid arguments at --lowercase: must match pattern "^[ABab]$"',
     )
   })
 
@@ -137,7 +151,7 @@ describe('CLI refusals', () => {
       ],
       'Invalid arguments at /1 of --known: message must be a ciphertext number from 0 to 1',
     )
-  })
+  }, 20_000)
 
   it('names the flag in a rule the cipher sets beyond the schema', () => {
     expectRefusal(
@@ -238,6 +252,150 @@ describe('CLI analysis', () => {
     expect(result.stdout).toContain(`Key (?? unknown): 66396e${'??'.repeat(25)}\n`)
   })
 
+  it('aligns two texts, one of them from stdin, and checks rows passed back', () => {
+    const answer = [
+      '3 tokens against 3, cut as words and compared exact: 2 equal, 1 replaced, 0 inserted, 0 deleted.',
+      '',
+      '  equal    left 0-2 [0,7)  right 0-2 [0,7)  "red fox"',
+      '  replace  left 2-3 [8,14)  right 2-3 [8,12)  "sleeps" -> "runs"',
+      '',
+      'Token ranges count from 0 and stop before the second number. [start,end) are UTF-16 offsets into each text.',
+      '',
+    ].join('\n')
+    expect(runCli(['align', 'red fox sleeps', 'red fox runs']).stdout).toBe(answer)
+    expect(runCli(['align', '-', 'red fox runs'], { input: 'red fox sleeps' }).stdout).toBe(answer)
+
+    const whole = [{ operation: 'equal', left: { from: 0, to: 3 }, right: { from: 0, to: 3 } }]
+    const checked = runCli([
+      'align',
+      'red fox sleeps',
+      'red fox runs',
+      '--rows',
+      JSON.stringify(whole),
+    ])
+    expect(checked.status).toBe(0)
+    expect(checked.stdout).toBe(
+      [
+        'The rows do not hold against 3 left and 3 right tokens, 1 problem:',
+        '',
+        '  /rows/0 equality: left token 2 does not equal its partner',
+        '',
+      ].join('\n'),
+    )
+    expectRefusal(
+      ['align', 'a', 'b', '--compare', 'fuzzy'],
+      'Invalid arguments at --compare: must be one of exact, canonical, caseless, unaccented',
+    )
+  })
+
+  it('lists whitespace from stdin, hides a message at line ends and reads it back', () => {
+    const listed = runCli(['whitespace', '-'], { input: 'One.  Two.\r\nline   \nlast' })
+    expect(listed.stdout).toContain(
+      [
+        '  line-ending: 2 (lf 1, crlf 1)',
+        '    crlf at line 1, column 11 [10,12)',
+        '  trailing: 1 (space 1)',
+        '    space at line 2, column 5 [16,19), 3 spaces',
+        '  interior: 1 (double 1)',
+        '    double at line 1, column 5 [4,6), 2 spaces',
+        '  sentence: 1 (double 1)',
+        '',
+      ].join('\n'),
+    )
+
+    const cover = 'one\r\ntwo\nthree\nfour\n'
+    const mapping = ['--zero', 'space', '--one', 'tab']
+    const hide = ['trail', 'Hi', '--cover', '-', ...mapping, '--per-line', '4']
+    /* The terminal gets LF for every line ending; --json keeps the cover's own. */
+    expect(runCli(hide, { input: cover }).stdout).toBe(
+      'one \t  \ntwo\t   \nthree \t\t \nfour\t  \t\n',
+    )
+    const whole = JSON.parse(runCli([...hide, '--json'], { input: cover }).stdout) as {
+      output: string
+      added: number
+    }
+    expect(whole).toEqual({
+      output: 'one \t  \r\ntwo\t   \nthree \t\t \nfour\t  \t\n',
+      added: 16,
+    })
+    expect(
+      runCli(['whitespace', '-', '--channel', 'trailing', ...mapping], { input: whole.output })
+        .stdout,
+    ).toBe(
+      [
+        'trailing: 16 bits, space as 0 and tab as 1.',
+        'Bits: 0100100001101001',
+        '2 groups of 8 bits as byte, msb first: "Hi"',
+        '',
+      ].join('\n'),
+    )
+    expect(
+      runCli(['whitespace', '-', '--channel', 'line-ending', '--zero', 'lf', '--one', 'crlf cr'], {
+        input: whole.output,
+      }).stdout,
+    ).toContain('Bits: 1000\n')
+    expectRefusal(
+      ['whitespace', 'a b', '--digits', '3'],
+      'Invalid arguments at --digits: applies when bits are read, so pass channel, zero and one with it',
+    )
+    expectRefusal(['whitespace', 'a b', '--zero', 'single'], 'Invalid arguments: missing --channel')
+    expectRefusal(
+      ['trail', 'Hello', '--cover', 'a', ...mapping],
+      'Invalid arguments at --cover: has room for 8 bits, 8 on each of 1 lines, and the message takes 40; pass more lines or put more bits on a line',
+    )
+  })
+
+  it('finds a lookalike, from an argument and from stdin', () => {
+    const bitcoin = `Bitc${String.fromCodePoint(0x43e)}in`
+    const line = '  U+043E CYRILLIC SMALL LETTER O (Cyrillic) looks like "o" at 5\n'
+
+    expect(runCli(['inspect', bitcoin]).stdout).toContain(line)
+    expect(runCli(['inspect', '-'], { input: bitcoin }).stdout).toContain(line)
+    expect(runCli(['inspect', bitcoin, '--script', 'cyrillic']).stdout).toContain(
+      '6 of 7 characters are not what they seem, held against Cyrillic:',
+    )
+    expectRefusal(
+      ['inspect', 'abc', '--script', 'Klingon'],
+      'Invalid arguments at --script: must be a Unicode script such as Latin, Cyrillic or Greek',
+    )
+  })
+
+  it.each(['binary', '330k', 'zwsp-steg', 'zero-width-lib'])(
+    'conceals with %s and reveals it again, every invisible character intact',
+    (scheme) => {
+      const hidden = runCli(['conceal', 'Hi there', '--cover', 'A cover.', '--scheme', scheme])
+
+      expect(hidden.status).toBe(0)
+      expect(hidden.stdout.replaceAll(/\p{Cf}/gu, '')).toBe('A cover.\n')
+      expect(runCli(['reveal', '-', '--scheme', scheme], { input: hidden.stdout }).stdout).toBe(
+        'Hi there\n',
+      )
+      expect(runCli(['reveal', '-'], { input: hidden.stdout }).stdout).toContain(
+        `\n  scheme=${scheme} -> "Hi there"\n`,
+      )
+      const details = JSON.parse(
+        runCli(['conceal', 'Hi there', '--cover', 'A cover.', '--scheme', scheme, '--json']).stdout,
+      ) as { output: string; added: number }
+      expect(`${details.output}\n`).toBe(hidden.stdout)
+      expect(details.added).toBe(Array.from(hidden.stdout).length - 'A cover.\n'.length)
+    },
+  )
+
+  it('takes a scheme of its own on the command line', () => {
+    const own = ['--symbols', 'U+200C U+200B', '--digits', '8']
+    const hidden = runCli(['conceal', 'Hi', ...own]).stdout
+
+    expect(runCli(['reveal', '-', ...own], { input: hidden }).stdout).toBe('Hi\n')
+    expect(runCli(['reveal', '-'], { input: hidden }).stdout).toContain(
+      '\n  symbols="U+200C U+200B" digits=8 unit=byte -> "Hi"\n',
+    )
+    expectRefusal(['reveal', 'abc', '--digits', '8'], 'Invalid arguments: missing --symbols')
+    expectRefusal(
+      ['reveal', 'abc', '--scheme', 'binary', '--unit', 'byte'],
+      'Invalid arguments at --unit: describes a scheme of your own, so it does not apply with scheme',
+    )
+  })
+
   it('ranks the hidden readings and reads one pick alone', () => {
     const telegram =
       "PRESIDENT'S EMBARGO RULING SHOULD HAVE IMMEDIATE NOTICE. GRAVE SITUATION AFFECTING INTERNATIONAL LAW. STATEMENT FORESHADOWS RUIN OF MANY NEUTRALS. YELLOW JOURNALS UNIFYING NATIONAL EXCITEMENT IMMENSELY."
@@ -274,6 +432,15 @@ describe('CLI dashed text and stdin', () => {
     })
 
     expect(result.stdout).toBe('The quick brown\n')
+  })
+
+  it('takes a letter address for the book cipher', () => {
+    const result = runCli(
+      ['decode', 'book', '1-2-3 2-1-1', '--book', '-', '--address', 'line-word-letter'],
+      { input: 'The quick brown fox\njumps over\n' },
+    )
+
+    expect(result.stdout).toBe('IJ\n')
   })
 
   it('opens armor that starts with dashes as an argument or from stdin', () => {

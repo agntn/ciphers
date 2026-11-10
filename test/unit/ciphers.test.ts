@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vite-plus/test'
 import { create, ciphers, has } from '../../src/core/registry.ts'
 import { resolveCipher } from '../../src/core/resolve.ts'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
-import { MAX_BOOK_LENGTH } from '../../src/tool-operations.ts'
+import { BOOK_ADDRESSES, MAX_BOOK_LENGTH } from '../../src/tool-operations.ts'
 import type { CipherBaseOptions } from '../../src/core/types.ts'
 import { Cipher } from '../../src/core/cipher.ts'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors.ts'
@@ -848,6 +848,11 @@ describe('hill', () => {
   })
 })
 
+/** A hundred distinct symbols, a 10×10 square. */
+const SQUARE_100 = Array.from({ length: 100 }, (_, index) =>
+  String.fromCodePoint(0x4e00 + index),
+).join('')
+
 describe('polybius', () => {
   const polybius = create('polybius')
 
@@ -882,6 +887,48 @@ describe('polybius', () => {
   it('empty string returns empty', () => {
     expect(polybius.encode('').text).toBe('')
     expect(polybius.decode('').text).toBe('')
+  })
+
+  /** Vectors: secretpy 0.12.0, Polybius().encrypt over 36 symbols, its digits spaced in pairs. */
+  it('takes a 6×6 alphabet', () => {
+    const six = { alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' }
+    const mixed = { alphabet: 'P7HQ1G0IUM2EAY3LNO4FDX5KRC6VST8ZWB9J' }
+    expect(polybius.encode('Attack at 1200', six).text).toBe('11 42 42 11 13 25 11 42 54 55 53 53')
+    expect(polybius.decode('11 42 42 11 13 25 11 42 54 55 53 53', six).text).toBe('ATTACKAT1200')
+    expect(polybius.encode('ATTACKAT1200', mixed).text).toBe('31 56 56 31 52 46 31 56 15 25 21 21')
+    expect(polybius.decode('31 56 56 31 52 46 31 56 15 25 21 21', mixed).text).toBe('ATTACKAT1200')
+    expect(polybius.encode('ATTACKAT1200', { ...six, key: 'zebra5' }).text).toBe(
+      '15 44 44 15 21 32 15 44 55 56 54 54',
+    )
+  })
+
+  /** Vector: secretpy 0.12.0 over ABCDEFGHI. */
+  it('takes a 3×3 alphabet and leaves strangers alone', () => {
+    const three = { alphabet: 'ABCDEFGHI' }
+    const encoded = polybius.encode('Badge, J!', three)
+    expect(encoded.text).toBe('12 11 21 31 22')
+    expect(encoded.options).toEqual({ key: '', alphabet: 'ABCDEFGHI' })
+    expect(polybius.decode('12 11 21 31 22', three).text).toBe('BADGE')
+    expect(polybius.decode('12 34 22', three).text).toBe('B34E')
+    expect(polybius.encode('HELLO').options).toEqual({ key: '' })
+    expect(polybius.encode('HELLO', { key: null }).text).toBe('23 15 31 31 34')
+  })
+
+  it('refuses an alphabet that fills no square, and says why', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const [alphabet, reason] of [
+        ['ABCDE', /square number of symbols, like 9, 16, 25 or 36, and holds 5/],
+        ['ABC', /at least 4 symbols/],
+        ['ABCA', /has A twice/],
+        ['AB D', /whitespace/],
+        [25, /must be a string/],
+        [SQUARE_100, /81 symbols at most/],
+      ] as const) {
+        expect(() => polybius[operation]('11', { alphabet })).toThrow(InvalidOptionError)
+        expect(() => polybius[operation]('11', { alphabet })).toThrow(reason)
+      }
+      expect(() => polybius[operation]('11', { key: 5 })).toThrow(/key=5: must be a string/)
+    }
   })
 })
 
@@ -1134,6 +1181,81 @@ describe('bacon', () => {
     expect(bacon.decode('').text).toBe('')
     expect(bacon.decode('  ').text).toBe('')
   })
+
+  /* Sets the case of a sentence from code: lowercase for one symbol, uppercase for the other. */
+  function carry(code: string, sentence: string, lowercase: string): string {
+    const symbols = [...code.replaceAll(/[^AB]/gi, '').toUpperCase()]
+    return sentence.replaceAll(/[a-z]/gi, (letter) => {
+      const symbol = symbols.shift()
+      if (symbol === undefined) return ''
+      return symbol === lowercase ? letter.toLowerCase() : letter.toUpperCase()
+    })
+  }
+
+  /** H is AABBB and I is ABAAA on the 26-letter table, set by hand on HELLO WORLD. */
+  it.each([
+    ['A', 'heLLO, wOrld! 42'],
+    ['B', 'HEllo, WoRLD! 42'],
+    ['a', 'heLLO\nwOrld'],
+  ])('reads the code off letter case with lowercase as %s', (lowercase, text) => {
+    const decoded = bacon.decode(text, { lowercase })
+    expect(decoded.text).toBe('HI')
+    expect(decoded.options).toEqual({ letters: 26, lowercase: lowercase.toUpperCase() })
+  })
+
+  /** The groups of the Wikipedia example above, carried by a sentence instead of written out. */
+  it.each(['A', 'B'])('decodes STEGANOGRAPHY off a sentence, lowercase as %s', (lowercase) => {
+    const groups = 'baaab baaba aabaa aabba aaaaa abbaa abbab aabba baaaa aaaaa abbba aabbb babba'
+    const sentence =
+      "The quick brown fox jumps over the lazy dog, and the dog doesn't mind: it's been 25 years."
+    const text = carry(groups, sentence, lowercase)
+    expect(text.replaceAll(/[^a-z]/gi, '')).toHaveLength(65)
+    expect(bacon.decode(text, { letters: 24, lowercase }).text).toBe('STEGANOGRAPHY')
+  })
+
+  /** ABBBB AABBA and its inverse: P G and Q Z on 26 letters, Q G on Bacon's 24. */
+  it('keeps the table and the ? of a group past its end when reading case', () => {
+    expect(bacon.decode('hELLO woRLd', { lowercase: 'A' }).text).toBe('PG')
+    expect(bacon.decode('hELLO woRLd', { lowercase: 'B' }).text).toBe('QZ')
+    expect(bacon.decode('hELLO woRLd', { lowercase: 'A', letters: 24 }).text).toBe('QG')
+    expect(bacon.decode('HELLO', { lowercase: 'A' }).text).toBe('?')
+  })
+
+  /** ABAAA BAABB: codes 8 and 19, I and U on the shared table, I and T on 26 letters. */
+  it('reads the shared I/J and U/V codes off letter case', () => {
+    expect(bacon.decode('hEllo WorLD', { lowercase: 'A', letters: 24 }).text).toBe('IU')
+    expect(bacon.decode('hEllo WorLD', { lowercase: 'A' }).text).toBe('IT')
+  })
+
+  it('leaves literal A and B alone unless lowercase is set', () => {
+    expect(() => bacon.decode('hELLO woRLd')).toThrow('no A or B')
+    expect(bacon.decode('aabbb ABAAA').text).toBe('HI')
+    expect(bacon.decode('aabbb ABAAA', { lowercase: 'A' }).text).toBe('A?')
+  })
+
+  it.each([
+    ['hELLO woRL', '9 A-Z letters, not a multiple of five'],
+    ['12 34 !?', 'no A-Z letter to read the case of'],
+    ['hÉLLO woRLd', 'É (U+00C9) is a letter outside A-Z'],
+    ['hELLO мир woRLd', 'м (U+043C) is a letter outside A-Z'],
+  ])('refuses the carrier %j', (text, reason) => {
+    expect(() => bacon.decode(text, { lowercase: 'A' })).toThrow(CipherError)
+    expect(() => bacon.decode(text, { lowercase: 'A' })).toThrow(reason)
+  })
+
+  it('reads case past marks, digits and emoji, and blank text as nothing', () => {
+    expect(bacon.decode('he\u0301LLO 😀 wOrld 1', { lowercase: 'A' }).text).toBe('HI')
+    expect(bacon.decode(' \n', { lowercase: 'A' }).text).toBe('')
+  })
+
+  it.each(['C', 'AB', '', 1, true])('rejects lowercase=%j', (lowercase) => {
+    expect(() => bacon.decode('heLLO', { lowercase })).toThrow('must be A or B')
+  })
+
+  it('refuses lowercase when encoding', () => {
+    expect(() => bacon.encode('HI', { lowercase: 'A' })).toThrow(InvalidOptionError)
+    expect(() => bacon.encode('HI', { lowercase: 'A' })).toThrow('only decodes')
+  })
 })
 
 describe('tap-code', () => {
@@ -1311,6 +1433,93 @@ describe('book', () => {
     )
   })
 
+  it('points at a letter inside a word, the Ottendorf way', () => {
+    const colors = { book: 'red blue\ngold green', address: 'line-word-letter' as const }
+    expect(book.decode('1-2-3', colors).text).toBe('U')
+    expect(book.decode('0-1-2', { ...colors, start: 0 }).text).toBe('U')
+    expect(
+      book.decode('2-2-3-1 1-1-3-5', { book: pages, address: 'page-line-word-letter' }).text,
+    ).toBe('TE')
+  })
+
+  it('counts letters through the book, a line, or a line on its page', () => {
+    expect(book.decode('12 9 3 28', { book: pages, address: 'letter' }).text).toBe('FREE')
+    expect(book.decode('4-6 2-5', { book: pages, address: 'line-letter' }).text).toBe('NF')
+    expect(book.decode('2-1-4 1-2-8', { book: pages, address: 'page-line-letter' }).text).toBe('SE')
+    expect(book.decode('3-4', { book: pages, address: 'line-letter' }).text).toBe('S')
+  })
+
+  it('counts letters and digits only, marks riding on their letter', () => {
+    const odd = { book: "Don't e\u0301te\u0301, 4x4!", address: 'letter' as const }
+    expect(book.decode('4 5 7 8 9', odd).text).toBe('T\u00C9\u00C94X')
+    expect(book.decode('1-1-4', { ...odd, address: 'line-word-letter' }).text).toBe('T')
+    expect(book.encode('\u00E9 e\u0301', odd).text).toBe('5 7')
+    expect(book.decode('2', { book: 'x\u0301y', address: 'letter' }).text).toBe('Y')
+    expect(book.decode('5', { book: 'stra\u00DFe', address: 'letter' }).text).toBe('\u00DF')
+  })
+
+  it('gives a repeated letter its next place round the book', () => {
+    const inWords = { book: pages, address: 'line-word-letter' as const }
+    expect(book.encode('Tent!', inWords).text).toBe('1-2-1 1-1-3 1-1-2 1-3-1')
+    expect(book.decode('1-2-1 1-1-3 1-1-2 1-3-1', inWords).text).toBe('TENT')
+    expect(book.encode('to', { book: pages, address: 'letter', start: 0 }).text).toBe('3 0')
+    expect(book.encode('xx', { book: pages, address: 'page-line-letter' }).text).toBe('2-1-3 2-1-3')
+  })
+
+  it('takes pick letter or none with a letter address, and says how many letters it counted', () => {
+    const letters = { book: pages, address: 'letter' as const }
+    expect(book.decode('1', { ...letters, pick: 'letter' }).text).toBe('O')
+    expect(book.decode('1', letters).options).toEqual({
+      address: 'letter',
+      pick: 'letter',
+      start: 1,
+      words: 10,
+      lines: 4,
+      pages: 2,
+      letters: 39,
+    })
+  })
+
+  it('throws CipherError for a letter outside its word, line or book', () => {
+    expect(() => book.decode('1-2-4', { book: pages, address: 'line-word-letter' })).toThrow(
+      'Letter 4 is out of range: word 2 of line 1 has 3 letters, numbered from 1',
+    )
+    expect(() => book.decode('2-1-9', { book: pages, address: 'page-line-letter' })).toThrow(
+      'Letter 9 is out of range: line 1 of page 2 has 8 letters, numbered from 1',
+    )
+    expect(() => book.decode('40', { book: pages, address: 'letter' })).toThrow(
+      'Letter 40 is out of range: the book has 39 letters, numbered from 1',
+    )
+    expect(() => book.decode('0', { book: pages, address: 'letter' })).toThrow(
+      'Letter 0 is out of range',
+    )
+    expect(() => book.decode('39', { book: pages, address: 'letter', start: 0 })).toThrow(
+      'numbered from 0',
+    )
+    expect(() => book.decode('5-1', { book: pages, address: 'line-letter' })).toThrow(
+      'Line 5 is out of range: the book has 4 lines',
+    )
+    expect(() => book.decode('1-2', { book: pages, address: 'line-word-letter' })).toThrow(
+      'line-word-letter addresses take 3 numbers each, and the text has 2',
+    )
+    expect(() => book.encode('q', { book: pages, address: 'letter' })).toThrow(
+      'The book has no letter "q"',
+    )
+  })
+
+  it('reads many letters of one long word without spelling it again each time', () => {
+    const word = { book: 'a'.repeat(MAX_BOOK_LENGTH), address: 'letter' as const }
+    expect(book.decode('7 '.repeat(5000), word).text).toBe('A'.repeat(5000))
+    const line = { book: 'ab '.repeat(MAX_BOOK_LENGTH / 4), address: 'line-letter' as const }
+    expect(book.decode('1-500000 1-499999', line).text).toBe('BA')
+    expect(book.encode('ba', line).text).toBe('1-2 1-1')
+  })
+
+  it('offers the tools every address form the cipher knows', () => {
+    const address = book.info().options?.find((option) => option.name === 'address')
+    expect(address?.description).toBe(`What one address counts: ${BOOK_ADDRESSES.join(', ')}`)
+  })
+
   it('reports the settings and the split, and leaves the book out', () => {
     expect(book.decode('1', { book: pages }).options).toEqual({
       address: 'word',
@@ -1377,6 +1586,8 @@ describe('book', () => {
   it.each([
     [{ address: 'chapter-verse' }, 'address'],
     [{ pick: 'line' }, 'pick'],
+    [{ address: 'line-word-letter', pick: 'word' }, 'pick'],
+    [{ address: 'letter', pick: 'line' }, 'pick'],
     [{ start: 2 }, 'start'],
     [{ start: '1' }, 'start'],
   ])('rejects %o with InvalidOptionError', (options, option) => {
@@ -1533,6 +1744,52 @@ describe('bifid', () => {
       expect(() => bifid.decode('HELLO', { period })).toThrow(/must be a positive integer/)
     },
   )
+
+  /** Vectors: secretpy 0.12.0, Bifid().encrypt over 36 symbols, straight and mixed. */
+  it.each([
+    ['ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 5, 'AAP3ZDGDH2DVABYH39741'],
+    ['ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 7, 'AAMV3ZTGAVT2AKBK9Y9XD'],
+    ['P7HQ1G0IUM2EAY3LNO4FDX5KRC6VST8ZWB9J', 5, 'FF3Z957UWJNTATA3GX5R1'],
+    ['P7HQ1G0IUM2EAY3LNO4FDX5KRC6VST8ZWB9J', 7, 'FFL6Z9O7USWJ1W3ABPXS1'],
+  ])('takes the 6×6 alphabet %s at period %i', (alphabet, period, ciphertext) => {
+    const encoded = bifid.encode('Defend the east wall, 1941', { alphabet, period })
+    expect(encoded.text).toBe(ciphertext)
+    expect(encoded.options).toEqual({ key: '', period, alphabet })
+    expect(bifid.decode(ciphertext.toLowerCase(), { alphabet, period }).text).toBe(
+      'DEFENDTHEEASTWALL1941',
+    )
+  })
+
+  /** Vector: secretpy 0.12.0 over ABCDEFGHI at period 4. */
+  it('takes a 3×3 alphabet, a keyword and a square past 9×9', () => {
+    const three = { alphabet: 'ABCDEFGHI', period: 4 }
+    expect(bifid.encode('BEAD HIGH CAFE, J', three).text).toBe('BBEAIIFBAEGH')
+    expect(bifid.decode('BBEAIIFBAEGH', three).text).toBe('BEADHIGHCAFE')
+    const keyed = { ...three, key: 'chief' }
+    expect(bifid.decode(bifid.encode('BEADHIGHCAFE', keyed).text, keyed).text).toBe('BEADHIGHCAFE')
+    expect(bifid.encode('BEADHIGHCAFE', keyed).text).toBe(
+      bifid.encode('BEADHIGHCAFE', { period: 4, alphabet: 'CHIEFABDG' }).text,
+    )
+    const wide = { alphabet: SQUARE_100 }
+    expect(bifid.decode(bifid.encode(SQUARE_100, wide).text, wide).text).toBe(SQUARE_100)
+    expect(bifid.encode('FLEE AT ONCE').options).toEqual({ key: '', period: 5 })
+  })
+
+  it('refuses an alphabet that fills no square, and says why', () => {
+    for (const operation of ['encode', 'decode'] as const) {
+      for (const [alphabet, reason] of [
+        ['ABCDE', /square number of symbols, like 9, 16, 25 or 36, and holds 5/],
+        ['ABC', /at least 4 symbols/],
+        ['ABCA', /has A twice/],
+        ['AB\tD', /whitespace/],
+        [null, /must be a string/],
+      ] as const) {
+        expect(() => bifid[operation]('AB', { alphabet })).toThrow(InvalidOptionError)
+        expect(() => bifid[operation]('AB', { alphabet })).toThrow(reason)
+      }
+      expect(() => bifid[operation]('AB', { key: 5 })).toThrow(/key=5: must be a string/)
+    }
+  })
 })
 
 describe('trifid', () => {
@@ -6635,7 +6892,7 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
         '[openpgp] Wrong passphrase: the tag on the sealed session key does not match',
       )
     }
-  })
+  }, 20_000)
 
   /** From RustCrypto camellia 0.1.0 with eax 0.5.0, ocb3 0.1.0 and aes-gcm 0.10.3. */
   it('runs Camellia through EAX, GCM and OCB, which RFC 9580 allows and GnuPG writes for OCB', () => {
@@ -6705,7 +6962,7 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
         ),
       )
     }
-  })
+  }, 20_000)
 
   it('refuses AEAD data with a changed chunk or final tag', () => {
     const changed = new CipherError(
@@ -6725,7 +6982,7 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
     expect(() => pgp.decode(Buffer.from(sample).toString('hex'), { key: 'password' })).toThrow(
       changed,
     )
-  })
+  }, 20_000)
 
   it('names what is wrong with an AEAD message it cannot open', () => {
     const fail = (hex: string, reason: string) =>

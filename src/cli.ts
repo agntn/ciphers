@@ -2,11 +2,12 @@
 import { existsSync } from 'node:fs'
 import { sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { runCli } from '@agntn/tools/cli'
+import { resultText, type ToolDefinition } from '@agntn/tools'
+import { runCli, type CliHost } from '@agntn/tools/cli'
 import { CipherError } from './core/errors.ts'
 import type { createMcpServer } from './mcp.ts'
 import { serverInfo } from './server-info.ts'
-import { ciphersTools } from './tools.ts'
+import { ciphersTools, zeroWidthHideTool } from './tools.ts'
 import { version } from './version.ts'
 
 /** The same file from `src/cli.ts` and `dist/cli.mjs`; the npm package ships no `src/`. */
@@ -64,6 +65,24 @@ function isRefusal(error: unknown): boolean {
   return error instanceof CipherError
 }
 
+/**
+ * `conceal` prints its own answer: `runCli` cleans what it prints, and the direction marks three
+ * of the four schemes write with would not survive that. `--json` escapes them, so it stays as is.
+ */
+const concealTool: ToolDefinition = {
+  ...zeroWidthHideTool,
+  execute: async (params, context) => {
+    const result = await zeroWidthHideTool.execute(
+      params as Parameters<typeof zeroWidthHideTool.execute>[0],
+      context,
+    )
+    const host = context.host as CliHost | undefined
+    if (host?.json !== false) return result
+    process.stdout.write(`${resultText(result)}\n`)
+    return { ...result, content: [] }
+  },
+}
+
 const argv = process.argv.slice(2)
 if (argv.length === 1 && argv[0] === 'mcp' && servesSource()) {
   await serveSourceMcp()
@@ -73,7 +92,7 @@ if (argv.length === 1 && argv[0] === 'mcp' && servesSource()) {
       name: 'ciphers',
       version,
       description: 'Educational and puzzle ciphers: encode, decode and analyze',
-      tools: ciphersTools,
+      tools: ciphersTools.map((tool) => (tool === zeroWidthHideTool ? concealTool : tool)),
       default: 'info',
       fallback: 'encode',
       mcp: serverInfo,

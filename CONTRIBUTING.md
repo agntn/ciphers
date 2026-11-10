@@ -31,6 +31,7 @@ Running `ciphers mcp` or an extension from this checkout? Both serve `src/`, so 
 - Nothing registers itself on import.
 - The top of a cipher file doesn't call, spread or read a field. Mark it `/* @__PURE__ */` or move it into a function. One stray `Array.from(...)` drags that cipher into every root import, and `test/unit/side-effects.test.ts` will tell on you.
 - A family's byte functions get a subpath, like `./aes` or `./chacha`. It imports that family and the errors. Never the root barrel.
+- `src/core/confusables.ts` is generated from Unicode 17.0.0's `confusables.txt` and `UnicodeData.txt`. A Unicode bump regenerates the whole file. Don't edit the packed strings by hand.
 - Sources run under plain Node. Relative imports name the `.ts` file. No `enum`, no `namespace`, no parameter properties.
 
 ## Agent tools

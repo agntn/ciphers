@@ -56,6 +56,12 @@ describe('Ciphers MCP server', () => {
       'ciphers_passphrase_probe',
       'ciphers_crib_drag',
       'ciphers_hidden_text_read',
+      'ciphers_characters_inspect',
+      'ciphers_zero_width_read',
+      'ciphers_zero_width_hide',
+      'ciphers_whitespace_read',
+      'ciphers_whitespace_hide',
+      'ciphers_texts_align',
       'ciphers_key_recover',
       'ciphers_info',
     ])
@@ -627,6 +633,28 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(decoded.content)).toBe('TRIFID#IS#FUN')
   })
 
+  it('carries a square alphabet through the protocol', async () => {
+    const client = await connectTestClient()
+    const six = { cipher: 'bifid', alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', period: 5 }
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { ...six, text: 'Defend the east wall, 1941' },
+    })
+    expect(encoded.isError).not.toBe(true)
+    expect(onlyText(encoded.content)).toBe('AAP3ZDGDH2DVABYH39741')
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'polybius', alphabet: six.alphabet, text: '11 42 54 55' },
+    })
+    expect(onlyText(decoded.content)).toBe('AT12')
+    const lopsided = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'polybius', alphabet: 'ABCDE', text: 'BAD' },
+    })
+    expect(lopsided.isError).toBe(true)
+    expect(onlyText(lopsided.content)).toContain('must hold a square number of symbols')
+  })
+
   it('carries the hill alphabet through the protocol', async () => {
     const client = await connectTestClient()
     const nine = { cipher: 'hill', key: '2113', alphabet: '012345678' }
@@ -692,6 +720,23 @@ describe('Ciphers MCP server', () => {
     })
     expect(letters.isError).not.toBe(true)
     expect(onlyText(letters.content)).toBe('1 0 7')
+    const inside = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: {
+        cipher: 'book',
+        text: '2-2-3-1 1-1-3-5',
+        book,
+        address: 'page-line-word-letter',
+      },
+    })
+    expect(inside.isError).not.toBe(true)
+    expect(onlyText(inside.content)).toBe('TE')
+    const clash = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'book', text: 'toe', book, address: 'line-letter', pick: 'word' },
+    })
+    expect(clash.isError).toBe(true)
+    expect(onlyText(clash.content)).toContain('pick=word: must be letter with address line-letter')
     const outside = await client.callTool({
       name: 'ciphers_decode',
       arguments: { cipher: 'book', text: '11', book },
@@ -1107,6 +1152,7 @@ Co2B
     const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'bacon' } })
     expect(info.isError).not.toBe(true)
     expect(onlyText(info.content)).toContain('letters (number, default=26)')
+    expect(onlyText(info.content)).toContain('lowercase (string, default=none)')
     for (const [name, text, expected] of [
       ['ciphers_encode', 'KNIGHT', 'ABAABABBAAABAAAAABBAAABBBBAABA'],
       ['ciphers_decode', 'ABAABABBAAABAAAAABBAAABBBBAABA', 'KNIGHT'],
@@ -1118,6 +1164,12 @@ Co2B
       expect(result.isError).not.toBe(true)
       expect(onlyText(result.content)).toBe(expected)
     }
+    const carried = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'bacon', text: 'heLLO, wOrld!', lowercase: 'A' },
+    })
+    expect(carried.isError).not.toBe(true)
+    expect(onlyText(carried.content)).toBe('HI')
   })
 
   it('discovers and executes Autokey through the protocol', async () => {
@@ -1575,6 +1627,58 @@ Co2B
     expect(await guess({ text: '69c4e0d86a7b0430d8cdb78070b4c55a' })).toContain(
       'Next: ciphers_decode with cipher aes, which needs key.',
     )
+    expect(await guess({ text: '23 42 45 11 41 42 22 15 12 15 41 42 33 16 42' })).toContain(
+      'Next: ciphers_decode with cipher polybius, which needs alphabet.',
+    )
+    expect((await guess({ text: '72 69 76 76 79 32 87 79 82 76 68' })).split('\n')).toEqual([
+      'Family guess (22 characters, 0 A-Z letters, lang=en), most likely first:',
+      '',
+      'Not a cipher by the look of it: decimal character codes that read "HELLO WORLD".',
+      '   Every number is a printable ASCII code, and the letters they spell fit en.',
+      '   Next: encodings_decode with encoding decimal, from @agntn/encodings.',
+      '',
+      '1. fractionation (low): nihilist',
+      '   11 numbers from 22 to 110 and none ending in 1, as two square cells added together give.',
+      '   Next: ciphers_decode with cipher nihilist, which needs key.',
+      '2. fractionation (low): polybius',
+      '   Digit pairs with a 9, so a 9×9 square. Polybius reads it with the alphabet that filled it. These numbers fit nihilist too.',
+      '   Next: ciphers_decode with cipher polybius, which needs alphabet.',
+      '',
+      'Candidates, not a verdict: only a decode that reads settles it.',
+    ])
+    expect((await guess({ text: '072069076076079' })).split('\n')).toEqual([
+      'Family guess (15 characters, 0 A-Z letters, lang=en), most likely first:',
+      '',
+      'Not a cipher by the look of it: decimal character codes that read "HELLO".',
+      '   Every number is a printable ASCII code, and together they look like words.',
+      '   Next: encodings_decode with encoding decimal, from @agntn/encodings.',
+      '',
+      'Candidates, not a verdict: only a decode that reads settles it.',
+    ])
+    const greeting = (await guess({ text: '48656c6c6f20776f726c6421' })).split('\n')
+    expect(greeting.slice(2, 5)).toEqual([
+      'Not a cipher by the look of it: hex that reads "Hello world!".',
+      '   Every pair of hex digits is a printable ASCII code, and the letters they spell fit en.',
+      '   Next: encodings_decode with encoding hex, from @agntn/encodings.',
+    ])
+    expect(greeting[6]).toMatch(/^1\. .+ \(low\): aes-ctr,/)
+    expect((await guess({ text: 'aGVsbG8K' })).split('\n').slice(2, 5)).toEqual([
+      'Not a cipher by the look of it: base64 that reads "hello\\n".',
+      '   Every byte the base64 holds is a printable ASCII code or a line break, and together they look like words.',
+      '   Next: encodings_decode with encoding base64, from @agntn/encodings.',
+    ])
+    const polish = '90 97 380 243 322 263 32 103 281 347 108 261 32 106 97 378 324'
+    expect((await guess({ text: polish, lang: 'pl' })).split('\n').slice(2, 5)).toEqual([
+      'Not a cipher by the look of it: decimal character codes that read "Za\u017C\u00F3\u0142\u0107 g\u0119\u015Bl\u0105 ja\u017A\u0144".',
+      '   Every number, read as a code point, is a letter or a printable ASCII code, and the letters they spell fit pl.',
+      '   Next: read each number as a Unicode code point. encodings_decode takes decimal as bytes.',
+    ])
+    const utf8 = '5a61c5bcc3b3c582c4872067c499c59b6cc485206a61c5bac584'
+    expect((await guess({ text: utf8, lang: 'pl' })).split('\n').slice(2, 5)).toEqual([
+      'Not a cipher by the look of it: hex that reads "Za\u017C\u00F3\u0142\u0107 g\u0119\u015Bl\u0105 ja\u017A\u0144".',
+      '   Every character the hex spells in UTF-8 is a letter or a printable ASCII code, and the letters they spell fit pl.',
+      '   Next: encodings_decode with encoding hex, from @agntn/encodings.',
+    ])
     expect(await guess({ text: 'hi', lang: 'pl' })).toBe(
       'No family fits (2 characters, 2 A-Z letters): no layout this package knows, and too few letters for statistics.',
     )
@@ -1827,6 +1931,422 @@ Co2B
     }
   })
 
+  it('aligns two texts and checks rows over the protocol', async () => {
+    const client = await connectTestClient()
+    const call = async (args: Readonly<Record<string, unknown>>) =>
+      client.callTool({ name: 'ciphers_texts_align', arguments: args })
+    const texts = {
+      left: 'The fox, the fox!\nIt sleeps',
+      right: 'the fox the dog it SLEEPS soundly',
+    }
+
+    expect(onlyText((await call({ ...texts, compare: 'caseless' })).content)).toBe(
+      [
+        '6 tokens against 7, cut as words and compared caseless: 5 equal, 1 replaced, 1 inserted, 0 deleted.',
+        '',
+        '  equal    left 0-1 [0,3)  right 0-1 [0,3)  "The" = "the"',
+        '  equal    left 1-3 [4,12)  right 1-3 [4,11)  "fox, the"',
+        '  replace  left 3-4 [13,16)  right 3-4 [12,15)  "fox" -> "dog"',
+        '  equal    left 4-6 [18,27)  right 4-6 [16,25)  "It sleeps" = "it SLEEPS"',
+        '  insert   left 6-6 [27,27)  right 6-7 [26,33)  + "soundly"',
+        '',
+        'Token ranges count from 0 and stop before the second number. [start,end) are UTF-16 offsets into each text.',
+        'A row with = holds tokens that match only as compared (caseless).',
+      ].join('\n'),
+    )
+    expect(onlyText((await call({ left: 'a b a', right: 'a' })).content)).toBe(
+      [
+        '3 tokens against 1, cut as words and compared exact: 1 equal, 0 replaced, 0 inserted, 2 deleted.',
+        '',
+        '  equal    left 0-1 [0,1)  right 0-1 [0,1)  "a"  (ambiguous)',
+        '  delete   left 1-3 [2,5)  right 1-1 [1,1)  - "b a"',
+        '',
+        'Token ranges count from 0 and stop before the second number. [start,end) are UTF-16 offsets into each text.',
+        'A row marked ambiguous has a repeated word: another alignment with as many equal tokens pairs it otherwise.',
+      ].join('\n'),
+    )
+    expect(onlyText((await call({ left: 'Stop, thief!', right: 'Stop thief' })).content)).toContain(
+      '\nEvery token matches, yet the texts differ: look at the whitespace and punctuation between them, which is never compared.',
+    )
+    expect(onlyText((await call({ left: 'a\u202Eb x', right: 'c' })).content)).toContain(
+      '"a\\u202eb x" -> "c"',
+    )
+
+    const pair = { left: 'a b', right: 'a c' }
+    const row = (operation: string, from: number, to: number) => ({
+      operation,
+      left: { from, to },
+      right: { from, to },
+    })
+    expect(
+      onlyText((await call({ ...pair, rows: [row('equal', 0, 1), row('replace', 1, 2)] })).content),
+    ).toBe(
+      'The rows hold: they cover all 2 left and 2 right tokens in order, and every equality checks out.',
+    )
+    const broken = await call({
+      ...pair,
+      rows: [row('equal', 0, 1), row('equal', 1, 2), row('insert', 2, 2)],
+    })
+    expect(broken.isError).toBeFalsy()
+    expect(onlyText(broken.content)).toBe(
+      [
+        'The rows do not hold against 2 left and 2 right tokens, 2 problems:',
+        '',
+        '  /rows/1 equality: left token 1 does not equal its partner',
+        '  /rows/2 operation: insert takes no token on the left and at least one on the right',
+      ].join('\n'),
+    )
+
+    const long = Array.from({ length: 2_000 }, (_, index) => `w${index % 7}`).join(' ')
+    const whole = {
+      operation: 'replace',
+      left: { from: 0, to: 2_000 },
+      right: { from: 0, to: 2_000 },
+    }
+    expect(
+      onlyText((await call({ left: long, right: long.toUpperCase(), rows: [whole] })).content),
+    ).toBe(
+      'The rows hold: they cover all 2000 left and 2000 right tokens in order, and every equality checks out.',
+    )
+    const refused = await call({ left: long, right: long })
+    expect(refused.isError).toBe(true)
+    expect(onlyText(refused.content)).toContain(
+      'Too long to align: 2000 tokens against 2000 is 4004001 comparisons, over the 4000000 limit. Align one section at a time.',
+    )
+    const scattered = await call({
+      left: Array.from({ length: 600 }, (_, index) => `same${index} left${index}`).join(' '),
+      right: Array.from({ length: 600 }, (_, index) => `same${index} right${index}`).join(' '),
+    })
+    expect(scattered.isError).toBe(true)
+    expect(onlyText(scattered.content)).toContain(
+      'The texts differ in too many places to list: 1200 rows, over the 500 limit. Align one section at a time.',
+    )
+    expect(onlyText((await call({ ...pair, rows: 'none' })).content)).toContain(
+      'Invalid arguments at /rows',
+    )
+  })
+
+  it('lists whitespace, reads it as bits and hides a message over the protocol', async () => {
+    const client = await connectTestClient()
+    const call = async (name: string, args: Readonly<Record<string, unknown>>) =>
+      client.callTool({ name: `ciphers_whitespace_${name}`, arguments: args })
+    const text = 'One.  Two. Three.\r\nline   \nnext\ttab\n  indented\nlast  '
+
+    expect(onlyText((await call('read', { text })).content)).toBe(
+      [
+        '5 lines. Spaces, tabs and line endings by position:',
+        '',
+        '  line-ending: 4 (lf 3, crlf 1)',
+        '    crlf at line 1, column 18 [17,19)',
+        '  trailing: 2 (space 2)',
+        '    space at line 2, column 5 [23,26), 3 spaces',
+        '    space at line 5, column 5 [51,53), 2 spaces',
+        '  interior: 3 (single 1, double 1, tab 1)',
+        '    double at line 1, column 5 [4,6), 2 spaces',
+        '    tab at line 3, column 5 [31,32), 1 tab',
+        '  sentence: 2 (single 1, double 1)',
+        '    double at line 1, column 5 [4,6), 2 spaces',
+        '',
+        'Places are line and column from 1, then [start,end) as UTF-16 offsets. Single spaces and the usual line ending are counted, not listed; pass channel to list one channel whole.',
+        'This is what is there, not a sign that anything is hidden. To read a channel as bits pass channel with zero and one, such as channel trailing, zero space, one tab.',
+      ].join('\n'),
+    )
+    expect(onlyText((await call('read', { text, channel: 'sentence' })).content)).toContain(
+      [
+        '  sentence: 2 (single 1, double 1)',
+        '    double at line 1, column 5 [4,6), 2 spaces',
+        '    single at line 1, column 11 [10,11), 1 space',
+        '',
+      ].join('\n'),
+    )
+    expect(onlyText((await call('read', { text: 'abc' })).content)).toContain(
+      '  line-ending: none\n  trailing: none\n  interior: none\n  sentence: none\n',
+    )
+
+    const cover = 'one\r\ntwo\nthree\rfour\n'
+    const hidden = await call('hide', { text: 'Hi', cover, zero: 'space', one: 'tab', perLine: 4 })
+    expect(onlyText(hidden.content)).toBe('one \t  \r\ntwo\t   \nthree \t\t \rfour\t  \t\n')
+    const carried = onlyText(hidden.content)
+    const trailing = { text: carried, channel: 'trailing' }
+    expect(onlyText((await call('read', { ...trailing, zero: 'space', one: 'tab' })).content)).toBe(
+      [
+        'trailing: 16 bits, space as 0 and tab as 1.',
+        'Bits: 0100100001101001',
+        '2 groups of 8 bits as byte, msb first: "Hi"',
+      ].join('\n'),
+    )
+    expect(onlyText((await call('read', { ...trailing, zero: 'tab', one: 'space' })).content)).toBe(
+      [
+        'trailing: 16 bits, tab as 0 and space as 1.',
+        'Bits: 1011011110010110',
+        '2 groups of 8 bits as byte, msb first: no text. The hidden bytes are not UTF-8',
+      ].join('\n'),
+    )
+    expect(
+      onlyText(
+        (
+          await call('read', {
+            text: 'a  b c   d e  f',
+            channel: 'interior',
+            zero: 'single',
+            one: 'double, mixed',
+            unmapped: 'skip',
+            digits: 3,
+            offset: 1,
+          })
+        ).content,
+      ),
+    ).toBe(
+      [
+        'interior: 4 bits, single as 0 and double, mixed as 1.',
+        'Bits: 1001',
+        '1 group of 3 bits as byte, msb first, the first 1 bit passed over: "\\u0001"',
+        'Left out 1 place the mapping gives no bit: wide at line 1, column 7 [6,9), 3 spaces',
+      ].join('\n'),
+    )
+    expect(
+      onlyText(
+        (
+          await call('read', {
+            text: 'a \nb\t\nc ',
+            channel: 'trailing',
+            zero: 'space',
+            one: 'tab',
+          })
+        ).content,
+      ),
+    ).toBe(
+      [
+        'trailing: 3 bits, space as 0 and tab as 1.',
+        'Bits: 010',
+        '0 groups of 8 bits as byte, msb first: ""',
+        '3 bits left over after the last whole group: 010',
+      ].join('\n'),
+    )
+    expect(
+      onlyText(
+        (await call('read', { text: 'abc', channel: 'trailing', zero: 'space', one: 'tab' }))
+          .content,
+      ),
+    ).toBe('Nothing in the trailing channel of this text, so there are no bits to read.')
+
+    const long = `${'a\t \n'.repeat(600)}`
+    const reading = await call('read', {
+      text: long,
+      channel: 'trailing',
+      zero: 'space',
+      one: 'tab',
+    })
+    expect(onlyText(reading.content)).toContain(`Bits: ${'10'.repeat(256)}… (688 more)\n`)
+    const many = onlyText((await call('read', { text: 'a  b\n'.repeat(30) })).content)
+    expect(many).toContain('  interior: 30 (double 30)\n')
+    expect(many).toContain('    (10 more, not listed)\n')
+
+    for (const [args, line] of [
+      [
+        { text: 'a b', digits: 3 },
+        'applies when bits are read, so pass channel, zero and one with it',
+      ],
+      [{ text: 'a b', zero: 'single', one: 'double' }, 'Missing required option: channel'],
+      [
+        { text: 'a b', channel: 'interior', zero: 'single' },
+        'Missing required option: one. The interior channel has single, double, wide, tab, mixed',
+      ],
+      [
+        { text: 'a b', channel: 'trailing', zero: 'single', one: 'tab' },
+        'is no class of trailing, which has space, tab',
+      ],
+      [
+        { text: 'a   b', channel: 'interior', zero: 'single', one: 'double' },
+        '1 interior place has no bit in the mapping: wide. The first is at line 1, column 2.',
+      ],
+    ] as const) {
+      const refused = await call('read', args)
+      expect(refused.isError, line).toBe(true)
+      expect(onlyText(refused.content)).toContain(line)
+    }
+    for (const [args, line] of [
+      [
+        { text: 'Hello', cover: 'a\nb', zero: 'space', one: 'tab' },
+        'has room for 16 bits, 8 on each of 2 lines, and the message takes 40',
+      ],
+      [
+        { text: 'Hi', cover: 'a \nb', zero: 'space', one: 'tab' },
+        'ends line 1 in a space or a tab',
+      ],
+      [{ text: 'Hi', cover: 'a\nb', zero: 'space', one: 'space' }, 'is mapped already'],
+      [{ text: 'Hi', cover: 'a\nb', zero: 'space' }, 'Invalid arguments'],
+    ] as const) {
+      const refused = await call('hide', args)
+      expect(refused.isError, line).toBe(true)
+      expect(onlyText(refused.content)).toContain(line)
+    }
+  })
+
+  it('inspects characters and carries zero-width messages over the protocol', async () => {
+    const client = await connectTestClient()
+    const call = async (name: string, args: Readonly<Record<string, unknown>>) =>
+      client.callTool({ name: `ciphers_${name}`, arguments: args })
+    const bitcoin = `Bitc${String.fromCodePoint(0x43e)}in`
+
+    expect(onlyText((await call('characters_inspect', { text: bitcoin })).content)).toBe(
+      [
+        '1 of 7 characters are not what they seem, held against Latin:',
+        '',
+        '  U+043E CYRILLIC SMALL LETTER O (Cyrillic) looks like "o" at 5',
+        '',
+        'Words that mix scripts:',
+        `  "${bitcoin}" at 1: Latin and Cyrillic, skeleton "Bitcoin"`,
+        '',
+        'In order: U+043E',
+        'As the ASCII they pass for: "o"',
+      ].join('\n'),
+    )
+    expect(onlyText((await call('characters_inspect', { text: 'Bitcoin' })).content)).toBe(
+      'Nothing odd in 7 characters held against Latin: no invisible character, no lookalike, no other script.',
+    )
+    expect(
+      onlyText((await call('characters_inspect', { text: 'abc', script: 'Cyrillic' })).content),
+    ).toBe(
+      [
+        '3 of 3 characters are not what they seem, held against Cyrillic:',
+        '',
+        '  U+0061 Latin character at 1',
+        '  U+0062 Latin character at 2',
+        '  U+0063 Latin character at 3',
+        '',
+        'In order: U+0061 U+0062 U+0063',
+      ].join('\n'),
+    )
+
+    for (const scheme of ['binary', '330k', 'zwsp-steg', 'zero-width-lib']) {
+      const hidden = onlyText(
+        (await call('zero_width_hide', { text: 'Hi there', cover: 'A cover.', scheme })).content,
+      )
+      expect(hidden.replaceAll(/\p{Cf}/gu, '')).toBe('A cover.')
+      expect(onlyText((await call('zero_width_read', { text: hidden, scheme })).content)).toBe(
+        'Hi there',
+      )
+      expect(onlyText((await call('zero_width_read', { text: hidden })).content)).toContain(
+        `\n  scheme=${scheme} -> "Hi there"`,
+      )
+      expect(onlyText((await call('characters_inspect', { text: hidden })).content)).toContain(
+        `\nThe invisible ones spell "Hi there" with scheme=${scheme}; ciphers_zero_width_read reads it whole.`,
+      )
+    }
+
+    const full = await call('zero_width_hide', {
+      text: 'x'.repeat(10_000),
+      cover: 'c'.repeat(10_000),
+      symbols: 'ab',
+      digits: 9,
+    })
+    expect(onlyText(full.content)).toHaveLength(100_000)
+    expect(
+      onlyText(
+        (
+          await call('zero_width_read', {
+            text: onlyText(full.content),
+            symbols: 'ab',
+            digits: 9,
+          })
+        ).content,
+      ),
+    ).toBe('x'.repeat(10_000))
+
+    const swapped = { symbols: 'U+200C U+200B', digits: 8 }
+    const own = onlyText((await call('zero_width_hide', { text: 'Hi', ...swapped })).content)
+    expect(Array.from(own, (character) => character.codePointAt(0)?.toString(16))).toEqual(
+      Array.from('0100100001101001', (bit) => (bit === '0' ? '200c' : '200b')),
+    )
+    expect(onlyText((await call('zero_width_read', { text: own })).content)).toBe(
+      [
+        'Zero-width readings (5 schemes tried, 1 read as text), printable ASCII first:',
+        '',
+        '  symbols="U+200C U+200B" digits=8 unit=byte -> "Hi"',
+      ].join('\n'),
+    )
+    expect(
+      onlyText((await call('zero_width_read', { text: own, ...swapped, unit: 'byte' })).content),
+    ).toBe('Hi')
+    expect(
+      onlyText(
+        (await call('zero_width_read', { text: ' \t \t\t\t\t\t', symbols: ' \t', digits: 8 }))
+          .content,
+      ),
+    ).toBe('_')
+    expect(onlyText((await call('zero_width_read', { text: 'plain' })).content)).toBe(
+      'No invisible character in this text, so nothing to read.',
+    )
+    expect(onlyText((await call('zero_width_read', { text: own.slice(0, 3) })).content)).toBe(
+      'None of the 5 built-in schemes reads the invisible characters here: U+200C ×2, U+200B ×1. Pass symbols in digit order, with digits or separator, for a scheme of your own.',
+    )
+    expect(
+      onlyText((await call('zero_width_read', { text: 'plain', scheme: 'binary' })).content),
+    ).toBe("None of the scheme's characters are in this text.")
+
+    for (const [name, args, message] of [
+      [
+        'characters_inspect',
+        { text: 'abc', script: 'Klingon' },
+        'Invalid option script=Klingon: must be a Unicode script such as Latin, Cyrillic or Greek',
+      ],
+      ['zero_width_read', { text: 'abc', digits: 8 }, 'Missing required option: symbols'],
+      [
+        'zero_width_read',
+        { text: 'abc', scheme: 'binary', digits: 8 },
+        'Invalid option digits=8: describes a scheme of your own, so it does not apply with scheme',
+      ],
+      ['zero_width_read', { text: 'abc', symbols: 'ab' }, 'Missing required option: digits'],
+      [
+        'zero_width_read',
+        { text: 'abc', symbols: 'U+200B U+ZZ', digits: 8 },
+        'Invalid option symbols=U+ZZ: must be U+ and one to six hex digits',
+      ],
+      [
+        'zero_width_read',
+        { text: 'abc', symbols: 'aa', digits: 8 },
+        'Invalid option symbols=U+0061 U+0061: must not repeat a character',
+      ],
+      [
+        'zero_width_read',
+        { text: 'abc', symbols: 'ab', separator: 'cd' },
+        'Invalid option separator=cd: must be one character',
+      ],
+      [
+        'zero_width_read',
+        { text: own.slice(0, 3), scheme: 'binary' },
+        '3 hidden characters are left over after 0 groups of 8; another scheme wrote this, or part of the text is missing',
+      ],
+      ['zero_width_read', { text: 'abc', scheme: 'rot13' }, 'Invalid arguments at /scheme'],
+      [
+        'zero_width_hide',
+        { text: String.fromCodePoint(0x1f600), scheme: 'zwsp-steg' },
+        'Invalid option message=U+1F600: does not fit 7 digits of base 5',
+      ],
+      [
+        'zero_width_hide',
+        { text: 'x', cover: own, scheme: 'binary' },
+        'Invalid option cover=the cover text: already carries characters of the scheme, which would read as part of the message',
+      ],
+      ['zero_width_hide', { text: 'x', digits: 33, symbols: 'ab' }, 'Invalid arguments at /digits'],
+      [
+        'zero_width_hide',
+        { text: 'x'.repeat(10_000), symbols: 'ab', digits: 32 },
+        'Invalid option text=320000 characters with the cover: are more than the 100000 ciphers_zero_width_read takes; hide less, or use fewer digits',
+      ],
+      [
+        'zero_width_hide',
+        { text: String.fromCodePoint(0x4e16).repeat(4_166), cover: 'c'.repeat(1_000) },
+        'Invalid option text=100984 characters with the cover: are more than the 100000 ciphers_zero_width_read takes; hide less, or use fewer digits',
+      ],
+    ] as const) {
+      const refused = await call(name, args)
+      expect(refused.isError, message).toBe(true)
+      expect(onlyText(refused.content)).toContain(message)
+    }
+  })
+
   it('reads and ranks hidden text over the protocol', async () => {
     const client = await connectTestClient()
     const call = async (args: Readonly<Record<string, unknown>>) =>
@@ -1977,6 +2497,15 @@ Co2B
     })
     expect(onlyText(badLetters.content)).toBe(
       'Invalid arguments at /letters: must be one of 24, 26',
+    )
+
+    const encodedCase = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'bacon', text: 'HI', lowercase: 'A' },
+    })
+    expect(encodedCase.isError).toBe(true)
+    expect(onlyText(encodedCase.content)).toContain(
+      'Invalid option lowercase=A: only decodes, encoding has no text to carry the case',
     )
   })
 })

@@ -1,4 +1,13 @@
 import type * as CiphersModule from './index.ts'
+import {
+  MAX_ALIGNMENT_CELLS,
+  alignmentCompares,
+  alignmentOperations,
+  alignmentTokens,
+  type AlignmentCompare,
+  type AlignmentOperation,
+  type AlignmentTokens,
+} from './core/alignment-options.ts'
 import { cipherCategories } from './core/ciphers.ts'
 import {
   DEFAULT_COLUMNAR_KEY_LENGTH,
@@ -13,8 +22,31 @@ import {
   periodicKeyRecoveryCiphers,
   type KeyRecoveryCipher,
 } from './core/recover-options.ts'
+import {
+  MAX_ZERO_WIDTH_DIGITS,
+  zeroWidthSchemes,
+  zeroWidthUnits,
+  type ZeroWidthScheme,
+  type ZeroWidthSchemeName,
+  type ZeroWidthUnit,
+} from './core/zero-width-options.ts'
+import {
+  MAX_BITS_PER_LINE,
+  SENTENCE_BOUNDARIES,
+  whitespaceChannels,
+  whitespaceOrders,
+  whitespaceSymbols,
+  whitespaceUnmapped,
+  type WhitespaceChannel,
+  type WhitespaceOrder,
+  type WhitespaceUnmapped,
+} from './core/whitespace-options.ts'
 
 export {
+  MAX_ALIGNMENT_CELLS,
+  alignmentCompares,
+  alignmentOperations,
+  alignmentTokens,
   DEFAULT_COLUMNAR_KEY_LENGTH,
   DEFAULT_HOMOPHONIC_SEED,
   DEFAULT_HOMOPHONIC_STARTS,
@@ -23,9 +55,17 @@ export {
   MAX_KEY_CANDIDATES,
   MAX_SEED,
   MAX_SYMBOL_WIDTH,
+  MAX_ZERO_WIDTH_DIGITS,
   cipherCategories,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
+  zeroWidthSchemes,
+  zeroWidthUnits,
+  MAX_BITS_PER_LINE,
+  SENTENCE_BOUNDARIES,
+  whitespaceChannels,
+  whitespaceOrders,
+  whitespaceUnmapped,
 }
 
 type CiphersLibrary = Pick<
@@ -59,6 +99,7 @@ export type CipherToolParams = {
   b?: number
   period?: number
   letters?: number
+  lowercase?: string
   segment?: number
   blockSize?: number
   endian?: 'big' | 'little'
@@ -69,7 +110,7 @@ export type CipherToolParams = {
   separator?: string
   zero?: string
   book?: string
-  address?: 'word' | 'line-word' | 'page-line-word'
+  address?: (typeof BOOK_ADDRESSES)[number]
   pick?: 'word' | 'letter'
   start?: 0 | 1
   tagLength?: number
@@ -118,6 +159,18 @@ export const MAX_TRANSFORM_TEXT_LENGTH = 10_000
 export const MAX_BRUTE_TEXT_LENGTH = 2_000
 export const MAX_FREQUENCY_TEXT_LENGTH = 100_000
 export const MAX_KEY_LENGTH = 1_000
+/** Address forms of the book cipher, kept here so the schema loads without the library. */
+export const BOOK_ADDRESSES = [
+  'word',
+  'line-word',
+  'page-line-word',
+  'letter',
+  'line-letter',
+  'page-line-letter',
+  'line-word-letter',
+  'page-line-word-letter',
+] as const
+
 /** Longest book the book cipher takes from a tool call, a long novel. */
 export const MAX_BOOK_LENGTH = 1_000_000
 /** Longest key length `ciphers_period_estimate` tries. */
@@ -190,15 +243,15 @@ export const OPTION_DESCRIPTIONS = {
   symbol:
     'Trifid only: the 27th cell of its cube after A-Z, one character that is neither a letter A-Z nor whitespace, such as . or # (default +)',
   alphabet:
-    'Hill only: the symbols in order, at least 2 and each once, without whitespace. The first is 0 and the modulus is its length, so ZABCDEFGHIJKLMNOPQRSTUVWXY puts A at 1 and 012345678 works mod 9; the key is read in it too (default A-Z)',
+    'Hill, polybius and bifid only: the symbols in order, each once, without whitespace. Hill takes at least 2: the first is 0 and the modulus is its length, so ZABCDEFGHIJKLMNOPQRSTUVWXY puts A at 1 and 012345678 works mod 9; the key is read in it too (default A-Z). Polybius and bifid take a square number, 4 and up, 81 at most for polybius, filling the square row by row after the key, so ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 is the 6×6 (default A-Z with J as I)',
   separator:
     'A1Z26 only: text between the numbers of one word, 1 to 10 characters without digits; decoding drops it only between two numbers (default -)',
   zero: 'A1Z26 only: letter J to Z that stands for 0. Setting it switches to the single digit form, A to I for 1 to 9, where decoding turns those letters into digits',
   book: 'Book cipher only, and required there: the text to count in, whole. A form feed starts a new page, as pdftotext writes them, and a line without a word is not counted',
   address:
-    'Book cipher only: what one address counts, word for its place in the book (default), line-word for its line and place in the line, page-line-word for page, line on the page and place in the line',
-  pick: 'Book cipher only: word for the whole word (default), letter for its first letter',
-  start: 'Book cipher only: number of the first word, line and page, 1 (default) or 0',
+    'Book cipher only: what the numbers of one address count, in order. word is the place in the book (default), line-word the line and the place in it, page-line-word adds the page. The letter forms end at one letter instead: counted through the book, in its line, or in its word. Only letters and digits count',
+  pick: 'Book cipher only: word for the whole word (default), letter for its first letter. A letter address gives its letter and takes no pick word',
+  start: 'Book cipher only: number of the first letter, word, line and page, 1 (default) or 0',
   width:
     'Route only, and required there: cells per row of the grid the text fills row by row (at least 2)',
   corner: 'Route only: corner the path starts from (default top-left)',
@@ -266,6 +319,7 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'b',
     'period',
     'letters',
+    'lowercase',
     'segment',
     'blockSize',
     'endian',
@@ -525,6 +579,26 @@ export function formatPeriodEstimate(
 }
 
 /**
+ * Options a candidate's first cipher still wants.
+ *
+ * @param library - The loaded cipher library.
+ * @param found - One candidate of `guessFamily`.
+ * @returns {string[]} Option names.
+ */
+function missingOptions(
+  library: Readonly<Pick<CiphersLibrary, 'create'>>,
+  found: Readonly<CiphersModule.FamilyCandidate>,
+): string[] {
+  const { ciphers, options = {}, needs = [] } = found
+  const required = library
+    .create(ciphers[0]!)
+    .info()
+    .options.filter(({ name, required }) => required && !Object.hasOwn(options, name))
+    .map(({ name }) => name)
+  return [...required, ...needs]
+}
+
+/**
  * What to call next for a candidate: the decode its first cipher needs, or the analysis before it.
  *
  * @param library - The loaded cipher library.
@@ -546,11 +620,7 @@ function nextStep(
     return 'ciphers_caesar_brute ranks all 25 shifts; ciphers_key_recover with cipher substitution solves a mixed alphabet.'
   }
   const given = Object.entries(found.options ?? {}).map(([name, value]) => `${name}=${value}`)
-  const needed = library
-    .create(first!)
-    .info()
-    .options.filter(({ name, required }) => required && !Object.hasOwn(found.options ?? {}, name))
-    .map(({ name }) => name)
+  const needed = missingOptions(library, found)
   const known = given.length === 0 ? '' : ` and ${given.join(', ')}`
   const missing = needed.length === 0 ? '' : `, which needs ${needed.join(' and ')}`
   const search =
@@ -558,6 +628,26 @@ function nextStep(
       ? ' ciphers_key_recover with cipher columnar searches a columnar key.'
       : ''
   return `ciphers_decode with cipher ${first}${known}${missing}.${search}`
+}
+
+/**
+ * The encoding a guess found, ahead of any cipher.
+ *
+ * @param found - `encoding` of a `guessFamily` result.
+ * @returns {string[]} What it reads, why, and the call that decodes it.
+ */
+function encodingLines(found: Readonly<CiphersModule.EncodingGuess>): string[] {
+  const what =
+    found.name === 'decimal' ? 'decimal character codes that read' : `${found.name} that reads`
+  const next =
+    found.name === 'decimal' && /[\u0080-\u{10FFFF}]/u.test(found.text)
+      ? 'Next: read each number as a Unicode code point. encodings_decode takes decimal as bytes.'
+      : `Next: encodings_decode with encoding ${found.name}, from @agntn/encodings.`
+  return [
+    `Not a cipher by the look of it: ${what} ${quotedPreview(found.text)}.`,
+    `   ${found.signal}`,
+    `   ${next}`,
+  ]
 }
 
 /**
@@ -575,7 +665,8 @@ export function formatFamilyGuess(
 ): CipherToolResult {
   const guess = library.guessFamily(text, language)
   const counted = `${guess.length} characters, ${guess.letters} A-Z letters`
-  if (guess.candidates.length === 0) {
+  const encoding = guess.encoding === undefined ? [] : encodingLines(guess.encoding)
+  if (guess.candidates.length === 0 && encoding.length === 0) {
     return {
       content: [
         {
@@ -590,7 +681,12 @@ export function formatFamilyGuess(
     guess.ic === undefined
       ? ''
       : `, IoC ${guess.ic.toFixed(4)} (${guess.language} plaintext ~${guess.referenceIc.toFixed(3)}, uniform random ~0.038)`
-  const lines = [`Family guess (${counted}, lang=${guess.language}${ic}), most likely first:`, '']
+  const lines = [
+    `Family guess (${counted}, lang=${guess.language}${ic}), most likely first:`,
+    '',
+    ...encoding,
+    ...(encoding.length > 0 && guess.candidates.length > 0 ? [''] : []),
+  ]
   guess.candidates.forEach((found, index) => {
     lines.push(
       `${index + 1}. ${found.families.join(', ')} (${found.confidence}): ${found.ciphers.join(', ')}`,
@@ -1089,4 +1185,938 @@ function keyRecoveryReply(recovery: Readonly<CiphersModule.KeyRecovery>): string
     `Only the top ${homophonic ? 'key and text are' : 'text is'} whole, the others stop at ${BRUTE_PREVIEW_LENGTH} characters. ${next}`,
   ]
   return lines.join('\n')
+}
+
+/** Code points the character inspection prints, one line each. */
+export const CHARACTER_LINES = 40
+/** Places a character line lists before it counts the rest. */
+export const CHARACTER_POSITIONS = 8
+/** Words that mix scripts the character inspection prints. */
+export const MIXED_WORD_LINES = 20
+/** Listed characters the inspection spells out in order. */
+export const SEQUENCE_CHARACTERS = 64
+
+export type CharactersInspectToolParams = {
+  readonly text: string
+  readonly script?: string
+}
+
+export type ZeroWidthToolParams = {
+  readonly text: string
+  readonly scheme?: ZeroWidthSchemeName
+  readonly symbols?: string
+  readonly separator?: string
+  readonly digits?: number
+  readonly unit?: ZeroWidthUnit
+}
+
+export type ZeroWidthHideToolParams = ZeroWidthToolParams & { readonly cover?: string }
+
+/**
+ * A code point the way Unicode writes it.
+ *
+ * @param codePoint - The code point.
+ * @returns {string} `U+` and at least four hex digits.
+ */
+function codePointLabel(codePoint: number): string {
+  return `U+${codePoint.toString(16).toUpperCase().padStart(4, '0')}`
+}
+
+/**
+ * Characters as their code points, so an invisible one shows.
+ *
+ * @param text - Any characters.
+ * @returns {string} `U+200B U+200C`, in order.
+ */
+function codePointLabels(text: string): string {
+  return Array.from(text, (character) => codePointLabel(character.codePointAt(0) ?? 0)).join(' ')
+}
+
+/**
+ * What a listed character is, in a few words.
+ *
+ * @param character - One occurrence of it.
+ * @returns {string} Its code point, its name or script, and what it passes for.
+ */
+function characterLabel(character: Readonly<CiphersModule.SuspiciousCharacter>): string {
+  const { kind, script, name, lookalike } = character
+  const fallback = kind === 'combining' ? 'combining mark' : `${script} character`
+  const parts = [`${codePointLabel(character.codePoint)} ${name ?? fallback}`]
+  if (name !== undefined && kind === 'lookalike' && script !== 'Common') parts.push(`(${script})`)
+  if (kind === 'invisible') parts.push('invisible')
+  if (lookalike !== undefined) parts.push(`looks like ${JSON.stringify(lookalike)}`)
+  return parts.join(' ')
+}
+
+/**
+ * The places one character sits at, the first few spelled out.
+ *
+ * @param positions - Code point positions, from 1.
+ * @returns {string} `at 5`, or `12 times at 3, 9 and 10 more`.
+ */
+function placesLabel(positions: readonly number[]): string {
+  if (positions.length === 1) return `at ${positions[0]}`
+  const shown = positions.slice(0, CHARACTER_POSITIONS).join(', ')
+  const rest = positions.length - CHARACTER_POSITIONS
+  return `${positions.length} times at ${shown}${rest > 0 ? ` and ${rest} more` : ''}`
+}
+
+/**
+ * One line per listed code point, in the order each first shows up.
+ *
+ * @param characters - The listed characters.
+ * @returns {string[]} At most `CHARACTER_LINES` lines and a count of the rest.
+ */
+function characterLines(characters: readonly CiphersModule.SuspiciousCharacter[]): string[] {
+  const places = new Map<number, number[]>()
+  const first = new Map<number, CiphersModule.SuspiciousCharacter>()
+  for (const character of characters) {
+    const seen = places.get(character.codePoint)
+    if (seen === undefined) {
+      places.set(character.codePoint, [character.position])
+      first.set(character.codePoint, character)
+    } else {
+      seen.push(character.position)
+    }
+  }
+  const lines = Array.from(first.values(), (character) => {
+    return `  ${characterLabel(character)} ${placesLabel(places.get(character.codePoint) ?? [])}`
+  })
+  if (lines.length <= CHARACTER_LINES) return lines
+  return [
+    ...lines.slice(0, CHARACTER_LINES),
+    `  (${lines.length - CHARACTER_LINES} more code points)`,
+  ]
+}
+
+/**
+ * The words that mix scripts, each with the skeleton to compare it by.
+ *
+ * @param words - Words from the report.
+ * @returns {string[]} A heading and at most `MIXED_WORD_LINES` lines, or nothing.
+ */
+function mixedWordLines(words: readonly CiphersModule.MixedScriptWord[]): string[] {
+  if (words.length === 0) return []
+  const lines = words.slice(0, MIXED_WORD_LINES).map(({ word, position, scripts, skeleton }) => {
+    return `  ${quotedPreview(word)} at ${position}: ${scripts.join(' and ')}, skeleton ${quotedPreview(skeleton)}`
+  })
+  if (words.length > MIXED_WORD_LINES) lines.push(`  (${words.length - MIXED_WORD_LINES} more)`)
+  return ['', 'Words that mix scripts:', ...lines]
+}
+
+/**
+ * The listed characters as a message of their own: their code points, and the ASCII they pass for.
+ *
+ * @param report - The inspection.
+ * @param spelled - Whether a scheme already reads the invisible ones, which makes the order noise.
+ * @returns {string[]} Up to two lines under a blank one, or nothing.
+ */
+function sequenceLines(
+  report: Readonly<CiphersModule.CharacterReport>,
+  spelled: boolean,
+): string[] {
+  const { characters } = report
+  const shown = characters.slice(0, SEQUENCE_CHARACTERS)
+  const rest = characters.length - shown.length
+  const labels = shown.map(({ codePoint }) => codePointLabel(codePoint)).join(' ')
+  const lines = spelled ? [] : [`In order: ${labels}${rest > 0 ? ` and ${rest} more` : ''}`]
+  const passed = characters.map(({ lookalike }) => lookalike ?? '').join('')
+  if (passed !== '') lines.push(`As the ASCII they pass for: ${quotedPreview(passed)}`)
+  return lines.length === 0 ? [] : ['', ...lines]
+}
+
+/**
+ * The arguments that read one zero-width candidate again.
+ *
+ * @param candidate - A reading of `rankZeroWidth`.
+ * @returns {string} `scheme=330k`, or the symbols, width and unit of a scheme without a name.
+ */
+function zeroWidthArguments(candidate: Readonly<CiphersModule.ZeroWidthCandidate>): string {
+  if (candidate.name !== undefined) return `scheme=${candidate.name}`
+  const { symbols, digits, separator, unit } = candidate.scheme
+  const parts = [`symbols="${codePointLabels(symbols.join(''))}"`]
+  if (separator !== undefined) parts.push(`separator=${codePointLabels(separator)}`)
+  if (digits !== undefined) parts.push(`digits=${digits}`)
+  return [...parts, `unit=${unit}`].join(' ')
+}
+
+/**
+ * What the invisible characters spell, when a built-in scheme reads them.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - The inspected text.
+ * @returns {string[]} A line for the likeliest reading, or nothing.
+ */
+function hiddenMessageLines(
+  library: Readonly<Pick<typeof CiphersModule, 'rankZeroWidth'>>,
+  text: string,
+): string[] {
+  const [top] = library.rankZeroWidth(text).candidates
+  if (top === undefined) return []
+  return [
+    '',
+    `The invisible ones spell ${quotedPreview(top.text)} with ${zeroWidthArguments(top)}; ciphers_zero_width_read reads it whole.`,
+  ]
+}
+
+/**
+ * List the characters of a text that are not what they seem, for a model. Nothing invisible is
+ * printed raw.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments.
+ * @returns {CipherToolResult} The report as text, and whole in `details`.
+ * @throws {InvalidOptionError} When `script` is not a Unicode script.
+ */
+export function formatCharacters(
+  library: Readonly<Pick<typeof CiphersModule, 'inspectCharacters' | 'rankZeroWidth'>>,
+  params: Readonly<CharactersInspectToolParams>,
+): CipherToolResult {
+  const { text, script } = params
+  const report = library.inspectCharacters(
+    text,
+    script === undefined || script === '' ? {} : { script },
+  )
+  const total = Array.from(text).length
+  if (report.characters.length === 0 && report.words.length === 0) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Nothing odd in ${total} characters held against ${report.script}: no invisible character, no lookalike, no other script.`,
+        },
+      ],
+      details: { script: report.script, characters: [], words: [] },
+    }
+  }
+  const hidden = hiddenMessageLines(library, text)
+  const lines = [
+    `${report.characters.length} of ${total} characters are not what they seem, held against ${report.script}:`,
+    '',
+    ...characterLines(report.characters),
+    ...mixedWordLines(report.words),
+    ...sequenceLines(report, hidden.length > 0),
+    ...hidden,
+  ]
+  return {
+    content: [{ type: 'text', text: lines.join('\n') }],
+    details: { script: report.script, characters: report.characters, words: report.words },
+  }
+}
+
+/**
+ * The characters a `symbols` or `separator` argument names.
+ *
+ * @param library - The loaded cipher library, for its error class.
+ * @param name - The argument, for the error.
+ * @param value - `U+200B U+200C`, or the characters themselves.
+ * @returns {string[]} One string per character.
+ * @throws {InvalidOptionError} When a `U+` entry is not a code point.
+ */
+function namedCharacters(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'InvalidOptionError'>>,
+  name: string,
+  value: string,
+): string[] {
+  if (!/^\s*U\+/i.test(value)) return Array.from(value)
+  return value
+    .trim()
+    .split(/[\s,]+/)
+    .map((entry) => {
+      const codePoint = /^U\+[0-9A-F]{1,6}$/i.test(entry) ? Number.parseInt(entry.slice(2), 16) : -1
+      if (codePoint < 0 || codePoint > 0x10ffff) {
+        throw new library.InvalidOptionError(name, entry, 'must be U+ and one to six hex digits')
+      }
+      return String.fromCodePoint(codePoint)
+    })
+}
+
+/**
+ * A scheme built from the arguments that spell one out.
+ *
+ * @param library - The loaded cipher library, for its error classes.
+ * @param params - The tool arguments, blanks already dropped.
+ * @returns {ZeroWidthScheme} The scheme, bytes unless `unit` says otherwise.
+ * @throws {InvalidOptionError} When `separator` is more than one character or a `U+` entry is bad.
+ * @throws {MissingOptionError} Without `symbols`.
+ */
+function ownZeroWidthScheme(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'InvalidOptionError' | 'MissingOptionError'>>,
+  params: Readonly<Omit<ZeroWidthToolParams, 'text' | 'scheme'>>,
+): ZeroWidthScheme {
+  const { symbols, separator, digits } = params
+  if (symbols === undefined) throw new library.MissingOptionError('symbols')
+  const [mark, ...more] =
+    separator === undefined ? [] : namedCharacters(library, 'separator', separator)
+  if (more.length > 0) {
+    throw new library.InvalidOptionError('separator', separator, 'must be one character')
+  }
+  return {
+    symbols: namedCharacters(library, 'symbols', symbols),
+    unit: params.unit ?? 'byte',
+    ...(mark === undefined ? {} : { separator: mark }),
+    ...(digits === undefined ? {} : { digits }),
+  }
+}
+
+/**
+ * The scheme the zero-width arguments name, if they name one.
+ *
+ * @param library - The loaded cipher library, for its error classes.
+ * @param params - The tool arguments.
+ * @returns {ZeroWidthSchemeName | ZeroWidthScheme | undefined} A built-in name, a scheme built
+ * from `symbols`, or nothing when neither is given.
+ * @throws {InvalidOptionError} When `scheme` comes with the arguments of a scheme of your own.
+ * @throws {MissingOptionError} When `separator`, `digits` or `unit` come without `symbols`.
+ */
+function zeroWidthScheme(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'InvalidOptionError' | 'MissingOptionError'>>,
+  params: Readonly<ZeroWidthToolParams>,
+): ZeroWidthSchemeName | ZeroWidthScheme | undefined {
+  const own = {
+    symbols: params.symbols === '' ? undefined : params.symbols,
+    separator: params.separator === '' ? undefined : params.separator,
+    digits: params.digits,
+    unit: params.unit,
+  }
+  const stray = Object.entries(own).find(([, value]) => value !== undefined)
+  if (stray === undefined) return params.scheme
+  if (params.scheme === undefined) return ownZeroWidthScheme(library, own)
+  throw new library.InvalidOptionError(
+    stray[0],
+    stray[1],
+    'describes a scheme of your own, so it does not apply with scheme',
+  )
+}
+
+/**
+ * Rank the built-in schemes on a text for a model, with the arguments that read each again.
+ *
+ * @param library - The loaded cipher library.
+ * @param text - Text that may carry hidden characters.
+ * @returns {CipherToolResult} One line per reading, or what invisible characters there are.
+ */
+function formatZeroWidthRanking(
+  library: Readonly<Pick<typeof CiphersModule, 'inspectCharacters' | 'rankZeroWidth'>>,
+  text: string,
+): CipherToolResult {
+  const ranking = library.rankZeroWidth(text)
+  if (ranking.candidates.length > 0) {
+    const lines = [
+      `Zero-width readings (${ranking.tried} schemes tried, ${ranking.candidates.length} read as text), printable ASCII first:`,
+      '',
+      ...ranking.candidates.map((candidate, rank) => {
+        const reading = quotedPreview(candidate.text, rank === 0 ? Infinity : BRUTE_PREVIEW_LENGTH)
+        return `  ${zeroWidthArguments(candidate)} -> ${reading}`
+      }),
+    ]
+    return { content: [{ type: 'text', text: lines.join('\n') }], details: { ...ranking } }
+  }
+  const counts = new Map<number, number>()
+  for (const { kind, codePoint } of library.inspectCharacters(text).characters) {
+    if (kind === 'invisible') counts.set(codePoint, (counts.get(codePoint) ?? 0) + 1)
+  }
+  const kinds = Array.from(counts, ([codePoint, count]) => `${codePointLabel(codePoint)} ×${count}`)
+  const found =
+    kinds.length === 0
+      ? 'No invisible character in this text, so nothing to read.'
+      : `None of the ${ranking.tried} built-in schemes reads the invisible characters here: ${kinds.slice(0, CHARACTER_LINES).join(', ')}. Pass symbols in digit order, with digits or separator, for a scheme of your own.`
+  return { content: [{ type: 'text', text: found }], details: { ...ranking } }
+}
+
+/**
+ * Read the message a text hides in invisible characters, or rank the built-in schemes when the
+ * model names none.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments.
+ * @returns {CipherToolResult} The message alone, or the ranking.
+ * @throws {InvalidOptionError} For arguments that clash or a scheme that cannot be read back.
+ * @throws {MissingOptionError} When `symbols` is missing, or both `digits` and `separator`.
+ * @throws {ZeroWidthError} When the hidden characters do not fit the scheme.
+ */
+export function formatZeroWidthRead(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<
+    Pick<
+      typeof CiphersModule,
+      | 'readZeroWidth'
+      | 'rankZeroWidth'
+      | 'inspectCharacters'
+      | 'InvalidOptionError'
+      | 'MissingOptionError'
+    >
+  >,
+  params: Readonly<ZeroWidthToolParams>,
+): CipherToolResult {
+  const scheme = zeroWidthScheme(library, params)
+  if (scheme === undefined) return formatZeroWidthRanking(library, params.text)
+  const message = library.readZeroWidth(params.text, { scheme })
+  return {
+    content: [
+      {
+        type: 'text',
+        text: message === '' ? "None of the scheme's characters are in this text." : message,
+      },
+    ],
+  }
+}
+
+/**
+ * Hide a message in invisible characters for a model, `binary` unless it names a scheme.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments, `text` being the message.
+ * @returns {CipherToolResult} The cover with the message inside, or the bare characters, and in
+ * `details` the same text with the number of characters added.
+ * @throws {InvalidOptionError} For arguments that do not go together, a scheme that cannot be
+ * read back, a character the scheme cannot hold or a cover that carries its characters.
+ * @throws {MissingOptionError} When `symbols` is missing, or both `digits` and `separator`.
+ */
+export function formatZeroWidthHide(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<
+    Pick<typeof CiphersModule, 'hideZeroWidth' | 'InvalidOptionError' | 'MissingOptionError'>
+  >,
+  params: Readonly<ZeroWidthHideToolParams>,
+): CipherToolResult {
+  const scheme = zeroWidthScheme(library, params) ?? 'binary'
+  const cover = params.cover ?? ''
+  const hidden = library.hideZeroWidth(params.text, { scheme, cover })
+  const added = Array.from(hidden).length - Array.from(cover).length
+  if (hidden.length > MAX_FREQUENCY_TEXT_LENGTH) {
+    throw new library.InvalidOptionError(
+      'text',
+      `${hidden.length} characters with the cover`,
+      `are more than the ${MAX_FREQUENCY_TEXT_LENGTH} ciphers_zero_width_read takes; hide less, or use fewer digits`,
+    )
+  }
+  return { content: [{ type: 'text', text: hidden }], details: { output: hidden, added } }
+}
+
+/** Rows the alignment tool lists. A longer map is refused, never cut short. */
+export const MAX_ALIGNMENT_ROWS = 500
+/** Code points of a row's text shown per side. */
+export const ALIGNMENT_PREVIEW = 40
+
+export type TextsAlignToolParams = {
+  readonly left: string
+  readonly right: string
+  readonly tokens?: AlignmentTokens
+  readonly compare?: AlignmentCompare
+  readonly rows?: readonly unknown[]
+}
+
+type AlignmentLibrary = Readonly<
+  Pick<typeof CiphersModule, 'alignTexts' | 'checkAlignment' | 'tokenizeTexts' | 'CipherError'>
+>
+
+/**
+ * One side of a row: its tokens and the span they take.
+ *
+ * @param side - `left` or `right`.
+ * @param range - The tokens of that side.
+ * @returns {string} `left 0-2 [0,7)`.
+ */
+function alignmentRangeLabel(side: string, range: Readonly<CiphersModule.AlignmentRange>): string {
+  return `${side} ${range.from}-${range.to} [${range.start},${range.end})`
+}
+
+/**
+ * What a row holds, quoted, so nothing in the texts can pass for a line of the answer.
+ *
+ * @param row - One row.
+ * @param texts - The two texts it was read from.
+ * @returns {string} Both sides where they differ, one where they match.
+ */
+function alignmentRowText(
+  row: Readonly<CiphersModule.AlignmentRow>,
+  texts: Readonly<CiphersModule.AlignmentSources>,
+): string {
+  const left = quotedPreview(texts.left.slice(row.left.start, row.left.end), ALIGNMENT_PREVIEW)
+  const right = quotedPreview(texts.right.slice(row.right.start, row.right.end), ALIGNMENT_PREVIEW)
+  if (row.operation === 'insert') return `+ ${right}`
+  if (row.operation === 'delete') return `- ${left}`
+  if (row.operation === 'replace') return `${left} -> ${right}`
+  return row.exact === true ? left : `${left} = ${right}`
+}
+
+/**
+ * Tokens per operation: the left ones, the right ones for an insert.
+ *
+ * @param rows - Every row.
+ * @returns {Record<AlignmentOperation, number>} The counts.
+ */
+function alignmentCounts(
+  rows: readonly CiphersModule.AlignmentRow[],
+): Record<AlignmentOperation, number> {
+  const counts = { equal: 0, replace: 0, insert: 0, delete: 0 }
+  for (const { operation, left, right } of rows) {
+    counts[operation] += operation === 'insert' ? right.to - right.from : left.to - left.from
+  }
+  return counts
+}
+
+/**
+ * What the rows leave unsaid, in the lines under them.
+ *
+ * @param alignment - The whole map.
+ * @param texts - The two texts.
+ * @returns {string[]} How to read a row, and the two caveats when they apply.
+ */
+function alignmentNotes(
+  alignment: Readonly<CiphersModule.TextAlignment>,
+  texts: Readonly<CiphersModule.AlignmentSources>,
+): string[] {
+  const { rows } = alignment
+  const notes = [
+    'Token ranges count from 0 and stop before the second number. [start,end) are UTF-16 offsets into each text.',
+  ]
+  if (rows.some((row) => row.operation === 'equal' && row.exact === false)) {
+    notes.push(`A row with = holds tokens that match only as compared (${alignment.compare}).`)
+  }
+  if (rows.some((row) => row.ambiguous === true)) {
+    notes.push(
+      'A row marked ambiguous has a repeated word: another alignment with as many equal tokens pairs it otherwise.',
+    )
+  }
+  if (texts.left !== texts.right && rows.every((row) => row.exact === true)) {
+    notes.push(
+      'Every token matches, yet the texts differ: look at the whitespace and punctuation between them, which is never compared.',
+    )
+  }
+  return notes
+}
+
+/**
+ * Check rows a model wrote or edited against the two texts.
+ *
+ * @param check - The verdict of `checkAlignment`.
+ * @param cut - The texts as cut for the check, for the token counts.
+ * @returns {CipherToolResult} The verdict as text, a broken map with its problems one per line.
+ */
+function formatAlignmentCheck(
+  check: Readonly<CiphersModule.AlignmentCheck>,
+  cut: Readonly<CiphersModule.TokenizedTexts>,
+): CipherToolResult {
+  const sizes = `${cut.left.tokens.length} left and ${cut.right.tokens.length} right tokens`
+  if (check.valid) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `The rows hold: they cover all ${sizes} in order, and every equality checks out.`,
+        },
+      ],
+      details: { valid: true, count: 0, problems: [] },
+    }
+  }
+  const lines = [
+    `The rows do not hold against ${sizes}, ${check.count} ${check.count === 1 ? 'problem' : 'problems'}:`,
+    '',
+    ...check.problems.map(({ code, at, message }) => `  ${at} ${code}: ${message}`),
+  ]
+  if (check.count > check.problems.length) {
+    lines.push(`  (${check.count - check.problems.length} more)`)
+  }
+  return {
+    content: [{ type: 'text', text: lines.join('\n') }],
+    details: { valid: false, count: check.count, problems: check.problems },
+  }
+}
+
+/**
+ * Align two versions of a text for a model, or check the rows it passes against them.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments.
+ * @returns {CipherToolResult} One line per row, or the verdict on `rows`.
+ * @throws {CipherError} When the texts are too long to align, or give more rows than fit.
+ */
+export function formatAlignment(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: AlignmentLibrary,
+  params: Readonly<TextsAlignToolParams>,
+): CipherToolResult {
+  const texts = { left: params.left, right: params.right }
+  const options = {
+    ...(params.tokens === undefined ? {} : { tokens: params.tokens }),
+    ...(params.compare === undefined ? {} : { compare: params.compare }),
+  }
+  if (params.rows !== undefined) {
+    const cut = library.tokenizeTexts(texts, options)
+    return formatAlignmentCheck(library.checkAlignment(texts, { ...cut, rows: params.rows }), cut)
+  }
+  const alignment = library.alignTexts(texts, options)
+  const { rows, tokens, compare } = alignment
+  if (rows.length > MAX_ALIGNMENT_ROWS) {
+    throw new library.CipherError(
+      `The texts differ in too many places to list: ${rows.length} rows, over the ${MAX_ALIGNMENT_ROWS} limit. Align one section at a time.`,
+    )
+  }
+  const counts = alignmentCounts(rows)
+  const sizes = `${alignment.left.tokens.length} tokens against ${alignment.right.tokens.length}`
+  const lines = [
+    `${sizes}, cut as ${tokens} and compared ${compare}: ${counts.equal} equal, ${counts.replace} replaced, ${counts.insert} inserted, ${counts.delete} deleted.`,
+    '',
+    ...rows.map((row) => {
+      const flag = row.ambiguous === true ? '  (ambiguous)' : ''
+      return `  ${row.operation.padEnd(7)}  ${alignmentRangeLabel('left', row.left)}  ${alignmentRangeLabel('right', row.right)}  ${alignmentRowText(row, texts)}${flag}`
+    }),
+    '',
+    ...alignmentNotes(alignment, texts),
+  ]
+  return {
+    content: [{ type: 'text', text: lines.join('\n') }],
+    details: { tokens, compare, counts, rows },
+  }
+}
+
+/** Occurrences one channel lists in the whitespace inventory before it counts the rest. */
+export const WHITESPACE_LINES = 20
+/** Bits a whitespace reading prints; `details` keeps them all. */
+export const WHITESPACE_BITS = 512
+/** Stretches of spaces or tabs spelled out for one mixed run. */
+const WHITESPACE_RUN_PARTS = 6
+
+export type WhitespaceReadToolParams = {
+  readonly text: string
+  readonly channel?: WhitespaceChannel
+  readonly zero?: string
+  readonly one?: string
+  readonly unmapped?: WhitespaceUnmapped
+  readonly offset?: number
+  readonly digits?: number
+  readonly order?: WhitespaceOrder
+  readonly unit?: ZeroWidthUnit
+  readonly boundaries?: string
+}
+
+export type WhitespaceHideToolParams = {
+  readonly text: string
+  readonly cover: string
+  readonly zero: string
+  readonly one: string
+  readonly digits?: number
+  readonly order?: WhitespaceOrder
+  readonly unit?: ZeroWidthUnit
+  readonly perLine?: number
+}
+
+/**
+ * A count with its noun.
+ *
+ * @param count - How many.
+ * @param noun - The singular.
+ * @returns {string} `1 bit`, `3 bits`.
+ */
+function counted(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
+
+/**
+ * A run of spaces and tabs in words, since printing it raw shows nothing.
+ *
+ * @param raw - The run.
+ * @returns {string} `3 spaces`, or `1 space + 2 tabs` for a mixed one.
+ */
+function whitespaceRunLabel(raw: string): string {
+  const parts = (raw.match(/ +|\t+/g) ?? []).map((part) => {
+    return counted(part.length, part.startsWith(' ') ? 'space' : 'tab')
+  })
+  if (parts.length <= WHITESPACE_RUN_PARTS) return parts.join(' + ')
+  return `${parts.slice(0, WHITESPACE_RUN_PARTS).join(' + ')} + …`
+}
+
+/**
+ * One occurrence on a line of its own.
+ *
+ * @param occurrence - A line ending, a trailing run or a gap.
+ * @returns {string} Its class, its place and, for a run, what it holds.
+ */
+function whitespaceOccurrenceLabel(
+  occurrence: Readonly<CiphersModule.WhitespaceOccurrence>,
+): string {
+  const { line, column, start, end } = occurrence
+  const where = `${occurrence.class} at line ${line}, column ${column} [${start},${end})`
+  if (occurrence.channel === 'line-ending') return where
+  return `${where}, ${whitespaceRunLabel(occurrence.raw)}`
+}
+
+/**
+ * The occurrences worth a line each: the ones outside a channel's usual class.
+ *
+ * @param report - One channel of the inventory.
+ * @param whole - Whether the model asked for this channel alone, which lists all of it.
+ * @returns {ReadonlyArray<CiphersModule.WhitespaceOccurrence>} The occurrences to list.
+ */
+function whitespaceStandouts(
+  report: Readonly<CiphersModule.WhitespaceChannelReport>,
+  whole: boolean,
+): ReadonlyArray<CiphersModule.WhitespaceOccurrence> {
+  const { channel, occurrences } = report
+  if (whole || channel === 'trailing') return occurrences
+  if (channel === 'interior') return occurrences.filter((found) => found.class !== 'single')
+  const counts: Readonly<Record<string, number | undefined>> = report.counts
+  const [usual] = whitespaceSymbols[channel].toSorted((left, right) => {
+    return (counts[right] ?? 0) - (counts[left] ?? 0)
+  })
+  return occurrences.filter((found) => found.class !== usual)
+}
+
+/**
+ * How many occurrences a channel has of each class, in the order the channel names them.
+ *
+ * @param report - One channel of the inventory.
+ * @returns {string} `lf 12, crlf 1`.
+ */
+function whitespaceCounts(report: Readonly<CiphersModule.WhitespaceChannelReport>): string {
+  const counts: Readonly<Record<string, number | undefined>> = report.counts
+  return whitespaceSymbols[report.channel]
+    .concat(report.channel === 'trailing' ? ['mixed'] : [])
+    .flatMap((name) => (counts[name] === undefined ? [] : [`${name} ${counts[name]}`]))
+    .join(', ')
+}
+
+/**
+ * One channel of the inventory as text.
+ *
+ * @param report - The channel.
+ * @param whole - Whether to list all of it.
+ * @returns {string[]} A count line, then at most `WHITESPACE_LINES` occurrences and what is left.
+ */
+function whitespaceChannelLines(
+  report: Readonly<CiphersModule.WhitespaceChannelReport>,
+  whole: boolean,
+): string[] {
+  const total = report.occurrences.length
+  if (total === 0) return [`  ${report.channel}: none`]
+  const listed = whitespaceStandouts(report, whole)
+  const lines = [
+    `  ${report.channel}: ${total} (${whitespaceCounts(report)})`,
+    ...listed.slice(0, WHITESPACE_LINES).map((found) => `    ${whitespaceOccurrenceLabel(found)}`),
+  ]
+  if (listed.length > WHITESPACE_LINES) {
+    lines.push(`    (${listed.length - WHITESPACE_LINES} more, not listed)`)
+  }
+  return lines
+}
+
+/**
+ * The arguments that only mean something when bits are read.
+ *
+ * @param params - The tool arguments.
+ * @returns {Array<[string, unknown]>} Each one given, by name.
+ */
+function whitespaceReadingArguments(
+  params: Readonly<WhitespaceReadToolParams>,
+): Array<[string, unknown]> {
+  const { unmapped, offset, digits, order, unit } = params
+  return Object.entries({ unmapped, offset, digits, order, unit }).filter(([, value]) => {
+    return value !== undefined
+  })
+}
+
+/**
+ * List where a text keeps its line endings, trailing runs and gaps, for a model.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments, with neither `zero` nor `one`.
+ * @returns {CipherToolResult} Counts for every channel, the occurrences that stand out and, in
+ * `details`, the same with what was left off the list.
+ * @throws {InvalidOptionError} When an argument for reading bits comes without a mapping.
+ */
+function formatWhitespaceInventory(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'inspectWhitespace' | 'InvalidOptionError'>>,
+  params: Readonly<WhitespaceReadToolParams>,
+): CipherToolResult {
+  const [stray] = whitespaceReadingArguments(params)
+  if (stray !== undefined) {
+    throw new library.InvalidOptionError(
+      stray[0],
+      stray[1],
+      'applies when bits are read, so pass channel, zero and one with it',
+    )
+  }
+  const { channel, boundaries } = params
+  const report = library.inspectWhitespace(params.text, {
+    ...(channel === undefined ? {} : { channels: [channel] }),
+    ...(boundaries === undefined || boundaries === '' ? {} : { boundaries }),
+  })
+  const whole = channel !== undefined
+  const lines = [
+    `${counted(report.lines, 'line')}. Spaces, tabs and line endings by position:`,
+    '',
+    ...report.channels.flatMap((found) => whitespaceChannelLines(found, whole)),
+    '',
+    'Places are line and column from 1, then [start,end) as UTF-16 offsets. Single spaces and the usual line ending are counted, not listed; pass channel to list one channel whole.',
+    'This is what is there, not a sign that anything is hidden. To read a channel as bits pass channel with zero and one, such as channel trailing, zero space, one tab.',
+  ]
+  const channels = report.channels.map((found) => {
+    const listed = whitespaceStandouts(found, whole)
+    return {
+      channel: found.channel,
+      counts: found.counts,
+      occurrences: listed.slice(0, WHITESPACE_LINES),
+      omitted: Math.max(0, listed.length - WHITESPACE_LINES),
+    }
+  })
+  return {
+    content: [{ type: 'text', text: lines.join('\n') }],
+    details: { lines: report.lines, channels },
+  }
+}
+
+/**
+ * The classes a `zero` or `one` argument names.
+ *
+ * @param value - Names parted by spaces or commas.
+ * @returns {string[] | undefined} The names, or nothing for a blank argument.
+ */
+function whitespaceClassList(value: string | undefined): string[] | undefined {
+  const names = (value ?? '').split(/[\s,]+/).filter((name) => name !== '')
+  return names.length === 0 ? undefined : names
+}
+
+/**
+ * The lines about places a reading left out.
+ *
+ * @param skipped - Places the mapping gave no bit.
+ * @returns {string[]} One line naming the first few, or nothing.
+ */
+function whitespaceSkippedLines(
+  skipped: ReadonlyArray<CiphersModule.WhitespaceOccurrence>,
+): string[] {
+  if (skipped.length === 0) return []
+  const shown = skipped.slice(0, CHARACTER_POSITIONS).map(whitespaceOccurrenceLabel).join('; ')
+  const rest = skipped.length - CHARACTER_POSITIONS
+  return [
+    `Left out ${counted(skipped.length, 'place')} the mapping gives no bit: ${shown}${rest > 0 ? `; and ${rest} more` : ''}`,
+  ]
+}
+
+/**
+ * What the bits of a reading decode to, on one line.
+ *
+ * @param reading - The reading.
+ * @param params - The tool arguments, for how the bits were grouped.
+ * @returns {string} The grouping, then the text or why there is none.
+ */
+function whitespaceDecodeLine(
+  reading: Readonly<CiphersModule.WhitespaceReading>,
+  params: Readonly<WhitespaceReadToolParams>,
+): string {
+  const { digits = 8, order = 'msb', unit = 'byte', offset = 0 } = params
+  const after = offset > 0 ? `, the first ${counted(offset, 'bit')} passed over` : ''
+  const grouping = `${counted(reading.groups, 'group')} of ${digits} bits as ${unit}, ${order} first${after}`
+  if (reading.text === undefined) return `${grouping}: no text. ${reading.problem ?? ''}`
+  return `${grouping}: ${quotedPreview(reading.text, Infinity)}`
+}
+
+/**
+ * The options of `readWhitespace` a model set, the unset ones left to the library's defaults.
+ *
+ * @param params - The tool arguments.
+ * @returns {object} `unmapped`, `offset`, `digits`, `order`, `unit` and `boundaries` as given.
+ */
+function whitespaceReadOptions(
+  params: Readonly<WhitespaceReadToolParams>,
+): Partial<CiphersModule.ReadWhitespaceOptions> {
+  const { boundaries } = params
+  return {
+    ...Object.fromEntries(whitespaceReadingArguments(params)),
+    ...(boundaries === undefined || boundaries === '' ? {} : { boundaries }),
+  }
+}
+
+/**
+ * List the whitespace of a text by position, or read one channel as bits under a mapping.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments.
+ * @returns {CipherToolResult} The inventory, or the bits with what they decode to.
+ * @throws {MissingOptionError} When `zero` or `one` comes without the other or without `channel`.
+ * @throws {InvalidOptionError} For a mapping that cannot be read back or arguments that clash.
+ * @throws {WhitespaceError} When a place has no bit and `unmapped` is not `skip`.
+ */
+export function formatWhitespaceRead(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<
+    Pick<typeof CiphersModule, 'inspectWhitespace' | 'readWhitespace' | 'InvalidOptionError'>
+  >,
+  params: Readonly<WhitespaceReadToolParams>,
+): CipherToolResult {
+  const zero = whitespaceClassList(params.zero)
+  const one = whitespaceClassList(params.one)
+  if (zero === undefined && one === undefined) return formatWhitespaceInventory(library, params)
+  const reading = library.readWhitespace(params.text, {
+    channel: params.channel,
+    zero,
+    one,
+    ...whitespaceReadOptions(params),
+  } as CiphersModule.ReadWhitespaceOptions)
+  const { bits, partial, skipped } = reading
+  const details = {
+    ...reading,
+    skipped: skipped.slice(0, WHITESPACE_LINES),
+    omitted: Math.max(0, skipped.length - WHITESPACE_LINES),
+  }
+  if (bits === '' && skipped.length === 0) {
+    const text = `Nothing in the ${reading.channel} channel of this text, so there are no bits to read.`
+    return { content: [{ type: 'text', text }], details }
+  }
+  const more = bits.length - WHITESPACE_BITS
+  const lines = [
+    `${reading.channel}: ${counted(bits.length, 'bit')}, ${(zero ?? []).join(', ')} as 0 and ${(one ?? []).join(', ')} as 1.`,
+    `Bits: ${bits.slice(0, WHITESPACE_BITS)}${more > 0 ? `… (${more} more)` : ''}`,
+    whitespaceDecodeLine(reading, params),
+    ...(partial === ''
+      ? []
+      : [`${counted(partial.length, 'bit')} left over after the last whole group: ${partial}`]),
+    ...whitespaceSkippedLines(skipped),
+  ]
+  return { content: [{ type: 'text', text: lines.join('\n') }], details }
+}
+
+/**
+ * Hide a message at the line ends of a cover text for a model.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments, `text` being the message.
+ * @returns {CipherToolResult} The cover with the message after its lines, and in `details` the
+ * same text with the number of characters added.
+ * @throws {MissingOptionError} Without `zero` or `one`.
+ * @throws {InvalidOptionError} For a mapping that cannot be read back, a character that does not
+ * fit the width, a cover that is too short or one that already ends lines in spaces or tabs.
+ */
+export function formatWhitespaceHide(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'hideWhitespace' | 'InvalidOptionError'>>,
+  params: Readonly<WhitespaceHideToolParams>,
+): CipherToolResult {
+  const { cover, digits, order, unit, perLine } = params
+  const set = Object.entries({ digits, order, unit, perLine }).filter(([, value]) => {
+    return value !== undefined
+  })
+  const hidden = library.hideWhitespace(params.text, {
+    cover,
+    zero: whitespaceClassList(params.zero),
+    one: whitespaceClassList(params.one),
+    ...Object.fromEntries(set),
+  } as CiphersModule.HideWhitespaceOptions)
+  if (hidden.length > MAX_FREQUENCY_TEXT_LENGTH) {
+    throw new library.InvalidOptionError(
+      'text',
+      `${hidden.length} characters with the cover`,
+      `are more than the ${MAX_FREQUENCY_TEXT_LENGTH} ciphers_whitespace_read takes; hide less`,
+    )
+  }
+  return {
+    content: [{ type: 'text', text: hidden }],
+    details: { output: hidden, added: hidden.length - cover.length },
+  }
 }

@@ -184,8 +184,20 @@ export interface HillOptions extends CipherBaseOptions {
 
 /** Polybius cipher options. */
 export interface PolybiusOptions extends CipherBaseOptions {
-  /** Optional keyword for the 5×5 table. */
+  /** Optional keyword that fills the square first. */
   key?: string
+  /** Distinct symbols for a 2×2 to 9×9 square. Default: A-Z with J as I. */
+  alphabet?: string
+}
+
+/** Bifid cipher options. */
+export interface BifidOptions extends CipherBaseOptions {
+  /** Optional keyword that fills the square first. */
+  key?: string
+  /** Letters per block. Default: 5. */
+  period?: number
+  /** Distinct symbols for a square, 2×2 and up. Default: A-Z with J as I. */
+  alphabet?: string
 }
 
 /** Nihilist cipher options. */
@@ -234,6 +246,8 @@ export interface TrifidOptions extends CipherBaseOptions {
 export interface BaconOptions extends CipherBaseOptions {
   /** Table size: 26 codes every letter, 24 shares I/J and U/V. Default: 26. */
   letters?: 24 | 26
+  /** Decoding only: reads letter case, lowercase letters being this symbol. */
+  lowercase?: 'A' | 'B' | 'a' | 'b'
 }
 
 /** A1Z26 options. */
@@ -248,9 +262,17 @@ export interface A1z26Options extends CipherBaseOptions {
 export interface BookOptions extends CipherBaseOptions {
   /** The text to count in. A form feed starts a page, a line without a word does not count. */
   book: string
-  /** One address: `word`, `line-word` or `page-line-word`. Default: `word`. */
-  address?: 'word' | 'line-word' | 'page-line-word'
-  /** `word` for the whole word, `letter` for its first letter. Default: `word`. */
+  /** What one address counts, down to a word or to a letter inside one. Default: `word`. */
+  address?:
+    | 'word'
+    | 'line-word'
+    | 'page-line-word'
+    | 'letter'
+    | 'line-letter'
+    | 'page-line-letter'
+    | 'line-word-letter'
+    | 'page-line-word-letter'
+  /** `word` for the whole word, `letter` for its first letter. A letter address needs neither. */
   pick?: 'word' | 'letter'
   /** Number of the first word, line and page. Default: 1. */
   start?: 0 | 1

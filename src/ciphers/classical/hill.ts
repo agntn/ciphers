@@ -1,4 +1,5 @@
 import type { CipherBaseOptions, CipherInfo, CipherResult } from '../../core/types.ts'
+import { alphabetSymbols, spellings } from '../../core/alphabet.ts'
 import { Cipher } from '../../core/cipher.ts'
 import {
   CipherError,
@@ -23,22 +24,6 @@ interface Alphabet {
 }
 
 /**
- * A character and its case partners that map straight back, so `a` finds `A` and `ı` never `I`.
- *
- * @param character - One code point.
- * @returns {string[]} The character, then its upper and lower case when they round trip.
- */
-function spellings(character: string): string[] {
-  const upper = character.toUpperCase()
-  const lower = character.toLowerCase()
-  return [
-    character,
-    ...(upper.toLowerCase() === character ? [upper] : []),
-    ...(lower.toUpperCase() === character ? [lower] : []),
-  ]
-}
-
-/**
  * The `alphabet` option checked and indexed: the first symbol is 0, the modulus is its length.
  *
  * @param alphabet - The option as passed.
@@ -46,42 +31,19 @@ function spellings(character: string): string[] {
  * @throws {InvalidOptionError} On anything but a string, under 2 symbols, whitespace or a repeat.
  */
 function readAlphabet(alphabet: unknown): Alphabet {
-  if (alphabet === undefined) return indexAlphabet(LATIN, 'letters A-Z')
-  if (typeof alphabet !== 'string') {
-    throw new InvalidOptionError('alphabet', alphabet, 'must be a string')
-  }
-  const symbols = Array.from(alphabet)
-  if (symbols.length < 2) {
-    throw new InvalidOptionError('alphabet', alphabet, 'must hold at least 2 symbols')
-  }
-  if (symbols.some((symbol) => /\s/u.test(symbol))) {
-    throw new InvalidOptionError(
-      'alphabet',
-      alphabet,
-      "can't hold whitespace, which decoding skips",
-    )
-  }
-  const seen = new Set<string>()
-  const repeated = symbols.find((symbol) => {
-    if (seen.has(symbol)) return true
-    seen.add(symbol)
-    return false
-  })
-  if (repeated !== undefined) {
-    throw new InvalidOptionError('alphabet', alphabet, `has ${repeated} twice`)
-  }
-  return indexAlphabet(alphabet, `of the alphabet's ${symbols.length} symbols`)
+  if (alphabet === undefined) return indexAlphabet(Array.from(LATIN), 'letters A-Z')
+  const symbols = alphabetSymbols(alphabet, 2)
+  return indexAlphabet(symbols, `of the alphabet's ${symbols.length} symbols`)
 }
 
 /**
  * Numbers the symbols of a checked alphabet.
  *
- * @param alphabet - Distinct symbols without whitespace.
+ * @param symbols - Distinct symbols without whitespace.
  * @param label - How errors name the symbols.
  * @returns {Alphabet} The lookup.
  */
-function indexAlphabet(alphabet: string, label: string): Alphabet {
-  const symbols = Array.from(alphabet)
+function indexAlphabet(symbols: readonly string[], label: string): Alphabet {
   const numbers = new Map(symbols.map((symbol, index) => [symbol, index]))
   return {
     symbols,

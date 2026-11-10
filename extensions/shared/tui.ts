@@ -167,5 +167,10 @@ export const PREVIEWED_TOOLS: ReadonlySet<string> = new Set([
   'ciphers_caesar_brute',
   'ciphers_crib_drag',
   'ciphers_hidden_text_read',
+  'ciphers_zero_width_read',
+  'ciphers_zero_width_hide',
+  'ciphers_whitespace_read',
+  'ciphers_whitespace_hide',
+  'ciphers_texts_align',
   'ciphers_key_recover',
 ])

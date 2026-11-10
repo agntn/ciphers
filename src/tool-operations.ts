@@ -594,8 +594,10 @@ function nextStep(
  * @returns {string[]} What it reads, why, and the call that decodes it.
  */
 function encodingLines(found: Readonly<CiphersModule.EncodingGuess>): string[] {
+  const what =
+    found.name === 'decimal' ? 'decimal character codes that read' : `${found.name} that reads`
   return [
-    `Not a cipher by the look of it: ${found.name} character codes that read ${quotedPreview(found.text)}.`,
+    `Not a cipher by the look of it: ${what} ${quotedPreview(found.text)}.`,
     `   ${found.signal}`,
     `   Next: encodings_decode with encoding ${found.name}, from @agntn/encodings.`,
   ]

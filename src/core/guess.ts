@@ -1,4 +1,6 @@
+import { base64 } from '@agntn/encodings/base64'
 import { decimal } from '@agntn/encodings/decimal'
+import { hex } from '@agntn/encodings/hex'
 import {
   assertLanguage,
   languageTables,
@@ -29,7 +31,7 @@ export interface FamilyCandidate {
 /** An encoding the text reads in. No cipher here opens it, `@agntn/encodings` does. */
 export interface EncodingGuess {
   /** Codec of `@agntn/encodings` that decodes the text. */
-  readonly name: 'decimal'
+  readonly name: 'decimal' | 'hex' | 'base64'
   /** What the text decodes to. */
   readonly text: string
   /** What in the text points here. */
@@ -47,7 +49,7 @@ export interface FamilyGuess {
   readonly ic?: number
   /** Index of coincidence of plaintext in `language`. */
   readonly referenceIc: number
-  /** Set when the text reads as character codes. Every candidate is `low` once the letters fit. */
+  /** Set when the text decodes to readable text. Every candidate is `low` once the letters fit. */
   readonly encoding?: EncodingGuess
   /** Most likely first, empty when nothing in the text points anywhere. */
   readonly candidates: readonly FamilyCandidate[]
@@ -876,79 +878,148 @@ function statistics(reading: Readonly<Reading>): FamilyCandidate[] {
 /** Ciphers whose ciphertext is numbers. Hex isn't one: any even run of digits is hex. */
 const WRITES_NUMBERS: readonly string[] = ['polybius', 'tap-code', 'nihilist']
 
-/** Words in one case each, or capitalised, with sentence punctuation between them. */
-const WORDS = /^(?:[A-Z]?[a-z]+|[A-Z]+)(?:[ ,.!?'-]+(?:[A-Z]?[a-z]+|[A-Z]+))*[.!?]?$/
+/** Words in one case each, or capitalised, with punctuation or line breaks between them. */
+const WORDS = /^(?:[A-Z]?[a-z]+|[A-Z]+)(?:[ ,.!?'\r\n-]+(?:[A-Z]?[a-z]+|[A-Z]+))*[.!?]?[\r\n]*$/
+
+/** What lets decoded bytes pass for text, the hardest to fake first. */
+const PROOFS = ['letters', 'words', 'plain'] as const
+type Proof = (typeof PROOFS)[number]
+
+/** Who has the text: a cipher that writes numbers, another layout, or nobody yet. */
+type Claim = 'numbers' | 'layout' | 'open'
+
+/** Letters in one case, which base64 of text rarely is and ciphertext mostly is. */
+const ONE_CASE = /^(?:[A-Z]+|[a-z]+)$/
 
 /**
- * The printable ASCII a text spells as decimal character codes.
+ * The proof hex and base64 take: words, or fitting letters for a text that may be something else.
  *
- * @param text - Text to read.
- * @returns {string | undefined} The characters, or nothing when the codec or a code refuses.
+ * @param telling - Whether the text has what only the encoding writes.
+ * @returns {Proof} The weakest proof to take.
  */
-function asciiFromDecimal(text: string): string | undefined {
+function fussy(telling: boolean): Proof {
+  return telling ? 'words' : 'letters'
+}
+
+/** One encoding of `@agntn/encodings` a text may be written in. */
+interface Carrier {
+  readonly name: EncodingGuess['name']
+  /** What the signal calls one decoded byte. */
+  readonly unit: string
+  readonly decode: (text: string) => Iterable<number>
+  /** The weakest proof it takes for a text, or nothing when a cipher has the text already. */
+  readonly bar: (symbols: string, claim: Claim) => Proof | undefined
+}
+
+/** In the order they get tried. Digits alone or letters in one case may be no encoding at all. */
+const CARRIERS: readonly Carrier[] = [
+  {
+    name: 'decimal',
+    unit: 'Every number',
+    decode: (text) => decimal.decode(text),
+    bar: (_symbols, claim) => (claim === 'numbers' ? 'words' : 'plain'),
+  },
+  {
+    name: 'hex',
+    unit: 'Every pair of hex digits',
+    decode: (text) => hex.decode(text),
+    bar: (symbols, claim) => (claim === 'open' ? fussy(/[a-f]/i.test(symbols)) : undefined),
+  },
+  {
+    name: 'base64',
+    unit: 'Every byte the base64 holds',
+    decode: (text) => base64.decode(text),
+    bar: (symbols, claim) => (claim === 'open' ? fussy(!ONE_CASE.test(symbols)) : undefined),
+  },
+]
+
+/**
+ * The ASCII text a carrier decodes: printable characters and line breaks.
+ *
+ * @param carrier - Encoding to read the text in.
+ * @param text - Text to read.
+ * @returns {string | undefined} The characters, or nothing when the codec or a byte refuses.
+ */
+function asciiFrom(carrier: Readonly<Carrier>, text: string): string | undefined {
   let codes: number[]
   try {
-    codes = [...decimal.decode(text)]
+    codes = [...carrier.decode(text)]
   } catch {
     return undefined
   }
-  if (codes.length < MIN_CODES || codes.some((code) => code < 32 || code > 126)) return undefined
+  const readable = codes.every((code) => (code >= 32 && code <= 126) || code === 10 || code === 13)
+  if (codes.length < MIN_CODES || !readable) return undefined
   return codes.map((code) => String.fromCodePoint(code)).join('')
 }
 
-/** Character codes found in a text, and whether their letters fit the language. */
+/** An encoding found in a text, and whether its letters fit the language. */
 interface CodesReading {
   readonly encoding: EncodingGuess
   readonly fits: boolean
 }
 
 /**
- * Whether decoded codes fit the language: ten letters or more, and few symbols.
+ * Whether decoded text fits the language: ten letters or more, and few symbols.
  *
- * @param text - Decoded codes.
+ * @param text - Decoded text.
  * @param language - Language the text should read in.
  * @returns {boolean} True when the letter counts fit.
  */
 function fitsLanguage(text: string, language: FrequencyLanguage): boolean {
   const { counts, letters } = letterCounts(text)
-  const spaces = text.split(' ').length - 1
+  const gaps = text.split(/[ \r\n]/).length - 1
   return (
     letters >= MIN_LETTERS &&
-    letters + spaces >= text.length * MOSTLY_WORDS &&
+    letters + gaps >= text.length * MOSTLY_WORDS &&
     fitGap(counts, letters, language) > READS_LIKE_LANGUAGE
   )
 }
 
 /**
- * Why decoded codes pass for text when their letters can't settle it.
+ * The strongest proof that decoded text is text.
  *
- * @param text - Decoded codes.
- * @param claimed - Whether a cipher that writes numbers fits the text too.
- * @returns {string | undefined} The reason, or nothing: a claimed text has to look like words.
+ * @param text - Decoded text.
+ * @param language - Language the text should read in.
+ * @returns {Proof | undefined} The proof, or nothing for symbols that only happen to print.
  */
-function looksLikeText(text: string, claimed: boolean): string | undefined {
-  if (WORDS.test(text)) return 'and together they look like words'
-  const plain = text.replaceAll(/[^\dA-Za-z ]/g, '').length
-  return claimed || plain < text.length * MOSTLY_WORDS ? undefined : 'mostly letters and digits'
+function proofOf(text: string, language: FrequencyLanguage): Proof | undefined {
+  if (fitsLanguage(text, language)) return 'letters'
+  if (WORDS.test(text)) return 'words'
+  const plain = text.replaceAll(/[^\dA-Za-z \r\n]/g, '').length
+  return plain < text.length * MOSTLY_WORDS ? undefined : 'plain'
 }
 
 /**
- * Decimal character codes that spell text, which the square ciphers get mistaken for.
+ * How a signal words its proof.
+ *
+ * @param proof - What the decoded text passed.
+ * @param language - Language the text was read in.
+ * @returns {string} The second half of the signal.
+ */
+function reasonFor(proof: Proof, language: FrequencyLanguage): string {
+  if (proof === 'letters') return `and the letters they spell fit ${language}`
+  return proof === 'words' ? 'and together they look like words' : 'mostly letters and digits'
+}
+
+/**
+ * Text behind decimal codes, hex or base64, which the ciphers get mistaken for.
  *
  * @param reading - The text.
- * @param claimed - Whether a cipher that writes numbers fits the text too.
+ * @param claim - Who has the text already.
  * @returns {CodesReading | undefined} The decoded text, or nothing when it reads as no text.
  */
-function characterCodes(reading: Readonly<Reading>, claimed: boolean): CodesReading | undefined {
-  const text = asciiFromDecimal(reading.text)
-  if (text === undefined) return undefined
-  const fits = fitsLanguage(text, reading.language)
-  const reason = fits
-    ? `and the letters they spell fit ${reading.language}`
-    : looksLikeText(text, claimed)
-  if (reason === undefined) return undefined
-  const signal = `Every number is a printable ASCII code, ${reason}.`
-  return { encoding: { name: 'decimal', text, signal }, fits }
+function characterCodes(reading: Readonly<Reading>, claim: Claim): CodesReading | undefined {
+  for (const carrier of CARRIERS) {
+    const bar = carrier.bar(reading.symbols, claim)
+    const text = bar === undefined ? undefined : asciiFrom(carrier, reading.text)
+    const proof = text === undefined ? undefined : proofOf(text, reading.language)
+    if (bar === undefined || text === undefined || proof === undefined) continue
+    if (PROOFS.indexOf(proof) > PROOFS.indexOf(bar)) continue
+    const breaks = /[\r\n]/.test(text) ? ' or a line break' : ''
+    const signal = `${carrier.unit} is a printable ASCII code${breaks}, ${reasonFor(proof, reading.language)}.`
+    return { encoding: { name: carrier.name, text, signal }, fits: proof === 'letters' }
+  }
+  return undefined
 }
 
 const RANK: Readonly<Record<GuessConfidence, number>> = { high: 0, medium: 1, low: 2 }
@@ -969,19 +1040,42 @@ function ranked(found: readonly FamilyCandidate[]): FamilyCandidate[] {
     .map(({ each }) => each)
 }
 
+/** What the rules make of a text before any encoding gets a look. */
+interface Verdict {
+  readonly candidates: readonly FamilyCandidate[]
+  /** Whether a layout settled it, so the letter statistics have no say. */
+  readonly decided: boolean
+  readonly claim: Claim
+}
+
 /**
- * The candidates, and the character codes ahead of them when the text spells any.
+ * The candidates of the first layout that answers, or of the letter statistics.
  *
  * @param reading - The text.
+ * @returns {Verdict} Hex leaves the text open: any even run of hex digits is hex.
+ */
+function verdict(reading: Readonly<Reading>): Verdict {
+  for (const rule of LAYOUTS) {
+    const candidates = ranked(rule(reading))
+    if (candidates.length === 0) continue
+    const numbers = candidates.some(({ ciphers }) => WRITES_NUMBERS.includes(ciphers[0]!))
+    const claim = numbers ? 'numbers' : 'layout'
+    return { candidates, decided: true, claim: rule === hexBytes ? 'open' : claim }
+  }
+  return { candidates: ranked(statistics(reading)), decided: false, claim: 'open' }
+}
+
+/**
+ * The candidates, and the encoding ahead of them when the text decodes to any text.
+ *
  * @param candidates - Ranked candidates.
+ * @param codes - The encoding the text reads in, when it reads in one.
  * @returns {Pick<FamilyGuess, 'encoding' | 'candidates'>} All `low` once the letters fit.
  */
 function besideCodes(
-  reading: Readonly<Reading>,
   candidates: readonly FamilyCandidate[],
+  codes: Readonly<CodesReading> | undefined,
 ): Pick<FamilyGuess, 'encoding' | 'candidates'> {
-  const claimed = candidates.some(({ ciphers }) => WRITES_NUMBERS.includes(ciphers[0]!))
-  const codes = characterCodes(reading, claimed)
   if (codes === undefined) return { candidates }
   const { encoding, fits } = codes
   if (!fits) return { encoding, candidates }
@@ -999,18 +1093,13 @@ function besideCodes(
 export function guessFamily(text: string, language: FrequencyLanguage = 'en'): FamilyGuess {
   assertLanguage(language)
   const reading = read(text, language)
-  let layout: FamilyCandidate[] = []
-  for (const rule of LAYOUTS) {
-    layout = rule(reading)
-    if (layout.length > 0) break
-  }
-  const decided = layout.length > 0
+  const { candidates, decided, claim } = verdict(reading)
   return {
     length: reading.symbols.length,
     letters: reading.letters,
     language,
     ...(decided || reading.letters < 2 ? {} : { ic: reading.ic }),
     referenceIc: languageTables(language).ic,
-    ...besideCodes(reading, ranked(decided ? layout : statistics(reading))),
+    ...besideCodes(candidates, characterCodes(reading, claim)),
   }
 }

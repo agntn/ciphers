@@ -931,7 +931,7 @@ export const familyGuessTool = defineCipherTool({
   guidelines: [
     'Input is ciphertext. Returns candidate families with the built-in ciphers to try, most likely first, each with high, medium or low confidence, its signal and the next call.',
     'Treat the list as candidates: a short text comes back with low confidence, and only a decode that reads settles it.',
-    'Numbers that are decimal character codes come back decoded, ahead of the ciphers: that text is encoded, so encodings_decode reads it.',
+    'Decimal character codes, hex and base64 that spell text come back decoded, ahead of the ciphers: that text is encoded, so encodings_decode reads it.',
   ],
   effect: 'read',
   input: Type.Object(

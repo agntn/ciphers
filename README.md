@@ -9,7 +9,7 @@
 
 ## Why?
 
-The puzzle says the answer is in a Vigenère, so you open a cipher site. The key field wants uppercase, J quietly became I, and the third tab does Playfair differently than the second one. Now hand that to an agent and it will do the Vigenère in its head and be wrong from the fourth letter on, confidently. So: one `encode` and one `decode` with the same options everywhere, and tools a model can call instead of counting on its fingers.
+The puzzle says the answer is in a Vigenère, so you open a cipher site. The key field wants uppercase, J quietly became I, and the third tab does Playfair differently than the second one. Now hand that to an agent. It will do the Vigenère in its head and be wrong from the fourth letter on, confidently. So: one `encode` and one `decode` with the same options everywhere, and tools a model can call instead of counting on its fingers.
 
 Docs, and a playground where the library runs in your browser: [ciphers.agntn.dev](https://ciphers.agntn.dev).
 
@@ -18,12 +18,12 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 
 ## ✨ Features
 
-- 🔡 **Seventy-five ciphers.** From a pencil and paper Caesar to Enigma M3 and AES in every mode from ECB to XTS. Chaocipher kept its secret for 92 years, which is a long time to wait for an answer. Every one of them gets [its own page](https://ciphers.agntn.dev/ciphers).
-- 🔁 **Same call on all of them.** `create('vigenere').encode(text, { key })`, swap the name and the options, and the result says which cipher, which operation and which options it actually used.
+- 🔡 **Seventy-five ciphers.** From a pencil and paper Caesar to Enigma M3 and AES from ECB to XTS. Chaocipher kept its secret for 92 years, which is a long time to wait for an answer.
+- 🔁 **Same call on all of them.** Swap the name and options in `create('vigenere').encode(text, { key })`. The result says which cipher, operation and options it used.
 - 🔨 **Brute force built in.** All 25 Caesar shifts in one command, so nobody has to try them by hand ever again.
-- 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack. English, Polish and Japanese romaji reference orders.
-- 🧭 **Ciphers describe themselves.** `info()` has the category, the family, the options, the keyspace, what the cipher works on and whether encode and decode are the same thing, and the CLI, the tools and the playground all read it from there.
-- 🖥️ **CLI, library, MCP, Pi, OMP and AI SDK.** The same tools and one set of executors behind them, whichever one you're holding. No Node at hand? [ciphers.agntn.dev/mcp](https://ciphers.agntn.dev/guide/agents#remote-mcp) serves them over HTTP.
+- 📊 **Frequencies and the index of coincidence.** Tells you whether it's one alphabet or several before you burn an hour on the wrong attack.
+- 🧭 **Ciphers describe themselves.** `info()` has the family, the options, the keyspace and whether encode and decode are the same. The CLI and the playground read it from there.
+- 🖥️ **CLI, library, MCP, Pi, OMP and AI SDK.** Same tools, whichever one you're holding. No Node at hand? [ciphers.agntn.dev/mcp](https://ciphers.agntn.dev/guide/agents#remote-mcp) serves them over HTTP.
 - 🌐 **Runs in the browser too.** The playground imports the package into the page, nothing is posted anywhere.
 - 🧱 **Bounded on purpose.** Text and keys have a maximum length in every tool schema, so a model can't hand the process a novel to shift.
 - 🧩 **Your cipher in one class.** Extend `Cipher`, `register()` it, and `create()` finds it like any built-in.
@@ -34,7 +34,7 @@ Docs, and a playground where the library runs in your browser: [ciphers.agntn.de
 pnpm add @agntn/ciphers
 ```
 
-Node.js 26 or newer. No native anything, no network, no keys to sign up for, it's all string work.
+Node.js 26 or newer. No native anything, no network, no keys to sign up for. It's all string work.
 
 ## 🚀 First call
 
@@ -46,7 +46,7 @@ npx @agntn/ciphers encode caesar "ATTACK AT DAWN" --shift 3
 DWWDFN DW GDZQ
 ```
 
-Cipher name, text, the flags that cipher needs, and only the result on stdout, so it pipes. Got the ciphertext but not the shift?
+Give it the cipher name, the text, then the flags that cipher needs. Only the result goes to stdout, so it pipes. Below, `ciphers` means `pnpm exec ciphers` after `pnpm add`, or install once with `pnpm add -g @agntn/ciphers`. Got the ciphertext but not the shift?
 
 ```bash
 ciphers brute "DWWDFN DW GDZQ"
@@ -82,7 +82,7 @@ shift=13 -> QJJQSA QJ TQMD
 
 Shift 3 on top, it's the most English of the 25. English goes by letter pairs, so `HELLO WORLD` beats `EBIIL TLOIA` too. `--lang pl` ranks by Polish letters instead, `--lang ja` by Japanese romaji. Shift 25 comes second and ends in HEAR, which is about as funny as a Caesar brute force gets ;)
 
-Enigma is in there too, the Wehrmacht M3 with rotors I, II and III and reflector B:
+Enigma's in there too. The Wehrmacht M3, with rotors I, II and III and reflector B:
 
 ```bash
 ciphers encode enigma "ATTACK AT DAWN"
@@ -92,7 +92,7 @@ ciphers encode enigma "ATTACK AT DAWN"
 BZHGNO CR RTCM
 ```
 
-`decode` with the same settings gives the plaintext back, a rotor machine is its own inverse. The settings are `--positions`, `--rings` and `--plugboard`, and without them you get AAA, AAA and an empty board, the machine every tutorial starts on.
+Decode with the same settings to get the plaintext back. A rotor machine is its own inverse. Set `--positions`, `--rings` and `--plugboard`, or get AAA, AAA and an empty board. The machine every tutorial starts on.
 
 A few more, same rules:
 
@@ -104,23 +104,7 @@ ciphers frequency "DWWDFN DW GDZQ" --lang pl
 ciphers info bifid
 ```
 
-`frequency` prints the histogram and the index of coincidence. Around 0.065 it's one alphabet with English underneath (0.057 with Polish, about 0.082 with Japanese romaji), down near 0.038 the alphabet keeps changing and you want a key length, not a histogram.
-
-That's `period`. It ranks the lengths by column IoC and Kasiski, and hands you a Vigenère key for the top three.
-
-Want the key itself? `recover` searches it for Vigenère, both Beauforts, a mixed alphabet substitution or a columnar transposition, and ranks what it finds by how well the text reads. Cracked it some other way? `frequency` prints that same quadgram fit for English text, so your decoding and `recover`'s best guess finally argue on one scale.
-
-No idea what you're even holding? `guess` reads the layout and the letters and names the likely families, with the call to try next.
-
-Got a `U2FsdGVkX1` blob and a passphrase, but not the digest or key length? `probe` tries them all and tells you how many hits are luck. Two ciphertexts under the same XOR key? `crib` slides a guessed word across them and shows what reads.
-
-And when nothing's encrypted at all and the message hides in the first letters, `hidden` tries the usual places and puts the reading that looks like English on top.
-
-Got a word that looks right but hashes wrong? `inspect` finds invisible characters and letters pretending to be something else. Found a note with invisible ink? `reveal` reads it, and `conceal` hides a message of your own.
-
-Got a file with suspicious spaces? `whitespace` lists where they sit and reads bits using your mapping. Want a known message to test with? `trail` puts one at line ends.
-
-Got two copies of a clue? `align` shows which words changed and where they sit in each copy. It also marks pairings that aren't certain.
+The `frequency` command prints a histogram and the index of coincidence. Around 0.065, that's one alphabet with English underneath. Near 0.038, the alphabet keeps changing. You want a key length, not a histogram. That's `period`. The table below covers the rest: guessing families, recovering keys and finding text in invisible characters.
 
 ### Commands
 
@@ -132,6 +116,7 @@ Got two copies of a clue? `align` shows which words changed and where they sit i
 | `frequency`  | Letter histogram and the index of coincidence       | `ciphers frequency "DWWDFN DW GDZQ" --lang en`                     |
 | `period`     | Vigenère key length, with the likely key            | `ciphers period "<ciphertext>" --max-period 30`                    |
 | `guess`      | Likely cipher families and what to run next         | `ciphers guess "<ciphertext>" --lang pl`                           |
+| `recover`    | Searched keys, best first, each with its plaintext  | `ciphers recover "<ciphertext>" --cipher substitution`             |
 | `probe`      | Which KDF settings open a `Salted__` blob           | `ciphers probe "U2FsdGVkX1..." --key secret`                       |
 | `crib`       | Crib dragging over ciphertexts under one reused key | `ciphers crib '["<hex>","<hex>"]' --crib " the "`                  |
 | `hidden`     | A message hidden by position, best readings first   | `ciphers hidden "$(cat poem.txt)" --pick line`                     |
@@ -141,14 +126,11 @@ Got two copies of a clue? `align` shows which words changed and where they sit i
 | `whitespace` | Whitespace positions and bit readings               | `ciphers whitespace - < note.txt`                                  |
 | `trail`      | Messages hidden at line ends                        | `ciphers trail "noon" --cover - --zero space --one tab < poem.txt` |
 | `align`      | Word changes between two texts                      | `ciphers align "red fox sleeps" "red fox runs"`                    |
-| `recover`    | Searched keys, best first, each with its plaintext  | `ciphers recover "<ciphertext>" --cipher substitution`             |
 | `info`       | Every cipher by category, or one cipher up close    | `ciphers info enigma`                                              |
 | `ciphers`    | Same as `info`, for old habits                      | `ciphers ciphers --category stream`                                |
 | `mcp`        | The MCP server on stdio                             | `ciphers mcp`                                                      |
 
-A cipher's options are its flags: `--key`, `--second-key`, `--indicator`, `--transposition`, `--square`, `--rotation`, `--shift`, `--rails`, `--period`, `--letters`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
-
-Each command is one of the agent tools, built by `runCli` from [`@agntn/tools`](https://tools.agntn.dev/guide/cli). So the CLI refuses exactly what a model gets refused, and `--json` prints the details a model gets. The refusal just speaks your dialect: `--max-period` here, `/maxPeriod` for a model. Morse that starts with a dash? Just type it. `-.-.` spells no flag, so it's read as the text, and a misspelled flag after it still gets refused.
+A cipher's options are its flags: `--key`, `--shift`, `--rails` and so on. Which ones does yours take? Ask `ciphers info <name>` or check the [CLI guide](https://ciphers.agntn.dev/guide/cli). Each command is an agent tool, so the CLI refuses exactly what a model gets refused. Add `--json` for the same details the model gets. Morse starting with a dash? Just type it. `-.-.` spells no flag, so it's read as text.
 
 ## 🧠 Library
 
@@ -166,101 +148,38 @@ console.log(enigma.encode('ATTACK AT DAWN').text) // BZHGNO CR RTCM
 console.log(analyzeFrequency('DWWDFN DW GDZQ', 'en')?.ic) // 0.13636363636363635
 ```
 
-That's nearly all of it. `create()` wants the exact registered name and hands you one cached instance per cipher. `resolveCipher()` lowercases and turns spaces into hyphens, so `'Rail Fence'` works and `'railfence'` doesn't, there is no fuzzy matching on purpose. Every result carries `cipher`, `operation` and the `options` that were applied, so one logged result is enough to repeat the call. Holding raw bytes? `ecb(data, key, 'encrypt')` and `ctr(data, key, counter)` from `@agntn/ciphers/aes` take a `Uint8Array` and give one back, no padding and no hex. Wrong key, shift out of range, unknown name: one `CipherError` family, and the message names the option or the cipher. The rest: [Transform](https://ciphers.agntn.dev/guide/transform), [Analysis](https://ciphers.agntn.dev/guide/analysis), [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+That's nearly all of it. Give `create()` the exact registered name and get one cached instance per cipher. Want to be less exact? `resolveCipher()` lowercases and turns spaces into hyphens. `'Rail Fence'` works, `'railfence'` doesn't. No fuzzy matching. Every result carries `text`, `cipher`, `operation` and the `options` that were applied, enough to repeat the call. Wrong key, bad shift, unknown name? The `CipherError` family names the option or cipher. For raw bytes, `@agntn/ciphers/aes`, `@agntn/ciphers/chacha` and `@agntn/ciphers/salsa` take and return a `Uint8Array`.
+
+The rest: [Transform](https://ciphers.agntn.dev/guide/transform), [Analysis](https://ciphers.agntn.dev/guide/analysis), [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
 
 ## 🔡 Ciphers
 
-| Cipher                      | Family                      | Self-inverse | Options                                                                    |
-| --------------------------- | --------------------------- | :----------: | -------------------------------------------------------------------------- |
-| **caesar**                  | substitution-shift          |      ✗       | `--shift` (1-25, default 3)                                                |
-| **rot13**                   | substitution-shift          |      ✓       | -                                                                          |
-| **rot47**                   | substitution-shift          |      ✓       | -                                                                          |
-| **atbash**                  | substitution-reflection     |      ✓       | -                                                                          |
-| **substitution**            | substitution-keyed          |      ✗       | `--key` (alphabet or keyword, required)                                    |
-| **vigenere**                | polyalphabetic              |      ✗       | `--key` (required)                                                         |
-| **gronsfeld**               | polyalphabetic              |      ✗       | `--key` (digits 0 to 9, required)                                          |
-| **beaufort**                | polyalphabetic              |      ✓       | `--key` (required)                                                         |
-| **porta**                   | polyalphabetic              |      ✓       | `--key` (required), `--rotation` (left or right)                           |
-| **autokey**                 | polyalphabetic              |      ✗       | `--key` (required)                                                         |
-| **running-key**             | polyalphabetic              |      ✗       | `--key` (a passage, a letter per letter of text, required)                 |
-| **trithemius**              | polyalphabetic              |      ✗       | -                                                                          |
-| **alberti**                 | polyalphabetic              |      ✗       | `--key`, `--period` (both required)                                        |
-| **quagmire-1**              | polyalphabetic              |      ✗       | `--key`, `--indicator` (both required), `--indicator-under`                |
-| **quagmire-2**              | polyalphabetic              |      ✗       | `--key`, `--indicator` (both required), `--indicator-under`                |
-| **quagmire-3**              | polyalphabetic              |      ✗       | `--key`, `--indicator` (both required), `--indicator-under`                |
-| **quagmire-4**              | polyalphabetic              |      ✗       | `--key`, `--second-key`, `--indicator` (all required), `--indicator-under` |
-| **chaocipher**              | polyalphabetic              |      ✗       | `--key`, `--second-key` (the left and right alphabet, both required)       |
-| **rail-fence**              | transposition               |      ✗       | `--rails` (default 3)                                                      |
-| **affine**                  | substitution-multiplicative |      ✗       | `--a` (multiplier), `--b` (shift)                                          |
-| **playfair**                | digraph                     |      ✗       | `--key` (required)                                                         |
-| **four-square**             | digraph                     |      ✗       | `--key`, `--second-key` (both required), `--omit` (j or q)                 |
-| **two-square**              | digraph                     |      ✗       | `--key`, `--second-key` (both required), `--orientation`, `--omit`         |
-| **hill**                    | polygraphic                 |      ✗       | `--key` (4 or 9 symbols, required), `--alphabet` (default A-Z)             |
-| **polybius**                | fractionation               |      ✗       | `--key`, `--alphabet` (both optional)                                      |
-| **nihilist**                | fractionation               |      ✗       | `--key` (required), `--square` (optional)                                  |
-| **morse**                   | fractionation               |      ✗       | -                                                                          |
-| **fractionated-morse**      | fractionation               |      ✗       | `--key` (required, the alphabet over the 26 triples)                       |
-| **bacon**                   | fractionation               |      ✗       | `--letters` (24 or 26, default 26), `--lowercase` (A or B, decoding)       |
-| **tap-code**                | fractionation               |      ✗       | -                                                                          |
-| **a1z26**                   | fractionation               |      ✗       | `--separator` (default -), `--zero`                                        |
-| **book**                    | homophonic                  |      ✗       | `--book` (required), `--address`, `--pick`, `--start`                      |
-| **columnar**                | transposition               |      ✗       | `--key` (required)                                                         |
-| **route**                   | transposition               |      ✗       | `--width` (required), `--corner`, `--path`                                 |
-| **adfgvx**                  | fractionation               |      ✗       | `--key`, `--transposition` (both optional)                                 |
-| **bifid**                   | fractionation               |      ✗       | `--key`, `--alphabet` (both optional), `--period` (default 5)              |
-| **trifid**                  | fractionation               |      ✗       | `--key` (optional), `--period` (default 5), `--symbol` (default `+`)       |
-| **straddling-checkerboard** | fractionation               |      ✗       | `--key` (optional), `--blanks` (default 26)                                |
-| **tridigital**              | substitution-keyed          |      ✗       | `--key` (required, 10 letters or digits), `--second-key` (required)        |
-| **enigma**                  | rotor                       |      ✓       | `--positions`, `--rings`, `--plugboard`                                    |
-| **aes**                     | substitution-permutation    |      ✗       | `--key` (hex, required)                                                    |
-| **aes-cbc**                 | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                                       |
-| **aes-cfb**                 | substitution-permutation    |      ✗       | `--key`, `--iv` (hex), `--segment`                                         |
-| **aes-ofb**                 | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                                       |
-| **aes-ctr**                 | substitution-permutation    |      ✗       | `--key`, `--iv` (hex, both required)                                       |
-| **aes-ccm**                 | substitution-permutation    |      ✗       | `--key`, `--nonce` (hex), `--aad`, `--tag-length`                          |
-| **aes-ocb**                 | substitution-permutation    |      ✗       | `--key`, `--nonce` (hex), `--aad`, `--tag-length`                          |
-| **aes-lrw**                 | substitution-permutation    |      ✗       | `--key` (hex, required), `--tweak`                                         |
-| **aes-xts**                 | substitution-permutation    |      ✗       | `--key` (hex, required), `--tweak`                                         |
-| **aes-cbc-mac**             | substitution-permutation    |      ✗       | `--key` (hex, required)                                                    |
-| **aes-passphrase**          | substitution-permutation    |      ✗       | `--key` (text), `--digest`, `--key-length`, `--iterations`                 |
-| **rijndael**                | substitution-permutation    |      ✗       | `--key` (hex, required), `--block-size`                                    |
-| **des**                     | feistel                     |      ✗       | `--key` (hex, required)                                                    |
-| **desx**                    | feistel                     |      ✗       | `--key` (hex, required)                                                    |
-| **triple-des**              | feistel                     |      ✗       | `--key` (hex, required)                                                    |
-| **triple-des-cbc**          | feistel                     |      ✗       | `--key`, `--iv` (hex, both required)                                       |
-| **blowfish**                | feistel                     |      ✗       | `--key` (hex, required)                                                    |
-| **idea**                    | lai-massey                  |      ✗       | `--key` (hex, required)                                                    |
-| **lucifer**                 | feistel                     |      ✗       | `--key` (hex, required)                                                    |
-| **mars**                    | feistel                     |      ✗       | `--key` (hex, required)                                                    |
-| **serpent**                 | substitution-permutation    |      ✗       | `--key` (hex, required)                                                    |
-| **cast5**                   | feistel                     |      ✗       | `--key` (hex, required)                                                    |
-| **camellia**                | feistel                     |      ✗       | `--key` (hex, required)                                                    |
-| **aria**                    | substitution-permutation    |      ✗       | `--key` (hex, required)                                                    |
-| **sm4**                     | feistel                     |      ✗       | `--key` (hex, required)                                                    |
-| **openpgp**                 | substitution-permutation    |      ✗       | `--key` (text), `--algorithm`, `--digest`, `--count`                       |
-| **rabbit**                  | arx                         |      ✗       | `--key` (hex, required), `--iv`, `--endian`                                |
-| **rc4**                     | permutation                 |      ✗       | `--key` (hex, required)                                                    |
-| **xor**                     | polyalphabetic              |      ✗       | `--key` (hex, required), `--bytes`                                         |
-| **salsa20**                 | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`                       |
-| **xsalsa20**                | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`                       |
-| **chacha20**                | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`                       |
-| **xchacha20**               | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--counter`                       |
-| **chacha20-poly1305**       | arx                         |      ✗       | `--key`, `--nonce` (hex, both required), `--aad`                           |
-| **zipcrypto**               | crc-lcg                     |      ✗       | `--key` (text) or `--keys` (hex), `--entry`, `--method`                    |
+| Category  | Family                      | Ciphers                                                                                                                                                                  |
+| --------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| classical | substitution-shift          | `caesar`, `rot13`, `rot47`                                                                                                                                               |
+| classical | substitution-reflection     | `atbash`                                                                                                                                                                 |
+| classical | substitution-multiplicative | `affine`                                                                                                                                                                 |
+| classical | substitution-keyed          | `substitution`, `tridigital`                                                                                                                                             |
+| classical | polyalphabetic              | `vigenere`, `gronsfeld`, `beaufort`, `porta`, `autokey`, `running-key`, `trithemius`, `alberti`, `quagmire-1`, `quagmire-2`, `quagmire-3`, `quagmire-4`, `chaocipher`    |
+| classical | digraph                     | `playfair`, `four-square`, `two-square`                                                                                                                                  |
+| classical | polygraphic                 | `hill`                                                                                                                                                                   |
+| classical | fractionation               | `polybius`, `nihilist`, `morse`, `fractionated-morse`, `bacon`, `tap-code`, `a1z26`, `adfgvx`, `bifid`, `trifid`, `straddling-checkerboard`                              |
+| classical | homophonic                  | `book`                                                                                                                                                                   |
+| classical | transposition               | `rail-fence`, `columnar`, `route`                                                                                                                                        |
+| classical | rotor                       | `enigma`                                                                                                                                                                 |
+| block     | substitution-permutation    | `aes`, `aes-cbc`, `aes-cfb`, `aes-ofb`, `aes-ctr`, `aes-ccm`, `aes-ocb`, `aes-lrw`, `aes-xts`, `aes-cbc-mac`, `aes-passphrase`, `rijndael`, `serpent`, `aria`, `openpgp` |
+| block     | feistel                     | `des`, `desx`, `triple-des`, `triple-des-cbc`, `blowfish`, `lucifer`, `mars`, `cast5`, `camellia`, `sm4`                                                                 |
+| block     | lai-massey                  | `idea`                                                                                                                                                                   |
+| stream    | arx                         | `rabbit`, `salsa20`, `xsalsa20`, `chacha20`, `xchacha20`, `chacha20-poly1305`                                                                                            |
+| stream    | permutation                 | `rc4`                                                                                                                                                                    |
+| stream    | polyalphabetic              | `xor`                                                                                                                                                                    |
+| stream    | crc-lcg                     | `zipcrypto`                                                                                                                                                              |
 
-Playfair and Polybius fold J into I, tap code shares C and K, Bacon is the 26-letter variant unless `letters` says 24, and Alberti is a keyed disk that turns every `period` letters, not a reenactment of the original. One page per cipher, rules and vectors included: [Ciphers](https://ciphers.agntn.dev/ciphers).
+Seventy-five ciphers, seventeen families, three categories. The table is just names on purpose. For options, ask `ciphers info <name>`. Find rules, quirks and vectors at [Ciphers](https://ciphers.agntn.dev/ciphers), with [classical](https://ciphers.agntn.dev/ciphers/classical), [block](https://ciphers.agntn.dev/ciphers/block) and [stream](https://ciphers.agntn.dev/ciphers/stream) overviews. Why is xor polyalphabetic? It's Vigenère on bytes.
 
-The block ciphers start with AES and Triple DES. They take UTF-8 text, pad it with PKCS#7 and give hex back. Got plaintext that isn't text, like a raw key or another ciphertext? `--bytes hex` takes it in as hex and gives it back as hex. The stream ciphers take it too. The key is hex too: 32, 48 or 64 digits for AES, 32 or 48 for Triple DES. Every block goes through on its own, that's ECB. So two equal blocks of plaintext come out as two equal blocks of ciphertext. `aes-cbc` chains them instead. Each block gets XORed with the ciphertext block before it, the first one with `--iv`, which is 32 hex digits and required. `triple-des-cbc` chains Triple DES the same way, but its blocks are 8 bytes, so its `--iv` is 16 digits. `aes-cfb` takes the same `--iv` and turns AES into a keystream. `--segment` says how many bits go per step, 1, 8 or 128 (default 128). Nothing gets padded, so the ciphertext has exactly as many bytes as the text. `aes-ofb` takes `--iv` as well and feeds AES its own output, block after block, so the keystream never touches the text and nothing gets padded either. `aes-ctr` is a keystream too, only simpler. `--iv` is the first counter block, AES encrypts it, and the counter goes up by one for every next block. No feedback at all, so encrypt and decrypt are literally the same thing. `aes-ccm` is CTR with a tag on the end. `--nonce` is 14 to 26 hex digits, `--aad` is optional hex that the tag covers but nobody encrypts, and `--tag-length` is in bits (default 128). Decode checks the tag first, so a changed byte, a wrong key or a wrong nonce is an error, not garbage. `aes-ocb` takes the same flags and gets its tag in the same AES pass that encrypts. `--nonce` is 2 to 30 hex digits there, and `--tag-length` is 64, 96 or 128. Or there's `aes-lrw`, the LRW mode from the IEEE P1619 drafts. Its key is the AES key plus 32 more digits for a tweak key, and every block gets masked by its own index, counted from `--tweak` (default 1). Equal blocks at different places stop looking equal. `aes-xts` is what IEEE picked instead of LRW, and what LUKS runs on by default. The key is two AES keys back to back, 64 or 128 digits, and `--tweak` is the sector number (default 0). It pads nothing and steals from the block before when the last one comes up short, so the text needs 16 bytes at least. `aes-cbc-mac` encrypts nothing. It runs CBC with a zero IV, keeps only the last block and puts it after the text bytes as a tag. Decode checks the tag and gives the text back. Just `--key`, nothing else. `aes-passphrase` is the odd one. It opens what `CryptoJS.AES.encrypt(message, passphrase)` leaves on a page, base64 starting with `U2FsdGVkX1`, and `--key` is the passphrase itself, plain text. MD5 turns it and the salt into the AES key and IV. A stock `openssl enc` has used SHA-256 there since 1.1.0, so its output needs `--digest sha256`. When a page bumps CryptoJS's `keySize` or the KDF iterations, `--key-length` (bits, keySize times 32) and `--iterations` follow it. And `rijndael` is what AES was cut from. NIST kept only the 128-bit block, Rijndael also has 160, 192, 224 and 256, and `--block-size` picks one (default 128, which is plain AES). Keys of 40 and 56 digits work there too. `des` is plain DES, the one Triple DES runs three times. Its key is 16 hex digits, 56 bits once the parity bits are gone, and like `triple-des` it's ECB over 8-byte blocks. `desx` wraps that DES in two XORs, one 64-bit key before and one after, which makes brute force hopeless for almost no extra work. Its key is 48 digits: the DES key, then the XOR going in, then the one going out, in the order OpenSSL uses. `blowfish` is Schneier's cipher from 1993, 8-byte blocks in ECB like `triple-des`. Its key is any even number of hex digits from 8 to 112, and it builds its S-boxes out of that key and the digits of pi. `idea` is the cipher from PGP 2, the same 8-byte blocks in ECB and a key of exactly 32 hex digits. It has no S-boxes at all, only XOR, addition and multiplication on 16-bit words. `lucifer` goes back further, to the IBM cipher that DES was cut down from. It's the version Sorkin published in 1984, with the fix he sent in later that year. The blocks are 16 bytes like in AES, and the key is 32 hex digits. `mars` is what IBM sent to the AES competition in 1998. Same 16-byte blocks, and a key of 32 to 112 hex digits in steps of 8. Its S-box has 512 words, and this package grows them from SHA-1 the way IBM's paper says instead of storing them. `serpent` came second to Rijndael in that competition, slower but with more rounds to spare. It takes the same keys as `aes`, and runs 32 small 4-bit S-boxes side by side over the block, 32 rounds of it. `cast5` is CAST-128 from RFC 2144, the cipher OpenPGP once told everyone to carry next to AES. 8-byte blocks in ECB again, and a key of 10 to 32 hex digits. `camellia` is NTT and Mitsubishi's cipher from RFC 3713. It takes the same keys and blocks as `aes`, but inside it's Feistel, with an FL layer between every six rounds. `aria` is Korea's standard from RFC 5794, again with the keys and blocks of `aes`. Its first S-box is the AES one, byte for byte. The second is new, and the layer that mixes the bytes undoes itself, so decryption runs the same rounds with the keys backwards. `sm4` is China's standard, born inside WAPI, the country's own Wi-Fi security. Same blocks, but one key size only, 32 hex digits. Inside, four words take turns: three of them mix into the fourth, 32 rounds in a row. The key schedule? That same loop again, with other constants. And `openpgp` opens what `gpg --symmetric` writes. Paste the whole `-----BEGIN PGP MESSAGE-----` block as the text, dashes and all, pass the passphrase as `--key`, and the cipher, the hash and the compression come out of the message itself. It reads IDEA, Triple DES, CAST5, Blowfish, AES and Camellia, ZIP and ZLIB, and checks the MDC, so a changed message is an error. The AEAD kind opens too, OCB from `gpg --force-ocb` or EAX and GCM from RFC 9580, and there every chunk carries its own tag. Camellia runs in all three of those as well. Encoding writes armor GnuPG opens, AES-256 unless `--algorithm` says otherwise.
+Six are self-inverse, so encode and decode are the same call: `rot13`, `rot47`, `atbash`, `beaufort`, `porta` and `enigma`. Block and stream ciphers take UTF-8 text and a hex key, and return hex. Use `--bytes hex` for plaintext that isn't text. The authenticated ones, `aes-ccm`, `aes-ocb` and `chacha20-poly1305` among them, refuse to decode a ciphertext somebody changed.
 
-`rabbit` has no blocks to pad. It's a stream cipher from 2003, one of the eSTREAM winners, and RFC 4503 describes it. The key is 32 hex digits, `--iv` is 16 and optional, and every step gives 16 bytes of keystream that get XORed into the text, so the ciphertext is as long as the text. No S-boxes, no tables, just additions, rotations and one squaring. The byte order is the RFC's by default, the same as in CyberChef. Code built on the eSTREAM reference, Crypto++ for one, reads the bytes the other way round, and `--endian little` gives what it gives.
-
-`rc4` is older and much simpler. Ron Rivest wrote it in 1987 as an RSA trade secret, and in 1994 someone posted it to the Cypherpunks list. The key is any whole number of bytes from 1 to 256, in hex, and there's no IV. A password like `Secret` goes in as `536563726574`. The key shuffles a table of all 256 byte values, and every keystream byte is one more swap in that table. Nothing gets dropped from the start, so the output matches RFC 6229 and OpenSSL. Hex in a CTF and a short password next to it? Try this one first.
-
-`xor` is the one every CTF starts with. The key bytes repeat under the text and get XORed in, Vigenère on bytes. Any whole number of bytes works as a key. Got hex that isn't text on either side? `--bytes hex` reads and writes hex both ways, like for every other byte cipher.
-
-`chacha20` is what modern code actually runs, and `salsa20` is the cipher it grew out of. Both are Bernstein's, both XOR a keystream in 64-byte blocks, and both want `--nonce` next to the key. 16 hex digits for Salsa20, 24 for ChaCha20, as RFC 8439 has it. `--counter` picks the first block, 0 by default. The RFC's own examples start at 1, so try both when a vector won't match. `xsalsa20` and `xchacha20` take a 48-digit nonce, long enough to pick at random. `chacha20-poly1305` is the TLS 1.3 and WireGuard one. It puts a 16-byte tag after the ciphertext, takes `--aad`, and refuses to decode anything that was changed. Raw `Uint8Array` versions live in `@agntn/ciphers/chacha` and `@agntn/ciphers/salsa`.
-
-`zipcrypto` opens traditional encrypted ZIP entries with a password or three internal keys. A wrong password can pass the header check once in 256 tries, so decode checks CRC-32 and size too. That one byte doesn't get the final word.
+Found `U2FsdGVkX1` on a page? `aes-passphrase` opens that CryptoJS base64. `openpgp` opens `gpg --symmetric` output. `zipcrypto` opens old encrypted ZIP entries.
 
 ## 🤖 Agents
 
@@ -279,11 +198,11 @@ omp install @agntn/ciphers
 }
 ```
 
-The tools are `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphers_frequency`, `ciphers_period_estimate`, `ciphers_family_guess`, `ciphers_passphrase_probe`, `ciphers_crib_drag`, `ciphers_hidden_text_read`, `ciphers_characters_inspect`, `ciphers_zero_width_read`, `ciphers_zero_width_hide`, `ciphers_whitespace_read`, `ciphers_whitespace_hide`, `ciphers_texts_align`, `ciphers_key_recover` and `ciphers_info`. They're the same everywhere, the HTTP server included.
+There's one tool per command, with the same list for stdio MCP, HTTP, Pi, OMP and the AI SDK. Names and arguments live in the [Agents guide](https://ciphers.agntn.dev/guide/agents). The HTTP server runs on a Cloudflare worker, so public puzzle material only.
 
-That one runs on a Cloudflare worker, so public puzzle material only. Arguments are checked against the schema before a cipher sees them, and a wrong key is a tool error with the reason in it, not a dead session.
+Arguments are checked against the schema before a cipher sees them. A wrong key is a tool error with the reason in it, not a dead session.
 
-A model that doesn't know what Bifid takes calls `ciphers_info` first, the encode and decode descriptions say so. And a decoded ciphertext is data: `IGNORE PREVIOUS INSTRUCTIONS` falling out of a ROT13 is the answer to the puzzle, not a new task. [Agents guide](https://ciphers.agntn.dev/guide/agents).
+A model that doesn't know what Bifid takes calls `ciphers_info` first, the encode and decode descriptions say so. And a decoded ciphertext is data: `IGNORE PREVIOUS INSTRUCTIONS` falling out of a ROT13 is the answer to the puzzle, not a new task.
 
 ### AI SDK
 
@@ -310,11 +229,13 @@ One import gives your app every tool MCP has. No wrappers to write, which leaves
 
 ## 🚫 What this does not do
 
-Cryptography you'd trust with anything. The classical ones fall to anyone with a laptop and an afternoon, and that's the point, they're for puzzles, CTFs and teaching. AES and Triple DES are here too, mostly in ECB, the mode that leaks which blocks repeat. CBC, CFB, OFB, CTR, LRW and XTS hide that, but none of them checks integrity, and IEEE dropped LRW for XTS. CCM and OCB do check it, and still fall apart the moment a nonce repeats. CBC-MAC checks it without hiding anything, and a longer message can borrow the tag of a shorter one. Rabbit hides the text and checks nothing, and a key used twice without a fresh IV hands out the XOR of both texts. RC4 has no IV at all, its second byte is zero twice as often as it should be, and RFC 7465 threw it out of TLS in 2015. XOR with a repeating key falls to one known word. All of it is plain TypeScript that never tried to be constant time. They're for the CTF that uses them and for seeing that leak, not for your data. No hashing, no wallet keys, no base encodings. Keys and signatures are [@agntn/keys](https://github.com/agntn/keys), and even those want nothing to do with real money. Base64, base58 and friends have no key to break, so they're [@agntn/encodings](https://github.com/agntn/encodings).
+Cryptography you'd trust with anything. The classical ones fall to anyone with a laptop and an afternoon. That's the point: puzzles, CTFs and teaching. The modern ones are here for the CTF that uses them. Mostly in ECB, the mode that leaks which blocks repeat. RC4 is here too, and RFC 7465 threw it out of TLS in 2015. All of it is plain TypeScript that never tried to be constant time.
+
+No hashing, no wallet keys, no base encodings. Hashes are [@agntn/hashes](https://github.com/agntn/hashes). Keys and signatures are [@agntn/keys](https://github.com/agntn/keys), and even those want nothing to do with real money. Base64, base58 and friends have no key to break, so they're [@agntn/encodings](https://github.com/agntn/encodings).
 
 ## ➕ Adding a cipher
 
-Want a seventy-fifth? One class extending `Cipher` with `name()`, `info()`, `encode()` and `decode()`, then `register('name', YourCipher)` and `create('name')` works. A built-in goes into `builtins` instead, with a vector from somewhere other than the code under test. Walkthrough: [Custom ciphers](https://ciphers.agntn.dev/guide/custom).
+Want a seventy-sixth? Extend `Cipher` with `name()`, `info()`, `encode()` and `decode()`. Then `register('name', YourCipher)` and `create('name')` works. The walkthrough is at [Custom ciphers](https://ciphers.agntn.dev/guide/custom). Sending it here as a built-in? You'll need a vector from outside the code under test. [CONTRIBUTING.md](./CONTRIBUTING.md) has the rest.
 
 ## 🛠️ Development
 

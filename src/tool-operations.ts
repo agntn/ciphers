@@ -1,4 +1,13 @@
 import type * as CiphersModule from './index.ts'
+import {
+  MAX_ALIGNMENT_CELLS,
+  alignmentCompares,
+  alignmentOperations,
+  alignmentTokens,
+  type AlignmentCompare,
+  type AlignmentOperation,
+  type AlignmentTokens,
+} from './core/alignment-options.ts'
 import { cipherCategories } from './core/ciphers.ts'
 import {
   DEFAULT_COLUMNAR_KEY_LENGTH,
@@ -23,6 +32,10 @@ import {
 } from './core/zero-width-options.ts'
 
 export {
+  MAX_ALIGNMENT_CELLS,
+  alignmentCompares,
+  alignmentOperations,
+  alignmentTokens,
   DEFAULT_COLUMNAR_KEY_LENGTH,
   DEFAULT_HOMOPHONIC_SEED,
   DEFAULT_HOMOPHONIC_STARTS,
@@ -1552,4 +1565,182 @@ export function formatZeroWidthHide(
     )
   }
   return { content: [{ type: 'text', text: hidden }], details: { output: hidden, added } }
+}
+
+/** Rows the alignment tool lists. A longer map is refused, never cut short. */
+export const MAX_ALIGNMENT_ROWS = 500
+/** Code points of a row's text shown per side. */
+export const ALIGNMENT_PREVIEW = 40
+
+export type TextsAlignToolParams = {
+  readonly left: string
+  readonly right: string
+  readonly tokens?: AlignmentTokens
+  readonly compare?: AlignmentCompare
+  readonly rows?: readonly unknown[]
+}
+
+type AlignmentLibrary = Readonly<
+  Pick<typeof CiphersModule, 'alignTexts' | 'checkAlignment' | 'tokenizeTexts' | 'CipherError'>
+>
+
+/**
+ * One side of a row: its tokens and the span they take.
+ *
+ * @param side - `left` or `right`.
+ * @param range - The tokens of that side.
+ * @returns {string} `left 0-2 [0,7)`.
+ */
+function alignmentRangeLabel(side: string, range: Readonly<CiphersModule.AlignmentRange>): string {
+  return `${side} ${range.from}-${range.to} [${range.start},${range.end})`
+}
+
+/**
+ * What a row holds, quoted, so nothing in the texts can pass for a line of the answer.
+ *
+ * @param row - One row.
+ * @param texts - The two texts it was read from.
+ * @returns {string} Both sides where they differ, one where they match.
+ */
+function alignmentRowText(
+  row: Readonly<CiphersModule.AlignmentRow>,
+  texts: Readonly<CiphersModule.AlignmentSources>,
+): string {
+  const left = quotedPreview(texts.left.slice(row.left.start, row.left.end), ALIGNMENT_PREVIEW)
+  const right = quotedPreview(texts.right.slice(row.right.start, row.right.end), ALIGNMENT_PREVIEW)
+  if (row.operation === 'insert') return `+ ${right}`
+  if (row.operation === 'delete') return `- ${left}`
+  if (row.operation === 'replace') return `${left} -> ${right}`
+  return row.exact === true ? left : `${left} = ${right}`
+}
+
+/**
+ * Tokens per operation: the left ones, the right ones for an insert.
+ *
+ * @param rows - Every row.
+ * @returns {Record<AlignmentOperation, number>} The counts.
+ */
+function alignmentCounts(
+  rows: readonly CiphersModule.AlignmentRow[],
+): Record<AlignmentOperation, number> {
+  const counts = { equal: 0, replace: 0, insert: 0, delete: 0 }
+  for (const { operation, left, right } of rows) {
+    counts[operation] += operation === 'insert' ? right.to - right.from : left.to - left.from
+  }
+  return counts
+}
+
+/**
+ * What the rows leave unsaid, in the lines under them.
+ *
+ * @param alignment - The whole map.
+ * @param texts - The two texts.
+ * @returns {string[]} How to read a row, and the two caveats when they apply.
+ */
+function alignmentNotes(
+  alignment: Readonly<CiphersModule.TextAlignment>,
+  texts: Readonly<CiphersModule.AlignmentSources>,
+): string[] {
+  const { rows } = alignment
+  const notes = [
+    'Token ranges count from 0 and stop before the second number. [start,end) are UTF-16 offsets into each text.',
+  ]
+  if (rows.some((row) => row.operation === 'equal' && row.exact === false)) {
+    notes.push(`A row with = holds tokens that match only as compared (${alignment.compare}).`)
+  }
+  if (rows.some((row) => row.ambiguous === true)) {
+    notes.push(
+      'A row marked ambiguous has a repeated word: another alignment with as many equal tokens pairs it otherwise.',
+    )
+  }
+  if (texts.left !== texts.right && rows.every((row) => row.exact === true)) {
+    notes.push(
+      'Every token matches, yet the texts differ: look at the whitespace and punctuation between them, which is never compared.',
+    )
+  }
+  return notes
+}
+
+/**
+ * Check rows a model wrote or edited against the two texts.
+ *
+ * @param check - The verdict of `checkAlignment`.
+ * @param cut - The texts as cut for the check, for the token counts.
+ * @returns {CipherToolResult} The verdict as text, a broken map with its problems one per line.
+ */
+function formatAlignmentCheck(
+  check: Readonly<CiphersModule.AlignmentCheck>,
+  cut: Readonly<CiphersModule.TokenizedTexts>,
+): CipherToolResult {
+  const sizes = `${cut.left.tokens.length} left and ${cut.right.tokens.length} right tokens`
+  if (check.valid) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `The rows hold: they cover all ${sizes} in order, and every equality checks out.`,
+        },
+      ],
+      details: { valid: true, count: 0, problems: [] },
+    }
+  }
+  const lines = [
+    `The rows do not hold against ${sizes}, ${check.count} ${check.count === 1 ? 'problem' : 'problems'}:`,
+    '',
+    ...check.problems.map(({ code, at, message }) => `  ${at} ${code}: ${message}`),
+  ]
+  if (check.count > check.problems.length) {
+    lines.push(`  (${check.count - check.problems.length} more)`)
+  }
+  return {
+    content: [{ type: 'text', text: lines.join('\n') }],
+    details: { valid: false, count: check.count, problems: check.problems },
+  }
+}
+
+/**
+ * Align two versions of a text for a model, or check the rows it passes against them.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments.
+ * @returns {CipherToolResult} One line per row, or the verdict on `rows`.
+ * @throws {CipherError} When the texts are too long to align, or give more rows than fit.
+ */
+export function formatAlignment(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: AlignmentLibrary,
+  params: Readonly<TextsAlignToolParams>,
+): CipherToolResult {
+  const texts = { left: params.left, right: params.right }
+  const options = {
+    ...(params.tokens === undefined ? {} : { tokens: params.tokens }),
+    ...(params.compare === undefined ? {} : { compare: params.compare }),
+  }
+  if (params.rows !== undefined) {
+    const cut = library.tokenizeTexts(texts, options)
+    return formatAlignmentCheck(library.checkAlignment(texts, { ...cut, rows: params.rows }), cut)
+  }
+  const alignment = library.alignTexts(texts, options)
+  const { rows, tokens, compare } = alignment
+  if (rows.length > MAX_ALIGNMENT_ROWS) {
+    throw new library.CipherError(
+      `The texts differ in too many places to list: ${rows.length} rows, over the ${MAX_ALIGNMENT_ROWS} limit. Align one section at a time.`,
+    )
+  }
+  const counts = alignmentCounts(rows)
+  const sizes = `${alignment.left.tokens.length} tokens against ${alignment.right.tokens.length}`
+  const lines = [
+    `${sizes}, cut as ${tokens} and compared ${compare}: ${counts.equal} equal, ${counts.replace} replaced, ${counts.insert} inserted, ${counts.delete} deleted.`,
+    '',
+    ...rows.map((row) => {
+      const flag = row.ambiguous === true ? '  (ambiguous)' : ''
+      return `  ${row.operation.padEnd(7)}  ${alignmentRangeLabel('left', row.left)}  ${alignmentRangeLabel('right', row.right)}  ${alignmentRowText(row, texts)}${flag}`
+    }),
+    '',
+    ...alignmentNotes(alignment, texts),
+  ]
+  return {
+    content: [{ type: 'text', text: lines.join('\n') }],
+    details: { tokens, compare, counts, rows },
+  }
 }

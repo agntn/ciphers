@@ -70,6 +70,7 @@ describe('Pi extension', () => {
       'ciphers_characters_inspect',
       'ciphers_zero_width_read',
       'ciphers_zero_width_hide',
+      'ciphers_texts_align',
       'ciphers_key_recover',
       'ciphers_info',
     ])
@@ -92,6 +93,7 @@ describe('Pi extension', () => {
       'ciphers_hidden_text_read',
       'ciphers_zero_width_read',
       'ciphers_zero_width_hide',
+      'ciphers_texts_align',
       'ciphers_key_recover',
     ]) {
       expect(getTool(name).renderResult).toBeTypeOf('function')
@@ -375,6 +377,22 @@ describe('Pi extension', () => {
     await expect(
       getTool('ciphers_zero_width_read').execute('read', { text: 'abc', unit: 'byte' }),
     ).rejects.toThrow('Missing required option: symbols')
+  })
+
+  it('aligns two texts through the shared executor', async () => {
+    const aligned = await getTool('ciphers_texts_align').execute('align', {
+      left: 'Red fox, asleep',
+      right: 'red fox awake',
+      compare: 'caseless',
+    })
+    expect(aligned.content[0]?.text).toContain(
+      '\n  equal    left 0-1 [0,3)  right 0-1 [0,3)  "Red" = "red"\n',
+    )
+    expect(aligned.details).toMatchObject({
+      tokens: 'words',
+      compare: 'caseless',
+      counts: { equal: 2, replace: 1, insert: 0, delete: 0 },
+    })
   })
 
   it('checks the arguments the way MCP does', async () => {

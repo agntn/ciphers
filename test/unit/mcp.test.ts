@@ -59,6 +59,7 @@ describe('Ciphers MCP server', () => {
       'ciphers_characters_inspect',
       'ciphers_zero_width_read',
       'ciphers_zero_width_hide',
+      'ciphers_texts_align',
       'ciphers_key_recover',
       'ciphers_info',
     ])
@@ -1902,6 +1903,101 @@ Co2B
       expect(refused.isError).toBe(true)
       expect(onlyText(refused.content)).toContain('Invalid arguments at /')
     }
+  })
+
+  it('aligns two texts and checks rows over the protocol', async () => {
+    const client = await connectTestClient()
+    const call = async (args: Readonly<Record<string, unknown>>) =>
+      client.callTool({ name: 'ciphers_texts_align', arguments: args })
+    const texts = {
+      left: 'The fox, the fox!\nIt sleeps',
+      right: 'the fox the dog it SLEEPS soundly',
+    }
+
+    expect(onlyText((await call({ ...texts, compare: 'caseless' })).content)).toBe(
+      [
+        '6 tokens against 7, cut as words and compared caseless: 5 equal, 1 replaced, 1 inserted, 0 deleted.',
+        '',
+        '  equal    left 0-1 [0,3)  right 0-1 [0,3)  "The" = "the"',
+        '  equal    left 1-3 [4,12)  right 1-3 [4,11)  "fox, the"',
+        '  replace  left 3-4 [13,16)  right 3-4 [12,15)  "fox" -> "dog"',
+        '  equal    left 4-6 [18,27)  right 4-6 [16,25)  "It sleeps" = "it SLEEPS"',
+        '  insert   left 6-6 [27,27)  right 6-7 [26,33)  + "soundly"',
+        '',
+        'Token ranges count from 0 and stop before the second number. [start,end) are UTF-16 offsets into each text.',
+        'A row with = holds tokens that match only as compared (caseless).',
+      ].join('\n'),
+    )
+    expect(onlyText((await call({ left: 'a b a', right: 'a' })).content)).toBe(
+      [
+        '3 tokens against 1, cut as words and compared exact: 1 equal, 0 replaced, 0 inserted, 2 deleted.',
+        '',
+        '  equal    left 0-1 [0,1)  right 0-1 [0,1)  "a"  (ambiguous)',
+        '  delete   left 1-3 [2,5)  right 1-1 [1,1)  - "b a"',
+        '',
+        'Token ranges count from 0 and stop before the second number. [start,end) are UTF-16 offsets into each text.',
+        'A row marked ambiguous has a repeated word: another alignment with as many equal tokens pairs it otherwise.',
+      ].join('\n'),
+    )
+    expect(onlyText((await call({ left: 'Stop, thief!', right: 'Stop thief' })).content)).toContain(
+      '\nEvery token matches, yet the texts differ: look at the whitespace and punctuation between them, which is never compared.',
+    )
+    expect(onlyText((await call({ left: 'a\u202Eb x', right: 'c' })).content)).toContain(
+      '"a\\u202eb x" -> "c"',
+    )
+
+    const pair = { left: 'a b', right: 'a c' }
+    const row = (operation: string, from: number, to: number) => ({
+      operation,
+      left: { from, to },
+      right: { from, to },
+    })
+    expect(
+      onlyText((await call({ ...pair, rows: [row('equal', 0, 1), row('replace', 1, 2)] })).content),
+    ).toBe(
+      'The rows hold: they cover all 2 left and 2 right tokens in order, and every equality checks out.',
+    )
+    const broken = await call({
+      ...pair,
+      rows: [row('equal', 0, 1), row('equal', 1, 2), row('insert', 2, 2)],
+    })
+    expect(broken.isError).toBeFalsy()
+    expect(onlyText(broken.content)).toBe(
+      [
+        'The rows do not hold against 2 left and 2 right tokens, 2 problems:',
+        '',
+        '  /rows/1 equality: left token 1 does not equal its partner',
+        '  /rows/2 operation: insert takes no token on the left and at least one on the right',
+      ].join('\n'),
+    )
+
+    const long = Array.from({ length: 2_000 }, (_, index) => `w${index % 7}`).join(' ')
+    const whole = {
+      operation: 'replace',
+      left: { from: 0, to: 2_000 },
+      right: { from: 0, to: 2_000 },
+    }
+    expect(
+      onlyText((await call({ left: long, right: long.toUpperCase(), rows: [whole] })).content),
+    ).toBe(
+      'The rows hold: they cover all 2000 left and 2000 right tokens in order, and every equality checks out.',
+    )
+    const refused = await call({ left: long, right: long })
+    expect(refused.isError).toBe(true)
+    expect(onlyText(refused.content)).toContain(
+      'Too long to align: 2000 tokens against 2000 is 4004001 comparisons, over the 4000000 limit. Align one section at a time.',
+    )
+    const scattered = await call({
+      left: Array.from({ length: 600 }, (_, index) => `same${index} left${index}`).join(' '),
+      right: Array.from({ length: 600 }, (_, index) => `same${index} right${index}`).join(' '),
+    })
+    expect(scattered.isError).toBe(true)
+    expect(onlyText(scattered.content)).toContain(
+      'The texts differ in too many places to list: 1200 rows, over the 500 limit. Align one section at a time.',
+    )
+    expect(onlyText((await call({ ...pair, rows: 'none' })).content)).toContain(
+      'Invalid arguments at /rows',
+    )
   })
 
   it('inspects characters and carries zero-width messages over the protocol', async () => {

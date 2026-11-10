@@ -439,19 +439,79 @@ describe('checkAlignment', () => {
     expect(withLeft(token({ normalized: 'RED' }))).toEqual(['normalized /left/tokens/0'])
     expect(withLeft(token({ end: 15 }))).toContain('range /left/tokens/0')
     expect(withLeft(token({ start: 3, end: 3 }))).toContain('range /left/tokens/0')
-    expect(withLeft({ tokens, separators: separators.slice(1) })).toEqual(['gap /left'])
+    expect(withLeft({ tokens, separators: separators.slice(1) })).toEqual([
+      'gap /left',
+      'boundary /left/separators',
+    ])
     expect(
       withLeft({ tokens, separators: [...separators, { raw: 'd ', start: 2, end: 4 }] }),
-    ).toEqual(['overlap /left', 'overlap /left'])
+    ).toEqual(['overlap /left', 'overlap /left', 'boundary /left/separators/2'])
     expect(withLeft({ tokens: [...tokens].reverse(), separators })).toContain(
       'order /left/tokens/1',
     )
     expect(problems(fox, edited(alignment, { left: alignment.right }))).toEqual([
       'raw /left/tokens/2',
       'gap /left',
+      'boundary /left/tokens/2',
+      'boundary /left/tokens',
       'span /rows/1/left',
       'equality /rows/1',
     ])
+  })
+
+  it('holds the tokens against where the declared policy cuts', () => {
+    const hidden = { left: 'red fox', right: 'blue fox' }
+    const empty = (text: string) => ({
+      tokens: [],
+      separators: [{ raw: text, start: 0, end: text.length }],
+    })
+    expect(
+      problems(hidden, {
+        tokens: 'words',
+        compare: 'exact',
+        left: empty(hidden.left),
+        right: empty(hidden.right),
+        rows: [],
+      }),
+    ).toEqual([
+      'boundary /left/tokens',
+      'boundary /left/separators/0',
+      'boundary /left/separators',
+      'boundary /right/tokens',
+      'boundary /right/separators/0',
+      'boundary /right/separators',
+    ])
+
+    const halves = {
+      tokens: [
+        { raw: 'hel', normalized: 'hel', start: 0, end: 3 },
+        { raw: 'lo', normalized: 'lo', start: 3, end: 5 },
+      ],
+      separators: [],
+    }
+    const split = {
+      tokens: 'words',
+      compare: 'exact',
+      left: halves,
+      right: halves,
+      rows: [{ operation: 'equal', left: { from: 0, to: 2 }, right: { from: 0, to: 2 } }],
+    }
+    expect(problems({ left: 'hello', right: 'hello' }, split)).toEqual([
+      'boundary /left/tokens/0',
+      'boundary /left/tokens/1',
+      'boundary /left/tokens',
+      'boundary /right/tokens/0',
+      'boundary /right/tokens/1',
+      'boundary /right/tokens',
+    ])
+    expect(problems(fox, edited(alignTexts(fox), { tokens: 'whitespace' }))).toEqual([])
+    expect(
+      problems(
+        { left: 'a,b', right: 'a,b' },
+        edited(alignTexts({ left: 'a,b', right: 'a,b' }), { tokens: 'whitespace' }),
+      ),
+    ).toContain('boundary /left/tokens/0')
+    expect(problems(fox, edited(alignTexts(fox), { tokens: 'lines' }))).toEqual(['shape /tokens'])
   })
 
   it.each([

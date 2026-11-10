@@ -1972,6 +1972,16 @@ Co2B
     )
 
     const long = Array.from({ length: 2_000 }, (_, index) => `w${index % 7}`).join(' ')
+    const whole = {
+      operation: 'replace',
+      left: { from: 0, to: 2_000 },
+      right: { from: 0, to: 2_000 },
+    }
+    expect(
+      onlyText((await call({ left: long, right: long.toUpperCase(), rows: [whole] })).content),
+    ).toBe(
+      'The rows hold: they cover all 2000 left and 2000 right tokens in order, and every equality checks out.',
+    )
     const refused = await call({ left: long, right: long })
     expect(refused.isError).toBe(true)
     expect(onlyText(refused.content)).toContain(

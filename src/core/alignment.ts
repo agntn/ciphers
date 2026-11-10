@@ -48,12 +48,16 @@ export interface AlignmentRow {
   readonly ambiguous?: boolean
 }
 
-/** Two texts walked side by side. Rows cover every token of both, in order. */
-export interface TextAlignment {
+/** Two texts cut the same way, with the settings they were cut under. */
+export interface TokenizedTexts {
   readonly tokens: AlignmentTokens
   readonly compare: AlignmentCompare
   readonly left: AlignedText
   readonly right: AlignedText
+}
+
+/** Two texts walked side by side. Rows cover every token of both, in order. */
+export interface TextAlignment extends TokenizedTexts {
   readonly rows: readonly AlignmentRow[]
 }
 
@@ -78,6 +82,7 @@ export type AlignmentProblemCode =
   | 'order'
   | 'raw'
   | 'normalized'
+  | 'boundary'
   | 'gap'
   | 'overlap'
   | 'operation'
@@ -379,6 +384,23 @@ function alignmentPolicy(options: Readonly<AlignTextsOptions>): Required<AlignTe
 }
 
 /**
+ * Cut two texts into tokens and separators, without pairing anything.
+ *
+ * @param texts - The two versions.
+ * @param options - How to cut the texts and when two tokens count as equal.
+ * @returns {TokenizedTexts} Tokens and separators of both, with the settings used.
+ * @throws {InvalidOptionError} When a text is not a string or an option is not a listed value.
+ */
+export function tokenizeTexts(
+  texts: Readonly<AlignmentSources>,
+  options: Readonly<AlignTextsOptions> = {},
+): TokenizedTexts {
+  assertSources(texts)
+  const policy = alignmentPolicy(options)
+  return { ...policy, left: readText(texts.left, policy), right: readText(texts.right, policy) }
+}
+
+/**
  * Align two versions of a text token by token, keeping every span of both.
  *
  * @param texts - The two versions.
@@ -391,10 +413,8 @@ export function alignTexts(
   texts: Readonly<AlignmentSources>,
   options: Readonly<AlignTextsOptions> = {},
 ): TextAlignment {
-  assertSources(texts)
-  const policy = alignmentPolicy(options)
-  const left = readText(texts.left, policy)
-  const right = readText(texts.right, policy)
+  const cut = tokenizeTexts(texts, options)
+  const { left, right } = cut
   const cells = (left.tokens.length + 1) * (right.tokens.length + 1)
   if (cells > MAX_ALIGNMENT_CELLS) {
     throw new CipherError(
@@ -415,7 +435,7 @@ export function alignTexts(
     }
   }
   rows.gap([i, left.tokens.length], [j, right.tokens.length])
-  return { ...policy, left, right, rows: rows.rows }
+  return { ...cut, rows: rows.rows }
 }
 
 /**
@@ -540,7 +560,7 @@ class Checker {
   readonly problems: AlignmentProblem[] = []
   count = 0
   readonly #sources: AlignmentSources
-  #compare: AlignmentCompare = 'exact'
+  #policy: Required<AlignTextsOptions> = { tokens: 'words', compare: 'exact' }
   #tokens: Readonly<Record<Side, readonly AlignmentToken[]>> = { left: [], right: [] }
 
   constructor(sources: Readonly<AlignmentSources>) {
@@ -559,15 +579,19 @@ class Checker {
    */
   check(alignment: unknown): void {
     if (!isRecord(alignment)) {
-      this.#report('shape', '', 'must be an object with compare, left, right and rows')
+      this.#report('shape', '', 'must be an object with tokens, compare, left, right and rows')
       return
     }
+    const tokens = alignmentTokens.find((name) => name === alignment['tokens'])
     const compare = alignmentCompares.find((name) => name === alignment['compare'])
+    if (tokens === undefined) {
+      this.#report('shape', '/tokens', `must be one of ${alignmentTokens.join(', ')}`)
+    }
     if (compare === undefined) {
       this.#report('shape', '/compare', `must be one of ${alignmentCompares.join(', ')}`)
-      return
     }
-    this.#compare = compare
+    if (tokens === undefined || compare === undefined) return
+    this.#policy = { tokens, compare }
     const left = this.#side('left', alignment['left'])
     const right = this.#side('right', alignment['right'])
     if (left === undefined || right === undefined) return
@@ -593,9 +617,12 @@ class Checker {
     for (const [index, token] of tokens.entries()) this.#token(`/${side}/tokens/${index}`, token)
     this.#order(side, tokens)
     this.#coverage(side, [...tokens, ...separators])
+    const cut = readText(this.#sources[side], this.#policy)
+    this.#boundaries(`/${side}/tokens`, [tokens, cut.tokens])
+    this.#boundaries(`/${side}/separators`, [separators, cut.separators])
     return tokens.map((token) => ({
       ...token,
-      normalized: normalizedToken(token.raw, this.#compare),
+      normalized: normalizedToken(token.raw, this.#policy.compare),
     }))
   }
 
@@ -637,8 +664,36 @@ class Checker {
   }
 
   #token(at: string, token: Readonly<AlignmentToken>): void {
-    if (normalizedToken(token.raw, this.#compare) !== token.normalized) {
-      this.#report('normalized', at, `normalized is not raw compared as ${this.#compare}`)
+    if (normalizedToken(token.raw, this.#policy.compare) !== token.normalized) {
+      this.#report('normalized', at, `normalized is not raw compared as ${this.#policy.compare}`)
+    }
+  }
+
+  /**
+   * Hold a list of spans against where the declared policy cuts the text.
+   *
+   * @param at - Where the list sits in the map.
+   * @param lists - The spans the map states, and the ones the text really has.
+   */
+  #boundaries(
+    at: string,
+    lists: readonly [stated: readonly AlignmentSpan[], cut: readonly AlignmentSpan[]],
+  ): void {
+    const [stated, cut] = lists
+    const place = (span: Readonly<AlignmentSpan>) => `${span.start}:${span.end}`
+    const real = new Set(cut.map((span) => place(span)))
+    const seen = new Set(stated.map((span) => place(span)))
+    for (const [index, span] of stated.entries()) {
+      if (!real.has(place(span))) {
+        const message = `[${span.start}, ${span.end}) is not where ${this.#policy.tokens} cuts this text`
+        this.#report('boundary', `${at}/${index}`, message)
+      }
+    }
+    const missing = cut.filter((span) => !seen.has(place(span)))
+    const [first] = missing
+    if (first !== undefined) {
+      const message = `leaves out ${missing.length} the text has, the first at [${first.start}, ${first.end})`
+      this.#report('boundary', at, message)
     }
   }
 
@@ -786,7 +841,7 @@ class Checker {
 }
 
 /**
- * Check a map against its two texts, without aligning them again. `ambiguous` goes unchecked.
+ * Check a map against its two texts, cut again but not aligned again. `ambiguous` goes unchecked.
  *
  * @param texts - The two versions.
  * @param alignment - The map, from `alignTexts` or edited since.

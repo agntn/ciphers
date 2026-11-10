@@ -1581,7 +1581,7 @@ export type TextsAlignToolParams = {
 }
 
 type AlignmentLibrary = Readonly<
-  Pick<typeof CiphersModule, 'alignTexts' | 'checkAlignment' | 'CipherError'>
+  Pick<typeof CiphersModule, 'alignTexts' | 'checkAlignment' | 'tokenizeTexts' | 'CipherError'>
 >
 
 /**
@@ -1665,14 +1665,14 @@ function alignmentNotes(
  * Check rows a model wrote or edited against the two texts.
  *
  * @param check - The verdict of `checkAlignment`.
- * @param alignment - The map the rows were put into, for the token counts.
+ * @param cut - The texts as cut for the check, for the token counts.
  * @returns {CipherToolResult} The verdict as text, a broken map with its problems one per line.
  */
 function formatAlignmentCheck(
   check: Readonly<CiphersModule.AlignmentCheck>,
-  alignment: Readonly<CiphersModule.TextAlignment>,
+  cut: Readonly<CiphersModule.TokenizedTexts>,
 ): CipherToolResult {
-  const sizes = `${alignment.left.tokens.length} left and ${alignment.right.tokens.length} right tokens`
+  const sizes = `${cut.left.tokens.length} left and ${cut.right.tokens.length} right tokens`
   if (check.valid) {
     return {
       content: [
@@ -1704,7 +1704,7 @@ function formatAlignmentCheck(
  * @param library - The loaded cipher library.
  * @param params - The tool arguments.
  * @returns {CipherToolResult} One line per row, or the verdict on `rows`.
- * @throws {CipherError} When the texts are too long to compare, or give more rows than fit.
+ * @throws {CipherError} When the texts are too long to align, or give more rows than fit.
  */
 export function formatAlignment(
   /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
@@ -1712,14 +1712,15 @@ export function formatAlignment(
   params: Readonly<TextsAlignToolParams>,
 ): CipherToolResult {
   const texts = { left: params.left, right: params.right }
-  const alignment = library.alignTexts(texts, {
+  const options = {
     ...(params.tokens === undefined ? {} : { tokens: params.tokens }),
     ...(params.compare === undefined ? {} : { compare: params.compare }),
-  })
-  if (params.rows !== undefined) {
-    const check = library.checkAlignment(texts, { ...alignment, rows: params.rows })
-    return formatAlignmentCheck(check, alignment)
   }
+  if (params.rows !== undefined) {
+    const cut = library.tokenizeTexts(texts, options)
+    return formatAlignmentCheck(library.checkAlignment(texts, { ...cut, rows: params.rows }), cut)
+  }
+  const alignment = library.alignTexts(texts, options)
   const { rows, tokens, compare } = alignment
   if (rows.length > MAX_ALIGNMENT_ROWS) {
     throw new library.CipherError(

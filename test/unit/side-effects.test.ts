@@ -165,7 +165,7 @@ describe('registry without import side effects', () => {
     },
   )
 
-  it.each(['alignTexts', 'checkAlignment'])(
+  it.each(['alignTexts', 'checkAlignment', 'tokenizeTexts'])(
     'bundles %s without a cipher, a frequency table or a Unicode table',
     async (name) => {
       const kept = await keptModules(name)

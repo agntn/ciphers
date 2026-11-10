@@ -171,6 +171,7 @@ export {
 export {
   alignTexts,
   checkAlignment,
+  tokenizeTexts,
   type AlignTextsOptions,
   type AlignedText,
   type AlignmentCheck,
@@ -182,6 +183,7 @@ export {
   type AlignmentSpan,
   type AlignmentToken,
   type TextAlignment,
+  type TokenizedTexts,
 } from './alignment.ts'
 export {
   MAX_ZERO_WIDTH_DIGITS,

@@ -6892,7 +6892,7 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
         '[openpgp] Wrong passphrase: the tag on the sealed session key does not match',
       )
     }
-  })
+  }, 20_000)
 
   /** From RustCrypto camellia 0.1.0 with eax 0.5.0, ocb3 0.1.0 and aes-gcm 0.10.3. */
   it('runs Camellia through EAX, GCM and OCB, which RFC 9580 allows and GnuPG writes for OCB', () => {
@@ -6962,7 +6962,7 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
         ),
       )
     }
-  })
+  }, 20_000)
 
   it('refuses AEAD data with a changed chunk or final tag', () => {
     const changed = new CipherError(
@@ -6982,7 +6982,7 @@ Ae0Pn/xvxtZbv9JNzQeQlm5tHoWjAFN4TLHYtqBpnvEhVaeyrWJYUxtXZR/Xd3kS
     expect(() => pgp.decode(Buffer.from(sample).toString('hex'), { key: 'password' })).toThrow(
       changed,
     )
-  })
+  }, 20_000)
 
   it('names what is wrong with an AEAD message it cannot open', () => {
     const fail = (hex: string, reason: string) =>

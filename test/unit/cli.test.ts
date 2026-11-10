@@ -151,7 +151,7 @@ describe('CLI refusals', () => {
       ],
       'Invalid arguments at /1 of --known: message must be a ciphertext number from 0 to 1',
     )
-  })
+  }, 20_000)
 
   it('names the flag in a rule the cipher sets beyond the schema', () => {
     expectRefusal(

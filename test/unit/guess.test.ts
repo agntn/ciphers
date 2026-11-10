@@ -19,6 +19,9 @@ const DICKENS =
 const MICKIEWICZ =
   'Litwo! Ojczyzno moja! ty jesteś jak zdrowie. Ile cię trzeba cenić, ten tylko się dowie, kto cię stracił. Dziś piękność twą w całej ozdobie widzę i opisuję, bo tęsknię po tobie.'
 
+/** The pangram every Polish font demo opens with, and a few plain words after it. */
+const PANGRAM = 'Za\u017C\u00F3\u0142\u0107 g\u0119\u015Bl\u0105 ja\u017A\u0144 i nie tylko to'
+
 /**
  * The first cipher of each candidate, with its confidence.
  *
@@ -29,7 +32,7 @@ function ranking(guess: FamilyGuess): string[] {
   return guess.candidates.map(({ ciphers, confidence }) => `${ciphers[0]}:${confidence}`)
 }
 
-/* ASCII text as decimal character codes, one per letter. */
+/* Text as decimal code points, one per character. */
 function codesOf(text: string): string {
   return Array.from(text, (letter) => letter.codePointAt(0)).join(' ')
 }
@@ -324,7 +327,117 @@ describe('guessFamily', () => {
     })
     expect(guessFamily('72 101 108 108 111 10').encoding?.text).toBe('Hello\n')
     expect(guessFamily(codesOf('Hello\r\nworld')).encoding?.text).toBe('Hello\r\nworld')
-    expect(guessFamily(codesOf('Hello\tworld'))).not.toHaveProperty('encoding')
+    expect(guessFamily(codesOf('Hello\tworld')).encoding).toEqual({
+      name: 'decimal',
+      text: 'Hello\tworld',
+      signal: 'Every number is a printable ASCII code or a tab, and the letters they spell fit en.',
+    })
+    expect(guessFamily('48656c6c6f09776f726c640a').encoding?.signal).toBe(
+      'Every pair of hex digits is a printable ASCII code or a tab or a line break, and the letters they spell fit en.',
+    )
+  })
+
+  it('reads UTF-8 behind hex and base64, Polish included', () => {
+    const hex = guessFamily(Buffer.from(PANGRAM).toString('hex'), 'pl')
+    expect(hex.encoding).toEqual({
+      name: 'hex',
+      text: PANGRAM,
+      signal:
+        'Every character the hex spells in UTF-8 is a letter or a printable ASCII code, and the letters they spell fit pl.',
+    })
+    expect(ranking(hex)).toEqual(['aes-ctr:low'])
+    const base64 = guessFamily(Buffer.from(PANGRAM).toString('base64'), 'pl')
+    expect(base64.encoding).toEqual({
+      name: 'base64',
+      text: PANGRAM,
+      signal:
+        'Every character the base64 spells in UTF-8 is a letter or a printable ASCII code, and the letters they spell fit pl.',
+    })
+    expect(base64.candidates.every(({ confidence }) => confidence === 'low')).toBe(true)
+
+    const french = guessFamily('636166c3a9206175206c6169742c207320696c20766f757320706c616974')
+    expect(french.encoding?.text).toBe('caf\u00E9 au lait, s il vous plait')
+    expect(ranking(french)).toEqual(['aes-ctr:low'])
+    expect(guessFamily('63616665cc81206175206c616974').encoding?.text).toBe('cafe\u0301 au lait')
+    const capital = guessFamily(
+      Buffer.from('\u0141\u00F3d\u017A by\u0142a ma\u0142a').toString('hex'),
+      'pl',
+    )
+    expect(capital.encoding?.signal).toMatch(/fit pl\.$/)
+  })
+
+  it('reads scripts with no table by the shape of their words', () => {
+    const russian = guessFamily('d09fd180d0b8d0b2d0b5d18220d0bcd0b8d180')
+    expect(russian.encoding).toEqual({
+      name: 'hex',
+      text: '\u041F\u0440\u0438\u0432\u0435\u0442 \u043C\u0438\u0440',
+      signal:
+        'Every character the hex spells in UTF-8 is a letter or a printable ASCII code, and together they look like words.',
+    })
+    expect(ranking(russian)).toEqual(['aes-ctr:high'])
+    const japanese = guessFamily('44GT44KT44Gr44Gh44Gv5LiW55WM', 'ja')
+    expect(japanese.encoding?.text).toBe('\u3053\u3093\u306B\u3061\u306F\u4E16\u754C')
+    expect(japanese.encoding?.name).toBe('base64')
+  })
+
+  it('reads decimal code points past a byte when the letters fit', () => {
+    const numbers = '90 97 380 243 322 263 32 103 281 347 108 261 32 106 97 378 324'
+    const pangram = guessFamily(numbers, 'pl')
+    expect(pangram.encoding).toEqual({
+      name: 'decimal',
+      text: 'Za\u017C\u00F3\u0142\u0107 g\u0119\u015Bl\u0105 ja\u017A\u0144',
+      signal:
+        'Every number, read as a code point, is a letter or a printable ASCII code, and the letters they spell fit pl.',
+    })
+    expect(ranking(pangram)).toEqual(['aes-ctr:low'])
+    expect(guessFamily(numbers.replaceAll(' ', ', '), 'pl').encoding?.name).toBe('decimal')
+    expect(guessFamily(codesOf(MICKIEWICZ.slice(0, 43)), 'pl').encoding?.text).toBe(
+      'Litwo! Ojczyzno moja! ty jeste\u015B jak zdrowie',
+    )
+  })
+
+  it('keeps bytes bytes when they are no UTF-8 or no letters', () => {
+    for (const text of [
+      'c328c328c328c328',
+      'c080c080c080c080',
+      'efbbbf48656c6c6f',
+      'eda080eda080eda080eda080',
+      'e2809c48656c6c6fe2809d',
+      '48656c6c6f20f09f9880',
+    ]) {
+      expect(guessFamily(text)).not.toHaveProperty('encoding')
+    }
+    expect(Buffer.from('efbbbf48656c6c6f', 'hex').toString()).toBe('\uFEFFHello')
+    expect(Buffer.from('e2809c48656c6c6fe2809d', 'hex').toString()).toBe('\u201CHello\u201D')
+    expect(Buffer.from('06952612', 'base64').toString()).toBe('\u04EFy\u06EDv')
+    expect(guessFamily('06952612')).not.toHaveProperty('encoding')
+  })
+
+  it('keeps a list of numbers a list of numbers', () => {
+    expect(String.fromCodePoint(200, 300, 400, 500)).toBe('\u00C8\u012C\u0190\u01F4')
+    for (const text of [
+      '200 300 400 500',
+      '1055 1088 1080 1074 1077 1090',
+      '20000 25000 30000 35000',
+      '99 97 102 233',
+      '099097102233',
+      '72 101 108 108 111 55296',
+      '72 101 108 108 111 1114112',
+      '072 101 108 108 380',
+      codesOf(
+        '\u00E9\u00E0\u00E8\u00E9\u00E0\u00EE\u00F4\u00E9\u00E8\u00E0\u00E9\u00E8\u00EA\u00E0\u00E9\u00E8\u00F9\u00E9\u00E0\u00E8',
+      ),
+    ]) {
+      expect(guessFamily(text)).not.toHaveProperty('encoding')
+    }
+    const letters = '099097102233032097117032108097105116'
+    expect(String.fromCodePoint(...(letters.match(/.{3}/g) ?? []).map(Number))).toBe(
+      'caf\u00E9 au lait',
+    )
+    expect(guessFamily(letters)).not.toHaveProperty('encoding')
+    expect(guessFamily('99 97 102 233 32 97 117 32 108 97 105 116').encoding?.text).toBe(
+      'caf\u00E9 au lait',
+    )
   })
 
   it('reads hex and base64 of text as text and sends the ciphers to the back', () => {
@@ -378,7 +491,6 @@ describe('guessFamily', () => {
       'U2FsdGVkX1+Ab3x9Kq0mN2pL5vT8wYzR',
       Buffer.from('{"id":42,"ok":[1,2]}').toString('hex'),
       Buffer.from('{"id":42,"ok":[1,2]}').toString('base64'),
-      Buffer.from('caf\u00E9 au lait').toString('hex'),
       '486921',
     ]) {
       expect(guessFamily(text)).not.toHaveProperty('encoding')

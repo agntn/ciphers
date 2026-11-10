@@ -28,9 +28,9 @@ export interface FamilyCandidate {
   readonly needs?: readonly string[]
 }
 
-/** An encoding the text reads in. No cipher here opens it, `@agntn/encodings` does. */
+/** An encoding the text reads in, UTF-8 behind hex and base64. No cipher here opens it. */
 export interface EncodingGuess {
-  /** Codec of `@agntn/encodings` that decodes the text. */
+  /** Codec of `@agntn/encodings` that decodes the text. Its `decimal` stops at 255. */
   readonly name: 'decimal' | 'hex' | 'base64'
   /** What the text decodes to. */
   readonly text: string
@@ -878,8 +878,15 @@ function statistics(reading: Readonly<Reading>): FamilyCandidate[] {
 /** Ciphers whose ciphertext is numbers. Hex isn't one: any even run of digits is hex. */
 const WRITES_NUMBERS: readonly string[] = ['polybius', 'tap-code', 'nihilist']
 
-/** Words in one case each, or capitalised, with punctuation or line breaks between them. */
-const WORDS = /^(?:[A-Z]?[a-z]+|[A-Z]+)(?:[ ,.!?'\r\n-]+(?:[A-Z]?[a-z]+|[A-Z]+))*[.!?]?[\r\n]*$/
+/** Words in one case each, capitalised, or in a script with no case, with gaps between them. */
+const WORDS =
+  /^(?:\p{Lu}?\p{Ll}+|\p{Lu}+|\p{Lo}+)(?:[ \t,.!?'\r\n-]+(?:\p{Lu}?\p{Ll}+|\p{Lu}+|\p{Lo}+))*[.!?]?[\r\n]*$/u
+
+/** Text worth reading: ASCII that prints, tabs, line breaks, and letters of any script. */
+const READABLE = /^[\t\n\r -~\p{L}\p{M}]+$/u
+
+/** A character ASCII doesn't have. */
+const PAST_ASCII = /[\u0080-\u{10FFFF}]/u
 
 /** What lets decoded bytes pass for text, the hardest to fake first. */
 const PROOFS = ['letters', 'words', 'plain'] as const
@@ -888,8 +895,11 @@ type Proof = (typeof PROOFS)[number]
 /** Who has the text: a cipher that writes numbers, another layout, or nobody yet. */
 type Claim = 'numbers' | 'layout' | 'open'
 
-/** Letters in one case, which base64 of text rarely is and ciphertext mostly is. */
-const ONE_CASE = /^(?:[A-Z]+|[a-z]+)$/
+/** Letters in one case or digits alone, which base64 of text rarely is. */
+const ONE_CASE = /^(?:[A-Z]+|[a-z]+|\d+)$/
+
+/** Numbers with something between them. */
+const SPLIT_NUMBERS = /^\d{1,7}(?:[\s,]+\d{1,7})+$/
 
 /**
  * The proof hex and base64 take: words, or fitting letters for a text that may be something else.
@@ -901,14 +911,48 @@ function fussy(telling: boolean): Proof {
   return telling ? 'words' : 'letters'
 }
 
+/**
+ * The code points that UTF-8 bytes spell.
+ *
+ * @param bytes - Bytes to read.
+ * @returns {number[]} One code point per character.
+ * @throws {TypeError} When the bytes aren't UTF-8.
+ */
+function utf8Points(bytes: ArrayLike<number>): number[] {
+  const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
+    Uint8Array.from(bytes),
+  )
+  return Array.from(text, (character) => character.codePointAt(0)!)
+}
+
+/**
+ * Decimal numbers as code points, past a byte only when something splits them.
+ *
+ * @param text - Numbers to read.
+ * @returns {Iterable<number>} One code point per number.
+ * @throws {Error} When the codec refuses.
+ */
+function decimalPoints(text: string): Iterable<number> {
+  const numbers = text
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number)
+  const wider = SPLIT_NUMBERS.test(text.trim()) && numbers.some((value) => value > 255)
+  return wider ? numbers : decimal.decode(text)
+}
+
 /** One encoding of `@agntn/encodings` a text may be written in. */
 interface Carrier {
   readonly name: EncodingGuess['name']
   /** What the signal calls one decoded byte. */
   readonly unit: string
+  /** What the signal calls one decoded character once letters past ASCII show up. */
+  readonly wideUnit: string
   readonly decode: (text: string) => Iterable<number>
   /** The weakest proof it takes for a text, or nothing when a cipher has the text already. */
   readonly bar: (symbols: string, claim: Claim) => Proof | undefined
+  /** The weakest proof it takes for letters past ASCII, or nothing when it won't read them. */
+  readonly wideBar: (text: string) => Proof | undefined
 }
 
 /** In the order they get tried. Digits alone or letters in one case may be no encoding at all. */
@@ -916,40 +960,56 @@ const CARRIERS: readonly Carrier[] = [
   {
     name: 'decimal',
     unit: 'Every number',
-    decode: (text) => decimal.decode(text),
+    wideUnit: 'Every number, read as a code point,',
+    decode: decimalPoints,
     bar: (_symbols, claim) => (claim === 'numbers' ? 'words' : 'plain'),
+    wideBar: (text) => (/^\d+$/.test(text.trim()) ? undefined : 'letters'),
   },
   {
     name: 'hex',
     unit: 'Every pair of hex digits',
-    decode: (text) => hex.decode(text),
+    wideUnit: 'Every character the hex spells in UTF-8',
+    decode: (text) => utf8Points(hex.decode(text)),
     bar: (symbols, claim) => (claim === 'open' ? fussy(/[a-f]/i.test(symbols)) : undefined),
+    wideBar: () => 'words',
   },
   {
     name: 'base64',
     unit: 'Every byte the base64 holds',
-    decode: (text) => base64.decode(text),
+    wideUnit: 'Every character the base64 spells in UTF-8',
+    decode: (text) => utf8Points(base64.decode(text)),
     bar: (symbols, claim) => (claim === 'open' ? fussy(!ONE_CASE.test(symbols)) : undefined),
+    wideBar: () => 'words',
   },
 ]
 
 /**
- * The ASCII text a carrier decodes: printable characters and line breaks.
+ * The text a carrier decodes: printable ASCII, tabs, line breaks and letters of any script.
  *
  * @param carrier - Encoding to read the text in.
  * @param text - Text to read.
- * @returns {string | undefined} The characters, or nothing when the codec or a byte refuses.
+ * @returns {string | undefined} The characters, or nothing when the codec or a character refuses.
  */
-function asciiFrom(carrier: Readonly<Carrier>, text: string): string | undefined {
+function textFrom(carrier: Readonly<Carrier>, text: string): string | undefined {
   let codes: number[]
   try {
     codes = [...carrier.decode(text)]
   } catch {
     return undefined
   }
-  const readable = codes.every((code) => (code >= 32 && code <= 126) || code === 10 || code === 13)
-  if (codes.length < MIN_CODES || !readable) return undefined
-  return codes.map((code) => String.fromCodePoint(code)).join('')
+  if (codes.length < MIN_CODES || codes.some((code) => code > 0x10_ff_ff)) return undefined
+  const decoded = codes.map((code) => String.fromCodePoint(code)).join('')
+  return READABLE.test(decoded) ? decoded : undefined
+}
+
+/**
+ * Text with its accents off, so `Zażółć` counts as the base letters the tables hold.
+ *
+ * @param text - Decoded text.
+ * @returns {string} The text in base letters, Polish ł included, which no normal form splits.
+ */
+function unaccented(text: string): string {
+  return text.normalize('NFD').replaceAll(/\p{M}/gu, '').replaceAll('ł', 'l').replaceAll('Ł', 'L')
 }
 
 /** An encoding found in a text, and whether its letters fit the language. */
@@ -959,18 +1019,20 @@ interface CodesReading {
 }
 
 /**
- * Whether decoded text fits the language: ten letters or more, and few symbols.
+ * Whether decoded text fits the language: ten letters or more, few symbols, a third of them plain.
  *
  * @param text - Decoded text.
  * @param language - Language the text should read in.
  * @returns {boolean} True when the letter counts fit.
  */
 function fitsLanguage(text: string, language: FrequencyLanguage): boolean {
-  const { counts, letters } = letterCounts(text)
-  const gaps = text.split(/[ \r\n]/).length - 1
+  const base = unaccented(text)
+  const { counts, letters } = letterCounts(base)
+  const gaps = base.split(/[ \t\r\n]/).length - 1
   return (
     letters >= MIN_LETTERS &&
-    letters + gaps >= text.length * MOSTLY_WORDS &&
+    letterCounts(text).letters * 3 >= letters &&
+    letters + gaps >= base.length * MOSTLY_WORDS &&
     fitGap(counts, letters, language) > READS_LIKE_LANGUAGE
   )
 }
@@ -984,9 +1046,10 @@ function fitsLanguage(text: string, language: FrequencyLanguage): boolean {
  */
 function proofOf(text: string, language: FrequencyLanguage): Proof | undefined {
   if (fitsLanguage(text, language)) return 'letters'
-  if (WORDS.test(text)) return 'words'
-  const plain = text.replaceAll(/[^\dA-Za-z \r\n]/g, '').length
-  return plain < text.length * MOSTLY_WORDS ? undefined : 'plain'
+  const base = unaccented(text)
+  if (WORDS.test(base)) return 'words'
+  const plain = base.replaceAll(/[^\dA-Za-z \t\r\n]/g, '').length
+  return plain < base.length * MOSTLY_WORDS ? undefined : 'plain'
 }
 
 /**
@@ -1002,6 +1065,56 @@ function reasonFor(proof: Proof, language: FrequencyLanguage): string {
 }
 
 /**
+ * The harder of two proofs to pass.
+ *
+ * @param left - One proof.
+ * @param right - Another.
+ * @returns {Proof} The one earlier in `PROOFS`.
+ */
+function harder(left: Proof, right: Proof): Proof {
+  return PROOFS.indexOf(left) < PROOFS.indexOf(right) ? left : right
+}
+
+/**
+ * How a signal words what the carrier decoded.
+ *
+ * @param carrier - Encoding the text was read in.
+ * @param text - Decoded text.
+ * @returns {string} The first half of the signal.
+ */
+function whatIn(carrier: Readonly<Carrier>, text: string): string {
+  const what = PAST_ASCII.test(text)
+    ? `${carrier.wideUnit} is a letter or a printable ASCII code`
+    : `${carrier.unit} is a printable ASCII code`
+  return `${what}${text.includes('\t') ? ' or a tab' : ''}${/[\r\n]/.test(text) ? ' or a line break' : ''}`
+}
+
+/**
+ * One carrier's reading of a text.
+ *
+ * @param carrier - Encoding to read the text in.
+ * @param reading - The text.
+ * @param claim - Who has the text already.
+ * @returns {CodesReading | undefined} The decoded text, or nothing when it reads as no text.
+ */
+function readIn(
+  carrier: Readonly<Carrier>,
+  reading: Readonly<Reading>,
+  claim: Claim,
+): CodesReading | undefined {
+  const { symbols, language } = reading
+  const bar = carrier.bar(symbols, claim)
+  const text = bar === undefined ? undefined : textFrom(carrier, reading.text)
+  if (bar === undefined || text === undefined) return undefined
+  const wideBar = PAST_ASCII.test(text) ? carrier.wideBar(reading.text) : bar
+  const proof = proofOf(text, language)
+  if (wideBar === undefined || proof === undefined) return undefined
+  if (PROOFS.indexOf(proof) > PROOFS.indexOf(harder(bar, wideBar))) return undefined
+  const signal = `${whatIn(carrier, text)}, ${reasonFor(proof, language)}.`
+  return { encoding: { name: carrier.name, text, signal }, fits: proof === 'letters' }
+}
+
+/**
  * Text behind decimal codes, hex or base64, which the ciphers get mistaken for.
  *
  * @param reading - The text.
@@ -1010,14 +1123,8 @@ function reasonFor(proof: Proof, language: FrequencyLanguage): string {
  */
 function characterCodes(reading: Readonly<Reading>, claim: Claim): CodesReading | undefined {
   for (const carrier of CARRIERS) {
-    const bar = carrier.bar(reading.symbols, claim)
-    const text = bar === undefined ? undefined : asciiFrom(carrier, reading.text)
-    const proof = text === undefined ? undefined : proofOf(text, reading.language)
-    if (bar === undefined || text === undefined || proof === undefined) continue
-    if (PROOFS.indexOf(proof) > PROOFS.indexOf(bar)) continue
-    const breaks = /[\r\n]/.test(text) ? ' or a line break' : ''
-    const signal = `${carrier.unit} is a printable ASCII code${breaks}, ${reasonFor(proof, reading.language)}.`
-    return { encoding: { name: carrier.name, text, signal }, fits: proof === 'letters' }
+    const found = readIn(carrier, reading, claim)
+    if (found !== undefined) return found
   }
   return undefined
 }

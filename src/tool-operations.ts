@@ -596,10 +596,14 @@ function nextStep(
 function encodingLines(found: Readonly<CiphersModule.EncodingGuess>): string[] {
   const what =
     found.name === 'decimal' ? 'decimal character codes that read' : `${found.name} that reads`
+  const next =
+    found.name === 'decimal' && /[\u0080-\u{10FFFF}]/u.test(found.text)
+      ? 'Next: read each number as a Unicode code point. encodings_decode takes decimal as bytes.'
+      : `Next: encodings_decode with encoding ${found.name}, from @agntn/encodings.`
   return [
     `Not a cipher by the look of it: ${what} ${quotedPreview(found.text)}.`,
     `   ${found.signal}`,
-    `   Next: encodings_decode with encoding ${found.name}, from @agntn/encodings.`,
+    `   ${next}`,
   ]
 }
 

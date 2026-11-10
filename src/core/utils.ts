@@ -1,40 +1,103 @@
 import type { CipherBaseOptions } from './types.ts'
+import { alphabetSymbols, spellings } from './alphabet.ts'
+import { InvalidOptionError } from './errors.ts'
 
 /** Shared utilities extracted from cipher implementations. */
 
-/**
- * Build a 5×5 Polybius square from an optional keyword.
- * I/J share a cell. Used by Polybius, Bifid, Playfair.
- * Returns 1-indexed positions for compatibility with all consumers.
- *
- * @param key - Optional keyword placed before the remaining alphabet.
- * @returns {object} The square and its one-indexed letter positions.
- */
-export function buildPolybiusSquare(key?: string): {
+/** The default square: A to Z, J left to I. */
+const SQUARE_LATIN = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'
+
+/** A Polybius square with one-indexed positions. */
+export interface PolybiusSquare {
+  /** The cells, row by row. */
   square: string[][]
+  /** Row and column of each cell. */
   pos: Map<string, [number, number]>
-} {
-  const seen = new Set<string>()
-  const letters: string[] = []
-  const candidates = `${(key ?? '').toUpperCase()}ABCDEFGHIJKLMNOPQRSTUVWXYZ`
-  for (const candidate of candidates) {
-    if (candidate < 'A' || candidate > 'Z') continue
-    const letter = candidate === 'J' ? 'I' : candidate
-    if (seen.has(letter)) continue
-    seen.add(letter)
-    letters.push(letter)
+  /** Cells per row. */
+  side: number
+  /** Row and column of each character the square holds. */
+  locate: (text: string) => [number, number][]
+}
+
+/** How a square reads its keyword and its text. */
+interface SquareReader {
+  readonly symbols: readonly string[]
+  readonly ofKey: (key: string) => string[]
+  readonly ofText: (text: string) => string[]
+}
+
+/**
+ * The A-Z letters of uppercased text, J as I.
+ *
+ * @param upper - Uppercased text.
+ * @returns {string[]} One cell per letter.
+ */
+function latinCells(upper: string): string[] {
+  const cells: string[] = []
+  for (const character of upper) {
+    if (character < 'A' || character > 'Z') continue
+    cells.push(character === 'J' ? 'I' : character)
   }
-  const square: string[][] = []
-  const pos = new Map<string, [number, number]>()
-  for (let r = 0; r < 5; r++) {
-    square[r] = []
-    for (let c = 0; c < 5; c++) {
-      const ch = letters[r * 5 + c]!
-      square[r]![c] = ch
-      pos.set(ch, [r + 1, c + 1])
-    }
+  return cells
+}
+
+/**
+ * Reads text in a custom alphabet, either case.
+ *
+ * @param alphabet - The `alphabet` option.
+ * @returns {SquareReader} The reader.
+ * @throws {InvalidOptionError} On an alphabet that isn't a square of distinct symbols.
+ */
+function symbolReader(alphabet: unknown): SquareReader {
+  const symbols = alphabetSymbols(alphabet, 4)
+  if (!Number.isInteger(Math.sqrt(symbols.length))) {
+    throw new InvalidOptionError(
+      'alphabet',
+      alphabet,
+      `must hold a square number of symbols, like 9, 16, 25 or 36, and holds ${symbols.length}`,
+    )
   }
-  return { square, pos }
+  const known = new Set(symbols)
+  const cells = (text: string) =>
+    Array.from(text).flatMap((character) => {
+      const cell = spellings(character).find((spelling) => known.has(spelling))
+      return cell === undefined ? [] : [cell]
+    })
+  return { symbols, ofKey: cells, ofText: cells }
+}
+
+/**
+ * Build a Polybius square, the keyword first.
+ *
+ * @param key - Optional keyword.
+ * @param alphabet - Symbols of the square, A-Z with J as I by default.
+ * @returns {PolybiusSquare} The square.
+ * @throws {InvalidOptionError} On a bad alphabet.
+ */
+export function buildPolybiusSquare(key = '', alphabet?: unknown): PolybiusSquare {
+  const reader: SquareReader =
+    alphabet === undefined
+      ? {
+          symbols: Array.from(SQUARE_LATIN),
+          ofKey: (word) => latinCells(word.toUpperCase()),
+          ofText: (text) => latinCells(upperCase(text)),
+        }
+      : symbolReader(alphabet)
+  const cells = [...new Set([...reader.ofKey(key), ...reader.symbols])]
+  const side = Math.sqrt(cells.length)
+  const square = Array.from({ length: side }, (_, row) => cells.slice(row * side, (row + 1) * side))
+  const pos = new Map(
+    cells.map((cell, index): [string, [number, number]] => [
+      cell,
+      [Math.floor(index / side) + 1, (index % side) + 1],
+    ]),
+  )
+  const locate = (text: string): [number, number][] =>
+    reader.ofText(text).flatMap((cell) => {
+      const [row, column] = pos.get(cell) ?? []
+      return row === undefined || column === undefined ? [] : [[row, column]]
+    })
+  return { square, pos, side, locate }
 }
 
 /**

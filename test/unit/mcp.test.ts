@@ -627,6 +627,28 @@ describe('Ciphers MCP server', () => {
     expect(onlyText(decoded.content)).toBe('TRIFID#IS#FUN')
   })
 
+  it('carries a square alphabet through the protocol', async () => {
+    const client = await connectTestClient()
+    const six = { cipher: 'bifid', alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', period: 5 }
+    const encoded = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { ...six, text: 'Defend the east wall, 1941' },
+    })
+    expect(encoded.isError).not.toBe(true)
+    expect(onlyText(encoded.content)).toBe('AAP3ZDGDH2DVABYH39741')
+    const decoded = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'polybius', alphabet: six.alphabet, text: '11 42 54 55' },
+    })
+    expect(onlyText(decoded.content)).toBe('AT12')
+    const lopsided = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'polybius', alphabet: 'ABCDE', text: 'BAD' },
+    })
+    expect(lopsided.isError).toBe(true)
+    expect(onlyText(lopsided.content)).toContain('must hold a square number of symbols')
+  })
+
   it('carries the hill alphabet through the protocol', async () => {
     const client = await connectTestClient()
     const nine = { cipher: 'hill', key: '2113', alphabet: '012345678' }

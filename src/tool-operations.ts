@@ -190,7 +190,7 @@ export const OPTION_DESCRIPTIONS = {
   symbol:
     'Trifid only: the 27th cell of its cube after A-Z, one character that is neither a letter A-Z nor whitespace, such as . or # (default +)',
   alphabet:
-    'Hill only: the symbols in order, at least 2 and each once, without whitespace. The first is 0 and the modulus is its length, so ZABCDEFGHIJKLMNOPQRSTUVWXY puts A at 1 and 012345678 works mod 9; the key is read in it too (default A-Z)',
+    'Hill, polybius and bifid only: the symbols in order, each once, without whitespace. Hill takes at least 2: the first is 0 and the modulus is its length, so ZABCDEFGHIJKLMNOPQRSTUVWXY puts A at 1 and 012345678 works mod 9; the key is read in it too (default A-Z). Polybius and bifid take a square number, 4 and up, 81 at most for polybius, filling the square row by row after the key, so ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 is the 6×6 (default A-Z with J as I)',
   separator:
     'A1Z26 only: text between the numbers of one word, 1 to 10 characters without digits; decoding drops it only between two numbers (default -)',
   zero: 'A1Z26 only: letter J to Z that stands for 0. Setting it switches to the single digit form, A to I for 1 to 9, where decoding turns those letters into digits',

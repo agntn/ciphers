@@ -174,7 +174,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **four-square**             | digraph                     |      ✗       | `--key`, `--second-key` (both required), `--omit` (j or q)                 |
 | **two-square**              | digraph                     |      ✗       | `--key`, `--second-key` (both required), `--orientation`, `--omit`         |
 | **hill**                    | polygraphic                 |      ✗       | `--key` (4 or 9 symbols, required), `--alphabet` (default A-Z)             |
-| **polybius**                | fractionation               |      ✗       | `--key` (optional)                                                         |
+| **polybius**                | fractionation               |      ✗       | `--key`, `--alphabet` (both optional)                                      |
 | **nihilist**                | fractionation               |      ✗       | `--key` (required), `--square` (optional)                                  |
 | **morse**                   | fractionation               |      ✗       | -                                                                          |
 | **fractionated-morse**      | fractionation               |      ✗       | `--key` (required, the alphabet over the 26 triples)                       |
@@ -185,7 +185,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **columnar**                | transposition               |      ✗       | `--key` (required)                                                         |
 | **route**                   | transposition               |      ✗       | `--width` (required), `--corner`, `--path`                                 |
 | **adfgvx**                  | fractionation               |      ✗       | `--key`, `--transposition` (both optional)                                 |
-| **bifid**                   | fractionation               |      ✗       | `--key` (optional), `--period` (default 5)                                 |
+| **bifid**                   | fractionation               |      ✗       | `--key`, `--alphabet` (both optional), `--period` (default 5)              |
 | **trifid**                  | fractionation               |      ✗       | `--key` (optional), `--period` (default 5), `--symbol` (default `+`)       |
 | **straddling-checkerboard** | fractionation               |      ✗       | `--key` (optional), `--blanks` (default 26)                                |
 | **tridigital**              | substitution-keyed          |      ✗       | `--key` (required, 10 letters or digits), `--second-key` (required)        |

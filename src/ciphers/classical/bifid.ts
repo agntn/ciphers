@@ -1,71 +1,86 @@
 import type { CipherInfo, CipherResult, CipherBaseOptions } from '../../core/types.ts'
 import { Cipher } from '../../core/cipher.ts'
 import { InvalidOptionError, normalizeError } from '../../core/errors.ts'
-import { buildPolybiusSquare, getOpt, upperCase } from '../../core/utils.ts'
+import { buildPolybiusSquare, getOpt } from '../../core/utils.ts'
 
-// Bifid cipher: combines Polybius fractionation with transposition
-// Encode: get row/col for each letter, concatenate all rows then all cols
-// Group by period, interleave back, map to letters
+/** The options a Bifid run reads. */
+interface Setup {
+  readonly key: unknown
+  /** The key as text, an absent one empty. */
+  readonly word: string
+  readonly period: number
+  readonly alphabet: unknown
+}
 
-function encodeBifid(text: string, key: string, period: number): string {
-  const { pos, square } = buildPolybiusSquare(key)
-  const clean = upperCase(text)
-    .replaceAll(/[^A-Z]/g, '')
-    .replaceAll('J', 'I')
+/**
+ * Rows above columns per block of `period`, read back in pairs.
+ *
+ * @param text - Plaintext.
+ * @param setup - Checked options.
+ * @returns {string} The ciphertext.
+ */
+function encodeBifid(text: string, setup: Readonly<Setup>): string {
+  const { square, locate } = buildPolybiusSquare(setup.word, setup.alphabet)
+  const cells = locate(text)
   let result = ''
-  for (let i = 0; i < clean.length; i += period) {
-    const chunk = clean.slice(i, i + period)
-    const rows: number[] = []
-    const cols: number[] = []
-    for (const c of chunk) {
-      const p = pos.get(c)
-      if (p) {
-        rows.push(p[0])
-        cols.push(p[1])
-      }
-    }
-    const combined = [...rows, ...cols]
+  for (let i = 0; i < cells.length; i += setup.period) {
+    const chunk = cells.slice(i, i + setup.period)
+    const combined = [...chunk.map(([row]) => row), ...chunk.map(([, column]) => column)]
     for (let j = 0; j + 1 < combined.length; j += 2) {
-      const r = combined[j]! - 1
-      const c = combined[j + 1]! - 1
-      result += square[r]![c]
+      result += square[combined[j]! - 1]![combined[j + 1]! - 1]
     }
   }
   return result
 }
 
-function decodeBifid(text: string, key: string, period: number): string {
-  const { pos, square } = buildPolybiusSquare(key)
-  const clean = upperCase(text)
-    .replaceAll(/[^A-Z]/g, '')
-    .replaceAll('J', 'I')
+/**
+ * Each block's coordinates, rows first, then columns.
+ *
+ * @param text - Ciphertext.
+ * @param setup - Checked options.
+ * @returns {string} The plaintext.
+ */
+function decodeBifid(text: string, setup: Readonly<Setup>): string {
+  const { square, locate } = buildPolybiusSquare(setup.word, setup.alphabet)
+  const cells = locate(text)
   let result = ''
-  for (let i = 0; i < clean.length; i += period) {
-    const chunk = clean.slice(i, i + period)
-    const coords: number[] = []
-    for (const c of chunk) {
-      const p = pos.get(c)
-      if (p) {
-        coords.push(p[0], p[1])
-      }
-    }
+  for (let i = 0; i < cells.length; i += setup.period) {
+    const coords = cells.slice(i, i + setup.period).flat()
     const half = coords.length / 2
     for (let j = 0; j < half; j++) {
-      const r = coords[j]! - 1
-      const c = coords[half + j]! - 1
-      result += square[r]![c]
+      result += square[coords[j]! - 1]![coords[half + j]! - 1]
     }
   }
   return result
 }
 
-function validate(opts: Readonly<CipherBaseOptions>): { key: string; period: number } {
-  const key = getOpt<string>(opts, 'key', '')
+/**
+ * The options checked.
+ *
+ * @param opts - Cipher options.
+ * @returns {Setup} The options to run on.
+ * @throws {InvalidOptionError} On a bad key or period.
+ */
+function validate(opts: Readonly<CipherBaseOptions>): Setup {
+  const { key = '', alphabet } = opts
+  const word = key ?? ''
+  if (typeof word !== 'string') throw new InvalidOptionError('key', key, 'must be a string')
   const period = getOpt<number>(opts, 'period', 5)
   if (!Number.isInteger(period) || period < 1) {
     throw new InvalidOptionError('period', period, 'must be a positive integer')
   }
-  return { key, period }
+  return { key, word, period, alphabet }
+}
+
+/**
+ * The options a result echoes, the alphabet only when set.
+ *
+ * @param setup - Checked options.
+ * @returns {Record<string, unknown>} The echo.
+ */
+function echo(setup: Readonly<Setup>): Record<string, unknown> {
+  const { key, period, alphabet } = setup
+  return alphabet === undefined ? { key, period } : { key, period, alphabet }
 }
 
 export class Bifid extends Cipher {
@@ -77,18 +92,26 @@ export class Bifid extends Cipher {
     return {
       name: 'bifid',
       label: 'Bifid Cipher',
-      description: 'Fractionation + transposition — Polybius row/col split, interleaved by period',
+      description:
+        'Fractionation and transposition: Polybius rows written above columns per block of period, read back in pairs',
       category: 'classical',
       family: 'fractionation',
       selfInverse: false,
-      worksOn: 'A-Z, J as I, the rest dropped',
+      worksOn: 'A-Z with J as I, or the symbols of alphabet, the rest dropped',
       options: [
         {
           name: 'key',
           type: 'string',
           required: false,
           default: '',
-          description: 'Optional keyword for Polybius square',
+          description: 'Optional keyword that fills the square first',
+        },
+        {
+          name: 'alphabet',
+          type: 'string',
+          required: false,
+          description:
+            'Distinct symbols that fill a square, 4 for 2×2, 36 for 6×6 and so on, A-Z with J as I by default',
         },
         {
           name: 'period',
@@ -98,18 +121,18 @@ export class Bifid extends Cipher {
           description: 'Transposition period length',
         },
       ],
-      keyspace: '25! × period variants',
+      keyspace: '25! × period variants, 36! on a 6×6',
     }
   }
 
   encode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      const { key, period } = validate(options ?? {})
+      const setup = validate(options ?? {})
       return {
-        text: encodeBifid(text, key, period),
+        text: encodeBifid(text, setup),
         cipher: 'bifid',
         operation: 'encode',
-        options: { key, period },
+        options: echo(setup),
       }
     } catch (e) {
       throw normalizeError(e, 'bifid')
@@ -118,12 +141,12 @@ export class Bifid extends Cipher {
 
   decode(text: string, options?: Readonly<CipherBaseOptions>): CipherResult {
     try {
-      const { key, period } = validate(options ?? {})
+      const setup = validate(options ?? {})
       return {
-        text: decodeBifid(text, key, period),
+        text: decodeBifid(text, setup),
         cipher: 'bifid',
         operation: 'decode',
-        options: { key, period },
+        options: echo(setup),
       }
     } catch (e) {
       throw normalizeError(e, 'bifid')

@@ -133,6 +133,21 @@ describe('buildPolybiusSquare', () => {
     }
   })
 
+  it('builds any square from an alphabet, keyword first', () => {
+    const { square, pos, side, locate } = buildPolybiusSquare('fed', 'ABCDEFGHI')
+    expect(side).toBe(3)
+    expect(square).toEqual([
+      ['F', 'E', 'D'],
+      ['A', 'B', 'C'],
+      ['G', 'H', 'I'],
+    ])
+    expect(pos.get('I')).toEqual([3, 3])
+    expect(locate('f, J, b')).toEqual([
+      [1, 1],
+      [2, 2],
+    ])
+  })
+
   it('uses a keyword to reorder the grid', () => {
     const a = buildPolybiusSquare('KEYWORD')
     const b = buildPolybiusSquare()

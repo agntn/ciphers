@@ -5,6 +5,7 @@ Cloudflare Workers Builds deploys this site to ciphers.agntn.dev. Its install ru
 Resources on the Cloudflare account, bound by id in `wrangler.jsonc`:
 
 - D1 `agntn-ciphers` as `DB` for Nuxt Content
+- D1 `agntn-ciphers-preview` as `DB` under `previews`. Empty on purpose
 - No KV, R2 or secrets: the library runs from the bundle, in the browser and in the worker
 
 `/mcp` is public, and every tool argument reaches the worker, passphrases included, because an agent sends them there on purpose. Tool arguments stay out of every log line, observability included. `content/1.guide/05.agents.md#remote-mcp` tells users the arguments travel.

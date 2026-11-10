@@ -167,6 +167,15 @@ describe('inspectCharacters', () => {
     expect(inspectCharacters('\u6F22\u0430').words).toHaveLength(1)
   })
 
+  it('flags Han, kana and Hangul in one word whatever their order', () => {
+    const han = String.fromCodePoint(0x6f22)
+    const kana = String.fromCodePoint(0x3042)
+    const hangul = String.fromCodePoint(0xd55c)
+    for (const word of [han + kana + hangul, kana + han + hangul, hangul + kana + han]) {
+      expect(inspectCharacters(word).words.map((mixed) => mixed.word)).toEqual([word])
+    }
+  })
+
   it('drops the punctuation around a word that mixes scripts', () => {
     expect(inspectCharacters('See "\u0440aypal", then.').words).toEqual([
       { word: '\u0440aypal', position: 6, scripts: ['Cyrillic', 'Latin'], skeleton: 'paypal' },

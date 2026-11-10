@@ -255,8 +255,8 @@ function mixedScriptWords(
       if (script !== 'Common' && script !== 'Inherited') scripts.add(script)
     }
     const names = Array.from(scripts)
-    const first = names[0]
-    if (first !== undefined && names.some((name) => !sameWriting(first, name))) {
+    const oneSystem = WRITING_SYSTEMS.some((system) => names.every((name) => system.includes(name)))
+    if (names.length > 1 && !oneSystem) {
       words.push({
         word,
         position: positions[match.index] ?? 0,

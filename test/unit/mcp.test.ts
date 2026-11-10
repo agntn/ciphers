@@ -1904,6 +1904,25 @@ Co2B
       )
     }
 
+    const full = await call('zero_width_hide', {
+      text: 'x'.repeat(10_000),
+      cover: 'c'.repeat(10_000),
+      symbols: 'ab',
+      digits: 9,
+    })
+    expect(onlyText(full.content)).toHaveLength(100_000)
+    expect(
+      onlyText(
+        (
+          await call('zero_width_read', {
+            text: onlyText(full.content),
+            symbols: 'ab',
+            digits: 9,
+          })
+        ).content,
+      ),
+    ).toBe('x'.repeat(10_000))
+
     const swapped = { symbols: 'U+200C U+200B', digits: 8 }
     const own = onlyText((await call('zero_width_hide', { text: 'Hi', ...swapped })).content)
     expect(Array.from(own, (character) => character.codePointAt(0)?.toString(16))).toEqual(
@@ -1983,7 +2002,12 @@ Co2B
       [
         'zero_width_hide',
         { text: 'x'.repeat(10_000), symbols: 'ab', digits: 32 },
-        'Invalid option text=320000 hidden characters: are more than the 100000 one call returns; hide less, or use fewer digits',
+        'Invalid option text=320000 characters with the cover: are more than the 100000 ciphers_zero_width_read takes; hide less, or use fewer digits',
+      ],
+      [
+        'zero_width_hide',
+        { text: String.fromCodePoint(0x4e16).repeat(4_166), cover: 'c'.repeat(1_000) },
+        'Invalid option text=100984 characters with the cover: are more than the 100000 ciphers_zero_width_read takes; hide less, or use fewer digits',
       ],
     ] as const) {
       const refused = await call(name, args)

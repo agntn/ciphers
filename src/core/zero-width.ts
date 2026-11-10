@@ -264,6 +264,23 @@ function numbersOf(message: string, unit: ZeroWidthUnit): number[] {
 }
 
 /**
+ * A number in a base of any size; `Number.prototype.toString` stops at 36.
+ *
+ * @param number - A whole number, zero or more.
+ * @param base - Two or more.
+ * @returns {number[]} Its digits, the most significant first, one `0` for zero.
+ */
+function digitsOf(number: number, base: number): number[] {
+  const digits: number[] = []
+  let rest = number
+  do {
+    digits.unshift(rest % base)
+    rest = Math.floor(rest / base)
+  } while (rest > 0)
+  return digits
+}
+
+/**
  * Read the message a text hides in invisible characters. Only the scheme's symbols and separator
  * count; the visible text around them is skipped.
  *
@@ -306,7 +323,7 @@ export function hideZeroWidth(message: string, options: Readonly<HideZeroWidthOp
   const width = scheme.digits ?? 1
   const hidden = numbersOf(message, scheme.unit)
     .map((number) => {
-      const digits = number.toString(symbols.length).padStart(width, '0')
+      const digits = digitsOf(number, symbols.length)
       if (separator === undefined && digits.length > width) {
         throw new InvalidOptionError(
           'message',
@@ -314,7 +331,8 @@ export function hideZeroWidth(message: string, options: Readonly<HideZeroWidthOp
           `does not fit ${width} digits of base ${symbols.length}`,
         )
       }
-      return Array.from(digits, (digit) => symbols[Number.parseInt(digit, symbols.length)]).join('')
+      const padding = (symbols[0] ?? '').repeat(Math.max(0, width - digits.length))
+      return padding + digits.map((digit) => symbols[digit]).join('')
     })
     .join(separator ?? '')
   const [first] = new Intl.Segmenter().segment(cover)

@@ -203,6 +203,15 @@ describe('hideZeroWidth', () => {
     ).toBe('\u{1F600}')
   })
 
+  it('hides in an alphabet of more than 36 symbols', () => {
+    const symbols = Array.from({ length: 37 }, (_, index) => String.fromCodePoint(0xfe00 + index))
+    const scheme: ZeroWidthScheme = { symbols, digits: 2, unit: 'byte' }
+    const hidden = hideZeroWidth('A', { scheme })
+
+    expect(Array.from(hidden, (symbol) => symbols.indexOf(symbol))).toEqual([1, 28])
+    expect(readZeroWidth(hideZeroWidth(MESSAGE, { scheme }), { scheme })).toBe(MESSAGE)
+  })
+
   it('refuses a character the scheme cannot hold', () => {
     expect(() => hideZeroWidth('\u{1F600}', { scheme: 'zwsp-steg' })).toThrow(
       'Invalid option message=U+1F600: does not fit 7 digits of base 5',

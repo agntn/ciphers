@@ -1110,8 +1110,6 @@ export const CHARACTER_POSITIONS = 8
 export const MIXED_WORD_LINES = 20
 /** Listed characters the inspection spells out in order. */
 export const SEQUENCE_CHARACTERS = 64
-/** Most characters `ciphers_zero_width_hide` adds to a cover. */
-export const MAX_ZERO_WIDTH_ADDED = 100_000
 
 export type CharactersInspectToolParams = {
   readonly text: string
@@ -1504,11 +1502,11 @@ export function formatZeroWidthHide(
   const cover = params.cover ?? ''
   const hidden = library.hideZeroWidth(params.text, { scheme, cover })
   const added = Array.from(hidden).length - Array.from(cover).length
-  if (added > MAX_ZERO_WIDTH_ADDED) {
+  if (hidden.length > MAX_FREQUENCY_TEXT_LENGTH) {
     throw new library.InvalidOptionError(
       'text',
-      `${added} hidden characters`,
-      `are more than the ${MAX_ZERO_WIDTH_ADDED} one call returns; hide less, or use fewer digits`,
+      `${hidden.length} characters with the cover`,
+      `are more than the ${MAX_FREQUENCY_TEXT_LENGTH} ciphers_zero_width_read takes; hide less, or use fewer digits`,
     )
   }
   return { content: [{ type: 'text', text: hidden }], details: { output: hidden, added } }

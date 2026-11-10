@@ -1640,6 +1640,18 @@ Co2B
       '   Every byte the base64 holds is a printable ASCII code or a line break, and together they look like words.',
       '   Next: encodings_decode with encoding base64, from @agntn/encodings.',
     ])
+    const polish = '90 97 380 243 322 263 32 103 281 347 108 261 32 106 97 378 324'
+    expect((await guess({ text: polish, lang: 'pl' })).split('\n').slice(2, 5)).toEqual([
+      'Not a cipher by the look of it: decimal character codes that read "Za\u017C\u00F3\u0142\u0107 g\u0119\u015Bl\u0105 ja\u017A\u0144".',
+      '   Every number, read as a code point, is a letter or a printable ASCII code, and the letters they spell fit pl.',
+      '   Next: read each number as a Unicode code point. encodings_decode takes decimal as bytes.',
+    ])
+    const utf8 = '5a61c5bcc3b3c582c4872067c499c59b6cc485206a61c5bac584'
+    expect((await guess({ text: utf8, lang: 'pl' })).split('\n').slice(2, 5)).toEqual([
+      'Not a cipher by the look of it: hex that reads "Za\u017C\u00F3\u0142\u0107 g\u0119\u015Bl\u0105 ja\u017A\u0144".',
+      '   Every character the hex spells in UTF-8 is a letter or a printable ASCII code, and the letters they spell fit pl.',
+      '   Next: encodings_decode with encoding hex, from @agntn/encodings.',
+    ])
     expect(await guess({ text: 'hi', lang: 'pl' })).toBe(
       'No family fits (2 characters, 2 A-Z letters): no layout this package knows, and too few letters for statistics.',
     )

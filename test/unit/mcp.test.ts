@@ -1628,6 +1628,18 @@ Co2B
       '',
       'Candidates, not a verdict: only a decode that reads settles it.',
     ])
+    const greeting = (await guess({ text: '48656c6c6f20776f726c6421' })).split('\n')
+    expect(greeting.slice(2, 5)).toEqual([
+      'Not a cipher by the look of it: hex that reads "Hello world!".',
+      '   Every pair of hex digits is a printable ASCII code, and the letters they spell fit en.',
+      '   Next: encodings_decode with encoding hex, from @agntn/encodings.',
+    ])
+    expect(greeting[6]).toMatch(/^1\. .+ \(low\): aes-ctr,/)
+    expect((await guess({ text: 'aGVsbG8K' })).split('\n').slice(2, 5)).toEqual([
+      'Not a cipher by the look of it: base64 that reads "hello\\n".',
+      '   Every byte the base64 holds is a printable ASCII code or a line break, and together they look like words.',
+      '   Next: encodings_decode with encoding base64, from @agntn/encodings.',
+    ])
     expect(await guess({ text: 'hi', lang: 'pl' })).toBe(
       'No family fits (2 characters, 2 A-Z letters): no layout this package knows, and too few letters for statistics.',
     )

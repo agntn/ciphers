@@ -312,6 +312,92 @@ describe('guessFamily', () => {
     })
   })
 
+  it('reads decimal codes across a line break', () => {
+    expect(guessFamily(codesOf('Hello\nworld'))).toMatchObject({
+      encoding: {
+        name: 'decimal',
+        text: 'Hello\nworld',
+        signal:
+          'Every number is a printable ASCII code or a line break, and the letters they spell fit en.',
+      },
+      candidates: [],
+    })
+    expect(guessFamily('72 101 108 108 111 10').encoding?.text).toBe('Hello\n')
+    expect(guessFamily(codesOf('Hello\r\nworld')).encoding?.text).toBe('Hello\r\nworld')
+    expect(guessFamily(codesOf('Hello\tworld'))).not.toHaveProperty('encoding')
+  })
+
+  it('reads hex and base64 of text as text and sends the ciphers to the back', () => {
+    const hex = guessFamily('48656c6c6f20776f726c6421')
+    expect(hex.encoding).toEqual({
+      name: 'hex',
+      text: 'Hello world!',
+      signal:
+        'Every pair of hex digits is a printable ASCII code, and the letters they spell fit en.',
+    })
+    expect(ranking(hex)).toEqual(['aes-ctr:low'])
+    const spaced = guessFamily('48 65 6c 6c 6f 20 77 6f 72 6c 64')
+    expect(spaced.encoding?.text).toBe('Hello world')
+    expect(ranking(spaced)).toEqual(['aes-ctr:low'])
+    expect(guessFamily('0x48656C6C6F').encoding?.text).toBe('Hello')
+
+    const base64 = guessFamily('SGVsbG8gd29ybGQh')
+    expect(base64.encoding).toEqual({
+      name: 'base64',
+      text: 'Hello world!',
+      signal:
+        'Every byte the base64 holds is a printable ASCII code, and the letters they spell fit en.',
+    })
+    expect(base64.candidates.every(({ confidence }) => confidence === 'low')).toBe(true)
+    expect(guessFamily('aGVsbG8K').encoding).toEqual({
+      name: 'base64',
+      text: 'hello\n',
+      signal:
+        'Every byte the base64 holds is a printable ASCII code or a line break, and together they look like words.',
+    })
+    expect(guessFamily('SGVsbG8').encoding?.text).toBe('Hello')
+
+    const block = Buffer.from('It was the best of times, it was').toString('hex')
+    expect(block).toHaveLength(64)
+    expect(ranking(guessFamily(block))).toEqual(['aes:low', 'des:low', 'aes-ctr:low'])
+    const word = guessFamily('48656c6c6f')
+    expect(word.encoding?.signal).toBe(
+      'Every pair of hex digits is a printable ASCII code, and together they look like words.',
+    )
+    expect(ranking(word)).toEqual(['aes-ctr:high'])
+    const polish = Buffer.from('Litwo ojczyzno moja ty jestes jak zdrowie').toString('base64')
+    expect(guessFamily(polish, 'pl').encoding?.signal).toBe(
+      'Every byte the base64 holds is a printable ASCII code, and the letters they spell fit pl.',
+    )
+  })
+
+  it('keeps ciphertext a cipher when its bytes only happen to be printable', () => {
+    for (const text of [
+      '69c4e0d86a7b0430d8cdb78070b4c55a',
+      '504b03041400090008004b6f5a5c',
+      'U2FsdGVkX1+Ab3x9Kq0mN2pL5vT8wYzR',
+      Buffer.from('{"id":42,"ok":[1,2]}').toString('hex'),
+      Buffer.from('{"id":42,"ok":[1,2]}').toString('base64'),
+      Buffer.from('caf\u00E9 au lait').toString('hex'),
+      '486921',
+    ]) {
+      expect(guessFamily(text)).not.toHaveProperty('encoding')
+    }
+    expect(guessFamily('54686973')).not.toHaveProperty('encoding')
+    expect(Buffer.from('54686973206973207468652062657374', 'hex').toString()).toBe(
+      'This is the best',
+    )
+    expect(guessFamily('54686973206973207468652062657374').encoding?.text).toBe('This is the best')
+
+    const trust = create('polybius').encode('TRY TRUST TRY TRUST').text
+    expect(Buffer.from(trust.replaceAll(' ', ''), 'hex').toString()).toBe('DBTDBECDDBTDBECD')
+    expect(guessFamily(trust)).not.toHaveProperty('encoding')
+    expect(ranking(guessFamily(trust))).toEqual(['polybius:high'])
+    expect(Buffer.from('QUJDREVG', 'base64').toString()).toBe('ABCDEF')
+    expect(guessFamily('QUJDREVG')).not.toHaveProperty('encoding')
+    expect(guessFamily('VGVDXFVGVDVVVFVGVGVDXFVGVDVVVFVG')).not.toHaveProperty('encoding')
+  })
+
   it('keeps a square cipher a cipher when its numbers only happen to be printable', () => {
     const sums = create('nihilist').encode('HELLO WORLD', { key: 'TSAR' }).text
     expect(sums).toBe('67 58 42 73 78 95 45 84 75 57')
@@ -327,7 +413,6 @@ describe('guessFamily', () => {
       '72 105',
       '72 69 76 31',
       '72 69 76 300',
-      '72 101 108 108 111 10',
       '72 101 108 108 111 200',
       '33 33 63 63',
       '72 69 76 76 x',

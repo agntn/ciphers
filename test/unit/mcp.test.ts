@@ -1603,6 +1603,31 @@ Co2B
     expect(await guess({ text: '23 42 45 11 41 42 22 15 12 15 41 42 33 16 42' })).toContain(
       'Next: ciphers_decode with cipher polybius, which needs alphabet.',
     )
+    expect((await guess({ text: '72 69 76 76 79 32 87 79 82 76 68' })).split('\n')).toEqual([
+      'Family guess (22 characters, 0 A-Z letters, lang=en), most likely first:',
+      '',
+      'Not a cipher by the look of it: decimal character codes that read "HELLO WORLD".',
+      '   Every number is a printable ASCII code, and the letters they spell fit en.',
+      '   Next: encodings_decode with encoding decimal, from @agntn/encodings.',
+      '',
+      '1. fractionation (low): nihilist',
+      '   11 numbers from 22 to 110 and none ending in 1, as two square cells added together give.',
+      '   Next: ciphers_decode with cipher nihilist, which needs key.',
+      '2. fractionation (low): polybius',
+      '   Digit pairs with a 9, so a 9×9 square. Polybius reads it with the alphabet that filled it. These numbers fit nihilist too.',
+      '   Next: ciphers_decode with cipher polybius, which needs alphabet.',
+      '',
+      'Candidates, not a verdict: only a decode that reads settles it.',
+    ])
+    expect((await guess({ text: '072069076076079' })).split('\n')).toEqual([
+      'Family guess (15 characters, 0 A-Z letters, lang=en), most likely first:',
+      '',
+      'Not a cipher by the look of it: decimal character codes that read "HELLO".',
+      '   Every number is a printable ASCII code, and together they look like words.',
+      '   Next: encodings_decode with encoding decimal, from @agntn/encodings.',
+      '',
+      'Candidates, not a verdict: only a decode that reads settles it.',
+    ])
     expect(await guess({ text: 'hi', lang: 'pl' })).toBe(
       'No family fits (2 characters, 2 A-Z letters): no layout this package knows, and too few letters for statistics.',
     )

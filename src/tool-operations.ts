@@ -588,6 +588,20 @@ function nextStep(
 }
 
 /**
+ * The encoding a guess found, ahead of any cipher.
+ *
+ * @param found - `encoding` of a `guessFamily` result.
+ * @returns {string[]} What it reads, why, and the call that decodes it.
+ */
+function encodingLines(found: Readonly<CiphersModule.EncodingGuess>): string[] {
+  return [
+    `Not a cipher by the look of it: ${found.name} character codes that read ${quotedPreview(found.text)}.`,
+    `   ${found.signal}`,
+    `   Next: encodings_decode with encoding ${found.name}, from @agntn/encodings.`,
+  ]
+}
+
+/**
  * Rank the cipher families a text may come from, for a model.
  *
  * @param library - The loaded cipher library.
@@ -602,7 +616,8 @@ export function formatFamilyGuess(
 ): CipherToolResult {
   const guess = library.guessFamily(text, language)
   const counted = `${guess.length} characters, ${guess.letters} A-Z letters`
-  if (guess.candidates.length === 0) {
+  const encoding = guess.encoding === undefined ? [] : encodingLines(guess.encoding)
+  if (guess.candidates.length === 0 && encoding.length === 0) {
     return {
       content: [
         {
@@ -617,7 +632,12 @@ export function formatFamilyGuess(
     guess.ic === undefined
       ? ''
       : `, IoC ${guess.ic.toFixed(4)} (${guess.language} plaintext ~${guess.referenceIc.toFixed(3)}, uniform random ~0.038)`
-  const lines = [`Family guess (${counted}, lang=${guess.language}${ic}), most likely first:`, '']
+  const lines = [
+    `Family guess (${counted}, lang=${guess.language}${ic}), most likely first:`,
+    '',
+    ...encoding,
+    ...(encoding.length > 0 && guess.candidates.length > 0 ? [''] : []),
+  ]
   guess.candidates.forEach((found, index) => {
     lines.push(
       `${index + 1}. ${found.families.join(', ')} (${found.confidence}): ${found.ciphers.join(', ')}`,

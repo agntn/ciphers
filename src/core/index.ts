@@ -133,6 +133,7 @@ export {
 export { scoreQuadgrams, type QuadgramScore } from './quadgrams.ts'
 export {
   guessFamily,
+  type EncodingGuess,
   type FamilyCandidate,
   type FamilyGuess,
   type GuessConfidence,

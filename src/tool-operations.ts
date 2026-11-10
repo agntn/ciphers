@@ -94,7 +94,7 @@ export type CipherToolParams = {
   separator?: string
   zero?: string
   book?: string
-  address?: 'word' | 'line-word' | 'page-line-word'
+  address?: (typeof BOOK_ADDRESSES)[number]
   pick?: 'word' | 'letter'
   start?: 0 | 1
   tagLength?: number
@@ -143,6 +143,18 @@ export const MAX_TRANSFORM_TEXT_LENGTH = 10_000
 export const MAX_BRUTE_TEXT_LENGTH = 2_000
 export const MAX_FREQUENCY_TEXT_LENGTH = 100_000
 export const MAX_KEY_LENGTH = 1_000
+/** Address forms of the book cipher, kept here so the schema loads without the library. */
+export const BOOK_ADDRESSES = [
+  'word',
+  'line-word',
+  'page-line-word',
+  'letter',
+  'line-letter',
+  'page-line-letter',
+  'line-word-letter',
+  'page-line-word-letter',
+] as const
+
 /** Longest book the book cipher takes from a tool call, a long novel. */
 export const MAX_BOOK_LENGTH = 1_000_000
 /** Longest key length `ciphers_period_estimate` tries. */
@@ -221,9 +233,9 @@ export const OPTION_DESCRIPTIONS = {
   zero: 'A1Z26 only: letter J to Z that stands for 0. Setting it switches to the single digit form, A to I for 1 to 9, where decoding turns those letters into digits',
   book: 'Book cipher only, and required there: the text to count in, whole. A form feed starts a new page, as pdftotext writes them, and a line without a word is not counted',
   address:
-    'Book cipher only: what one address counts, word for its place in the book (default), line-word for its line and place in the line, page-line-word for page, line on the page and place in the line',
-  pick: 'Book cipher only: word for the whole word (default), letter for its first letter',
-  start: 'Book cipher only: number of the first word, line and page, 1 (default) or 0',
+    'Book cipher only: what the numbers of one address count, in order. word is the place in the book (default), line-word the line and the place in it, page-line-word adds the page. The letter forms end at one letter instead: counted through the book, in its line, or in its word. Only letters and digits count',
+  pick: 'Book cipher only: word for the whole word (default), letter for its first letter. A letter address gives its letter and takes no pick word',
+  start: 'Book cipher only: number of the first letter, word, line and page, 1 (default) or 0',
   width:
     'Route only, and required there: cells per row of the grid the text fills row by row (at least 2)',
   corner: 'Route only: corner the path starts from (default top-left)',

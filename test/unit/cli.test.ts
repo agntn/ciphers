@@ -375,6 +375,15 @@ describe('CLI dashed text and stdin', () => {
     expect(result.stdout).toBe('The quick brown\n')
   })
 
+  it('takes a letter address for the book cipher', () => {
+    const result = runCli(
+      ['decode', 'book', '1-2-3 2-1-1', '--book', '-', '--address', 'line-word-letter'],
+      { input: 'The quick brown fox\njumps over\n' },
+    )
+
+    expect(result.stdout).toBe('IJ\n')
+  })
+
   it('opens armor that starts with dashes as an argument or from stdin', () => {
     const armor = runCli(['encode', 'openpgp', 'hello', '--key', 'pw', '--count', '1024']).stdout
 

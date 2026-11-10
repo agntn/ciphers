@@ -262,9 +262,17 @@ export interface A1z26Options extends CipherBaseOptions {
 export interface BookOptions extends CipherBaseOptions {
   /** The text to count in. A form feed starts a page, a line without a word does not count. */
   book: string
-  /** One address: `word`, `line-word` or `page-line-word`. Default: `word`. */
-  address?: 'word' | 'line-word' | 'page-line-word'
-  /** `word` for the whole word, `letter` for its first letter. Default: `word`. */
+  /** What one address counts, down to a word or to a letter inside one. Default: `word`. */
+  address?:
+    | 'word'
+    | 'line-word'
+    | 'page-line-word'
+    | 'letter'
+    | 'line-letter'
+    | 'page-line-letter'
+    | 'line-word-letter'
+    | 'page-line-word-letter'
+  /** `word` for the whole word, `letter` for its first letter. A letter address needs neither. */
   pick?: 'word' | 'letter'
   /** Number of the first word, line and page. Default: 1. */
   start?: 0 | 1

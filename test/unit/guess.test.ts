@@ -216,7 +216,7 @@ describe('guessFamily', () => {
     expect(ranking(guessFamily('37 106 61'))).toEqual([])
     expect(ranking(guessFamily('37 111 62'))).toEqual([])
     const low = create('nihilist').encode('AAAAAAAAAA', { key: 'E' }).text
-    expect(ranking(guessFamily(low))).toEqual(['a1z26:high', 'nihilist:medium'])
+    expect(ranking(guessFamily(low))).toEqual(['a1z26:high', 'nihilist:medium', 'polybius:low'])
   })
 
   it('reads punctuation in place of letters as ROT47', () => {
@@ -235,7 +235,7 @@ describe('guessFamily', () => {
     expect(ranking(guessFamily(create('a1z26').encode(word).text))).toEqual(['a1z26:high'])
     const [dotted] = guessFamily('1.12.16.8.1.2.5.20').candidates
     expect(dotted?.signal).toContain('split by "."')
-    expect(ranking(guessFamily('12 34 56 78')).join()).not.toContain('a1z26')
+    expect(ranking(guessFamily('12 34 56 78'))).toEqual(['polybius:low'])
     expect(ranking(guessFamily(create('adfgvx').encode(word).text))).toEqual(['adfgvx:high'])
     expect(
       ranking(guessFamily(create('adfgvx').encode(word, { transposition: 'CARGO' }).text)),
@@ -244,6 +244,35 @@ describe('guessFamily', () => {
     const [other] = guessFamily('XYYXX YXXYX XXYYY').candidates
     expect(other).toMatchObject({ ciphers: ['bacon'], confidence: 'medium' })
     expect(other?.signal).toContain('bacon reads only A and B')
+  })
+
+  it('reads pairs with a digit above 5 as a wider Polybius square that wants its alphabet', () => {
+    const square = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    const wide = '23 42 45 11 41 42 22 15 12 15 41 42 33 16 42'
+    expect(create('polybius').decode(wide, { alphabet: square }).text).toBe('ITWASTHEBESTOFT')
+    const guess = guessFamily(wide)
+    expect(ranking(guess)).toEqual(['polybius:medium'])
+    expect(guess.candidates[0]).toMatchObject({ families: ['fractionation'], needs: ['alphabet'] })
+    expect(guess.candidates[0]?.signal).toContain('6×6 or wider')
+    expect(guessFamily('19 91 55').candidates[0]?.signal).toContain('a 9×9 square')
+    expect(ranking(guessFamily('26 14'))).toEqual(['a1z26:medium', 'polybius:low'])
+  })
+
+  it('keeps the 5×5 square, tap code and a zero out of the wider square', () => {
+    const [classic] = guessFamily('23 15 31 31 34').candidates
+    expect(classic).toMatchObject({ ciphers: ['polybius'], confidence: 'high' })
+    expect(classic).not.toHaveProperty('needs')
+    expect(ranking(guessFamily('2 3 1 6 3 1')).join()).not.toMatch(/tap-code|polybius/)
+    expect(ranking(guessFamily('23 42 45 10 41 42 16')).join()).not.toContain('polybius')
+    expect(ranking(guessFamily('236 24 51')).join()).not.toContain('polybius')
+  })
+
+  it('lets A1Z26 and Nihilist go first where their numbers fit, and never calls the wider square sure', () => {
+    expect(ranking(guessFamily('16 26 19 18 25 17'))).toEqual(['a1z26:high', 'polybius:low'])
+    expect(ranking(guessFamily('37 46 62 28 39 55'))).toEqual(['nihilist:low', 'polybius:low'])
+    const codes = '72 69 76 76 79 71 79 79 68 66 89 69'
+    expect(String.fromCodePoint(...codes.split(' ').map(Number))).toBe('HELLOGOODBYE')
+    expect(ranking(guessFamily(codes))).toEqual(['polybius:medium'])
   })
 
   it('sorts hex by block length', () => {

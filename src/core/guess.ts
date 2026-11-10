@@ -21,6 +21,8 @@ export interface FamilyCandidate {
   readonly signal: string
   /** Options that decode the text with the first of `ciphers`, when the guess found them. */
   readonly options?: Readonly<Record<string, number>>
+  /** Options the first of `ciphers` needs and the guess can't find. */
+  readonly needs?: readonly string[]
 }
 
 /** Ranked family candidates for one text. */
@@ -307,6 +309,37 @@ function gridDigits(reading: Readonly<Reading>): FamilyCandidate[] {
 }
 
 /**
+ * Polybius wider than 5×5: digit pairs with a 6 or above.
+ *
+ * @param reading - The text.
+ * @returns {FamilyCandidate[]} A1Z26 or Nihilist where the numbers fit, then Polybius, or nothing.
+ */
+function widerSquare(reading: Readonly<Reading>): FamilyCandidate[] {
+  const { text, symbols } = reading
+  if (!/^(?:[1-9]{2}\s+)*[1-9]{2}$/.test(text.trim())) return []
+  const side = [9, 8, 7, 6].find((digit) => symbols.includes(String(digit)))
+  if (side === undefined) return []
+  const letters = alphabetNumbers(reading)
+  const others = letters.length > 0 ? letters : nihilist(reading)
+  const size = side === 9 ? 'a 9×9 square' : `a square ${side}×${side} or wider`
+  const rival =
+    others.length > 0
+      ? `These numbers fit ${others[0]!.ciphers[0]} too`
+      : 'Character codes pair up the same way'
+  return [
+    ...others,
+    {
+      ...candidate(
+        ['polybius'],
+        others.length > 0 ? 'low' : lower(byLayout(symbols)),
+        `Digit pairs with a ${side}, so ${size}. Polybius reads it with the alphabet that filled it. ${rival}.`,
+      ),
+      needs: ['alphabet'],
+    },
+  ]
+}
+
+/**
  * ADFGVX: only its six letters, with or without the transposition.
  *
  * @param reading - The text.
@@ -501,6 +534,7 @@ const LAYOUTS = [
   zipArchive,
   morse,
   gridDigits,
+  widerSquare,
   adfgvx,
   bacon,
   salted,

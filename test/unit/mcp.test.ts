@@ -1600,6 +1600,9 @@ Co2B
     expect(await guess({ text: '69c4e0d86a7b0430d8cdb78070b4c55a' })).toContain(
       'Next: ciphers_decode with cipher aes, which needs key.',
     )
+    expect(await guess({ text: '23 42 45 11 41 42 22 15 12 15 41 42 33 16 42' })).toContain(
+      'Next: ciphers_decode with cipher polybius, which needs alphabet.',
+    )
     expect(await guess({ text: 'hi', lang: 'pl' })).toBe(
       'No family fits (2 characters, 2 A-Z letters): no layout this package knows, and too few letters for statistics.',
     )

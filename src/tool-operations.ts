@@ -536,6 +536,26 @@ export function formatPeriodEstimate(
 }
 
 /**
+ * Options a candidate's first cipher still wants.
+ *
+ * @param library - The loaded cipher library.
+ * @param found - One candidate of `guessFamily`.
+ * @returns {string[]} Option names.
+ */
+function missingOptions(
+  library: Readonly<Pick<CiphersLibrary, 'create'>>,
+  found: Readonly<CiphersModule.FamilyCandidate>,
+): string[] {
+  const { ciphers, options = {}, needs = [] } = found
+  const required = library
+    .create(ciphers[0]!)
+    .info()
+    .options.filter(({ name, required }) => required && !Object.hasOwn(options, name))
+    .map(({ name }) => name)
+  return [...required, ...needs]
+}
+
+/**
  * What to call next for a candidate: the decode its first cipher needs, or the analysis before it.
  *
  * @param library - The loaded cipher library.
@@ -557,11 +577,7 @@ function nextStep(
     return 'ciphers_caesar_brute ranks all 25 shifts; ciphers_key_recover with cipher substitution solves a mixed alphabet.'
   }
   const given = Object.entries(found.options ?? {}).map(([name, value]) => `${name}=${value}`)
-  const needed = library
-    .create(first!)
-    .info()
-    .options.filter(({ name, required }) => required && !Object.hasOwn(found.options ?? {}, name))
-    .map(({ name }) => name)
+  const needed = missingOptions(library, found)
   const known = given.length === 0 ? '' : ` and ${given.join(', ')}`
   const missing = needed.length === 0 ? '' : `, which needs ${needed.join(' and ')}`
   const search =

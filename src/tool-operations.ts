@@ -83,6 +83,7 @@ export type CipherToolParams = {
   b?: number
   period?: number
   letters?: number
+  lowercase?: string
   segment?: number
   blockSize?: number
   endian?: 'big' | 'little'
@@ -290,6 +291,7 @@ function cipherOptions(params: Readonly<CipherToolParams>): Record<string, unkno
     'b',
     'period',
     'letters',
+    'lowercase',
     'segment',
     'blockSize',
     'endian',

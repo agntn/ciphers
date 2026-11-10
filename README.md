@@ -196,7 +196,7 @@ That's nearly all of it. `create()` wants the exact registered name and hands yo
 | **nihilist**                | fractionation               |      ✗       | `--key` (required), `--square` (optional)                                  |
 | **morse**                   | fractionation               |      ✗       | -                                                                          |
 | **fractionated-morse**      | fractionation               |      ✗       | `--key` (required, the alphabet over the 26 triples)                       |
-| **bacon**                   | fractionation               |      ✗       | `--letters` (24 or 26, default 26)                                         |
+| **bacon**                   | fractionation               |      ✗       | `--letters` (24 or 26, default 26), `--lowercase` (A or B, decoding)       |
 | **tap-code**                | fractionation               |      ✗       | -                                                                          |
 | **a1z26**                   | fractionation               |      ✗       | `--separator` (default -), `--zero`                                        |
 | **book**                    | homophonic                  |      ✗       | `--book` (required), `--address`, `--pick`, `--start`                      |

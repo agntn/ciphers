@@ -1133,6 +1133,7 @@ Co2B
     const info = await client.callTool({ name: 'ciphers_info', arguments: { cipher: 'bacon' } })
     expect(info.isError).not.toBe(true)
     expect(onlyText(info.content)).toContain('letters (number, default=26)')
+    expect(onlyText(info.content)).toContain('lowercase (string, default=none)')
     for (const [name, text, expected] of [
       ['ciphers_encode', 'KNIGHT', 'ABAABABBAAABAAAAABBAAABBBBAABA'],
       ['ciphers_decode', 'ABAABABBAAABAAAAABBAAABBBBAABA', 'KNIGHT'],
@@ -1144,6 +1145,12 @@ Co2B
       expect(result.isError).not.toBe(true)
       expect(onlyText(result.content)).toBe(expected)
     }
+    const carried = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: { cipher: 'bacon', text: 'heLLO, wOrld!', lowercase: 'A' },
+    })
+    expect(carried.isError).not.toBe(true)
+    expect(onlyText(carried.content)).toBe('HI')
   })
 
   it('discovers and executes Autokey through the protocol', async () => {
@@ -2314,6 +2321,15 @@ Co2B
     })
     expect(onlyText(badLetters.content)).toBe(
       'Invalid arguments at /letters: must be one of 24, 26',
+    )
+
+    const encodedCase = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'bacon', text: 'HI', lowercase: 'A' },
+    })
+    expect(encodedCase.isError).toBe(true)
+    expect(onlyText(encodedCase.content)).toContain(
+      'Invalid option lowercase=A: only decodes, encoding has no text to carry the case',
     )
   })
 })

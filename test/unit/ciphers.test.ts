@@ -1181,6 +1181,81 @@ describe('bacon', () => {
     expect(bacon.decode('').text).toBe('')
     expect(bacon.decode('  ').text).toBe('')
   })
+
+  /* Sets the case of a sentence from code: lowercase for one symbol, uppercase for the other. */
+  function carry(code: string, sentence: string, lowercase: string): string {
+    const symbols = [...code.replaceAll(/[^AB]/gi, '').toUpperCase()]
+    return sentence.replaceAll(/[a-z]/gi, (letter) => {
+      const symbol = symbols.shift()
+      if (symbol === undefined) return ''
+      return symbol === lowercase ? letter.toLowerCase() : letter.toUpperCase()
+    })
+  }
+
+  /** H is AABBB and I is ABAAA on the 26-letter table, set by hand on HELLO WORLD. */
+  it.each([
+    ['A', 'heLLO, wOrld! 42'],
+    ['B', 'HEllo, WoRLD! 42'],
+    ['a', 'heLLO\nwOrld'],
+  ])('reads the code off letter case with lowercase as %s', (lowercase, text) => {
+    const decoded = bacon.decode(text, { lowercase })
+    expect(decoded.text).toBe('HI')
+    expect(decoded.options).toEqual({ letters: 26, lowercase: lowercase.toUpperCase() })
+  })
+
+  /** The groups of the Wikipedia example above, carried by a sentence instead of written out. */
+  it.each(['A', 'B'])('decodes STEGANOGRAPHY off a sentence, lowercase as %s', (lowercase) => {
+    const groups = 'baaab baaba aabaa aabba aaaaa abbaa abbab aabba baaaa aaaaa abbba aabbb babba'
+    const sentence =
+      "The quick brown fox jumps over the lazy dog, and the dog doesn't mind: it's been 25 years."
+    const text = carry(groups, sentence, lowercase)
+    expect(text.replaceAll(/[^a-z]/gi, '')).toHaveLength(65)
+    expect(bacon.decode(text, { letters: 24, lowercase }).text).toBe('STEGANOGRAPHY')
+  })
+
+  /** ABBBB AABBA and its inverse: P G and Q Z on 26 letters, Q G on Bacon's 24. */
+  it('keeps the table and the ? of a group past its end when reading case', () => {
+    expect(bacon.decode('hELLO woRLd', { lowercase: 'A' }).text).toBe('PG')
+    expect(bacon.decode('hELLO woRLd', { lowercase: 'B' }).text).toBe('QZ')
+    expect(bacon.decode('hELLO woRLd', { lowercase: 'A', letters: 24 }).text).toBe('QG')
+    expect(bacon.decode('HELLO', { lowercase: 'A' }).text).toBe('?')
+  })
+
+  /** ABAAA BAABB: codes 8 and 19, I and U on the shared table, I and T on 26 letters. */
+  it('reads the shared I/J and U/V codes off letter case', () => {
+    expect(bacon.decode('hEllo WorLD', { lowercase: 'A', letters: 24 }).text).toBe('IU')
+    expect(bacon.decode('hEllo WorLD', { lowercase: 'A' }).text).toBe('IT')
+  })
+
+  it('leaves literal A and B alone unless lowercase is set', () => {
+    expect(() => bacon.decode('hELLO woRLd')).toThrow('no A or B')
+    expect(bacon.decode('aabbb ABAAA').text).toBe('HI')
+    expect(bacon.decode('aabbb ABAAA', { lowercase: 'A' }).text).toBe('A?')
+  })
+
+  it.each([
+    ['hELLO woRL', '9 A-Z letters, not a multiple of five'],
+    ['12 34 !?', 'no A-Z letter to read the case of'],
+    ['hÉLLO woRLd', 'É (U+00C9) is a letter outside A-Z'],
+    ['hELLO мир woRLd', 'м (U+043C) is a letter outside A-Z'],
+  ])('refuses the carrier %j', (text, reason) => {
+    expect(() => bacon.decode(text, { lowercase: 'A' })).toThrow(CipherError)
+    expect(() => bacon.decode(text, { lowercase: 'A' })).toThrow(reason)
+  })
+
+  it('reads case past marks, digits and emoji, and blank text as nothing', () => {
+    expect(bacon.decode('he\u0301LLO 😀 wOrld 1', { lowercase: 'A' }).text).toBe('HI')
+    expect(bacon.decode(' \n', { lowercase: 'A' }).text).toBe('')
+  })
+
+  it.each(['C', 'AB', '', 1, true])('rejects lowercase=%j', (lowercase) => {
+    expect(() => bacon.decode('heLLO', { lowercase })).toThrow('must be A or B')
+  })
+
+  it('refuses lowercase when encoding', () => {
+    expect(() => bacon.encode('HI', { lowercase: 'A' })).toThrow(InvalidOptionError)
+    expect(() => bacon.encode('HI', { lowercase: 'A' })).toThrow('only decodes')
+  })
 })
 
 describe('tap-code', () => {

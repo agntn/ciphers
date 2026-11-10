@@ -30,6 +30,17 @@ import {
   type ZeroWidthSchemeName,
   type ZeroWidthUnit,
 } from './core/zero-width-options.ts'
+import {
+  MAX_BITS_PER_LINE,
+  SENTENCE_BOUNDARIES,
+  whitespaceChannels,
+  whitespaceOrders,
+  whitespaceSymbols,
+  whitespaceUnmapped,
+  type WhitespaceChannel,
+  type WhitespaceOrder,
+  type WhitespaceUnmapped,
+} from './core/whitespace-options.ts'
 
 export {
   MAX_ALIGNMENT_CELLS,
@@ -50,6 +61,11 @@ export {
   periodicKeyRecoveryCiphers,
   zeroWidthSchemes,
   zeroWidthUnits,
+  MAX_BITS_PER_LINE,
+  SENTENCE_BOUNDARIES,
+  whitespaceChannels,
+  whitespaceOrders,
+  whitespaceUnmapped,
 }
 
 type CiphersLibrary = Pick<
@@ -1756,5 +1772,351 @@ export function formatAlignment(
   return {
     content: [{ type: 'text', text: lines.join('\n') }],
     details: { tokens, compare, counts, rows },
+  }
+}
+
+/** Occurrences one channel lists in the whitespace inventory before it counts the rest. */
+export const WHITESPACE_LINES = 20
+/** Bits a whitespace reading prints; `details` keeps them all. */
+export const WHITESPACE_BITS = 512
+/** Stretches of spaces or tabs spelled out for one mixed run. */
+const WHITESPACE_RUN_PARTS = 6
+
+export type WhitespaceReadToolParams = {
+  readonly text: string
+  readonly channel?: WhitespaceChannel
+  readonly zero?: string
+  readonly one?: string
+  readonly unmapped?: WhitespaceUnmapped
+  readonly offset?: number
+  readonly digits?: number
+  readonly order?: WhitespaceOrder
+  readonly unit?: ZeroWidthUnit
+  readonly boundaries?: string
+}
+
+export type WhitespaceHideToolParams = {
+  readonly text: string
+  readonly cover: string
+  readonly zero: string
+  readonly one: string
+  readonly digits?: number
+  readonly order?: WhitespaceOrder
+  readonly unit?: ZeroWidthUnit
+  readonly perLine?: number
+}
+
+/**
+ * A count with its noun.
+ *
+ * @param count - How many.
+ * @param noun - The singular.
+ * @returns {string} `1 bit`, `3 bits`.
+ */
+function counted(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
+
+/**
+ * A run of spaces and tabs in words, since printing it raw shows nothing.
+ *
+ * @param raw - The run.
+ * @returns {string} `3 spaces`, or `1 space + 2 tabs` for a mixed one.
+ */
+function whitespaceRunLabel(raw: string): string {
+  const parts = (raw.match(/ +|\t+/g) ?? []).map((part) => {
+    return counted(part.length, part.startsWith(' ') ? 'space' : 'tab')
+  })
+  if (parts.length <= WHITESPACE_RUN_PARTS) return parts.join(' + ')
+  return `${parts.slice(0, WHITESPACE_RUN_PARTS).join(' + ')} + …`
+}
+
+/**
+ * One occurrence on a line of its own.
+ *
+ * @param occurrence - A line ending, a trailing run or a gap.
+ * @returns {string} Its class, its place and, for a run, what it holds.
+ */
+function whitespaceOccurrenceLabel(
+  occurrence: Readonly<CiphersModule.WhitespaceOccurrence>,
+): string {
+  const { line, column, start, end } = occurrence
+  const where = `${occurrence.class} at line ${line}, column ${column} [${start},${end})`
+  if (occurrence.channel === 'line-ending') return where
+  return `${where}, ${whitespaceRunLabel(occurrence.raw)}`
+}
+
+/**
+ * The occurrences worth a line each: the ones outside a channel's usual class.
+ *
+ * @param report - One channel of the inventory.
+ * @param whole - Whether the model asked for this channel alone, which lists all of it.
+ * @returns {ReadonlyArray<CiphersModule.WhitespaceOccurrence>} The occurrences to list.
+ */
+function whitespaceStandouts(
+  report: Readonly<CiphersModule.WhitespaceChannelReport>,
+  whole: boolean,
+): ReadonlyArray<CiphersModule.WhitespaceOccurrence> {
+  const { channel, occurrences } = report
+  if (whole || channel === 'trailing') return occurrences
+  if (channel === 'interior') return occurrences.filter((found) => found.class !== 'single')
+  const counts: Readonly<Record<string, number | undefined>> = report.counts
+  const [usual] = whitespaceSymbols[channel].toSorted((left, right) => {
+    return (counts[right] ?? 0) - (counts[left] ?? 0)
+  })
+  return occurrences.filter((found) => found.class !== usual)
+}
+
+/**
+ * How many occurrences a channel has of each class, in the order the channel names them.
+ *
+ * @param report - One channel of the inventory.
+ * @returns {string} `lf 12, crlf 1`.
+ */
+function whitespaceCounts(report: Readonly<CiphersModule.WhitespaceChannelReport>): string {
+  const counts: Readonly<Record<string, number | undefined>> = report.counts
+  return whitespaceSymbols[report.channel]
+    .concat(report.channel === 'trailing' ? ['mixed'] : [])
+    .flatMap((name) => (counts[name] === undefined ? [] : [`${name} ${counts[name]}`]))
+    .join(', ')
+}
+
+/**
+ * One channel of the inventory as text.
+ *
+ * @param report - The channel.
+ * @param whole - Whether to list all of it.
+ * @returns {string[]} A count line, then at most `WHITESPACE_LINES` occurrences and what is left.
+ */
+function whitespaceChannelLines(
+  report: Readonly<CiphersModule.WhitespaceChannelReport>,
+  whole: boolean,
+): string[] {
+  const total = report.occurrences.length
+  if (total === 0) return [`  ${report.channel}: none`]
+  const listed = whitespaceStandouts(report, whole)
+  const lines = [
+    `  ${report.channel}: ${total} (${whitespaceCounts(report)})`,
+    ...listed.slice(0, WHITESPACE_LINES).map((found) => `    ${whitespaceOccurrenceLabel(found)}`),
+  ]
+  if (listed.length > WHITESPACE_LINES) {
+    lines.push(`    (${listed.length - WHITESPACE_LINES} more, not listed)`)
+  }
+  return lines
+}
+
+/**
+ * The arguments that only mean something when bits are read.
+ *
+ * @param params - The tool arguments.
+ * @returns {Array<[string, unknown]>} Each one given, by name.
+ */
+function whitespaceReadingArguments(
+  params: Readonly<WhitespaceReadToolParams>,
+): Array<[string, unknown]> {
+  const { unmapped, offset, digits, order, unit } = params
+  return Object.entries({ unmapped, offset, digits, order, unit }).filter(([, value]) => {
+    return value !== undefined
+  })
+}
+
+/**
+ * List where a text keeps its line endings, trailing runs and gaps, for a model.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments, with neither `zero` nor `one`.
+ * @returns {CipherToolResult} Counts for every channel, the occurrences that stand out and, in
+ * `details`, the same with what was left off the list.
+ * @throws {InvalidOptionError} When an argument for reading bits comes without a mapping.
+ */
+function formatWhitespaceInventory(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'inspectWhitespace' | 'InvalidOptionError'>>,
+  params: Readonly<WhitespaceReadToolParams>,
+): CipherToolResult {
+  const [stray] = whitespaceReadingArguments(params)
+  if (stray !== undefined) {
+    throw new library.InvalidOptionError(
+      stray[0],
+      stray[1],
+      'applies when bits are read, so pass channel, zero and one with it',
+    )
+  }
+  const { channel, boundaries } = params
+  const report = library.inspectWhitespace(params.text, {
+    ...(channel === undefined ? {} : { channels: [channel] }),
+    ...(boundaries === undefined || boundaries === '' ? {} : { boundaries }),
+  })
+  const whole = channel !== undefined
+  const lines = [
+    `${counted(report.lines, 'line')}. Spaces, tabs and line endings by position:`,
+    '',
+    ...report.channels.flatMap((found) => whitespaceChannelLines(found, whole)),
+    '',
+    'Places are line and column from 1, then [start,end) as UTF-16 offsets. Single spaces and the usual line ending are counted, not listed; pass channel to list one channel whole.',
+    'This is what is there, not a sign that anything is hidden. To read a channel as bits pass channel with zero and one, such as channel trailing, zero space, one tab.',
+  ]
+  const channels = report.channels.map((found) => {
+    const listed = whitespaceStandouts(found, whole)
+    return {
+      channel: found.channel,
+      counts: found.counts,
+      occurrences: listed.slice(0, WHITESPACE_LINES),
+      omitted: Math.max(0, listed.length - WHITESPACE_LINES),
+    }
+  })
+  return {
+    content: [{ type: 'text', text: lines.join('\n') }],
+    details: { lines: report.lines, channels },
+  }
+}
+
+/**
+ * The classes a `zero` or `one` argument names.
+ *
+ * @param value - Names parted by spaces or commas.
+ * @returns {string[] | undefined} The names, or nothing for a blank argument.
+ */
+function whitespaceClassList(value: string | undefined): string[] | undefined {
+  const names = (value ?? '').split(/[\s,]+/).filter((name) => name !== '')
+  return names.length === 0 ? undefined : names
+}
+
+/**
+ * The lines about places a reading left out.
+ *
+ * @param skipped - Places the mapping gave no bit.
+ * @returns {string[]} One line naming the first few, or nothing.
+ */
+function whitespaceSkippedLines(
+  skipped: ReadonlyArray<CiphersModule.WhitespaceOccurrence>,
+): string[] {
+  if (skipped.length === 0) return []
+  const shown = skipped.slice(0, CHARACTER_POSITIONS).map(whitespaceOccurrenceLabel).join('; ')
+  const rest = skipped.length - CHARACTER_POSITIONS
+  return [
+    `Left out ${counted(skipped.length, 'place')} the mapping gives no bit: ${shown}${rest > 0 ? `; and ${rest} more` : ''}`,
+  ]
+}
+
+/**
+ * What the bits of a reading decode to, on one line.
+ *
+ * @param reading - The reading.
+ * @param params - The tool arguments, for how the bits were grouped.
+ * @returns {string} The grouping, then the text or why there is none.
+ */
+function whitespaceDecodeLine(
+  reading: Readonly<CiphersModule.WhitespaceReading>,
+  params: Readonly<WhitespaceReadToolParams>,
+): string {
+  const { digits = 8, order = 'msb', unit = 'byte', offset = 0 } = params
+  const after = offset > 0 ? `, the first ${counted(offset, 'bit')} passed over` : ''
+  const grouping = `${counted(reading.groups, 'group')} of ${digits} bits as ${unit}, ${order} first${after}`
+  if (reading.text === undefined) return `${grouping}: no text. ${reading.problem ?? ''}`
+  return `${grouping}: ${quotedPreview(reading.text, Infinity)}`
+}
+
+/**
+ * The options of `readWhitespace` a model set, the unset ones left to the library's defaults.
+ *
+ * @param params - The tool arguments.
+ * @returns {object} `unmapped`, `offset`, `digits`, `order`, `unit` and `boundaries` as given.
+ */
+function whitespaceReadOptions(
+  params: Readonly<WhitespaceReadToolParams>,
+): Partial<CiphersModule.ReadWhitespaceOptions> {
+  const { boundaries } = params
+  return {
+    ...Object.fromEntries(whitespaceReadingArguments(params)),
+    ...(boundaries === undefined || boundaries === '' ? {} : { boundaries }),
+  }
+}
+
+/**
+ * List the whitespace of a text by position, or read one channel as bits under a mapping.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments.
+ * @returns {CipherToolResult} The inventory, or the bits with what they decode to.
+ * @throws {MissingOptionError} When `zero` or `one` comes without the other or without `channel`.
+ * @throws {InvalidOptionError} For a mapping that cannot be read back or arguments that clash.
+ * @throws {WhitespaceError} When a place has no bit and `unmapped` is not `skip`.
+ */
+export function formatWhitespaceRead(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<
+    Pick<typeof CiphersModule, 'inspectWhitespace' | 'readWhitespace' | 'InvalidOptionError'>
+  >,
+  params: Readonly<WhitespaceReadToolParams>,
+): CipherToolResult {
+  const zero = whitespaceClassList(params.zero)
+  const one = whitespaceClassList(params.one)
+  if (zero === undefined && one === undefined) return formatWhitespaceInventory(library, params)
+  const reading = library.readWhitespace(params.text, {
+    channel: params.channel,
+    zero,
+    one,
+    ...whitespaceReadOptions(params),
+  } as CiphersModule.ReadWhitespaceOptions)
+  const { bits, partial, skipped } = reading
+  const details = {
+    ...reading,
+    skipped: skipped.slice(0, WHITESPACE_LINES),
+    omitted: Math.max(0, skipped.length - WHITESPACE_LINES),
+  }
+  if (bits === '' && skipped.length === 0) {
+    const text = `Nothing in the ${reading.channel} channel of this text, so there are no bits to read.`
+    return { content: [{ type: 'text', text }], details }
+  }
+  const more = bits.length - WHITESPACE_BITS
+  const lines = [
+    `${reading.channel}: ${counted(bits.length, 'bit')}, ${(zero ?? []).join(', ')} as 0 and ${(one ?? []).join(', ')} as 1.`,
+    `Bits: ${bits.slice(0, WHITESPACE_BITS)}${more > 0 ? `… (${more} more)` : ''}`,
+    whitespaceDecodeLine(reading, params),
+    ...(partial === ''
+      ? []
+      : [`${counted(partial.length, 'bit')} left over after the last whole group: ${partial}`]),
+    ...whitespaceSkippedLines(skipped),
+  ]
+  return { content: [{ type: 'text', text: lines.join('\n') }], details }
+}
+
+/**
+ * Hide a message at the line ends of a cover text for a model.
+ *
+ * @param library - The loaded cipher library.
+ * @param params - The tool arguments, `text` being the message.
+ * @returns {CipherToolResult} The cover with the message after its lines, and in `details` the
+ * same text with the number of characters added.
+ * @throws {MissingOptionError} Without `zero` or `one`.
+ * @throws {InvalidOptionError} For a mapping that cannot be read back, a character that does not
+ * fit the width, a cover that is too short or one that already ends lines in spaces or tabs.
+ */
+export function formatWhitespaceHide(
+  /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
+  library: Readonly<Pick<typeof CiphersModule, 'hideWhitespace' | 'InvalidOptionError'>>,
+  params: Readonly<WhitespaceHideToolParams>,
+): CipherToolResult {
+  const { cover, digits, order, unit, perLine } = params
+  const set = Object.entries({ digits, order, unit, perLine }).filter(([, value]) => {
+    return value !== undefined
+  })
+  const hidden = library.hideWhitespace(params.text, {
+    cover,
+    zero: whitespaceClassList(params.zero),
+    one: whitespaceClassList(params.one),
+    ...Object.fromEntries(set),
+  } as CiphersModule.HideWhitespaceOptions)
+  if (hidden.length > MAX_FREQUENCY_TEXT_LENGTH) {
+    throw new library.InvalidOptionError(
+      'text',
+      `${hidden.length} characters with the cover`,
+      `are more than the ${MAX_FREQUENCY_TEXT_LENGTH} ciphers_whitespace_read takes; hide less`,
+    )
+  }
+  return {
+    content: [{ type: 'text', text: hidden }],
+    details: { output: hidden, added: hidden.length - cover.length },
   }
 }

@@ -178,7 +178,7 @@ try {
    */
   const aiModule = (entry) => import(pathToFileURL(path.join(packageRoot, entry)).href)
   const { ciphersAiTools } = await aiModule(aiEntry)
-  assert.equal(Object.keys(ciphersAiTools).length, 15, 'the packed ./ai lost a tool')
+  assert.equal(Object.keys(ciphersAiTools).length, 17, 'the packed ./ai lost a tool')
   const aiEncoded = await ciphersAiTools.ciphers_encode?.execute(
     { cipher: 'caesar', text: 'HELLO', shift: 3 },
     { toolCallId: 'packed', messages: [], context: {} },

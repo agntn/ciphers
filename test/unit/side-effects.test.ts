@@ -176,6 +176,17 @@ describe('registry without import side effects', () => {
     },
   )
 
+  it.each(['inspectWhitespace', 'readWhitespace', 'hideWhitespace'])(
+    'bundles %s without a cipher, a frequency table or a Unicode table',
+    async (name) => {
+      const kept = await keptModules(name)
+      expect(kept).toContain('src/core/whitespace.ts')
+      expect(kept).not.toContain('src/core/frequency.ts')
+      expect(kept).not.toContain('src/core/confusables.ts')
+      expect(kept.filter((file) => file.startsWith('src/ciphers/'))).toEqual([])
+    },
+  )
+
   it.each([
     'readZeroWidth',
     'hideZeroWidth',

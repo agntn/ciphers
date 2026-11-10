@@ -70,6 +70,8 @@ describe('Pi extension', () => {
       'ciphers_characters_inspect',
       'ciphers_zero_width_read',
       'ciphers_zero_width_hide',
+      'ciphers_whitespace_read',
+      'ciphers_whitespace_hide',
       'ciphers_texts_align',
       'ciphers_key_recover',
       'ciphers_info',
@@ -93,6 +95,8 @@ describe('Pi extension', () => {
       'ciphers_hidden_text_read',
       'ciphers_zero_width_read',
       'ciphers_zero_width_hide',
+      'ciphers_whitespace_read',
+      'ciphers_whitespace_hide',
       'ciphers_texts_align',
       'ciphers_key_recover',
     ]) {
@@ -377,6 +381,37 @@ describe('Pi extension', () => {
     await expect(
       getTool('ciphers_zero_width_read').execute('read', { text: 'abc', unit: 'byte' }),
     ).rejects.toThrow('Missing required option: symbols')
+  })
+
+  it('reads and hides whitespace through the shared executor', async () => {
+    const hidden = await getTool('ciphers_whitespace_hide').execute('trail', {
+      text: 'Hi',
+      cover: 'a\r\nb',
+      zero: 'tab',
+      one: 'space',
+    })
+    expect(hidden.content[0]?.text).toBe('a\t \t\t \t\t\t\r\nb\t  \t \t\t ')
+    expect(hidden.details).toMatchObject({ added: 16 })
+    const read = await getTool('ciphers_whitespace_read').execute('whitespace', {
+      text: hidden.content[0]?.text,
+      channel: 'trailing',
+      zero: 'tab',
+      one: 'space',
+    })
+    expect(read.content[0]?.text).toContain('2 groups of 8 bits as byte, msb first: "Hi"')
+    expect(read.details).toMatchObject({ bits: '0100100001101001', text: 'Hi', partial: '' })
+    const listed = await getTool('ciphers_whitespace_read').execute('whitespace', {
+      text: 'a  b\r\n',
+    })
+    expect(listed.details).toMatchObject({
+      lines: 1,
+      channels: [
+        { channel: 'line-ending', counts: { crlf: 1 }, occurrences: [], omitted: 0 },
+        { channel: 'trailing', counts: {} },
+        { channel: 'interior', counts: { double: 1 }, occurrences: [{ start: 1, end: 3 }] },
+        { channel: 'sentence', counts: {} },
+      ],
+    })
   })
 
   it('aligns two texts through the shared executor', async () => {

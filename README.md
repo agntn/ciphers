@@ -118,29 +118,33 @@ And when nothing's encrypted at all and the message hides in the first letters, 
 
 Got a word that looks right but hashes wrong? `inspect` finds invisible characters and letters pretending to be something else. Found a note with invisible ink? `reveal` reads it, and `conceal` hides a message of your own.
 
+Got a file with suspicious spaces? `whitespace` lists where they sit and reads bits using your mapping. Want a known message to test with? `trail` puts one at line ends.
+
 Got two copies of a clue? `align` shows which words changed and where they sit in each copy. It also marks pairings that aren't certain.
 
 ### Commands
 
-| Command     | What it does                                        | Example                                                |
-| ----------- | --------------------------------------------------- | ------------------------------------------------------ |
-| `encode`    | Plaintext in, ciphertext out                        | `ciphers encode vigenere "ATTACK AT DAWN" --key LEMON` |
-| `decode`    | The other way, same flags                           | `ciphers decode vigenere "LXFOPV EF RNHR" --key LEMON` |
-| `brute`     | All 25 Caesar shifts, best fit first                | `ciphers brute "DWWDFN DW GDZQ"`                       |
-| `frequency` | Letter histogram and the index of coincidence       | `ciphers frequency "DWWDFN DW GDZQ" --lang en`         |
-| `period`    | Vigenère key length, with the likely key            | `ciphers period "<ciphertext>" --max-period 30`        |
-| `guess`     | Likely cipher families and what to run next         | `ciphers guess "<ciphertext>" --lang pl`               |
-| `probe`     | Which KDF settings open a `Salted__` blob           | `ciphers probe "U2FsdGVkX1..." --key secret`           |
-| `crib`      | Crib dragging over ciphertexts under one reused key | `ciphers crib '["<hex>","<hex>"]' --crib " the "`      |
-| `hidden`    | A message hidden by position, best readings first   | `ciphers hidden "$(cat poem.txt)" --pick line`         |
-| `inspect`   | Invisible and lookalike characters                  | `ciphers inspect "$(cat tweet.txt)"`                   |
-| `reveal`    | Messages hidden in invisible characters             | `ciphers reveal - < note.txt`                          |
-| `conceal`   | A message hidden in invisible characters            | `ciphers conceal "noon" --cover "Nothing here."`       |
-| `align`     | Word changes between two texts                      | `ciphers align "red fox sleeps" "red fox runs"`        |
-| `recover`   | Searched keys, best first, each with its plaintext  | `ciphers recover "<ciphertext>" --cipher substitution` |
-| `info`      | Every cipher by category, or one cipher up close    | `ciphers info enigma`                                  |
-| `ciphers`   | Same as `info`, for old habits                      | `ciphers ciphers --category stream`                    |
-| `mcp`       | The MCP server on stdio                             | `ciphers mcp`                                          |
+| Command      | What it does                                        | Example                                                            |
+| ------------ | --------------------------------------------------- | ------------------------------------------------------------------ |
+| `encode`     | Plaintext in, ciphertext out                        | `ciphers encode vigenere "ATTACK AT DAWN" --key LEMON`             |
+| `decode`     | The other way, same flags                           | `ciphers decode vigenere "LXFOPV EF RNHR" --key LEMON`             |
+| `brute`      | All 25 Caesar shifts, best fit first                | `ciphers brute "DWWDFN DW GDZQ"`                                   |
+| `frequency`  | Letter histogram and the index of coincidence       | `ciphers frequency "DWWDFN DW GDZQ" --lang en`                     |
+| `period`     | Vigenère key length, with the likely key            | `ciphers period "<ciphertext>" --max-period 30`                    |
+| `guess`      | Likely cipher families and what to run next         | `ciphers guess "<ciphertext>" --lang pl`                           |
+| `probe`      | Which KDF settings open a `Salted__` blob           | `ciphers probe "U2FsdGVkX1..." --key secret`                       |
+| `crib`       | Crib dragging over ciphertexts under one reused key | `ciphers crib '["<hex>","<hex>"]' --crib " the "`                  |
+| `hidden`     | A message hidden by position, best readings first   | `ciphers hidden "$(cat poem.txt)" --pick line`                     |
+| `inspect`    | Invisible and lookalike characters                  | `ciphers inspect "$(cat tweet.txt)"`                               |
+| `reveal`     | Messages hidden in invisible characters             | `ciphers reveal - < note.txt`                                      |
+| `conceal`    | A message hidden in invisible characters            | `ciphers conceal "noon" --cover "Nothing here."`                   |
+| `whitespace` | Whitespace positions and bit readings               | `ciphers whitespace - < note.txt`                                  |
+| `trail`      | Messages hidden at line ends                        | `ciphers trail "noon" --cover - --zero space --one tab < poem.txt` |
+| `align`      | Word changes between two texts                      | `ciphers align "red fox sleeps" "red fox runs"`                    |
+| `recover`    | Searched keys, best first, each with its plaintext  | `ciphers recover "<ciphertext>" --cipher substitution`             |
+| `info`       | Every cipher by category, or one cipher up close    | `ciphers info enigma`                                              |
+| `ciphers`    | Same as `info`, for old habits                      | `ciphers ciphers --category stream`                                |
+| `mcp`        | The MCP server on stdio                             | `ciphers mcp`                                                      |
 
 A cipher's options are its flags: `--key`, `--second-key`, `--indicator`, `--transposition`, `--square`, `--rotation`, `--shift`, `--rails`, `--period`, `--letters`, `--a`, `--b` and the three Enigma ones. Which cipher takes which is `ciphers info <name>`, or the [CLI guide](https://ciphers.agntn.dev/guide/cli).
 
@@ -275,7 +279,7 @@ omp install @agntn/ciphers
 }
 ```
 
-The tools are `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphers_frequency`, `ciphers_period_estimate`, `ciphers_family_guess`, `ciphers_passphrase_probe`, `ciphers_crib_drag`, `ciphers_hidden_text_read`, `ciphers_characters_inspect`, `ciphers_zero_width_read`, `ciphers_zero_width_hide`, `ciphers_texts_align`, `ciphers_key_recover` and `ciphers_info`. They're the same everywhere, the HTTP server included.
+The tools are `ciphers_encode`, `ciphers_decode`, `ciphers_caesar_brute`, `ciphers_frequency`, `ciphers_period_estimate`, `ciphers_family_guess`, `ciphers_passphrase_probe`, `ciphers_crib_drag`, `ciphers_hidden_text_read`, `ciphers_characters_inspect`, `ciphers_zero_width_read`, `ciphers_zero_width_hide`, `ciphers_whitespace_read`, `ciphers_whitespace_hide`, `ciphers_texts_align`, `ciphers_key_recover` and `ciphers_info`. They're the same everywhere, the HTTP server included.
 
 That one runs on a Cloudflare worker, so public puzzle material only. Arguments are checked against the schema before a cipher sees them, and a wrong key is a tool error with the reason in it, not a dead session.
 

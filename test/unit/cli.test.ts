@@ -61,6 +61,8 @@ describe('CLI commands', () => {
       'inspect',
       'reveal',
       'conceal',
+      'whitespace',
+      'trail',
       'align',
       'recover',
       'info, ciphers',
@@ -283,6 +285,63 @@ describe('CLI analysis', () => {
     expectRefusal(
       ['align', 'a', 'b', '--compare', 'fuzzy'],
       'Invalid arguments at --compare: must be one of exact, canonical, caseless, unaccented',
+    )
+  })
+
+  it('lists whitespace from stdin, hides a message at line ends and reads it back', () => {
+    const listed = runCli(['whitespace', '-'], { input: 'One.  Two.\r\nline   \nlast' })
+    expect(listed.stdout).toContain(
+      [
+        '  line-ending: 2 (lf 1, crlf 1)',
+        '    crlf at line 1, column 11 [10,12)',
+        '  trailing: 1 (space 1)',
+        '    space at line 2, column 5 [16,19), 3 spaces',
+        '  interior: 1 (double 1)',
+        '    double at line 1, column 5 [4,6), 2 spaces',
+        '  sentence: 1 (double 1)',
+        '',
+      ].join('\n'),
+    )
+
+    const cover = 'one\r\ntwo\nthree\nfour\n'
+    const mapping = ['--zero', 'space', '--one', 'tab']
+    const hide = ['trail', 'Hi', '--cover', '-', ...mapping, '--per-line', '4']
+    /* The terminal gets LF for every line ending; --json keeps the cover's own. */
+    expect(runCli(hide, { input: cover }).stdout).toBe(
+      'one \t  \ntwo\t   \nthree \t\t \nfour\t  \t\n',
+    )
+    const whole = JSON.parse(runCli([...hide, '--json'], { input: cover }).stdout) as {
+      output: string
+      added: number
+    }
+    expect(whole).toEqual({
+      output: 'one \t  \r\ntwo\t   \nthree \t\t \nfour\t  \t\n',
+      added: 16,
+    })
+    expect(
+      runCli(['whitespace', '-', '--channel', 'trailing', ...mapping], { input: whole.output })
+        .stdout,
+    ).toBe(
+      [
+        'trailing: 16 bits, space as 0 and tab as 1.',
+        'Bits: 0100100001101001',
+        '2 groups of 8 bits as byte, msb first: "Hi"',
+        '',
+      ].join('\n'),
+    )
+    expect(
+      runCli(['whitespace', '-', '--channel', 'line-ending', '--zero', 'lf', '--one', 'crlf cr'], {
+        input: whole.output,
+      }).stdout,
+    ).toContain('Bits: 1000\n')
+    expectRefusal(
+      ['whitespace', 'a b', '--digits', '3'],
+      'Invalid arguments at --digits: applies when bits are read, so pass channel, zero and one with it',
+    )
+    expectRefusal(['whitespace', 'a b', '--zero', 'single'], 'Invalid arguments: missing --channel')
+    expectRefusal(
+      ['trail', 'Hello', '--cover', 'a', ...mapping],
+      'Invalid arguments at --cover: has room for 8 bits, 8 on each of 1 lines, and the message takes 40; pass more lines or put more bits on a line',
     )
   })
 

@@ -300,6 +300,39 @@ describe('OMP extension', () => {
     await accepts('ciphers_zero_width_hide', { text: 'TEST', cover: 'x', scheme: 'binary' })
     await rejects('ciphers_zero_width_hide', { text: 'X'.repeat(10_001) })
     await rejects('ciphers_zero_width_hide', { text: 'TEST', cover: 'X'.repeat(10_001) })
+    await accepts('ciphers_whitespace_read', { text: 'a  b' })
+    await accepts('ciphers_whitespace_read', {
+      text: 'a \nb',
+      channel: 'trailing',
+      zero: 'space',
+      one: 'tab',
+      unmapped: 'skip',
+      offset: 0,
+      digits: 8,
+      order: 'lsb',
+      unit: 'byte',
+    })
+    await rejects('ciphers_whitespace_read', { text: 'X'.repeat(100_001) })
+    await rejects('ciphers_whitespace_read', { text: 'a', channel: 'leading' })
+    await rejects('ciphers_whitespace_read', { text: 'a', digits: 33 })
+    await rejects('ciphers_whitespace_read', { text: 'a', order: 'middle' })
+    await rejects('ciphers_whitespace_read', { text: 'a', offset: -1 })
+    await accepts('ciphers_whitespace_hide', { text: 'A', cover: 'a', zero: 'space', one: 'tab' })
+    await rejects('ciphers_whitespace_hide', { text: 'A', zero: 'space', one: 'tab' })
+    await rejects('ciphers_whitespace_hide', { text: 'A', cover: 'a', zero: 'space' })
+    await rejects('ciphers_whitespace_hide', {
+      text: 'A',
+      cover: 'a',
+      zero: 'space',
+      one: 'tab',
+      perLine: 65,
+    })
+    await rejects('ciphers_whitespace_hide', {
+      text: 'X'.repeat(10_001),
+      cover: 'a',
+      zero: 'space',
+      one: 'tab',
+    })
     await accepts('ciphers_texts_align', { left: 'a b', right: 'a c', tokens: 'whitespace' })
     await accepts('ciphers_texts_align', {
       left: 'a',

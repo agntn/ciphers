@@ -59,6 +59,8 @@ describe('Ciphers MCP server', () => {
       'ciphers_characters_inspect',
       'ciphers_zero_width_read',
       'ciphers_zero_width_hide',
+      'ciphers_whitespace_read',
+      'ciphers_whitespace_hide',
       'ciphers_texts_align',
       'ciphers_key_recover',
       'ciphers_info',
@@ -2022,6 +2024,163 @@ Co2B
     expect(onlyText((await call({ ...pair, rows: 'none' })).content)).toContain(
       'Invalid arguments at /rows',
     )
+  })
+
+  it('lists whitespace, reads it as bits and hides a message over the protocol', async () => {
+    const client = await connectTestClient()
+    const call = async (name: string, args: Readonly<Record<string, unknown>>) =>
+      client.callTool({ name: `ciphers_whitespace_${name}`, arguments: args })
+    const text = 'One.  Two. Three.\r\nline   \nnext\ttab\n  indented\nlast  '
+
+    expect(onlyText((await call('read', { text })).content)).toBe(
+      [
+        '5 lines. Spaces, tabs and line endings by position:',
+        '',
+        '  line-ending: 4 (lf 3, crlf 1)',
+        '    crlf at line 1, column 18 [17,19)',
+        '  trailing: 2 (space 2)',
+        '    space at line 2, column 5 [23,26), 3 spaces',
+        '    space at line 5, column 5 [51,53), 2 spaces',
+        '  interior: 3 (single 1, double 1, tab 1)',
+        '    double at line 1, column 5 [4,6), 2 spaces',
+        '    tab at line 3, column 5 [31,32), 1 tab',
+        '  sentence: 2 (single 1, double 1)',
+        '    double at line 1, column 5 [4,6), 2 spaces',
+        '',
+        'Places are line and column from 1, then [start,end) as UTF-16 offsets. Single spaces and the usual line ending are counted, not listed; pass channel to list one channel whole.',
+        'This is what is there, not a sign that anything is hidden. To read a channel as bits pass channel with zero and one, such as channel trailing, zero space, one tab.',
+      ].join('\n'),
+    )
+    expect(onlyText((await call('read', { text, channel: 'sentence' })).content)).toContain(
+      [
+        '  sentence: 2 (single 1, double 1)',
+        '    double at line 1, column 5 [4,6), 2 spaces',
+        '    single at line 1, column 11 [10,11), 1 space',
+        '',
+      ].join('\n'),
+    )
+    expect(onlyText((await call('read', { text: 'abc' })).content)).toContain(
+      '  line-ending: none\n  trailing: none\n  interior: none\n  sentence: none\n',
+    )
+
+    const cover = 'one\r\ntwo\nthree\rfour\n'
+    const hidden = await call('hide', { text: 'Hi', cover, zero: 'space', one: 'tab', perLine: 4 })
+    expect(onlyText(hidden.content)).toBe('one \t  \r\ntwo\t   \nthree \t\t \rfour\t  \t\n')
+    const carried = onlyText(hidden.content)
+    const trailing = { text: carried, channel: 'trailing' }
+    expect(onlyText((await call('read', { ...trailing, zero: 'space', one: 'tab' })).content)).toBe(
+      [
+        'trailing: 16 bits, space as 0 and tab as 1.',
+        'Bits: 0100100001101001',
+        '2 groups of 8 bits as byte, msb first: "Hi"',
+      ].join('\n'),
+    )
+    expect(onlyText((await call('read', { ...trailing, zero: 'tab', one: 'space' })).content)).toBe(
+      [
+        'trailing: 16 bits, tab as 0 and space as 1.',
+        'Bits: 1011011110010110',
+        '2 groups of 8 bits as byte, msb first: no text. The hidden bytes are not UTF-8',
+      ].join('\n'),
+    )
+    expect(
+      onlyText(
+        (
+          await call('read', {
+            text: 'a  b c   d e  f',
+            channel: 'interior',
+            zero: 'single',
+            one: 'double, mixed',
+            unmapped: 'skip',
+            digits: 3,
+            offset: 1,
+          })
+        ).content,
+      ),
+    ).toBe(
+      [
+        'interior: 4 bits, single as 0 and double, mixed as 1.',
+        'Bits: 1001',
+        '1 group of 3 bits as byte, msb first, the first 1 bit passed over: "\\u0001"',
+        'Left out 1 place the mapping gives no bit: wide at line 1, column 7 [6,9), 3 spaces',
+      ].join('\n'),
+    )
+    expect(
+      onlyText(
+        (
+          await call('read', {
+            text: 'a \nb\t\nc ',
+            channel: 'trailing',
+            zero: 'space',
+            one: 'tab',
+          })
+        ).content,
+      ),
+    ).toBe(
+      [
+        'trailing: 3 bits, space as 0 and tab as 1.',
+        'Bits: 010',
+        '0 groups of 8 bits as byte, msb first: ""',
+        '3 bits left over after the last whole group: 010',
+      ].join('\n'),
+    )
+    expect(
+      onlyText(
+        (await call('read', { text: 'abc', channel: 'trailing', zero: 'space', one: 'tab' }))
+          .content,
+      ),
+    ).toBe('Nothing in the trailing channel of this text, so there are no bits to read.')
+
+    const long = `${'a\t \n'.repeat(600)}`
+    const reading = await call('read', {
+      text: long,
+      channel: 'trailing',
+      zero: 'space',
+      one: 'tab',
+    })
+    expect(onlyText(reading.content)).toContain(`Bits: ${'10'.repeat(256)}… (688 more)\n`)
+    const many = onlyText((await call('read', { text: 'a  b\n'.repeat(30) })).content)
+    expect(many).toContain('  interior: 30 (double 30)\n')
+    expect(many).toContain('    (10 more, not listed)\n')
+
+    for (const [args, line] of [
+      [
+        { text: 'a b', digits: 3 },
+        'applies when bits are read, so pass channel, zero and one with it',
+      ],
+      [{ text: 'a b', zero: 'single', one: 'double' }, 'Missing required option: channel'],
+      [
+        { text: 'a b', channel: 'interior', zero: 'single' },
+        'Missing required option: one. The interior channel has single, double, wide, tab, mixed',
+      ],
+      [
+        { text: 'a b', channel: 'trailing', zero: 'single', one: 'tab' },
+        'is no class of trailing, which has space, tab',
+      ],
+      [
+        { text: 'a   b', channel: 'interior', zero: 'single', one: 'double' },
+        '1 interior place has no bit in the mapping: wide. The first is at line 1, column 2.',
+      ],
+    ] as const) {
+      const refused = await call('read', args)
+      expect(refused.isError, line).toBe(true)
+      expect(onlyText(refused.content)).toContain(line)
+    }
+    for (const [args, line] of [
+      [
+        { text: 'Hello', cover: 'a\nb', zero: 'space', one: 'tab' },
+        'has room for 16 bits, 8 on each of 2 lines, and the message takes 40',
+      ],
+      [
+        { text: 'Hi', cover: 'a \nb', zero: 'space', one: 'tab' },
+        'ends line 1 in a space or a tab',
+      ],
+      [{ text: 'Hi', cover: 'a\nb', zero: 'space', one: 'space' }, 'is mapped already'],
+      [{ text: 'Hi', cover: 'a\nb', zero: 'space' }, 'Invalid arguments'],
+    ] as const) {
+      const refused = await call('hide', args)
+      expect(refused.isError, line).toBe(true)
+      expect(onlyText(refused.content)).toContain(line)
+    }
   })
 
   it('inspects characters and carries zero-width messages over the protocol', async () => {

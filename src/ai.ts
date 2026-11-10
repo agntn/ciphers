@@ -18,6 +18,8 @@ export type CiphersToolName =
   | 'ciphers_characters_inspect'
   | 'ciphers_zero_width_read'
   | 'ciphers_zero_width_hide'
+  | 'ciphers_whitespace_read'
+  | 'ciphers_whitespace_hide'
   | 'ciphers_texts_align'
   | 'ciphers_key_recover'
   | 'ciphers_info'

@@ -15,6 +15,7 @@ import {
   AFFINE_MULTIPLIERS,
   MAX_ALIGNMENT_CELLS,
   MAX_ALIGNMENT_ROWS,
+  MAX_BITS_PER_LINE,
   alignmentCompares,
   alignmentOperations,
   alignmentTokens,
@@ -47,6 +48,8 @@ import {
   MAX_ZERO_WIDTH_DIGITS,
   OPTION_DESCRIPTIONS,
   PROBE_LIST_LIMITS,
+  SENTENCE_BOUNDARIES,
+  WHITESPACE_LINES,
   bruteForceCaesar,
   formatCharacters,
   formatCipherInfo,
@@ -59,9 +62,14 @@ import {
   formatPeriodEstimate,
   formatZeroWidthHide,
   formatZeroWidthRead,
+  formatWhitespaceHide,
+  formatWhitespaceRead,
   keyRecoveryCiphers,
   periodicKeyRecoveryCiphers,
   transformCipher,
+  whitespaceChannels,
+  whitespaceOrders,
+  whitespaceUnmapped,
   zeroWidthSchemes,
   zeroWidthUnits,
   type CipherToolParams,
@@ -1327,6 +1335,155 @@ export const zeroWidthHideTool = defineCipherTool({
 })
 
 /**
+ * The arguments for how bits group, shared by reading and hiding.
+ *
+ * @returns {object} The optional `digits`, `order` and `unit` schemas.
+ */
+function whitespaceFramingArguments() {
+  return {
+    digits: Type.Optional(
+      Type.Integer({
+        minimum: 1,
+        maximum: MAX_ZERO_WIDTH_DIGITS,
+        description: 'Bits per group (default 8)',
+      }),
+    ),
+    order: Type.Optional(
+      Type.Enum(whitespaceOrders, {
+        description: 'Which bit of a group comes first in the text: msb (default) or lsb',
+      }),
+    ),
+    unit: Type.Optional(
+      Type.Enum(zeroWidthUnits, {
+        description:
+          'What one group is: byte for UTF-8 bytes (default), code-unit for UTF-16 code units, code-point for whole code points',
+      }),
+    ),
+  }
+}
+
+export const whitespaceReadTool = defineCipherTool({
+  name: 'ciphers_whitespace_read',
+  title: 'Read Whitespace',
+  description: `List where a text keeps its ordinary whitespace, or read one channel of it as bits. Four channels: line-ending (lf, crlf, cr), trailing (spaces and tabs before a line ends), interior (gaps inside a line: single, double, wide, tab, mixed) and sentence (interior gaps right after ${SENTENCE_BOUNDARIES}). Without zero and one, the answer counts each class and gives line, column and [start,end) UTF-16 offsets for what stands out, up to ${WHITESPACE_LINES} per channel. With channel, zero and one, each place becomes a bit and the bits decode as text; bits that fill no group are reported, never dropped.`,
+  snippet:
+    'Use ciphers_whitespace_read on text whose trailing spaces, double spaces or line endings may spell bits.',
+  guidelines: [
+    'Pass the text exactly as it came: one trimmed line or one normalized line ending and the channel is gone.',
+    'The mapping is yours to state, nothing guesses it: zero space with one tab, then the other way round, are two readings of one trailing channel.',
+    'A trailing run is read one character at a time as space or tab. A gap is read whole, so three spaces are wide, not three bits.',
+    'A place whose class has no bit stops the reading with its position. unmapped skip leaves such places out and lists them.',
+    'Only U+0020, tab, CR and LF count here. ciphers_characters_inspect finds no-break and zero-width spaces, and ciphers_zero_width_read reads spaces and tabs as digits wherever they sit.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'Text to look at, exactly as it came, line endings included',
+      }),
+      channel: Type.Optional(
+        Type.Enum(whitespaceChannels, {
+          description:
+            'The channel to list whole, or to read with zero and one (default all four, listed)',
+        }),
+      ),
+      zero: Type.Optional(
+        Type.String({
+          maxLength: 64,
+          description:
+            'Classes of the channel read as 0, parted by spaces or commas, such as space, lf or single',
+        }),
+      ),
+      one: Type.Optional(
+        Type.String({
+          maxLength: 64,
+          description: 'Classes read as 1, such as tab, "crlf cr" or double',
+        }),
+      ),
+      unmapped: Type.Optional(
+        Type.Enum(whitespaceUnmapped, {
+          description:
+            'A place whose class has no bit: refuse stops with its position (default), skip leaves it out and lists it',
+        }),
+      ),
+      offset: Type.Optional(
+        Type.Integer({
+          minimum: 0,
+          maximum: MAX_FREQUENCY_TEXT_LENGTH,
+          description: 'Bits to pass over before the first group (default 0)',
+        }),
+      ),
+      ...whitespaceFramingArguments(),
+      boundaries: Type.Optional(
+        Type.String({
+          maxLength: 64,
+          description: `Sentence channel: the characters a gap follows (default ${SENTENCE_BOUNDARIES})`,
+        }),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'whitespace',
+    description: 'List spaces, tabs and line endings by position, or read them as bits',
+    positional: ['text'],
+    stdin: ['text'],
+  },
+  execute: async (params) => answer(formatWhitespaceRead(await loadLibrary(), params)),
+})
+
+export const whitespaceHideTool = defineCipherTool({
+  name: 'ciphers_whitespace_hide',
+  title: 'Hide Whitespace Message',
+  description:
+    'Hide a message at the line ends of a cover text, one space or tab per bit, eight bits a line from the first line on unless perLine says otherwise. The answer is the text alone: the cover with its own characters and line endings untouched, and trailing runs added. A cover with too few lines is refused, and so is one whose lines already end in a space or tab.',
+  snippet: 'Use ciphers_whitespace_hide to put a message into the trailing whitespace of a text.',
+  guidelines: [
+    'ciphers_whitespace_read with channel trailing and the same zero, one, digits, order and unit reads it back.',
+    'Each line takes perLine bits, so a message of n bytes needs n lines at the default 8.',
+    'Editors, formatters and chat boxes strip trailing whitespace, so check after pasting.',
+  ],
+  effect: 'read',
+  input: Type.Object(
+    {
+      text: Type.String({
+        maxLength: MAX_TRANSFORM_TEXT_LENGTH,
+        description: 'The message to hide',
+      }),
+      cover: Type.String({
+        maxLength: MAX_FREQUENCY_TEXT_LENGTH,
+        description: 'Text of several lines to carry it, none ending in a space or tab',
+      }),
+      zero: Type.String({
+        maxLength: 16,
+        description: 'What a 0 is written as: space or tab',
+      }),
+      one: Type.String({
+        maxLength: 16,
+        description: 'What a 1 is written as: the other of space and tab',
+      }),
+      ...whitespaceFramingArguments(),
+      perLine: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: MAX_BITS_PER_LINE,
+          description: `Bits put on one line, 1 to ${MAX_BITS_PER_LINE} (default 8)`,
+        }),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+  cli: {
+    command: 'trail',
+    description: 'Hide a message in spaces and tabs at the line ends of a text',
+    positional: ['text'],
+    stdin: ['text', 'cover'],
+  },
+  execute: async (params) => answer(formatWhitespaceHide(await loadLibrary(), params)),
+})
+
+/**
  * One side of a row a caller passes back. The span is optional there, the token numbers are not.
  *
  * @returns {object} The schema of `left` and `right`.
@@ -1542,6 +1699,8 @@ export const ciphersTools: readonly ToolDefinition[] = [
   charactersInspectTool,
   zeroWidthReadTool,
   zeroWidthHideTool,
+  whitespaceReadTool,
+  whitespaceHideTool,
   textsAlignTool,
   keyRecoverTool,
   infoTool,
@@ -1591,6 +1750,8 @@ export const callSummaries: Readonly<
     `${named(args['scheme']) || (args['symbols'] === undefined ? 'all' : 'own')} ${excerpt(args['text'])}`,
   ciphers_zero_width_hide: (args) =>
     `${named(args['scheme']) || (args['symbols'] === undefined ? 'binary' : 'own')} ${excerpt(args['text'])}`,
+  ciphers_whitespace_read: (args) => `${named(args['channel']) || 'all'} ${excerpt(args['text'])}`,
+  ciphers_whitespace_hide: (args) => excerpt(args['text']),
   ciphers_texts_align: (args) =>
     `${args['rows'] === undefined ? 'align' : 'check'} ${excerpt(args['left'])}`,
   ciphers_key_recover: (args) => `${named(args['cipher'])} ${excerpt(args['text'])}`,

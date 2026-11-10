@@ -718,6 +718,23 @@ describe('Ciphers MCP server', () => {
     })
     expect(letters.isError).not.toBe(true)
     expect(onlyText(letters.content)).toBe('1 0 7')
+    const inside = await client.callTool({
+      name: 'ciphers_decode',
+      arguments: {
+        cipher: 'book',
+        text: '2-2-3-1 1-1-3-5',
+        book,
+        address: 'page-line-word-letter',
+      },
+    })
+    expect(inside.isError).not.toBe(true)
+    expect(onlyText(inside.content)).toBe('TE')
+    const clash = await client.callTool({
+      name: 'ciphers_encode',
+      arguments: { cipher: 'book', text: 'toe', book, address: 'line-letter', pick: 'word' },
+    })
+    expect(clash.isError).toBe(true)
+    expect(onlyText(clash.content)).toContain('pick=word: must be letter with address line-letter')
     const outside = await client.callTool({
       name: 'ciphers_decode',
       arguments: { cipher: 'book', text: '11', book },

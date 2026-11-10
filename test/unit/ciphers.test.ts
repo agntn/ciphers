@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vite-plus/test'
 import { create, ciphers, has } from '../../src/core/registry.ts'
 import { resolveCipher } from '../../src/core/resolve.ts'
 import { builtinCiphers } from '../../src/core/ciphers.ts'
-import { MAX_BOOK_LENGTH } from '../../src/tool-operations.ts'
+import { BOOK_ADDRESSES, MAX_BOOK_LENGTH } from '../../src/tool-operations.ts'
 import type { CipherBaseOptions } from '../../src/core/types.ts'
 import { Cipher } from '../../src/core/cipher.ts'
 import { CipherError, MissingOptionError, InvalidOptionError } from '../../src/core/errors.ts'
@@ -1433,6 +1433,93 @@ describe('book', () => {
     )
   })
 
+  it('points at a letter inside a word, the Ottendorf way', () => {
+    const colors = { book: 'red blue\ngold green', address: 'line-word-letter' as const }
+    expect(book.decode('1-2-3', colors).text).toBe('U')
+    expect(book.decode('0-1-2', { ...colors, start: 0 }).text).toBe('U')
+    expect(
+      book.decode('2-2-3-1 1-1-3-5', { book: pages, address: 'page-line-word-letter' }).text,
+    ).toBe('TE')
+  })
+
+  it('counts letters through the book, a line, or a line on its page', () => {
+    expect(book.decode('12 9 3 28', { book: pages, address: 'letter' }).text).toBe('FREE')
+    expect(book.decode('4-6 2-5', { book: pages, address: 'line-letter' }).text).toBe('NF')
+    expect(book.decode('2-1-4 1-2-8', { book: pages, address: 'page-line-letter' }).text).toBe('SE')
+    expect(book.decode('3-4', { book: pages, address: 'line-letter' }).text).toBe('S')
+  })
+
+  it('counts letters and digits only, marks riding on their letter', () => {
+    const odd = { book: "Don't e\u0301te\u0301, 4x4!", address: 'letter' as const }
+    expect(book.decode('4 5 7 8 9', odd).text).toBe('T\u00C9\u00C94X')
+    expect(book.decode('1-1-4', { ...odd, address: 'line-word-letter' }).text).toBe('T')
+    expect(book.encode('\u00E9 e\u0301', odd).text).toBe('5 7')
+    expect(book.decode('2', { book: 'x\u0301y', address: 'letter' }).text).toBe('Y')
+    expect(book.decode('5', { book: 'stra\u00DFe', address: 'letter' }).text).toBe('\u00DF')
+  })
+
+  it('gives a repeated letter its next place round the book', () => {
+    const inWords = { book: pages, address: 'line-word-letter' as const }
+    expect(book.encode('Tent!', inWords).text).toBe('1-2-1 1-1-3 1-1-2 1-3-1')
+    expect(book.decode('1-2-1 1-1-3 1-1-2 1-3-1', inWords).text).toBe('TENT')
+    expect(book.encode('to', { book: pages, address: 'letter', start: 0 }).text).toBe('3 0')
+    expect(book.encode('xx', { book: pages, address: 'page-line-letter' }).text).toBe('2-1-3 2-1-3')
+  })
+
+  it('takes pick letter or none with a letter address, and says how many letters it counted', () => {
+    const letters = { book: pages, address: 'letter' as const }
+    expect(book.decode('1', { ...letters, pick: 'letter' }).text).toBe('O')
+    expect(book.decode('1', letters).options).toEqual({
+      address: 'letter',
+      pick: 'letter',
+      start: 1,
+      words: 10,
+      lines: 4,
+      pages: 2,
+      letters: 39,
+    })
+  })
+
+  it('throws CipherError for a letter outside its word, line or book', () => {
+    expect(() => book.decode('1-2-4', { book: pages, address: 'line-word-letter' })).toThrow(
+      'Letter 4 is out of range: word 2 of line 1 has 3 letters, numbered from 1',
+    )
+    expect(() => book.decode('2-1-9', { book: pages, address: 'page-line-letter' })).toThrow(
+      'Letter 9 is out of range: line 1 of page 2 has 8 letters, numbered from 1',
+    )
+    expect(() => book.decode('40', { book: pages, address: 'letter' })).toThrow(
+      'Letter 40 is out of range: the book has 39 letters, numbered from 1',
+    )
+    expect(() => book.decode('0', { book: pages, address: 'letter' })).toThrow(
+      'Letter 0 is out of range',
+    )
+    expect(() => book.decode('39', { book: pages, address: 'letter', start: 0 })).toThrow(
+      'numbered from 0',
+    )
+    expect(() => book.decode('5-1', { book: pages, address: 'line-letter' })).toThrow(
+      'Line 5 is out of range: the book has 4 lines',
+    )
+    expect(() => book.decode('1-2', { book: pages, address: 'line-word-letter' })).toThrow(
+      'line-word-letter addresses take 3 numbers each, and the text has 2',
+    )
+    expect(() => book.encode('q', { book: pages, address: 'letter' })).toThrow(
+      'The book has no letter "q"',
+    )
+  })
+
+  it('reads many letters of one long word without spelling it again each time', () => {
+    const word = { book: 'a'.repeat(MAX_BOOK_LENGTH), address: 'letter' as const }
+    expect(book.decode('7 '.repeat(5000), word).text).toBe('A'.repeat(5000))
+    const line = { book: 'ab '.repeat(MAX_BOOK_LENGTH / 4), address: 'line-letter' as const }
+    expect(book.decode('1-500000 1-499999', line).text).toBe('BA')
+    expect(book.encode('ba', line).text).toBe('1-2 1-1')
+  })
+
+  it('offers the tools every address form the cipher knows', () => {
+    const address = book.info().options?.find((option) => option.name === 'address')
+    expect(address?.description).toBe(`What one address counts: ${BOOK_ADDRESSES.join(', ')}`)
+  })
+
   it('reports the settings and the split, and leaves the book out', () => {
     expect(book.decode('1', { book: pages }).options).toEqual({
       address: 'word',
@@ -1499,6 +1586,8 @@ describe('book', () => {
   it.each([
     [{ address: 'chapter-verse' }, 'address'],
     [{ pick: 'line' }, 'pick'],
+    [{ address: 'line-word-letter', pick: 'word' }, 'pick'],
+    [{ address: 'letter', pick: 'line' }, 'pick'],
     [{ start: 2 }, 'start'],
     [{ start: '1' }, 'start'],
   ])('rejects %o with InvalidOptionError', (options, option) => {

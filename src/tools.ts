@@ -36,6 +36,7 @@ import {
   MAX_COLUMNAR_KEY_LENGTH,
   MAX_FREQUENCY_TEXT_LENGTH,
   MAX_KEY_CANDIDATES,
+  BOOK_ADDRESSES,
   MAX_BOOK_LENGTH,
   MAX_HOMOPHONIC_STARTS,
   MAX_KEY_LENGTH,
@@ -712,9 +713,7 @@ const cipherInput = Type.Object(
       Type.String({ maxLength: MAX_BOOK_LENGTH, description: OPTION_DESCRIPTIONS.book }),
     ),
     address: Type.Optional(
-      Type.Enum(['word', 'line-word', 'page-line-word'], {
-        description: OPTION_DESCRIPTIONS.address,
-      }),
+      Type.Enum([...BOOK_ADDRESSES], { description: OPTION_DESCRIPTIONS.address }),
     ),
     pick: Type.Optional(Type.Enum(['word', 'letter'], { description: OPTION_DESCRIPTIONS.pick })),
     start: Type.Optional(Type.Enum([0, 1], { description: OPTION_DESCRIPTIONS.start })),
@@ -771,7 +770,7 @@ export const encodeTool = defineCipherTool({
     'Two-square (two-square) stacks its squares by default, as the English Wikipedia page does; a puzzle from the ACA or dCode sets them side by side and needs orientation horizontal. Without Q in the squares it needs omit q too.',
     'Route (route) needs width, the cells per row. Decoding reads the grid along path from corner, so a grid copied row by row from a puzzle goes to ciphers_decode. Line breaks are not cells.',
     'A1Z26 (a1z26) turns letters into their numbers, 1 to 26, joined by separator (default -). With zero it is the single digit form instead: A to I for 1 to 9 and zero for 0, so letters like BEF go to ciphers_decode and come back as 256.',
-    'Book cipher (book) needs book, the whole text both sides count in. Decoding reads every number in order, one per address, or two or three with address line-word or page-line-word, and pick letter takes first letters, as Beale cipher 2 does. Encoding takes the next matching word each time, so a repeated letter gets a new number.',
+    'Book cipher (book) needs book, the whole text both sides count in. Decoding reads every number in order, one per address, or two or three with address line-word or page-line-word, and pick letter takes first letters, as Beale cipher 2 does. An address ending in letter, such as line-word-letter or page-line-letter, points at one letter inside the text, as an Ottendorf cipher does. Encoding takes the next matching word each time, so a repeated letter gets a new number.',
     'Straddling checkerboard (straddling-checkerboard) turns letters into digits, one for the eight on the top row and two for the rest. key is the board of 28 cells and blanks its two blank digits.',
     'Tridigital (tridigital) needs key, a 10-letter keyword or the digits 0 to 9 in any order, and secondKey, the alphabet in the block. A digit stands for up to three letters, so decoding gives a character class such as [AET] per letter and a space per separator digit.',
     'AES (aes) needs key as 32, 48 or 64 hex digits; it encodes UTF-8 text to hex and decodes hex back.',

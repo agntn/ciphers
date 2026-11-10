@@ -246,6 +246,8 @@ export interface TrifidOptions extends CipherBaseOptions {
 export interface BaconOptions extends CipherBaseOptions {
   /** Table size: 26 codes every letter, 24 shares I/J and U/V. Default: 26. */
   letters?: 24 | 26
+  /** Decoding only: reads letter case, lowercase letters being this symbol. */
+  lowercase?: 'A' | 'B' | 'a' | 'b'
 }
 
 /** A1Z26 options. */

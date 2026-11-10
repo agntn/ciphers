@@ -90,6 +90,14 @@ describe('CLI refusals', () => {
     )
   })
 
+  it('reads Bacon off letter case, and refuses a symbol that is not A or B', () => {
+    expect(runCli(['decode', 'bacon', 'heLLO, wOrld!', '--lowercase', 'a']).stdout).toBe('HI\n')
+    expectRefusal(
+      ['decode', 'bacon', 'heLLO', '--lowercase', 'c'],
+      'Invalid arguments at --lowercase: must match pattern "^[ABab]$"',
+    )
+  })
+
   it('refuses what the schema refuses, naming the flag that was typed', () => {
     expectRefusal(
       ['ciphers', '--category', 'hash'],

@@ -600,6 +600,13 @@ const cipherInput = Type.Object(
         description: 'Bacon alphabet size: 26 (default) or 24 with I/J and U/V shared',
       }),
     ),
+    lowercase: Type.Optional(
+      Type.String({
+        pattern: '^[ABab]$',
+        description:
+          'Bacon decoding only: A or B, the symbol a lowercase letter of the text stands for, uppercase being the other',
+      }),
+    ),
     segment: Type.Optional(Type.Enum([1, 8, 128], { description: OPTION_DESCRIPTIONS.segment })),
     blockSize: Type.Optional(
       Type.Enum([128, 160, 192, 224, 256], { description: OPTION_DESCRIPTIONS.blockSize }),

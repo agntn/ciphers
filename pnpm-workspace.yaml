@@ -26,7 +26,7 @@ catalogs:
     '@agntn/compressions': 0.1.1
     '@agntn/encodings': 0.2.0
     '@agntn/hashes': 0.6.7
-    '@agntn/tools': 0.2.4
+    '@agntn/tools': 0.3.2
     '@modelcontextprotocol/sdk': 1.32.2
     '@modelcontextprotocol/server': 2.4.0
     '@nuxtjs/mcp-toolkit': 0.24.3

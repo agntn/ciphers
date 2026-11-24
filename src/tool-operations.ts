@@ -1021,8 +1021,8 @@ function formatHiddenTextRanking(
  * @param params - The tool arguments.
  * @returns {CipherToolResult} The reading, or the ranking without `pick`.
  * @throws {MissingOptionError} When a reading option comes without `pick`, or `every` is missing.
- * @throws {InvalidOptionError} When an option, `lang` included, does not apply to `pick` or is out
- * of range.
+ * @throws {InvalidOptionError} When an option does not apply to `pick` or is out of range. `lang`
+ * only ranks, so with `pick` it changes nothing and gets no refusal.
  */
 export function formatHiddenText(
   /* oxlint-disable-next-line typescript/prefer-readonly-parameter-types */
@@ -1041,13 +1041,6 @@ export function formatHiddenText(
     )
     if (stray !== undefined) throw new library.MissingOptionError('pick')
     return formatHiddenTextRanking(library, text, lang)
-  }
-  if (lang !== undefined) {
-    throw new library.InvalidOptionError(
-      'lang',
-      lang,
-      'ranks the readings, so it does not apply with pick',
-    )
   }
   const options = { pick, letter, every, start, direction }
   const reading = library.readHiddenText(text, options)

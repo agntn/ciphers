@@ -2363,13 +2363,15 @@ Co2B
     expect(onlyText((await call({ text: telegram, pick: 'word' })).content)).toBe(
       'PERSHINGSAILSFROMNYJUNEI',
     )
+    expect(
+      onlyText((await call({ text: 'Nervous Breakdown', pick: 'word', lang: 'pl' })).content),
+    ).toBe('NB')
     expect(onlyText((await call({ text: 'ab cd' })).content)).toBe(
       'No reading has 5 or more A-Z letters.',
     )
 
     for (const [args, message] of [
       [{ text: 'abc', every: 2 }, 'Missing required option: pick'],
-      [{ text: 'abc', pick: 'word', lang: 'pl' }, 'Invalid option lang=pl: ranks the readings'],
       [
         { text: 'abc', pick: 'word', every: 2 },
         'Invalid option every=2: does not apply to pick word',

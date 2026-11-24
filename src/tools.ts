@@ -1171,7 +1171,7 @@ export const hiddenTextReadTool = defineCipherTool({
         }),
       ),
       lang: language(
-        'Language the message should read in, ja for Hepburn romaji; ranks the readings without pick (default en)',
+        'Language the message should read in, ja for Hepburn romaji; ranks the readings without pick, ignored with it (default en)',
       ),
     },
     { additionalProperties: false },
